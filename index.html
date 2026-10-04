@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>手机累计销量 · 发售后精确周数趋势</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+    <style>
+        * { box-sizing: border-box; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; }
+        body { background: #f5f7fb; margin: 0; padding: 16px; display: flex; justify-content: center; }
+        .container { max-width: 1500px; width: 100%; background: white; border-radius: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.08); padding: 20px 20px 28px; }
+        h1 { font-size: 1.4rem; font-weight: 600; margin: 0 0 6px; color: #1a1e2b; line-height: 1.3; }
+        h1 small { display: block; font-size: 0.8rem; font-weight: 400; color: #5e6f8c; margin-top: 4px; }
+        .toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin: 16px 0 18px; padding-bottom: 12px; border-bottom: 1px solid #e6eaf0; }
+        .brand-filters { display: flex; flex-wrap: wrap; gap: 6px; flex: 2 1 auto; }
+        .brand-btn { background: #f0f3f8; border: none; padding: 7px 14px; border-radius: 40px; font-size: 0.85rem; font-weight: 500; color: #2c3e5c; cursor: pointer; transition: 0.15s; }
+        .brand-btn:hover { background: #e2e8f2; }
+        .brand-btn.active { background: #1e3a8a; color: white; box-shadow: 0 4px 10px rgba(30,58,138,0.3); }
+        .actions { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+        .action-btn { background: white; border: 1px solid #cfd9e6; padding: 7px 14px; border-radius: 40px; font-size: 0.85rem; font-weight: 500; color: #1e2b3c; cursor: pointer; transition: 0.15s; }
+        .action-btn:hover { background: #f0f4fe; border-color: #8ba3cc; }
+        .switch-wrap { display: flex; align-items: center; gap: 6px; background: #f0f3f8; padding: 5px 12px; border-radius: 40px; font-size: 0.8rem; color: #2c3e5c; user-select: none; }
+        .switch-wrap input { width: 34px; height: 18px; appearance: none; background: #cfd9e6; border-radius: 20px; position: relative; outline: none; cursor: pointer; transition: 0.2s; }
+        .switch-wrap input:checked { background: #1e3a8a; }
+        .switch-wrap input::after { content: ''; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; background: white; border-radius: 50%; transition: 0.2s; }
+        .switch-wrap input:checked::after { left: 18px; }
+        .font-size-wrap { display: flex; align-items: center; gap: 6px; background: #f0f3f8; padding: 5px 12px; border-radius: 40px; font-size: 0.8rem; color: #2c3e5c; user-select: none; }
+        .font-size-wrap input[type="range"] { width: 80px; accent-color: #1e3a8a; cursor: pointer; }
+        .font-size-wrap .font-size-value { font-weight: 600; min-width: 30px; text-align: center; color: #1e3a8a; }
+        .model-picker-toggle { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+        .model-picker-toggle button { background: white; border: 1px solid #cfd9e6; padding: 7px 16px; border-radius: 40px; font-size: 0.85rem; font-weight: 500; color: #1e2b3c; cursor: pointer; transition: 0.15s; display: flex; align-items: center; gap: 6px; }
+        .model-picker-toggle button:hover { background: #f0f4fe; border-color: #8ba3cc; }
+        .model-picker-toggle .count-badge { background: #1e3a8a; color: white; border-radius: 20px; padding: 1px 8px; font-size: 0.72rem; font-weight: 600; }
+        .model-picker-panel { display: none; position: absolute; right: 16px; top: 110px; width: calc(100% - 32px); max-width: 360px; max-height: 520px; background: white; border-radius: 18px; box-shadow: 0 20px 50px rgba(0,0,0,0.18); border: 1px solid #e1e9f2; z-index: 100; overflow: hidden; flex-direction: column; }
+        .model-picker-panel.open { display: flex; }
+        .model-picker-header { padding: 14px 16px 10px; border-bottom: 1px solid #eef2f7; }
+        .model-picker-header h3 { margin: 0 0 10px; font-size: 0.95rem; color: #1a1e2b; }
+        .model-picker-search { width: 100%; padding: 8px 14px; border-radius: 40px; border: 1px solid #cfd9e6; font-size: 0.85rem; outline: none; }
+        .model-picker-search:focus { border-color: #1e3a8a; }
+        .model-picker-actions { display: flex; gap: 6px; padding: 10px 16px; border-bottom: 1px solid #eef2f7; flex-wrap: wrap; }
+        .model-picker-actions button { background: #f0f3f8; border: none; padding: 6px 12px; border-radius: 40px; font-size: 0.75rem; font-weight: 500; color: #2c3e5c; cursor: pointer; transition: 0.15s; }
+        .model-picker-actions button:hover { background: #e2e8f2; }
+        .model-picker-list { overflow-y: auto; padding: 8px 0; flex: 1; -webkit-overflow-scrolling: touch; }
+        .model-picker-item { display: flex; align-items: center; gap: 8px; padding: 8px 16px; cursor: pointer; transition: background 0.1s; }
+        .model-picker-item:hover { background: #f7faff; }
+        .model-picker-item input[type="checkbox"] { width: 18px; height: 18px; accent-color: #1e3a8a; cursor: pointer; flex-shrink: 0; }
+        .model-picker-item .brand-tag { font-size: 0.68rem; font-weight: 600; padding: 2px 7px; border-radius: 20px; background: #eef2f7; color: #4a5e7c; flex-shrink: 0; }
+        .model-picker-item .model-name { font-size: 0.85rem; color: #1a1e2b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .model-picker-item .color-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+        .model-picker-empty { padding: 24px; text-align: center; color: #8a9bb5; font-size: 0.85rem; }
+        .chart-wrapper { position: relative; height: 520px; width: 100%; margin: 8px 0; }
+        .legend-note { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 6px; font-size: 0.72rem; color: #6b7b96; margin-top: 8px; padding: 0 6px; }
+        .stats { margin-top: 16px; font-size: 0.8rem; color: #3d506e; background: #f8faff; padding: 10px 16px; border-radius: 16px; border: 1px solid #e1e9f2; display: flex; flex-wrap: wrap; gap: 16px; }
+        .loading { text-align: center; padding: 60px 20px; color: #6b7b96; font-size: 0.95rem; }
+        .error-box { background: #fff5f5; border: 1px solid #feb2b2; color: #c53030; padding: 16px 20px; border-radius: 12px; margin: 20px 0; font-size: 0.9rem; }
+        .error-box code { background: #fed7d7; padding: 2px 6px; border-radius: 4px; font-size: 0.85rem; }
+        @media (max-width: 640px) {
+            body { padding: 10px; }
+            .container { border-radius: 18px; padding: 16px 14px 22px; }
+            h1 { font-size: 1.15rem; }
+            h1 small { font-size: 0.72rem; }
+            .toolbar { gap: 8px; }
+            .brand-btn { padding: 6px 12px; font-size: 0.78rem; }
+            .action-btn { padding: 6px 12px; font-size: 0.78rem; }
+            .switch-wrap, .font-size-wrap { padding: 4px 10px; font-size: 0.75rem; }
+            .font-size-wrap input[type="range"] { width: 60px; }
+            .model-picker-toggle { margin-left: 0; width: 100%; }
+            .model-picker-toggle button { width: 100%; justify-content: center; }
+            .chart-wrapper { height: 420px; }
+            .model-picker-panel { top: 150px; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>
+        📱 累计销量 vs 发售后精确周数
+        <small>横轴：发售后实际周数（天/7） · 纵轴：累计销量（万台） · 同品牌同色系</small>
+    </h1>
+
+    <div id="loadingArea" class="loading">正在加载 data.csv ...</div>
+    <div id="errorArea"></div>
+
+    <div id="mainArea" style="display:none;">
+        <div class="toolbar">
+            <div class="brand-filters" id="brandFilters"></div>
+            <div class="actions">
+                <button class="action-btn" id="showAllBtn">✅ 全部显示</button>
+                <button class="action-btn" id="hideAllBtn">❌ 全部隐藏</button>
+                <label class="switch-wrap">
+                    <input type="checkbox" id="labelToggle" />
+                    标注机型
+                </label>
+                <div class="font-size-wrap" title="调整标注字号">
+                    <span>字号</span>
+                    <input type="range" id="fontSizeRange" min="8" max="20" step="1" value="11" />
+                    <span class="font-size-value" id="fontSizeValue">11</span>
+                </div>
+            </div>
+            <div class="model-picker-toggle">
+                <button id="modelPickerBtn">
+                    🎯 选择机型
+                    <span class="count-badge" id="selectedCount">0</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="model-picker-panel" id="modelPickerPanel">
+            <div class="model-picker-header">
+                <h3>选择要显示的机型</h3>
+                <input type="text" class="model-picker-search" id="modelSearch" placeholder="搜索品牌或机型..." />
+            </div>
+            <div class="model-picker-actions">
+                <button id="selectAllVisible">全选当前</button>
+                <button id="clearVisible">清空当前</button>
+                <button id="selectAllModels">全选全部</button>
+                <button id="clearAllModels">清空全部</button>
+            </div>
+            <div class="model-picker-list" id="modelPickerList"></div>
+        </div>
+
+        <div class="chart-wrapper">
+            <canvas id="salesChart"></canvas>
+        </div>
+
+        <div class="legend-note">
+            <span id="weekRangeNote">💡 数据加载中...</span>
+            <span>⏱ 同品牌同色系，标注自动上下错开</span>
+        </div>
+
+        <div class="stats" id="statsArea">
+            当前显示 <span id="visibleCount">0</span> 款机型 · 共 <span id="totalCount">0</span> 款
+        </div>
+    </div>
+</div>
+
+<script>
+    // ============================================================
+    // 全局状态
+    // ============================================================
+    let weekEndDates = {};      // 从 CSV 表头解析出来的周 -> 结束日期
+    let weekLabels = [];        // 排序后的周标签，如 ['W34','W35','W36','W37']
+    let rawData = [];           // 解析后的机型数据
+    let brands = [];            // 所有品牌
+    let modelColorMap = new Map();
+    let activeBrands = new Set();
+    let selectedModels = new Set();
+    let showLabels = false;
+    let labelFontSize = 11;
+    let chart = null;
+
+    // ============================================================
+    // 从 CSV 表头解析周标签，并推算每周结束日期
+    // 规则：W34 = 2026 年第 34 周，结束日为周日
+    // 基准：2026-01-01 是周四，ISO 第 1 周从 2025-12-29(周一) 开始
+    // 这里用简化算法：W1 结束日 = 2026-01-04(周日)
+    // ============================================================
+    function getWeekEndDate(year, weekNum) {
+        // 2026-01-04 是第 1 周周日
+        const week1Sunday = new Date(year, 0, 4);
+        const msPerWeek = 7 * 24 * 60 * 60 * 1000;
+        return new Date(week1Sunday.getTime() + (weekNum - 1) * msPerWeek);
+    }
+
+    function parseWeekLabel(label) {
+        // 匹配 W34、w34、2026W34、W34 等形式
+        const m = String(label).trim().match(/^(?:(\d{4}))?[Ww](\d{1,2})$/);
+        if (!m) return null;
+        const year = m[1] ? Number(m[1]) : 2026; // 默认 2026
+        const week = Number(m[2]);
+        return { year, week, label: `W${week}` };
+    }
+
+    // ============================================================
+    // 解析 CSV
+    // ============================================================
+    function parseCSV(csvText) {
+        const result = Papa.parse(csvText, {
+            header: true,
+            skipEmptyLines: true,
+            transformHeader: h => h.trim(),
+        });
+
+        if (result.errors.length) {
+            // 只显示严重错误
+            const fatal = result.errors.filter(e => e.type === 'Delimiter' || e.code === 'MissingQuotes');
+            if (fatal.length) {
+                throw new Error('CSV 解析错误：' + fatal.map(e => e.message).join('; '));
+            }
+        }
+
+        const rows = result.data;
+        if (!rows.length) throw new Error('CSV 内容为空');
+
+        const headers = result.meta.fields;
+        // 固定列
+        const fixedCols = ['brand', 'model', 'category', 'date'];
+        for (const col of fixedCols) {
+            if (!headers.includes(col)) {
+                throw new Error(`CSV 缺少必需列：${col}`);
+            }
+        }
+
+        // 识别周列
+        const weekCols = [];
+        headers.forEach(h => {
+            if (fixedCols.includes(h)) return;
+            const parsed = parseWeekLabel(h);
+            if (parsed) {
+                weekCols.push({ header: h, ...parsed });
+            }
+        });
+
+        if (!weekCols.length) {
+            throw new Error('CSV 中没有识别到任何周列（如 W34、W35）');
+        }
+
+        // 按周号排序
+        weekCols.sort((a, b) => a.week - b.week);
+
+        // 生成 weekEndDates 和 weekLabels
+        weekEndDates = {};
+        weekLabels = [];
+        weekCols.forEach(wc => {
+            const endDate = getWeekEndDate(wc.year, wc.week);
+            weekEndDates[wc.label] = endDate;
+            weekLabels.push(wc.label);
+        });
+
+        // 解析每一行
+        const data = [];
+        rows.forEach((row, idx) => {
+            const brand = (row.brand || '').trim();
+            const model = (row.model || '').trim();
+            const category = (row.category || '').trim();
+            const date = (row.date || '').trim();
+
+            if (!brand || !model || !date) {
+                // 跳过不完整行
+                return;
+            }
+
+            const sales = {};
+            weekCols.forEach(wc => {
+                const raw = row[wc.header];
+                if (raw === undefined || raw === null || String(raw).trim() === '') {
+                    sales[wc.label] = null;
+                } else {
+                    const num = Number(String(raw).replace(/,/g, ''));
+                    sales[wc.label] = isNaN(num) ? null : num;
+                }
+            });
+
+            data.push({ brand, model, category, date, sales });
+        });
+
+        if (!data.length) throw new Error('CSV 中没有有效数据行');
+
+        return data;
+    }
+
+    // ============================================================
+    // 辅助：计算发售后精确周数
+    // ============================================================
+    function parseDate(str) {
+        const [y, m, d] = str.split(/[.\-/]/).map(Number);
+        return new Date(y, m - 1, d);
+    }
+
+    function exactWeeksAfterLaunch(launchDateStr, weekEndDate) {
+        const launch = parseDate(launchDateStr);
+        const diffMs = weekEndDate - launch;
+        const diffDays = diffMs / (1000 * 60 * 60 * 24);
+        return Math.round((diffDays / 7) * 10) / 10;
+    }
+
+    // ============================================================
+    // 品牌色系
+    // ============================================================
+    const brandBaseColors = {
+        '华为':   '#c0392b',
+        '小米':   '#e67e22',
+        'OPPO':   '#27ae60',
+        'vivo':   '#2980b9',
+        '荣耀':   '#8e44ad',
+        '苹果':   '#34495e',
+        'REDMI':  '#d35400',
+        '一加':   '#16a085',
+        'iQOO':   '#2c3e50',
+    };
+    // 未在表里的品牌，用这组备用色
+    const fallbackColors = ['#e74c3c', '#f39c12', '#1abc9c', '#3498db', '#9b59b6', '#e91e63', '#00bcd4', '#8bc34a', '#ff5722'];
+
+    function hexToHsl(hex) {
+        let r = parseInt(hex.slice(1,3),16)/255;
+        let g = parseInt(hex.slice(3,5),16)/255;
+        let b = parseInt(hex.slice(5,7),16)/255;
+        let max = Math.max(r,g,b), min = Math.min(r,g,b);
+        let h, s, l = (max+min)/2;
+        if (max === min) { h = s = 0; }
+        else {
+            let d = max - min;
+            s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+            switch(max) {
+                case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+                case g: h = (b - r) / d + 2; break;
+                case b: h = (r - g) / d + 4; break;
+            }
+            h /= 6;
+        }
+        return [h*360, s*100, l*100];
+    }
+
+    function hslToHex(h, s, l) {
+        s /= 100; l /= 100;
+        const k = n => (n + h/30) % 12;
+        const a = s * Math.min(l, 1-l);
+        const f = n => l - a * Math.max(-1, Math.min(k(n)-3, Math.min(9-k(n), 1)));
+        const toHex = x => Math.round(x*255).toString(16).padStart(2,'0');
+        return `#${toHex(f(0))}${toHex(f(8))}${toHex(f(4))}`;
+    }
+
+    function buildColorMap() {
+        const brandColorMap = {};
+        const brandModels = {};
+        rawData.forEach(item => {
+            if (!brandModels[item.brand]) brandModels[item.brand] = [];
+            if (!brandModels[item.brand].includes(item.model)) {
+                brandModels[item.brand].push(item.model);
+            }
+        });
+
+        let fallbackIdx = 0;
+        Object.keys(brandModels).forEach(brand => {
+            let base = brandBaseColors[brand];
+            if (!base) {
+                base = fallbackColors[fallbackIdx % fallbackColors.length];
+                fallbackIdx++;
+            }
+            const [h, s, l] = hexToHsl(base);
+            const count = brandModels[brand].length;
+            const colors = [];
+            for (let i = 0; i < count; i++) {
+                const t = count === 1 ? 0 : (i / (count - 1)) * 2 - 1;
+                const newL = Math.max(20, Math.min(80, l + t * 18));
+                const newS = Math.max(30, Math.min(90, s + t * 10));
+                colors.push(hslToHex(h, newS, newL));
+            }
+            brandColorMap[brand] = colors;
+        });
+
+        modelColorMap = new Map();
+        const brandColorIndex = {};
+        rawData.forEach(item => {
+            const brand = item.brand;
+            if (brandColorIndex[brand] === undefined) brandColorIndex[brand] = 0;
+            const colors = brandColorMap[brand] || ['#888'];
+            const idx = brandColorIndex[brand] % colors.length;
+            modelColorMap.set(item.model, colors[idx]);
+            brandColorIndex[brand]++;
+        });
+    }
+
+    // ============================================================
+    // 预计算每个机型的精确周数点
+    // ============================================================
+    function precomputePoints() {
+        rawData.forEach(item => {
+            item.points = [];
+            for (const wk of weekLabels) {
+                const sale = item.sales[wk];
+                if (sale !== null && sale !== undefined) {
+                    const endDate = weekEndDates[wk];
+                    const x = exactWeeksAfterLaunch(item.date, endDate);
+                    item.points.push({ x, y: sale, weekLabel: wk });
+                }
+            }
+            item.points.sort((a, b) => a.x - b.x);
+        });
+    }
+
+    // ============================================================
+    // 自定义末端标注插件
+    // ============================================================
+    const endLabelPlugin = {
+        id: 'endLabel',
+        afterDatasetsDraw(chart) {
+            if (!showLabels) return;
+            const { ctx } = chart;
+            const datasets = chart.data.datasets;
+            if (!datasets.length) return;
+            const items = [];
+            datasets.forEach((ds, dsIndex) => {
+                const meta = chart.getDatasetMeta(dsIndex);
+                if (!meta.visible || !meta.data.length) return;
+                let lastPoint = meta.data[0];
+                let maxX = -Infinity;
+                meta.data.forEach((pt, i) => {
+                    const raw = ds.data[i];
+                    if (raw && raw.x > maxX) { maxX = raw.x; lastPoint = pt; }
+                });
+                const rawLast = ds.data.find(d => d.x === maxX);
+                if (!rawLast) return;
+                items.push({
+                    model: ds.modelName,
+                    brand: ds.brand,
+                    color: ds.borderColor,
+                    x: lastPoint.x,
+                    y: lastPoint.y,
+                    rawY: rawLast.y,
+                    weekLabel: rawLast.weekLabel,
+                });
+            });
+            items.sort((a, b) => a.y - b.y);
+            const minGap = Math.max(14, labelFontSize + 4);
+            const labelHeight = labelFontSize + 4;
+            let lastY = -Infinity;
+            items.forEach((item) => {
+                let targetY = item.y;
+                if (targetY - lastY < minGap) targetY = lastY + minGap;
+                item.labelY = targetY;
+                lastY = targetY;
+            });
+            ctx.save();
+            ctx.font = `500 ${labelFontSize}px system-ui, -apple-system, sans-serif`;
+            ctx.textBaseline = 'middle';
+            items.forEach(item => {
+                const text = item.model;
+                const textWidth = ctx.measureText(text).width;
+                const padding = Math.max(3, Math.round(labelFontSize * 0.35));
+                const boxW = textWidth + padding * 2;
+                const boxH = labelHeight;
+                const labelX = item.x + 8;
+                const labelY = item.labelY;
+                ctx.fillStyle = 'rgba(255,255,255,0.85)';
+                ctx.strokeStyle = item.color;
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                const r = 3;
+                ctx.moveTo(labelX + r, labelY - boxH/2);
+                ctx.lineTo(labelX + boxW - r, labelY - boxH/2);
+                ctx.quadraticCurveTo(labelX + boxW, labelY - boxH/2, labelX + boxW, labelY - boxH/2 + r);
+                ctx.lineTo(labelX + boxW, labelY + boxH/2 - r);
+                ctx.quadraticCurveTo(labelX + boxW, labelY + boxH/2, labelX + boxW - r, labelY + boxH/2);
+                ctx.lineTo(labelX + r, labelY + boxH/2);
+                ctx.quadraticCurveTo(labelX, labelY + boxH/2, labelX, labelY + boxH/2 - r);
+                ctx.lineTo(labelX, labelY - boxH/2 + r);
+                ctx.quadraticCurveTo(labelX, labelY - boxH/2, labelX + r, labelY - boxH/2);
+                ctx.closePath();
+                ctx.fill(); ctx.stroke();
+                ctx.beginPath();
+                ctx.strokeStyle = item.color;
+                ctx.lineWidth = 1;
+                ctx.setLineDash([2, 2]);
+                ctx.moveTo(item.x + 3, item.y);
+                ctx.lineTo(labelX, labelY);
+                ctx.stroke();
+                ctx.setLineDash([]);
+                ctx.fillStyle = item.color;
+                ctx.fillText(text, labelX + padding, labelY);
+            });
+            ctx.restore();
+        }
+    };
+    Chart.register(endLabelPlugin);
+
+    // ============================================================
+    // 数据构建
+    // ============================================================
+    function getFilteredData() {
+        return rawData.filter(d => activeBrands.has(d.brand) && selectedModels.has(d.model));
+    }
+
+    function buildDatasets() {
+        return getFilteredData().map(item => {
+            const baseColor = modelColorMap.get(item.model) || '#888';
+            return {
+                label: `${item.brand} ${item.model}`,
+                data: item.points.map(p => ({ x: p.x, y: p.y, weekLabel: p.weekLabel })),
+                borderColor: baseColor,
+                backgroundColor: baseColor,
+                pointBackgroundColor: baseColor,
+                pointBorderColor: '#fff',
+                pointRadius: 5,
+                pointHoverRadius: 12,
+                borderWidth: 2,
+                tension: 0,
+                showLine: true,
+                fill: false,
+                modelName: item.model,
+                brand: item.brand,
+            };
+        });
+    }
+
+    // ============================================================
+    // 图表渲染
+    // ============================================================
+    function renderChart() {
+        const datasets = buildDatasets();
+        const ctx = document.getElementById('salesChart').getContext('2d');
+        if (chart) chart.destroy();
+
+        // 动态计算横轴最大值：取所有点的最大 x + 5
+        let maxX = 55;
+        datasets.forEach(ds => {
+            ds.data.forEach(p => { if (p.x > maxX) maxX = p.x; });
+        });
+        maxX = Math.ceil(maxX / 5) * 5 + 5;
+
+        chart = new Chart(ctx, {
+            type: 'line',
+            data: { datasets },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: { duration: 400 },
+                layout: { padding: { right: 140 } },
+                interaction: { mode: 'nearest', intersect: true },
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            title: (items) => {
+                                const raw = items[0].raw;
+                                return `发售后 ${raw.x} 周（${raw.weekLabel}）`;
+                            },
+                            label: (context) => {
+                                const ds = context.dataset;
+                                return `${ds.label}: ${context.raw.y} 万台`;
+                            }
+                        }
+                    },
+                    legend: { display: false },
+                },
+                scales: {
+                    x: {
+                        type: 'linear',
+                        title: { display: true, text: '发售后精确周数（天/7）', font: { weight: '500', size: 12 }, color: '#2c3e5c' },
+                        grid: { color: '#e9edf4' },
+                        ticks: { stepSize: 5, color: '#4a5e7c', font: { size: 11 } },
+                        min: 0, max: maxX
+                    },
+                    y: {
+                        title: { display: true, text: '累计销量（万台）', font: { weight: '500', size: 12 }, color: '#2c3e5c' },
+                        grid: { color: '#e9edf4' },
+                        ticks: { color: '#4a5e7c', font: { size: 11 } },
+                        type: 'linear', min: 0,
+                    }
+                },
+                elements: { point: { hoverBorderWidth: 2, hoverBorderColor: '#1e3a8a' } }
+            }
+        });
+        document.getElementById('visibleCount').textContent = datasets.length;
+        document.getElementById('totalCount').textContent = rawData.length;
+        document.getElementById('selectedCount').textContent = selectedModels.size;
+    }
+
+    // ============================================================
+    // UI 渲染
+    // ============================================================
+    function renderBrandButtons() {
+        const container = document.getElementById('brandFilters');
+        container.innerHTML = '';
+        brands.forEach(brand => {
+            const btn = document.createElement('button');
+            btn.className = `brand-btn ${activeBrands.has(brand) ? 'active' : ''}`;
+            btn.textContent = brand;
+            btn.addEventListener('click', () => {
+                if (activeBrands.has(brand)) activeBrands.delete(brand);
+                else activeBrands.add(brand);
+                renderBrandButtons();
+                renderChart();
+            });
+            container.appendChild(btn);
+        });
+    }
+
+    function showAll() {
+        activeBrands = new Set(brands);
+        selectedModels = new Set(rawData.map(d => d.model));
+        renderBrandButtons();
+        renderModelPickerList();
+        renderChart();
+    }
+
+    function hideAll() {
+        activeBrands.clear();
+        selectedModels.clear();
+        renderBrandButtons();
+        renderModelPickerList();
+        renderChart();
+    }
+
+    function getSearchFilteredModels() {
+        const q = document.getElementById('modelSearch').value.trim().toLowerCase();
+        if (!q) return rawData;
+        return rawData.filter(item =>
+            item.brand.toLowerCase().includes(q) ||
+            item.model.toLowerCase().includes(q)
+        );
+    }
+
+    function renderModelPickerList() {
+        const list = document.getElementById('modelPickerList');
+        const items = getSearchFilteredModels();
+        if (!items.length) {
+            list.innerHTML = '<div class="model-picker-empty">没有匹配的机型</div>';
+            return;
+        }
+        list.innerHTML = '';
+        items.forEach(item => {
+            const checked = selectedModels.has(item.model);
+            const color = modelColorMap.get(item.model) || '#888';
+            const row = document.createElement('label');
+            row.className = 'model-picker-item';
+            row.innerHTML = `
+                <input type="checkbox" ${checked ? 'checked' : ''} data-model="${item.model}" />
+                <span class="color-dot" style="background:${color}"></span>
+                <span class="brand-tag">${item.brand}</span>
+                <span class="model-name">${item.model}</span>
+            `;
+            const cb = row.querySelector('input');
+            cb.addEventListener('change', (e) => {
+                if (e.target.checked) selectedModels.add(item.model);
+                else selectedModels.delete(item.model);
+                renderChart();
+                document.getElementById('selectedCount').textContent = selectedModels.size;
+            });
+            list.appendChild(row);
+        });
+    }
+
+    // ============================================================
+    // 初始化：加载 CSV -> 解析 -> 渲染
+    // ============================================================
+    async function init() {
+        try {
+            const resp = await fetch('data.csv?t=' + Date.now()); // 加时间戳避免缓存
+            if (!resp.ok) throw new Error(`无法加载 data.csv（HTTP ${resp.status}）`);
+            const text = await resp.text();
+
+            rawData = parseCSV(text);
+            brands = [...new Set(rawData.map(d => d.brand))];
+            activeBrands = new Set(brands);
+            selectedModels = new Set(rawData.map(d => d.model));
+
+            buildColorMap();
+            precomputePoints();
+
+            // 显示主区域
+            document.getElementById('loadingArea').style.display = 'none';
+            document.getElementById('mainArea').style.display = 'block';
+
+            // 更新周范围提示
+            const firstWeek = weekLabels[0];
+            const lastWeek = weekLabels[weekLabels.length - 1];
+            document.getElementById('weekRangeNote').textContent =
+                `💡 每个机型连接 ${firstWeek}→...→${lastWeek} 的累计销量点`;
+
+            renderBrandButtons();
+            renderModelPickerList();
+            renderChart();
+
+            // 事件绑定
+            document.getElementById('showAllBtn').addEventListener('click', showAll);
+            document.getElementById('hideAllBtn').addEventListener('click', hideAll);
+
+            document.getElementById('labelToggle').addEventListener('change', (e) => {
+                showLabels = e.target.checked;
+                renderChart();
+            });
+
+            const fontSizeRange = document.getElementById('fontSizeRange');
+            const fontSizeValue = document.getElementById('fontSizeValue');
+            fontSizeRange.addEventListener('input', (e) => {
+                labelFontSize = Number(e.target.value);
+                fontSizeValue.textContent = labelFontSize;
+                if (showLabels) renderChart();
+            });
+
+            const panel = document.getElementById('modelPickerPanel');
+            document.getElementById('modelPickerBtn').addEventListener('click', (e) => {
+                e.stopPropagation();
+                panel.classList.toggle('open');
+            });
+            document.addEventListener('click', (e) => {
+                if (!panel.contains(e.target) && e.target.id !== 'modelPickerBtn') {
+                    panel.classList.remove('open');
+                }
+            });
+            panel.addEventListener('click', (e) => e.stopPropagation());
+
+            document.getElementById('modelSearch').addEventListener('input', () => {
+                renderModelPickerList();
+            });
+
+            document.getElementById('selectAllVisible').addEventListener('click', () => {
+                getSearchFilteredModels().forEach(item => selectedModels.add(item.model));
+                renderModelPickerList(); renderChart();
+                document.getElementById('selectedCount').textContent = selectedModels.size;
+            });
+            document.getElementById('clearVisible').addEventListener('click', () => {
+                getSearchFilteredModels().forEach(item => selectedModels.delete(item.model));
+                renderModelPickerList(); renderChart();
+                document.getElementById('selectedCount').textContent = selectedModels.size;
+            });
+            document.getElementById('selectAllModels').addEventListener('click', () => {
+                selectedModels = new Set(rawData.map(d => d.model));
+                renderModelPickerList(); renderChart();
+                document.getElementById('selectedCount').textContent = selectedModels.size;
+            });
+            document.getElementById('clearAllModels').addEventListener('click', () => {
+                selectedModels.clear();
+                renderModelPickerList(); renderChart();
+                document.getElementById('selectedCount').textContent = selectedModels.size;
+            });
+
+        } catch (err) {
+            console.error(err);
+            document.getElementById('loadingArea').style.display = 'none';
+            document.getElementById('errorArea').innerHTML = `
+                <div class="error-box">
+                    <strong>加载失败：</strong>${err.message}
+                    <br><br>
+                    请确认：
+                    <ul style="margin:8px 0 0 20px;">
+                        <li><code>data.csv</code> 和 <code>chart.html</code> 在同一目录</li>
+                        <li>通过本地服务器访问（如 <code>python -m http.server</code>），而不是直接双击打开（浏览器可能因 CORS 拒绝读取本地 CSV）</li>
+                        <li>CSV 表头包含 <code>brand,model,category,date</code> 以及至少一个周列（如 <code>W34</code>）</li>
+                    </ul>
+                </div>
+            `;
+        }
+    }
+
+    window.addEventListener('load', init);
+</script>
+</body>
+</html>

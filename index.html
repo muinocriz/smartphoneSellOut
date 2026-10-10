@@ -387,25 +387,38 @@
     // ============================================================
     // 自定义末端标注插件
     // ============================================================
+        // ============================================================
+    // 自定义末端标注插件
+    // - 密集时向上错开，避免底部截断
+    // - 超出顶部时整体下移，避免顶部截断
+    // ============================================================
     const endLabelPlugin = {
         id: 'endLabel',
         afterDatasetsDraw(chart) {
             if (!showLabels) return;
-            const { ctx } = chart;
+            const { ctx, chartArea } = chart;
             const datasets = chart.data.datasets;
             if (!datasets.length) return;
+
+            // ---------- 1. 收集每条线的末端点 ----------
             const items = [];
             datasets.forEach((ds, dsIndex) => {
                 const meta = chart.getDatasetMeta(dsIndex);
                 if (!meta.visible || !meta.data.length) return;
+
                 let lastPoint = meta.data[0];
                 let maxX = -Infinity;
                 meta.data.forEach((pt, i) => {
                     const raw = ds.data[i];
-                    if (raw && raw.x > maxX) { maxX = raw.x; lastPoint = pt; }
+                    if (raw && raw.x > maxX) {
+                        maxX = raw.x;
+                        lastPoint = pt;
+                    }
                 });
+
                 const rawLast = ds.data.find(d => d.x === maxX);
                 if (!rawLast) return;
+
                 items.push({
                     model: ds.modelName,
                     brand: ds.brand,
@@ -416,31 +429,53 @@
                     weekLabel: rawLast.weekLabel,
                 });
             });
-			// 按 y 从大到小排序（从下往上处理），重叠时向上顶
-			items.sort((a, b) => b.y - a.y);
-			const minGap = Math.max(14, labelFontSize + 4);
-			const labelHeight = labelFontSize + 4;
-			let lastY = Infinity;
-			items.forEach((item) => {
-				let targetY = item.y;
-				// 如果和上一个标注太近（这里因为是向下处理，用 lastY - targetY）
-				if (lastY - targetY < minGap) {
-					targetY = lastY - minGap;
-				}
-				item.labelY = targetY;
-				lastY = targetY;
-			});
+            if (!items.length) return;
+
+            // ---------- 2. 计算标注位置：向上错开 ----------
+            // 按 y 从大到小排序（从下往上处理），重叠时向上顶
+            items.sort((a, b) => b.y - a.y);
+
+            const minGap = Math.max(14, labelFontSize + 4);
+            const labelHeight = labelFontSize + 4;
+
+            let lastY = Infinity;
+            items.forEach((item) => {
+                let targetY = item.y;
+                // 因为是从下往上处理，所以用 lastY - targetY 判断间距
+                if (lastY - targetY < minGap) {
+                    targetY = lastY - minGap;
+                }
+                item.labelY = targetY;
+                lastY = targetY;
+            });
+
+            // ---------- 3. 顶部兜底：如果最上方标注超出图表顶部，整体下移 ----------
+            // items 已按 y 从大到小排序，最后一个元素的 labelY 最小（最靠上）
+            const topMost = items[items.length - 1];
+            const topLimit = chartArea.top + labelHeight / 2 + 2; // 顶部安全边界
+            if (topMost.labelY < topLimit) {
+                const shift = topLimit - topMost.labelY;
+                items.forEach(item => {
+                    item.labelY += shift;
+                });
+            }
+
+            // ---------- 4. 绘制 ----------
             ctx.save();
             ctx.font = `500 ${labelFontSize}px system-ui, -apple-system, sans-serif`;
             ctx.textBaseline = 'middle';
+
             items.forEach(item => {
                 const text = item.model;
                 const textWidth = ctx.measureText(text).width;
                 const padding = Math.max(3, Math.round(labelFontSize * 0.35));
                 const boxW = textWidth + padding * 2;
                 const boxH = labelHeight;
+
                 const labelX = item.x + 8;
                 const labelY = item.labelY;
+
+                // 背景框
                 ctx.fillStyle = 'rgba(255,255,255,0.85)';
                 ctx.strokeStyle = item.color;
                 ctx.lineWidth = 1;
@@ -456,7 +491,10 @@
                 ctx.lineTo(labelX, labelY - boxH/2 + r);
                 ctx.quadraticCurveTo(labelX, labelY - boxH/2, labelX + r, labelY - boxH/2);
                 ctx.closePath();
-                ctx.fill(); ctx.stroke();
+                ctx.fill();
+                ctx.stroke();
+
+                // 连接虚线（从数据点到标注）
                 ctx.beginPath();
                 ctx.strokeStyle = item.color;
                 ctx.lineWidth = 1;
@@ -465,9 +503,12 @@
                 ctx.lineTo(labelX, labelY);
                 ctx.stroke();
                 ctx.setLineDash([]);
+
+                // 文字
                 ctx.fillStyle = item.color;
                 ctx.fillText(text, labelX + padding, labelY);
             });
+
             ctx.restore();
         }
     };
@@ -524,7 +565,7 @@
         if (!hasData) return { min: 0, max: 55 };
 
         const max = Math.ceil(maxX / 5) * 5 + 5;
-        return { min: 0, max: Math.max(max, 20) }; // 最少给 20 周
+        return { min: 0, max: Math.max(max, 10) }; // 最少给 20 周
     }
 
     // ============================================================

@@ -1,876 +1,308 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>手机累计销量 · 发售后精确周数趋势</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
-    <style>
-        * { box-sizing: border-box; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; }
-        body { background: #f5f7fb; margin: 0; padding: 16px; display: flex; justify-content: center; }
-        .container { max-width: 1500px; width: 100%; background: white; border-radius: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.08); padding: 20px 20px 28px; }
-        h1 { font-size: 1.4rem; font-weight: 600; margin: 0 0 6px; color: #1a1e2b; line-height: 1.3; }
-        h1 small { display: block; font-size: 0.8rem; font-weight: 400; color: #5e6f8c; margin-top: 4px; }
-        .toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin: 16px 0 18px; padding-bottom: 12px; border-bottom: 1px solid #e6eaf0; }
-        .brand-filters { display: flex; flex-wrap: wrap; gap: 6px; flex: 2 1 auto; }
-        .brand-btn { background: #f0f3f8; border: none; padding: 7px 14px; border-radius: 40px; font-size: 0.85rem; font-weight: 500; color: #2c3e5c; cursor: pointer; transition: 0.15s; }
-        .brand-btn:hover { background: #e2e8f2; }
-        .brand-btn.active { background: #1e3a8a; color: white; box-shadow: 0 4px 10px rgba(30,58,138,0.3); }
-        .actions { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
-        .action-btn { background: white; border: 1px solid #cfd9e6; padding: 7px 14px; border-radius: 40px; font-size: 0.85rem; font-weight: 500; color: #1e2b3c; cursor: pointer; transition: 0.15s; }
-        .action-btn:hover { background: #f0f4fe; border-color: #8ba3cc; }
-        .switch-wrap { display: flex; align-items: center; gap: 6px; background: #f0f3f8; padding: 5px 12px; border-radius: 40px; font-size: 0.8rem; color: #2c3e5c; user-select: none; }
-        .switch-wrap input { width: 34px; height: 18px; appearance: none; background: #cfd9e6; border-radius: 20px; position: relative; outline: none; cursor: pointer; transition: 0.2s; }
-        .switch-wrap input:checked { background: #1e3a8a; }
-        .switch-wrap input::after { content: ''; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; background: white; border-radius: 50%; transition: 0.2s; }
-        .switch-wrap input:checked::after { left: 18px; }
-        .font-size-wrap { display: flex; align-items: center; gap: 6px; background: #f0f3f8; padding: 5px 12px; border-radius: 40px; font-size: 0.8rem; color: #2c3e5c; user-select: none; }
-        .font-size-wrap input[type="range"] { width: 80px; accent-color: #1e3a8a; cursor: pointer; }
-        .font-size-wrap .font-size-value { font-weight: 600; min-width: 30px; text-align: center; color: #1e3a8a; }
-        .model-picker-toggle { margin-left: auto; display: flex; align-items: center; gap: 8px; }
-        .model-picker-toggle button { background: white; border: 1px solid #cfd9e6; padding: 7px 16px; border-radius: 40px; font-size: 0.85rem; font-weight: 500; color: #1e2b3c; cursor: pointer; transition: 0.15s; display: flex; align-items: center; gap: 6px; }
-        .model-picker-toggle button:hover { background: #f0f4fe; border-color: #8ba3cc; }
-        .model-picker-toggle .count-badge { background: #1e3a8a; color: white; border-radius: 20px; padding: 1px 8px; font-size: 0.72rem; font-weight: 600; }
-        .model-picker-panel { display: none; position: absolute; right: 16px; top: 110px; width: calc(100% - 32px); max-width: 360px; max-height: 520px; background: white; border-radius: 18px; box-shadow: 0 20px 50px rgba(0,0,0,0.18); border: 1px solid #e1e9f2; z-index: 100; overflow: hidden; flex-direction: column; }
-        .model-picker-panel.open { display: flex; }
-        .model-picker-header { padding: 14px 16px 10px; border-bottom: 1px solid #eef2f7; }
-        .model-picker-header h3 { margin: 0 0 10px; font-size: 0.95rem; color: #1a1e2b; }
-        .model-picker-search { width: 100%; padding: 8px 14px; border-radius: 40px; border: 1px solid #cfd9e6; font-size: 0.85rem; outline: none; }
-        .model-picker-search:focus { border-color: #1e3a8a; }
-        .model-picker-actions { display: flex; gap: 6px; padding: 10px 16px; border-bottom: 1px solid #eef2f7; flex-wrap: wrap; }
-        .model-picker-actions button { background: #f0f3f8; border: none; padding: 6px 12px; border-radius: 40px; font-size: 0.75rem; font-weight: 500; color: #2c3e5c; cursor: pointer; transition: 0.15s; }
-        .model-picker-actions button:hover { background: #e2e8f2; }
-        .model-picker-list { overflow-y: auto; padding: 8px 0; flex: 1; -webkit-overflow-scrolling: touch; }
-        .model-picker-item { display: flex; align-items: center; gap: 8px; padding: 8px 16px; cursor: pointer; transition: background 0.1s; }
-        .model-picker-item:hover { background: #f7faff; }
-        .model-picker-item input[type="checkbox"] { width: 18px; height: 18px; accent-color: #1e3a8a; cursor: pointer; flex-shrink: 0; }
-        .model-picker-item .brand-tag { font-size: 0.68rem; font-weight: 600; padding: 2px 7px; border-radius: 20px; background: #eef2f7; color: #4a5e7c; flex-shrink: 0; }
-        .model-picker-item .model-name { font-size: 0.85rem; color: #1a1e2b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .model-picker-item .color-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
-        .model-picker-empty { padding: 24px; text-align: center; color: #8a9bb5; font-size: 0.85rem; }
-        .chart-wrapper { position: relative; height: 520px; width: 100%; margin: 8px 0; }
-        .legend-note { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 6px; font-size: 0.72rem; color: #6b7b96; margin-top: 8px; padding: 0 6px; }
-        .stats { margin-top: 16px; font-size: 0.8rem; color: #3d506e; background: #f8faff; padding: 10px 16px; border-radius: 16px; border: 1px solid #e1e9f2; display: flex; flex-wrap: wrap; gap: 16px; }
-        .loading { text-align: center; padding: 60px 20px; color: #6b7b96; font-size: 0.95rem; }
-        .error-box { background: #fff5f5; border: 1px solid #feb2b2; color: #c53030; padding: 16px 20px; border-radius: 12px; margin: 20px 0; font-size: 0.9rem; }
-        .error-box code { background: #fed7d7; padding: 2px 6px; border-radius: 4px; font-size: 0.85rem; }
-
-        /* ================= 手机端适配 ================= */
-        @media (max-width: 640px) {
-            body { padding: 8px; }
-            .container { border-radius: 16px; padding: 14px 12px 20px; }
-            h1 { font-size: 1.1rem; }
-            h1 small { font-size: 0.72rem; }
-
-            .toolbar { gap: 8px; margin: 12px 0 14px; }
-            .brand-btn { padding: 6px 12px; font-size: 0.78rem; }
-            .action-btn { padding: 6px 12px; font-size: 0.78rem; }
-            .switch-wrap, .font-size-wrap { padding: 4px 10px; font-size: 0.75rem; }
-            .font-size-wrap input[type="range"] { width: 60px; }
-            .model-picker-toggle { margin-left: 0; width: 100%; }
-            .model-picker-toggle button { width: 100%; justify-content: center; }
-
-            /* 图表高度加大，给坐标轴留空间 */
-            .chart-wrapper { height: 460px; margin: 4px 0; }
-
-            .model-picker-panel { top: 150px; }
-
-            .legend-note { font-size: 0.68rem; gap: 4px; }
-            .stats { font-size: 0.75rem; padding: 8px 12px; gap: 10px; }
-        }
-
-        /* 超小屏 */
-        @media (max-width: 380px) {
-            .chart-wrapper { height: 420px; }
-        }
-    </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>新机周销量追踪</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;700&display=swap">
+<style>
+/* Layout: 顶部标题 + 控制条（品牌 / 机型芯片 / 周期与显示选项）+ 全宽折线图 + 数据表 */
+:root{
+  --bg:#f5f6f8; --panel:#ffffff; --fg:#1b2030; --muted:#636a7d; --line:#dfe2ea;
+  --accent:#2f5bd3; --accent-soft:#e6ecfb; --warn:#b4541a;
+  --f-body:"Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  --f-num:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#12151d; --panel:#1a1e29; --fg:#e7e9ef; --muted:#9aa1b3; --line:#2c3242;
+  --accent:#7f9cf0; --accent-soft:#25304d; --warn:#e89a62; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#12151d; --panel:#1a1e29; --fg:#e7e9ef; --muted:#9aa1b3; --line:#2c3242;
+  --accent:#7f9cf0; --accent-soft:#25304d; --warn:#e89a62; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:14px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 32px}
+.wrap{max-width:1180px;margin:0 auto;display:grid;gap:16px}
+header{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px}
+h1{font-size:22px;font-weight:700;margin:0;text-wrap:balance}
+.sub{color:var(--muted);font-size:13px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.controls{display:grid;gap:14px}
+.row{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px}
+.lbl{font-size:12px;color:var(--muted);letter-spacing:.06em;min-width:3.5em}
+select,button{font:inherit;color:var(--fg);background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:5px 10px}
+button{cursor:pointer}
+button:hover,select:hover{border-color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.seg button{border:0;border-radius:0;padding:5px 12px}
+.seg button[aria-pressed="true"]{background:var(--accent);color:#fff}
+.brands{display:flex;flex-wrap:wrap;gap:6px}
+.brands button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+.chips{display:flex;flex-wrap:wrap;gap:6px;flex:1;min-width:0}
+.chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:999px;padding:3px 10px 3px 8px;cursor:pointer;user-select:none;font-size:13px}
+.chip input{position:absolute;opacity:0;pointer-events:none}
+.chip .dot{width:10px;height:10px;border-radius:50%;border:2px solid var(--sw);background:transparent}
+.chip.on{background:var(--accent-soft);border-color:transparent}
+.chip.on .dot{background:var(--sw)}
+.chip.empty{opacity:.5}
+.chip:focus-within{outline:2px solid var(--accent);outline-offset:1px}
+.chip small{color:var(--muted);font-family:var(--f-num);font-size:11px}
+.check{display:inline-flex;align-items:center;gap:6px;cursor:pointer}
+.mini{font-size:12px;padding:3px 8px}
+#chart{width:100%;height:480px}
+.note{font-size:12px;color:var(--muted)}
+.note b{color:var(--warn);font-weight:500}
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13px;min-width:640px}
+th,td{padding:6px 10px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+th{color:var(--muted);font-weight:500;font-size:12px}
+th:first-child,td:first-child,th:nth-child(2),td:nth-child(2){text-align:left}
+td.n{font-family:var(--f-num);font-variant-numeric:tabular-nums}
+td.na{color:var(--muted)}
+td.bad{color:var(--warn)}
+@media (max-width:600px){#chart{height:380px}}
+.load{display:flex;flex-wrap:wrap;align-items:center;gap:10px;font-size:13px;color:var(--muted)}
+.load.err{color:var(--warn)}
+</style>
 </head>
 <body>
-<div class="container">
-    <h1>
-        📱 累计销量 vs 发售后精确周数
-        <small>横轴：发售后实际周数（天/7） · 纵轴：累计销量（万台） · 同品牌同色系</small>
-    </h1>
 
-    <div id="loadingArea" class="loading">正在加载 data.csv ...</div>
-    <div id="errorArea"></div>
+<div class="wrap">
+  <header>
+    <h1>新机周销量追踪</h1>
+    <span class="sub" id="sub">正在读取 data.csv…</span>
+  </header>
+  <div class="load" id="load" hidden>
+    <span id="loadMsg"></span>
+    <label class="check"><input type="file" id="pick" accept=".csv,text/csv"> 手动选择 CSV</label>
+  </div>
 
-    <div id="mainArea" style="display:none;">
-        <div class="toolbar">
-            <div class="brand-filters" id="brandFilters"></div>
-            <div class="actions">
-                <button class="action-btn" id="showAllBtn">✅ 全部显示</button>
-                <button class="action-btn" id="hideAllBtn">❌ 全部隐藏</button>
-                <label class="switch-wrap">
-                    <input type="checkbox" id="labelToggle" />
-                    标注机型
-                </label>
-                <div class="font-size-wrap" title="调整标注字号">
-                    <span>字号</span>
-                    <input type="range" id="fontSizeRange" min="8" max="20" step="1" value="11" />
-                    <span class="font-size-value" id="fontSizeValue">11</span>
-                </div>
-                <label class="switch-wrap" title="根据数据自动调整横轴长度">
-                    <input type="checkbox" id="dynamicAxisToggle" checked />
-                    动态横轴
-                </label>
-            </div>
-            <div class="model-picker-toggle">
-                <button id="modelPickerBtn">
-                    🎯 选择机型
-                    <span class="count-badge" id="selectedCount">0</span>
-                </button>
-            </div>
-        </div>
-
-        <div class="model-picker-panel" id="modelPickerPanel">
-            <div class="model-picker-header">
-                <h3>选择要显示的机型</h3>
-                <input type="text" class="model-picker-search" id="modelSearch" placeholder="搜索品牌或机型..." />
-            </div>
-            <div class="model-picker-actions">
-                <button id="selectAllVisible">全选当前</button>
-                <button id="clearVisible">清空当前</button>
-                <button id="selectAllModels">全选全部</button>
-                <button id="clearAllModels">清空全部</button>
-            </div>
-            <div class="model-picker-list" id="modelPickerList"></div>
-        </div>
-
-        <div class="chart-wrapper">
-            <canvas id="salesChart"></canvas>
-        </div>
-
-        <div class="legend-note">
-            <span id="weekRangeNote">💡 数据加载中...</span>
-            <span>⏱ 同品牌同色系，标注自动上下错开</span>
-        </div>
-
-        <div class="stats" id="statsArea">
-            当前显示 <span id="visibleCount">0</span> 款机型 · 共 <span id="totalCount">0</span> 款
-        </div>
+  <section class="panel controls" aria-label="筛选">
+    <div class="row"><span class="lbl">品牌</span><div class="brands" id="brands"></div></div>
+    <div class="row" style="align-items:flex-start">
+      <span class="lbl" style="padding-top:4px">机型</span>
+      <div class="chips" id="models"></div>
+      <div style="display:flex;gap:6px"><button class="mini" id="selAll">全选</button><button class="mini" id="selNone">清空</button></div>
     </div>
+    <div class="row">
+      <span class="lbl">横轴</span>
+      <div class="seg" id="axisMode">
+        <button data-v="week" aria-pressed="true">自然周</button>
+        <button data-v="launch" aria-pressed="false">发布后第 N 周</button>
+      </div>
+      <span class="lbl">周期</span>
+      <select id="from" aria-label="起始周"></select><span class="note">至</span><select id="to" aria-label="结束周"></select>
+      <button class="mini" id="resetRange">全部</button>
+    </div>
+    <div class="row">
+      <span class="lbl">数值</span>
+      <div class="seg" id="valMode">
+        <button data-v="cum" aria-pressed="true">原始值</button>
+        <button data-v="delta" aria-pressed="false">周环比增量</button>
+      </div>
+      <label class="check"><input type="checkbox" id="showLabel" checked> 显示数据标签</label>
+      <label class="check"><input type="checkbox" id="logY"> 对数纵轴</label>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div id="chart" role="img" aria-label="所选机型周销量折线图"></div>
+    <p class="note" id="note"></p>
+  </section>
+
+  <section class="panel tbl"><table id="tbl"></table></section>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js"></script>
+</body>
+</html>
 <script>
-    // ============================================================
-    // 全局状态
-    // ============================================================
-    let weekEndDates = {};
-    let weekLabels = [];
-    let rawData = [];
-    let brands = [];
-    let modelColorMap = new Map();
-    let activeBrands = new Set();
-    let selectedModels = new Set();
-    let showLabels = false;
-    let labelFontSize = 11;
-    let dynamicAxis = true;   // 是否动态横轴
-    let chart = null;
-
-    // ============================================================
-    // 从 CSV 表头解析周标签，并推算每周结束日期
-    // ============================================================
-    function getWeekEndDate(year, weekNum) {
-        const week1Sunday = new Date(year, 0, 4);
-        const msPerWeek = 7 * 24 * 60 * 60 * 1000;
-        return new Date(week1Sunday.getTime() + (weekNum - 1) * msPerWeek);
-    }
-
-    function parseWeekLabel(label) {
-        const m = String(label).trim().match(/^(?:(\d{4}))?[Ww](\d{1,2})$/);
-        if (!m) return null;
-        const year = m[1] ? Number(m[1]) : 2026;
-        const week = Number(m[2]);
-        return { year, week, label: `W${week}` };
-    }
-
-    // ============================================================
-    // 解析 CSV
-    // ============================================================
-    function parseCSV(csvText) {
-        const result = Papa.parse(csvText, {
-            header: true,
-            skipEmptyLines: true,
-            transformHeader: h => h.trim(),
-        });
-
-        if (result.errors.length) {
-            const fatal = result.errors.filter(e => e.type === 'Delimiter' || e.code === 'MissingQuotes');
-            if (fatal.length) {
-                throw new Error('CSV 解析错误：' + fatal.map(e => e.message).join('; '));
-            }
-        }
-
-        const rows = result.data;
-        if (!rows.length) throw new Error('CSV 内容为空');
-
-        const headers = result.meta.fields;
-        const fixedCols = ['brand', 'model', 'category', 'date'];
-        for (const col of fixedCols) {
-            if (!headers.includes(col)) {
-                throw new Error(`CSV 缺少必需列：${col}`);
-            }
-        }
-
-        const weekCols = [];
-        headers.forEach(h => {
-            if (fixedCols.includes(h)) return;
-            const parsed = parseWeekLabel(h);
-            if (parsed) {
-                weekCols.push({ header: h, ...parsed });
-            }
-        });
-
-        if (!weekCols.length) {
-            throw new Error('CSV 中没有识别到任何周列（如 W34、W35）');
-        }
-
-        weekCols.sort((a, b) => a.week - b.week);
-
-        weekEndDates = {};
-        weekLabels = [];
-        weekCols.forEach(wc => {
-            const endDate = getWeekEndDate(wc.year, wc.week);
-            weekEndDates[wc.label] = endDate;
-            weekLabels.push(wc.label);
-        });
-
-        const data = [];
-        rows.forEach((row) => {
-            const brand = (row.brand || '').trim();
-            const model = (row.model || '').trim();
-            const category = (row.category || '').trim();
-            const date = (row.date || '').trim();
-
-            if (!brand || !model || !date) return;
-
-            const sales = {};
-            weekCols.forEach(wc => {
-                const raw = row[wc.header];
-                if (raw === undefined || raw === null || String(raw).trim() === '') {
-                    sales[wc.label] = null;
-                } else {
-                    const num = Number(String(raw).replace(/,/g, ''));
-                    sales[wc.label] = isNaN(num) ? null : num;
-                }
-            });
-
-            data.push({ brand, model, category, date, sales });
-        });
-
-        if (!data.length) throw new Error('CSV 中没有有效数据行');
-
-        return data;
-    }
-
-    // ============================================================
-    // 辅助：计算发售后精确周数
-    // ============================================================
-    function parseDate(str) {
-        const [y, m, d] = str.split(/[.\-/]/).map(Number);
-        return new Date(y, m - 1, d);
-    }
-
-    function exactWeeksAfterLaunch(launchDateStr, weekEndDate) {
-        const launch = parseDate(launchDateStr);
-        const diffMs = weekEndDate - launch;
-        const diffDays = diffMs / (1000 * 60 * 60 * 24);
-        return Math.round((diffDays / 7) * 10) / 10;
-    }
-
-    // ============================================================
-    // 品牌色系
-    // ============================================================
-    const brandBaseColors = {
-        '华为':   '#c0392b',
-        '小米':   '#e67e22',
-        'OPPO':   '#27ae60',
-        'vivo':   '#2980b9',
-        '荣耀':   '#8e44ad',
-        '苹果':   '#34495e',
-        'REDMI':  '#d35400',
-        '一加':   '#16a085',
-        'iQOO':   '#2c3e50',
-    };
-    const fallbackColors = ['#e74c3c', '#f39c12', '#1abc9c', '#3498db', '#9b59b6', '#e91e63', '#00bcd4', '#8bc34a', '#ff5722'];
-
-    function hexToHsl(hex) {
-        let r = parseInt(hex.slice(1,3),16)/255;
-        let g = parseInt(hex.slice(3,5),16)/255;
-        let b = parseInt(hex.slice(5,7),16)/255;
-        let max = Math.max(r,g,b), min = Math.min(r,g,b);
-        let h, s, l = (max+min)/2;
-        if (max === min) { h = s = 0; }
-        else {
-            let d = max - min;
-            s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-            switch(max) {
-                case r: h = (g - b) / d + (g < b ? 6 : 0); break;
-                case g: h = (b - r) / d + 2; break;
-                case b: h = (r - g) / d + 4; break;
-            }
-            h /= 6;
-        }
-        return [h*360, s*100, l*100];
-    }
-
-    function hslToHex(h, s, l) {
-        s /= 100; l /= 100;
-        const k = n => (n + h/30) % 12;
-        const a = s * Math.min(l, 1-l);
-        const f = n => l - a * Math.max(-1, Math.min(k(n)-3, Math.min(9-k(n), 1)));
-        const toHex = x => Math.round(x*255).toString(16).padStart(2,'0');
-        return `#${toHex(f(0))}${toHex(f(8))}${toHex(f(4))}`;
-    }
-
-    function buildColorMap() {
-        const brandColorMap = {};
-        const brandModels = {};
-        rawData.forEach(item => {
-            if (!brandModels[item.brand]) brandModels[item.brand] = [];
-            if (!brandModels[item.brand].includes(item.model)) {
-                brandModels[item.brand].push(item.model);
-            }
-        });
-
-        let fallbackIdx = 0;
-        Object.keys(brandModels).forEach(brand => {
-            let base = brandBaseColors[brand];
-            if (!base) {
-                base = fallbackColors[fallbackIdx % fallbackColors.length];
-                fallbackIdx++;
-            }
-            const [h, s, l] = hexToHsl(base);
-            const count = brandModels[brand].length;
-            const colors = [];
-            for (let i = 0; i < count; i++) {
-                const t = count === 1 ? 0 : (i / (count - 1)) * 2 - 1;
-                const newL = Math.max(20, Math.min(80, l + t * 18));
-                const newS = Math.max(30, Math.min(90, s + t * 10));
-                colors.push(hslToHex(h, newS, newL));
-            }
-            brandColorMap[brand] = colors;
-        });
-
-        modelColorMap = new Map();
-        const brandColorIndex = {};
-        rawData.forEach(item => {
-            const brand = item.brand;
-            if (brandColorIndex[brand] === undefined) brandColorIndex[brand] = 0;
-            const colors = brandColorMap[brand] || ['#888'];
-            const idx = brandColorIndex[brand] % colors.length;
-            modelColorMap.set(item.model, colors[idx]);
-            brandColorIndex[brand]++;
-        });
-    }
-
-    // ============================================================
-    // 预计算每个机型的精确周数点
-    // ============================================================
-    function precomputePoints() {
-        rawData.forEach(item => {
-            item.points = [];
-            for (const wk of weekLabels) {
-                const sale = item.sales[wk];
-                if (sale !== null && sale !== undefined) {
-                    const endDate = weekEndDates[wk];
-                    const x = exactWeeksAfterLaunch(item.date, endDate);
-                    item.points.push({ x, y: sale, weekLabel: wk });
-                }
-            }
-            item.points.sort((a, b) => a.x - b.x);
-        });
-    }
-
-    // ============================================================
-    // 自定义末端标注插件
-    // ============================================================
-        // ============================================================
-    // 自定义末端标注插件
-    // - 密集时向上错开，避免底部截断
-    // - 超出顶部时整体下移，避免顶部截断
-    // ============================================================
-    const endLabelPlugin = {
-        id: 'endLabel',
-        afterDatasetsDraw(chart) {
-            if (!showLabels) return;
-            const { ctx, chartArea } = chart;
-            const datasets = chart.data.datasets;
-            if (!datasets.length) return;
-
-            // ---------- 1. 收集每条线的末端点 ----------
-            const items = [];
-            datasets.forEach((ds, dsIndex) => {
-                const meta = chart.getDatasetMeta(dsIndex);
-                if (!meta.visible || !meta.data.length) return;
-
-                let lastPoint = meta.data[0];
-                let maxX = -Infinity;
-                meta.data.forEach((pt, i) => {
-                    const raw = ds.data[i];
-                    if (raw && raw.x > maxX) {
-                        maxX = raw.x;
-                        lastPoint = pt;
-                    }
-                });
-
-                const rawLast = ds.data.find(d => d.x === maxX);
-                if (!rawLast) return;
-
-                items.push({
-                    model: ds.modelName,
-                    brand: ds.brand,
-                    color: ds.borderColor,
-                    x: lastPoint.x,
-                    y: lastPoint.y,
-                    rawY: rawLast.y,
-                    weekLabel: rawLast.weekLabel,
-                });
-            });
-            if (!items.length) return;
-
-            // ---------- 2. 计算标注位置：向上错开 ----------
-            // 按 y 从大到小排序（从下往上处理），重叠时向上顶
-            items.sort((a, b) => b.y - a.y);
-
-            const minGap = Math.max(14, labelFontSize + 4);
-            const labelHeight = labelFontSize + 4;
-
-            let lastY = Infinity;
-            items.forEach((item) => {
-                let targetY = item.y;
-                // 因为是从下往上处理，所以用 lastY - targetY 判断间距
-                if (lastY - targetY < minGap) {
-                    targetY = lastY - minGap;
-                }
-                item.labelY = targetY;
-                lastY = targetY;
-            });
-
-            // ---------- 3. 顶部兜底：如果最上方标注超出图表顶部，整体下移 ----------
-            // items 已按 y 从大到小排序，最后一个元素的 labelY 最小（最靠上）
-            const topMost = items[items.length - 1];
-            const topLimit = chartArea.top + labelHeight / 2 + 2; // 顶部安全边界
-            if (topMost.labelY < topLimit) {
-                const shift = topLimit - topMost.labelY;
-                items.forEach(item => {
-                    item.labelY += shift;
-                });
-            }
-
-            // ---------- 4. 绘制 ----------
-            ctx.save();
-            ctx.font = `500 ${labelFontSize}px system-ui, -apple-system, sans-serif`;
-            ctx.textBaseline = 'middle';
-
-            items.forEach(item => {
-                const text = item.model;
-                const textWidth = ctx.measureText(text).width;
-                const padding = Math.max(3, Math.round(labelFontSize * 0.35));
-                const boxW = textWidth + padding * 2;
-                const boxH = labelHeight;
-
-                const labelX = item.x + 8;
-                const labelY = item.labelY;
-
-                // 背景框
-                ctx.fillStyle = 'rgba(255,255,255,0.85)';
-                ctx.strokeStyle = item.color;
-                ctx.lineWidth = 1;
-                ctx.beginPath();
-                const r = 3;
-                ctx.moveTo(labelX + r, labelY - boxH/2);
-                ctx.lineTo(labelX + boxW - r, labelY - boxH/2);
-                ctx.quadraticCurveTo(labelX + boxW, labelY - boxH/2, labelX + boxW, labelY - boxH/2 + r);
-                ctx.lineTo(labelX + boxW, labelY + boxH/2 - r);
-                ctx.quadraticCurveTo(labelX + boxW, labelY + boxH/2, labelX + boxW - r, labelY + boxH/2);
-                ctx.lineTo(labelX + r, labelY + boxH/2);
-                ctx.quadraticCurveTo(labelX, labelY + boxH/2, labelX, labelY + boxH/2 - r);
-                ctx.lineTo(labelX, labelY - boxH/2 + r);
-                ctx.quadraticCurveTo(labelX, labelY - boxH/2, labelX + r, labelY - boxH/2);
-                ctx.closePath();
-                ctx.fill();
-                ctx.stroke();
-
-                // 连接虚线（从数据点到标注）
-                ctx.beginPath();
-                ctx.strokeStyle = item.color;
-                ctx.lineWidth = 1;
-                ctx.setLineDash([2, 2]);
-                ctx.moveTo(item.x + 3, item.y);
-                ctx.lineTo(labelX, labelY);
-                ctx.stroke();
-                ctx.setLineDash([]);
-
-                // 文字
-                ctx.fillStyle = item.color;
-                ctx.fillText(text, labelX + padding, labelY);
-            });
-
-            ctx.restore();
-        }
-    };
-    Chart.register(endLabelPlugin);
-
-    // ============================================================
-    // 数据构建
-    // ============================================================
-    function getFilteredData() {
-        return rawData.filter(d => activeBrands.has(d.brand) && selectedModels.has(d.model));
-    }
-
-    function buildDatasets() {
-        return getFilteredData().map(item => {
-            const baseColor = modelColorMap.get(item.model) || '#888';
-            return {
-                label: `${item.brand} ${item.model}`,
-                data: item.points.map(p => ({ x: p.x, y: p.y, weekLabel: p.weekLabel })),
-                borderColor: baseColor,
-                backgroundColor: baseColor,
-                pointBackgroundColor: baseColor,
-                pointBorderColor: '#fff',
-                pointRadius: 5,
-                pointHoverRadius: 12,
-                borderWidth: 2,
-                tension: 0,
-                showLine: true,
-                fill: false,
-                modelName: item.model,
-                brand: item.brand,
-            };
-        });
-    }
-
-    // ============================================================
-    // 计算横轴范围
-    // ============================================================
-    function computeXAxisRange(datasets) {
-        // 固定模式：0 ~ 55
-        if (!dynamicAxis) {
-            return { min: 0, max: 55 };
-        }
-
-        // 动态模式：取所有点的最大 x，向上取整到 5 的倍数 + 5
-        let maxX = 0;
-        let hasData = false;
-        datasets.forEach(ds => {
-            ds.data.forEach(p => {
-                hasData = true;
-                if (p.x > maxX) maxX = p.x;
-            });
-        });
-
-        if (!hasData) return { min: 0, max: 55 };
-
-        const max = Math.ceil(maxX / 5) * 5 + 5;
-        return { min: 0, max: Math.max(max, 10) }; // 最少给 20 周
-    }
-
-    // ============================================================
-    // 图表渲染
-    // ============================================================
-    function renderChart() {
-        const datasets = buildDatasets();
-        const ctx = document.getElementById('salesChart').getContext('2d');
-        if (chart) chart.destroy();
-
-        const isMobile = window.innerWidth <= 640;
-        const range = computeXAxisRange(datasets);
-
-        // 移动端：字体更大、刻度更疏
-        const axisFontSize = isMobile ? 12 : 11;
-        const axisTitleSize = isMobile ? 12 : 12;
-        const xTickStep = isMobile
-            ? Math.max(5, Math.ceil((range.max - range.min) / 6))
-            : 5;
-
-        // 移动端：右侧留白给标注，但不要太多
-        const rightPadding = isMobile ? 90 : 140;
-
-        chart = new Chart(ctx, {
-            type: 'line',
-            data: { datasets },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                animation: { duration: 400 },
-                layout: { padding: { right: rightPadding, top: 4, bottom: 4 } },
-                interaction: { mode: 'nearest', intersect: true },
-                plugins: {
-                    tooltip: {
-                        titleFont: { size: isMobile ? 13 : 12 },
-                        bodyFont: { size: isMobile ? 12 : 11 },
-                        padding: isMobile ? 10 : 8,
-                        callbacks: {
-                            title: (items) => {
-                                const raw = items[0].raw;
-                                return `发售后 ${raw.x} 周（${raw.weekLabel}）`;
-                            },
-                            label: (context) => {
-                                const ds = context.dataset;
-                                return `${ds.label}: ${context.raw.y} 万台`;
-                            }
-                        }
-                    },
-                    legend: { display: false },
-                },
-                scales: {
-                    x: {
-                        type: 'linear',
-                        title: {
-                            display: true,
-                            text: '发售后精确周数（天/7）',
-                            font: { weight: '500', size: axisTitleSize },
-                            color: '#2c3e5c',
-                            padding: { top: 6, bottom: 0 }
-                        },
-                        grid: { color: '#e9edf4', drawTicks: false },
-                        ticks: {
-                            stepSize: xTickStep,
-                            color: '#4a5e7c',
-                            font: { size: axisFontSize },
-                            padding: 4,
-                            maxRotation: 0,
-                            autoSkip: false,
-                        },
-                        min: range.min,
-                        max: range.max
-                    },
-                    y: {
-                        title: {
-                            display: true,
-                            text: '累计销量（万台）',
-                            font: { weight: '500', size: axisTitleSize },
-                            color: '#2c3e5c',
-                            padding: { top: 0, bottom: 6 }
-                        },
-                        grid: { color: '#e9edf4', drawTicks: false },
-                        ticks: {
-                            color: '#4a5e7c',
-                            font: { size: axisFontSize },
-                            padding: 4,
-                            maxTicksLimit: isMobile ? 6 : 8,
-                        },
-                        type: 'linear',
-                        min: 0,
-                    }
-                },
-                elements: {
-                    point: {
-                        hoverBorderWidth: 2,
-                        hoverBorderColor: '#1e3a8a',
-                        radius: isMobile ? 4 : 5,
-                        hoverRadius: isMobile ? 8 : 12,
-                    }
-                }
-            }
-        });
-
-        document.getElementById('visibleCount').textContent = datasets.length;
-        document.getElementById('totalCount').textContent = rawData.length;
-        document.getElementById('selectedCount').textContent = selectedModels.size;
-
-        // 更新横轴提示
-        const noteEl = document.getElementById('weekRangeNote');
-        if (noteEl) {
-            const mode = dynamicAxis ? '动态' : '固定(0-55)';
-            noteEl.textContent = `💡 横轴：${mode} · 当前范围 0–${range.max} 周`;
-        }
-    }
-
-    // ============================================================
-    // UI 渲染
-    // ============================================================
-    function renderBrandButtons() {
-        const container = document.getElementById('brandFilters');
-        container.innerHTML = '';
-        brands.forEach(brand => {
-            const btn = document.createElement('button');
-            btn.className = `brand-btn ${activeBrands.has(brand) ? 'active' : ''}`;
-            btn.textContent = brand;
-            btn.addEventListener('click', () => {
-                if (activeBrands.has(brand)) activeBrands.delete(brand);
-                else activeBrands.add(brand);
-                renderBrandButtons();
-                renderChart();
-            });
-            container.appendChild(btn);
-        });
-    }
-
-    function showAll() {
-        activeBrands = new Set(brands);
-        selectedModels = new Set(rawData.map(d => d.model));
-        renderBrandButtons();
-        renderModelPickerList();
-        renderChart();
-    }
-
-    function hideAll() {
-        activeBrands.clear();
-        selectedModels.clear();
-        renderBrandButtons();
-        renderModelPickerList();
-        renderChart();
-    }
-
-    function getSearchFilteredModels() {
-        const q = document.getElementById('modelSearch').value.trim().toLowerCase();
-        if (!q) return rawData;
-        return rawData.filter(item =>
-            item.brand.toLowerCase().includes(q) ||
-            item.model.toLowerCase().includes(q)
-        );
-    }
-
-    function renderModelPickerList() {
-        const list = document.getElementById('modelPickerList');
-        const items = getSearchFilteredModels();
-        if (!items.length) {
-            list.innerHTML = '<div class="model-picker-empty">没有匹配的机型</div>';
-            return;
-        }
-        list.innerHTML = '';
-        items.forEach(item => {
-            const checked = selectedModels.has(item.model);
-            const color = modelColorMap.get(item.model) || '#888';
-            const row = document.createElement('label');
-            row.className = 'model-picker-item';
-            row.innerHTML = `
-                <input type="checkbox" ${checked ? 'checked' : ''} data-model="${item.model}" />
-                <span class="color-dot" style="background:${color}"></span>
-                <span class="brand-tag">${item.brand}</span>
-                <span class="model-name">${item.model}</span>
-            `;
-            const cb = row.querySelector('input');
-            cb.addEventListener('change', (e) => {
-                if (e.target.checked) selectedModels.add(item.model);
-                else selectedModels.delete(item.model);
-                renderChart();
-                document.getElementById('selectedCount').textContent = selectedModels.size;
-            });
-            list.appendChild(row);
-        });
-    }
-
-    // ============================================================
-    // 初始化
-    // ============================================================
-    async function init() {
-        try {
-            const resp = await fetch('data.csv?t=' + Date.now());
-            if (!resp.ok) throw new Error(`无法加载 data.csv（HTTP ${resp.status}）`);
-            const text = await resp.text();
-
-            rawData = parseCSV(text);
-            brands = [...new Set(rawData.map(d => d.brand))];
-            activeBrands = new Set(brands);
-            selectedModels = new Set(rawData.map(d => d.model));
-
-            buildColorMap();
-            precomputePoints();
-
-            document.getElementById('loadingArea').style.display = 'none';
-            document.getElementById('mainArea').style.display = 'block';
-
-            const firstWeek = weekLabels[0];
-            const lastWeek = weekLabels[weekLabels.length - 1];
-            document.getElementById('weekRangeNote').textContent =
-                `💡 每个机型连接 ${firstWeek}→...→${lastWeek} 的累计销量点`;
-
-            renderBrandButtons();
-            renderModelPickerList();
-            renderChart();
-
-            document.getElementById('showAllBtn').addEventListener('click', showAll);
-            document.getElementById('hideAllBtn').addEventListener('click', hideAll);
-
-            document.getElementById('labelToggle').addEventListener('change', (e) => {
-                showLabels = e.target.checked;
-                renderChart();
-            });
-
-            const fontSizeRange = document.getElementById('fontSizeRange');
-            const fontSizeValue = document.getElementById('fontSizeValue');
-            fontSizeRange.addEventListener('input', (e) => {
-                labelFontSize = Number(e.target.value);
-                fontSizeValue.textContent = labelFontSize;
-                if (showLabels) renderChart();
-            });
-
-            // 动态横轴开关
-            document.getElementById('dynamicAxisToggle').addEventListener('change', (e) => {
-                dynamicAxis = e.target.checked;
-                renderChart();
-            });
-
-            const panel = document.getElementById('modelPickerPanel');
-            document.getElementById('modelPickerBtn').addEventListener('click', (e) => {
-                e.stopPropagation();
-                panel.classList.toggle('open');
-            });
-            document.addEventListener('click', (e) => {
-                if (!panel.contains(e.target) && e.target.id !== 'modelPickerBtn') {
-                    panel.classList.remove('open');
-                }
-            });
-            panel.addEventListener('click', (e) => e.stopPropagation());
-
-            document.getElementById('modelSearch').addEventListener('input', () => {
-                renderModelPickerList();
-            });
-
-            document.getElementById('selectAllVisible').addEventListener('click', () => {
-                getSearchFilteredModels().forEach(item => selectedModels.add(item.model));
-                renderModelPickerList(); renderChart();
-                document.getElementById('selectedCount').textContent = selectedModels.size;
-            });
-            document.getElementById('clearVisible').addEventListener('click', () => {
-                getSearchFilteredModels().forEach(item => selectedModels.delete(item.model));
-                renderModelPickerList(); renderChart();
-                document.getElementById('selectedCount').textContent = selectedModels.size;
-            });
-            document.getElementById('selectAllModels').addEventListener('click', () => {
-                selectedModels = new Set(rawData.map(d => d.model));
-                renderModelPickerList(); renderChart();
-                document.getElementById('selectedCount').textContent = selectedModels.size;
-            });
-            document.getElementById('clearAllModels').addEventListener('click', () => {
-                selectedModels.clear();
-                renderModelPickerList(); renderChart();
-                document.getElementById('selectedCount').textContent = selectedModels.size;
-            });
-
-            // 窗口大小变化时重新渲染（移动端旋转屏幕等）
-            let resizeTimer = null;
-            window.addEventListener('resize', () => {
-                clearTimeout(resizeTimer);
-                resizeTimer = setTimeout(() => {
-                    renderChart();
-                }, 200);
-            });
-
-        } catch (err) {
-            console.error(err);
-            document.getElementById('loadingArea').style.display = 'none';
-            document.getElementById('errorArea').innerHTML = `
-                <div class="error-box">
-                    <strong>加载失败：</strong>${err.message}
-                    <br><br>
-                    请确认：
-                    <ul style="margin:8px 0 0 20px;">
-                        <li><code>data.csv</code> 和 <code>index.html</code> 在同一目录</li>
-                        <li>通过 GitHub Pages 或本地服务器访问，而不是直接双击打开</li>
-                        <li>CSV 表头包含 <code>brand,model,category,date</code> 以及至少一个周列（如 <code>W34</code>）</li>
-                    </ul>
-                </div>
-            `;
-        }
-    }
-
-    window.addEventListener('load', init);
+// ===== 配置：周列所属年份（ISO 周）。若列名写成 2026W34 这种格式，会自动识别年份 =====
+const DEFAULT_YEAR=2026;
+const DATA_URL="data.csv";
+
+const DAY=864e5;
+const isoW1Mon=y=>{const j4=Date.UTC(y,0,4);const dow=(new Date(j4).getUTCDay()+6)%7;return j4-dow*DAY};
+const monOf=d=>{const t=Date.UTC(d[0],d[1]-1,d[2]);const dow=(new Date(t).getUTCDay()+6)%7;return t-dow*DAY};
+const fmtMD=t=>{const d=new Date(t);return (d.getUTCMonth()+1)+"/"+d.getUTCDate()};
+let WEEKS=[],WMON=[],ROWS=[],BRANDS=[];
+const weekMonAt=i=>WMON[i];
+
+// 简单 CSV 解析（支持引号字段）
+function parseCSV(text){
+  const out=[];let row=[],f="",q=false;
+  for(let i=0;i<text.length;i++){const ch=text[i];
+    if(q){if(ch==='"'){if(text[i+1]==='"'){f+='"';i++}else q=false}else f+=ch}
+    else if(ch==='"')q=true;
+    else if(ch===','){row.push(f);f=""}
+    else if(ch==='\n'||ch==='\r'){if(ch==='\r'&&text[i+1]==='\n')i++;row.push(f);f="";if(row.some(x=>x.trim()!==""))out.push(row);row=[]}
+    else f+=ch}
+  row.push(f);if(row.some(x=>x.trim()!==""))out.push(row);
+  return out;
+}
+// 自动识别 UTF-8 / GBK（Excel 中文版另存的 CSV 常为 GBK）
+function decode(buf){
+  try{return new TextDecoder("utf-8",{fatal:true}).decode(buf)}catch(e){return new TextDecoder("gbk").decode(buf)}
+}
+function load(text){
+  const t=parseCSV(text.replace(/^\uFEFF/,""));
+  const head=t[0].map(h=>h.trim());
+  const col=n=>head.indexOf(n);
+  const ib=col("brand"),im=col("model"),ic=col("category"),id=col("date");
+  if(ib<0||im<0||id<0)throw new Error("表头缺少 brand / model / date 列");
+  const wIdx=[];head.forEach((h,i)=>{const m=h.match(/^(?:(\d{4})[-_ ]?)?W(\d{1,2})$/i);if(m)wIdx.push({i,y:m[1]?+m[1]:DEFAULT_YEAR,w:+m[2],name:h})});
+  if(!wIdx.length)throw new Error("没有找到周列（列名应为 W34 或 2026W34 这种格式）");
+  WEEKS=wIdx.map(x=>x.name.toUpperCase());
+  WMON=wIdx.map(x=>isoW1Mon(x.y)+(x.w-1)*7*DAY);
+  ROWS=t.slice(1).filter(c=>(c[ib]||"").trim()&&(c[im]||"").trim()).map(c=>{
+    const dp=(c[id]||"").trim().split(/[\/\-.]/).map(Number);
+    const ok=dp.length===3&&dp.every(n=>!isNaN(n));
+    const lm=ok?monOf(dp):null;
+    return {brand:c[ib].trim(),model:c[im].trim(),cat:ic>=0?(c[ic]||"").trim():"",date:(c[id]||"").trim(),
+      vals:wIdx.map(x=>{const v=(c[x.i]||"").trim().replace(/,/g,"");return v===""||isNaN(+v)?null:+v}),
+      offs:WMON.map(m=>lm==null?null:Math.round((m-lm)/(7*DAY))+1)}});
+  BRANDS=["全部",...new Set(ROWS.map(r=>r.brand))];
+  if(!BRANDS.includes(S.brand))S.brand=BRANDS[1]||"全部";
+  $("sub").textContent=`${WEEKS[0]}–${WEEKS[WEEKS.length-1]}（${fmtMD(WMON[0])} 起）· ${ROWS.length} 个机型 · 单位：万台`;
+}
+const PAL=["#2f6fde","#e0592a","#1c9a6c","#b4489f","#d29a00","#0f9bb0","#7a5ae0","#c23b4e","#5d8a1f","#8a6a4a","#3b4fa0","#d06d9c"];
+
+const S={brand:"华为",sel:new Set(),axis:"week",val:"cum",label:true,log:false,from:null,to:null};
+const $=id=>document.getElementById(id);
+const chart=echarts.init($("chart"),null,{renderer:"canvas"});
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+function rowsOfBrand(){return ROWS.filter(r=>S.brand==="全部"||r.brand===S.brand)}
+function key(r){return r.brand+"|"+r.model}
+function label(r){return S.brand==="全部"?r.brand+" "+r.model:r.model}
+function colorOf(r){return PAL[ROWS.indexOf(r)%PAL.length]}
+function hasData(r){return r.vals.some(v=>v!=null)}
+function series(r){ // 返回按周索引的数值
+  if(S.val==="cum")return r.vals.slice();
+  return r.vals.map((v,i)=>i===0||v==null||r.vals[i-1]==null?null:+(v-r.vals[i-1]).toFixed(2));
+}
+
+function renderBrands(){
+  $("brands").innerHTML=BRANDS.map(b=>`<button aria-pressed="${b===S.brand}" data-b="${b}">${b}</button>`).join("");
+}
+function renderModels(){
+  $("models").innerHTML=rowsOfBrand().map(r=>{const k=key(r),on=S.sel.has(k),e=!hasData(r);
+    return `<label class="chip${on?" on":""}${e?" empty":""}" style="--sw:${colorOf(r)}" title="${r.cat} · 发布 ${r.date}${e?" · 暂无数据":""}">
+      <input type="checkbox" data-k="${k}" ${on?"checked":""}><span class="dot"></span>${label(r)}<small>${r.date.slice(2)}</small></label>`}).join("");
+}
+function selected(){return rowsOfBrand().filter(r=>S.sel.has(key(r)))}
+
+function categories(){
+  if(S.axis==="week")return WEEKS.map((w,i)=>({k:i,t:w+"\n"+fmtMD(WMON[i])}));
+  const sel=selected().filter(hasData);if(!sel.length)return [];
+  let lo=Infinity,hi=-Infinity;
+  sel.forEach(r=>r.vals.forEach((v,i)=>{if(v!=null&&r.offs[i]!=null){lo=Math.min(lo,r.offs[i]);hi=Math.max(hi,r.offs[i])}}));
+  const out=[];for(let o=lo;o<=hi;o++)out.push({k:o,t:"第"+o+"周"});return out;
+}
+function syncRange(cats){
+  const opts=cats.map((c,i)=>`<option value="${i}">${c.t.replace("\n"," ")}</option>`).join("");
+  $("from").innerHTML=opts;$("to").innerHTML=opts;
+  const n=cats.length;
+  if(S.from==null||S.from>=n)S.from=0;
+  if(S.to==null||S.to>=n)S.to=n-1;
+  if(S.from>S.to)S.from=S.to;
+  $("from").value=S.from;$("to").value=S.to;
+}
+
+function draw(keepRange){
+  const cats=categories();
+  if(!keepRange){S.from=0;S.to=Math.max(0,cats.length-1)}
+  syncRange(cats);
+  const fg=css("--fg"),mu=css("--muted"),ln=css("--line"),pn=css("--panel");
+  const sel=selected();
+  const ser=sel.map(r=>{
+    const vs=series(r);
+    let data;
+    if(S.axis==="week")data=vs;
+    else{const m=new Map();vs.forEach((v,i)=>{if(v!=null&&r.offs[i]!=null)m.set(r.offs[i],v)});data=cats.map(c=>m.has(c.k)?m.get(c.k):null)}
+    if(S.log)data=data.map(v=>v!=null&&v<=0?null:v);
+    return {name:label(r),type:"line",data,connectNulls:false,smooth:false,symbol:"circle",symbolSize:7,
+      lineStyle:{width:2.2,color:colorOf(r)},itemStyle:{color:colorOf(r),borderColor:pn,borderWidth:1.5},
+      label:{show:S.label,position:"top",fontSize:11,color:fg,fontFamily:"IBM Plex Mono, monospace",
+        formatter:p=>p.value==null?"":(+p.value).toLocaleString("zh-CN",{maximumFractionDigits:2}),
+        textBorderColor:pn,textBorderWidth:2},
+      labelLayout:{hideOverlap:true},emphasis:{focus:"series"}};
+  });
+  chart.setOption({
+    animationDuration:400,
+    grid:{left:56,right:24,top:sel.length>6?84:56,bottom:84,containLabel:false},
+    legend:{type:"scroll",top:0,textStyle:{color:fg},pageTextStyle:{color:mu},inactiveColor:ln},
+    tooltip:{trigger:"axis",backgroundColor:pn,borderColor:ln,textStyle:{color:fg},
+      valueFormatter:v=>v==null?"—":(+v).toFixed(2)+" 万台"},
+    xAxis:{type:"category",data:cats.map(c=>c.t),boundaryGap:false,
+      axisLine:{lineStyle:{color:ln}},axisLabel:{color:mu,fontSize:11},axisTick:{show:false}},
+    yAxis:{type:S.log?"log":"value",name:S.val==="cum"?"万台":"周增量（万台）",nameTextStyle:{color:mu},
+      scale:!S.log,axisLabel:{color:mu,fontFamily:"IBM Plex Mono, monospace"},splitLine:{lineStyle:{color:ln,type:"dashed"}}},
+    dataZoom:[{type:"slider",xAxisIndex:0,startValue:S.from,endValue:S.to,bottom:14,height:22,
+        borderColor:ln,fillerColor:"rgba(100,130,220,.18)",textStyle:{color:mu},brushSelect:false,
+        dataBackground:{lineStyle:{color:ln},areaStyle:{color:ln}}},
+      {type:"inside",xAxisIndex:0,startValue:S.from,endValue:S.to}],
+    series:ser,
+    graphic:sel.length&&sel.some(hasData)?[]:[{type:"text",left:"center",top:"middle",
+      style:{text:sel.length?"所选机型暂无销量数据":"请在上方选择至少一个机型",fill:mu,fontSize:14}}]
+  },{replaceMerge:["series","graphic"]});
+  renderNote(sel);renderTable(sel);
+}
+
+function renderNote(sel){
+  const msgs=[];
+  sel.forEach(r=>{for(let i=1;i<r.vals.length;i++){const a=r.vals[i-1],b=r.vals[i];
+    if(a!=null&&b!=null&&b<a)msgs.push(`<b>${label(r)}</b> 在 ${WEEKS[i]} 由 ${a} 降至 ${b}，疑似数据异常`)}});
+  const empty=sel.filter(r=>!hasData(r)).map(label);
+  if(empty.length)msgs.push(`${empty.join("、")} 暂无数据`);
+  $("note").innerHTML=(S.axis==="launch"?"「发布后第 N 周」以发布日所在周为第 1 周，按 ISO 周对齐。":"拖动图下方滑块或修改周期选择可调整显示范围。")+(msgs.length?" "+msgs.join("；")+"。":"");
+}
+function renderTable(sel){
+  if(!sel.length){$("tbl").innerHTML="";return}
+  const h=`<tr><th>机型</th><th>发布日期</th>${WEEKS.map(w=>`<th>${w}</th>`).join("")}</tr>`;
+  const b=sel.map(r=>{const vs=series(r);
+    return `<tr><td><span class="dot" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${colorOf(r)};margin-right:6px"></span>${label(r)}</td><td>${r.date}</td>${
+      vs.map(v=>v==null?`<td class="na">—</td>`:`<td class="n${v<0?" bad":""}">${v.toFixed(2)}</td>`).join("")}</tr>`}).join("");
+  $("tbl").innerHTML=`<thead>${h}</thead><tbody>${b}</tbody>`;
+}
+
+function selectBrandAll(){S.sel=new Set(rowsOfBrand().filter(hasData).map(key))}
+
+$("brands").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;
+  S.brand=b.dataset.b;
+  if(S.brand==="全部"){S.sel=new Set(ROWS.filter(r=>hasData(r)&&(r.cat.startsWith("旗舰"))&&r.vals[r.vals.length-1]!=null).slice(0,6).map(key))}
+  else selectBrandAll();
+  renderBrands();renderModels();draw(false)});
+$("models").addEventListener("change",e=>{const k=e.target.dataset.k;if(!k)return;
+  e.target.checked?S.sel.add(k):S.sel.delete(k);e.target.closest(".chip").classList.toggle("on",e.target.checked);
+  draw(S.axis==="week")});
+$("selAll").onclick=()=>{selectBrandAll();renderModels();draw(S.axis==="week")};
+$("selNone").onclick=()=>{S.sel.clear();renderModels();draw(S.axis==="week")};
+function seg(id,prop){$(id).addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;
+  S[prop]=b.dataset.v;[...$(id).children].forEach(x=>x.setAttribute("aria-pressed",x===b));draw(prop==="val")})}
+seg("axisMode","axis");seg("valMode","val");
+$("showLabel").onchange=e=>{S.label=e.target.checked;draw(true)};
+$("logY").onchange=e=>{S.log=e.target.checked;draw(true)};
+function applyRange(){chart.dispatchAction({type:"dataZoom",startValue:S.from,endValue:S.to})}
+$("from").onchange=e=>{S.from=+e.target.value;if(S.from>S.to){S.to=S.from;$("to").value=S.to}applyRange()};
+$("to").onchange=e=>{S.to=+e.target.value;if(S.to<S.from){S.from=S.to;$("from").value=S.from}applyRange()};
+$("resetRange").onclick=()=>{S.from=0;S.to=$("to").options.length-1;$("from").value=S.from;$("to").value=S.to;applyRange()};
+chart.on("datazoom",()=>{const dz=chart.getOption().dataZoom[0];S.from=dz.startValue;S.to=dz.endValue;$("from").value=S.from;$("to").value=S.to});
+window.addEventListener("resize",()=>chart.resize());
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change",()=>draw(true));
+new MutationObserver(()=>draw(true)).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
+
+function start(text){
+  try{load(text)}catch(e){showLoad("CSV 格式无法识别："+e.message,true);return}
+  $("load").hidden=true;S.sel=new Set();selectBrandAll();renderBrands();renderModels();draw(false);
+}
+function showLoad(msg,err){$("load").hidden=false;$("load").classList.toggle("err",!!err);$("loadMsg").textContent=msg;$("sub").textContent="未加载数据"}
+$("pick").addEventListener("change",async e=>{const f=e.target.files[0];if(f)start(decode(await f.arrayBuffer()))});
+fetch(DATA_URL+"?t="+Date.now()).then(r=>{if(!r.ok)throw new Error(r.status);return r.arrayBuffer()})
+  .then(b=>start(decode(b)))
+  .catch(()=>showLoad(location.protocol==="file:"?"直接双击打开时浏览器不允许读取本地 data.csv，请手动选择文件，或通过网页服务器访问。":"没有读取到同目录下的 data.csv，请检查文件名，或手动选择文件。",true));
 </script>
 </body>
 </html>

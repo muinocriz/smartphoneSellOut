@@ -1,8 +1,17 @@
 # 新机周销量追踪 · smartphoneSellOut
 
+简体中文 | [English](README.en.md)
+
 一个纯静态网页，用折线图查看各品牌手机新机上市后的逐周销量（SO，单位：万台）。数据都在 `data.csv` 里，页面打开时自动读取，不需要后端，也没有构建步骤。
 
 在线访问：<https://muinocriz.github.io/smartphoneSellOut/>
+
+## 数据来源
+
+- 主要来源：微博博主 **RD观测**
+- 补充来源：微博博主 **数码闲聊站**
+
+数据由作者根据以上博主公开发布的内容整理录入，仅供个人学习和参考，不代表官方数据。数据的版权归原作者所有。
 
 ## 功能
 
@@ -64,7 +73,8 @@ python3 -m http.server 8000
 ```
 ├── index.html   页面本身（样式、脚本都写在这一个文件里）
 ├── data.csv     销量数据
-└── README.md
+├── README.md      中文说明
+└── README.en.md   英文说明
 ```
 
 ## 技术说明

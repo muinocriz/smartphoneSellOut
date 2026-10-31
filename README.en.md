@@ -87,3 +87,7 @@ In the repository, go to Settings → Pages, set Source to `Deploy from a branch
 ## Note
 
 Anyone can view a GitHub Pages site, even if the repository is private. Make sure the data in `data.csv` is fine to make public.
+
+## Special thanks
+
+Thanks to [@zhoulin12138](https://github.com/zhoulin12138) for the ideas, guidance and support that went into this project.

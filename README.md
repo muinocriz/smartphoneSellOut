@@ -86,3 +86,7 @@ python3 -m http.server 8000
 ## 注意
 
 GitHub Pages 发布的页面是公开的，即使仓库是私有的，任何人也都能访问。请确认 `data.csv` 里的数据可以公开。
+
+## 特别鸣谢
+
+感谢 [@zhoulin12138](https://github.com/zhoulin12138) 为本项目提供的思路、辅导与支持。

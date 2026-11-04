@@ -28,6 +28,9 @@ body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:14
 header{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px}
 h1{font-size:22px;font-weight:700;margin:0;text-wrap:balance}
 .sub{color:var(--muted);font-size:13px}
+.hd-r{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 14px}
+.gh{font-size:13px;color:var(--accent);text-decoration:none;white-space:nowrap}
+.gh:hover{text-decoration:underline}
 .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
 .controls{display:grid;gap:14px}
 .row{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px}
@@ -83,7 +86,10 @@ td.bad{color:var(--warn)}
 <div class="wrap">
   <header>
     <h1>新机周销量追踪</h1>
-    <span class="sub" id="sub">正在读取 data.csv…</span>
+    <div class="hd-r">
+      <span class="sub" id="sub">正在读取 data.csv…</span>
+      <a class="gh" href="https://github.com/muinocriz/smartphoneSellOut" target="_blank" rel="noopener">GitHub 项目 ↗</a>
+    </div>
   </header>
   <div class="load" id="load" hidden>
     <span id="loadMsg"></span>
@@ -284,6 +290,8 @@ function renderNote(sel){
     if(a!=null&&b!=null&&b<a)msgs.push(`<b>${label(r)}</b> 在 ${WEEKS[i]} 由 ${a} 降至 ${b}，疑似数据异常`)}});
   const empty=sel.filter(r=>!hasData(r)).map(label);
   if(empty.length)msgs.push(`${empty.join("、")} 暂无数据`);
+  if(S.axis==="launch"){const nod=sel.filter(r=>hasData(r)&&r.offs.every(o=>o==null)).map(label);
+    if(nod.length)msgs.push(`<b>${nod.join("、")}</b> 未填写或无法识别发布日期，未在此视图显示`)}
   $("note").innerHTML=(S.axis==="launch"?"「发布后第 N 周」以发布日所在周为第 1 周，按 ISO 周对齐。":"拖动图下方滑块或修改周期选择可调整显示范围。")+(msgs.length?" "+msgs.join("；")+"。":"");
 }
 function renderTable(sel){

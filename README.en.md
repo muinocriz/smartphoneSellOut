@@ -16,15 +16,20 @@ The author compiled and entered the figures by hand from these bloggers' public 
 ## Features
 
 - **Brand / model filter**: pick a brand, then select any number of its models. Choose 「全部」 (All) to compare across brands.
-- **Data labels**: every point on a line shows its value. Overlapping labels are hidden automatically, and you can turn all labels off.
+- **Names at line ends**: there is no legend. Each line's model name is written at its end, in the line's colour. Names avoid other lines and value labels automatically; names that don't fit are shown faded, and hovering the line reveals them.
+- **Data labels**: every point on a line shows its value. Overlapping labels are hidden automatically, and you can turn all labels off. They are off by default on phones.
+- **PNG export**: two buttons at the top right of the chart export the currently selected models and week range.
+  - 🖥️ Desktop: 16:9, 2400×1350.
+  - 📱 Mobile: 4:5 portrait, 1200×1500, with numbers at the line ends and a list below the chart ranked by latest value.
+- **Phone layout**: on screens up to 600px wide, the on-page chart uses the same style as the mobile export. Tap a list item to highlight its line.
 - **Week range**: drag the slider under the chart, use the start/end week dropdowns, or scroll the mouse wheel over the chart to change which weeks are shown.
 - **Two x-axis modes**:
   - Calendar week: weeks in order (W34, W35, …).
   - Week N after launch: the week containing the launch date counts as week 1, so you can compare models that launched at different times.
 - **Two value modes**: raw values, or week-over-week change (this week minus last week).
 - **Log y-axis**: useful when models differ greatly in scale, for example iPhone alongside other models.
-- **Data table**: the values for the selected models are listed below the chart.
-- **Anomaly hints**: if a model's value is lower than the week before, the page flags it as a possible data-entry error.
+- **Data table**: the values for the selected models are listed below the chart, with columns matching the chart's x-axis.
+- **Anomaly hints**: if a model's value is lower than the week before, the page flags it as a possible data-entry error. Models without a launch date are left out of the "week N after launch" view, and the page lists their names.
 - **Saved lists (我的列表)**: save a set of models you often check as a template and restore it with one click.
   - New lists are named 「用户列表1」, 「用户列表2」, … (User list 1, 2, …), and you can rename them directly.
   - You can update a list's models or delete the list (deleting takes a second click to confirm).
@@ -45,8 +50,8 @@ brand,model,category,date,2026W34,2026W35,...
 | --- | --- |
 | `brand` | Brand. Required |
 | `model` | Model. Required. Must be unique within a brand |
-| `category` | Category. Optional; shown when you hover over a model |
-| `date` | Launch date. Required. `2026/5/9` or `2026-05-09` |
+| `category` | Category. Optional; shown when you hover over a model. Choosing 「全部」 (All) selects by default the first 6 models whose category starts with 「旗舰」 (flagship) |
+| `date` | Launch date. Recommended. `2026/5/9` or `2026-05-09`. Without it, the model does not appear in the "week N after launch" view |
 | Week columns | Name them `2026W34` (recommended, so weeks line up correctly across years) or `W34`. Week columns without a year use `DEFAULT_YEAR` in `index.html` |
 
 - Leave a cell empty when there is no data. The line breaks there instead of dropping to 0.
@@ -83,6 +88,18 @@ In the repository, go to Settings → Pages, set Source to `Deploy from a branch
 - Fonts are Noto Sans SC and IBM Plex Mono from Google Fonts. If they fail to load, the page falls back to system fonts and still works.
 - The page follows the system's light / dark theme and works on phones.
 - The interface is in Chinese.
+
+## Design decisions
+
+These rules were settled after several rounds of changes. Please keep them when editing the code:
+
+- **No legend.** On desktop, names are written at the line ends. On phones, the line ends carry numbers and the names go in a list below the chart, so they don't take width from the x-axis.
+- **Brand names.** When every model shown belongs to one brand, the brand is left out; it is written only when brands are mixed. In the phone list, a full name that doesn't fit drops the brand first and is truncated only after that. The model buttons in the 「全部」 (All) view always include the brand.
+- **The phone page matches the mobile export.** There are only two differences: the on-page list is a single column with every model, while the export has at most two columns and 12 items; the page can show data labels, the export never does.
+- **Mobile export.** Designed at 400px wide and exported at 3×; text is at least 12px at phone width; lines are 2px, 3px when highlighted; the background is opaque and follows the page's light or dark theme.
+- **Values in the phone list are rounded to integers.** Data labels on the chart keep up to two decimals.
+- **Data points are not drawn when more than 12 lines are shown.**
+- **Chinese text uses Noto Sans SC; numbers use IBM Plex Mono.**
 
 ## Note
 

@@ -210,10 +210,24 @@ function load(text){
     return {brand:c[ib].trim(),model:c[im].trim(),cat:ic>=0?(c[ic]||"").trim():"",date:(c[id]||"").trim(),
       vals:wIdx.map(x=>{const v=(c[x.i]||"").trim().replace(/,/g,"");return v===""||isNaN(+v)?null:+v}),
       offs:WMON.map(m=>lm==null?null:Math.round((m-lm)/(7*DAY))+1)}});
+  assignColors();
   BRANDS=["全部",...new Set(ROWS.map(r=>r.brand))];
   if(!BRANDS.includes(S.brand))S.brand=BRANDS[1]||"全部";
   $("sub").textContent=`${WEEKS[0]}–${WEEKS[WEEKS.length-1]}（${fmtMD(WMON[0])} 起）· ${ROWS.length} 个机型 · 单位：万台`;
 }
+// ===== 颜色：按品牌分色系，同一色系的两个品牌色相略有偏移；同品牌内各机型变化明暗、饱和度和少量色相 =====
+// 小米/REDMI 橙，华为/荣耀 红，OPPO/一加 绿，vivo/iQOO 蓝，苹果 紫；其他品牌用通用调色板
+const BRAND_HUE={"小米":24,"redmi":38,"华为":2,"荣耀":344,"oppo":138,"一加":168,"vivo":214,"iqoo":234,"苹果":276};
+// [色相偏移, 饱和度, 亮度]：相邻序号的亮度和色相尽量拉开
+const SHADE=[[0,80,48],[-12,70,34],[12,78,62],[6,90,40],[-8,60,56],[14,65,30],[-14,85,66],[-4,55,44],[10,70,52],[-10,80,38]];
+function hsl2hex(h,s,l){h=((h%360)+360)%360;s/=100;l/=100;const a=s*Math.min(l,1-l);
+  const f=n=>{const k=(n+h/30)%12;return Math.round(255*(l-a*Math.max(-1,Math.min(k-3,9-k,1)))).toString(16).padStart(2,"0")};
+  return "#"+f(0)+f(8)+f(4)}
+function assignColors(){const n=new Map();let other=0;
+  ROWS.forEach(r=>{const h=BRAND_HUE[r.brand]??BRAND_HUE[r.brand.toLowerCase()];
+    if(h==null){r.cl=r.cd=PAL[other++%PAL.length];return}
+    const k=n.get(r.brand)||0;n.set(r.brand,k+1);const [dh,sa,li]=SHADE[k%SHADE.length];
+    r.cl=hsl2hex(h+dh,sa,li);r.cd=hsl2hex(h+dh,sa,Math.min(74,li+14))})} // 深色背景下整体提亮
 const PAL=["#2f6fde","#e0592a","#1c9a6c","#b4489f","#d29a00","#0f9bb0","#7a5ae0","#c23b4e","#5d8a1f","#8a6a4a","#3b4fa0","#d06d9c"];
 
 const S={list:null,brand:"华为",sel:new Set(),axis:"week",val:"cum",label:!matchMedia("(max-width: 600px)").matches,log:false,from:null,to:null};
@@ -232,7 +246,10 @@ const full=r=>r.brand+" "+r.model;
 function label(r){return MULTI||needsBrand(r.model)?full(r):r.model}
 // 机型选择芯片：「全部」视图下芯片来自多个品牌，始终写品牌
 function chipLabel(r){return S.brand==="全部"||needsBrand(r.model)?full(r):r.model}
-function colorOf(r){return PAL[ROWS.indexOf(r)%PAL.length]}
+// 当前是否深色主题：看背景色的亮度
+function isDark(){const m=css("--bg").match(/^#(..)(..)(..)$/);if(!m)return false;
+  return (parseInt(m[1],16)*.3+parseInt(m[2],16)*.59+parseInt(m[3],16)*.11)<128}
+function colorOf(r){return isDark()?r.cd:r.cl}
 function hasData(r){return r.vals.some(v=>v!=null)}
 function series(r){ // 返回按周索引的数值
   if(S.val==="cum")return r.vals.slice();
@@ -689,13 +706,16 @@ window.addEventListener("resize",()=>{const w=$("chart").clientWidth;if(w===last
   chart.resize();if(CUR)draw(true)});
 $("expDesk").onclick=()=>exportPNG(false);
 $("expMob").onclick=()=>exportPNG(true);
-matchMedia("(prefers-color-scheme: dark)").addEventListener("change",()=>draw(true));
-new MutationObserver(()=>draw(true)).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change",()=>{renderModels();draw(true)});
+new MutationObserver(()=>{renderModels();draw(true)}).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
 
 function start(text){
   try{load(text)}catch(e){showLoad("CSV 格式无法识别："+e.message,true);return}
   $("load").hidden=true;S.sel=new Set();selectBrandAll();renderBrands();renderModels();draw(false);
 }
+// 线尾名字的宽度按当时可用的字体测量；网页字体晚到时重新排布一次，避免名字位置偏移
+if(document.fonts){document.fonts.ready.then(()=>{if(CUR)draw(true)});
+  document.fonts.addEventListener("loadingdone",()=>{MEAS=null;if(CUR)draw(true)})}
 function showLoad(msg,err){$("load").hidden=false;$("load").classList.toggle("err",!!err);$("loadMsg").textContent=msg;$("sub").textContent="未加载数据"}
 $("pick").addEventListener("change",async e=>{const f=e.target.files[0];if(f)start(decode(await f.arrayBuffer()))});
 fetch(DATA_URL+"?t="+Date.now()).then(r=>{if(!r.ok)throw new Error(r.status);return r.arrayBuffer()})

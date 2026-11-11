@@ -103,7 +103,8 @@ These rules were settled after several rounds of changes. Please keep them when 
 - **Mobile export.** Designed at 400px wide and exported at 3×; text is at least 12px at phone width; lines are 2px, 3px when highlighted; the background is opaque and follows the page's light or dark theme.
 - **Values in the phone list are rounded to integers.** Data labels on the chart keep up to two decimals.
 - **Data points are not drawn when more than 12 lines are shown.**
-- **Chinese text uses Noto Sans SC; numbers use IBM Plex Mono.**
+- **Chinese text uses Noto Sans SC; numbers use IBM Plex Mono.** The chart is laid out again once the fonts finish loading.
+- **Colours follow brand families**: Xiaomi and REDMI orange; Huawei and Honor red; OPPO and OnePlus green; vivo and iQOO blue; Apple purple. The two brands in a family are offset slightly in hue, and models within a brand use different shades. A new brand needs a line in `BRAND_HUE` in `index.html`; otherwise it uses the generic palette.
 
 ## Note
 

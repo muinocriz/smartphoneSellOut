@@ -31,6 +31,7 @@ h1{font-size:22px;font-weight:700;margin:0;text-wrap:balance}
 .hd-r{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 14px}
 .gh{font-size:13px;color:var(--accent);text-decoration:none;white-space:nowrap}
 .gh:hover{text-decoration:underline}
+.theme{font-size:15px;line-height:1;padding:3px 8px}
 .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
 .controls{display:grid;gap:14px}
 .row{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px}
@@ -102,6 +103,7 @@ td.bad{color:var(--warn)}
     <div class="hd-r">
       <span class="sub" id="sub">正在读取 data.csv…</span>
       <a class="gh" href="https://github.com/muinocriz/smartphoneSellOut" target="_blank" rel="noopener">GitHub 项目 ↗</a>
+      <button class="theme" id="themeBtn" type="button"></button>
     </div>
   </header>
   <div class="load" id="load" hidden>
@@ -383,7 +385,8 @@ function buildOption(sel,cats,datas,o){
     opt.dataZoom=[{type:"slider",xAxisIndex:0,startValue:S.from,endValue:S.to,bottom:o.mobile?6:14,height:o.mobile?20:22,
         borderColor:t.ln,fillerColor:"rgba(100,130,220,.18)",textStyle:{color:t.mu},brushSelect:false,
         dataBackground:{lineStyle:{color:t.ln},areaStyle:{color:t.ln}}},
-      {type:"inside",xAxisIndex:0,startValue:S.from,endValue:S.to}];
+      // 触屏设备不启用「在图上拖动/双指缩放」，否则会拦截手指上下滑动页面；改用下方滑块或周期下拉框
+      ...(TOUCH?[]:[{type:"inside",xAxisIndex:0,startValue:S.from,endValue:S.to}])];
   }
   return opt;
 }
@@ -529,6 +532,7 @@ function draw(keepRange){
 
 // ===== 手机网页：与导出一致，线尾标序号，图下方排行列表（点一项可高亮对应的线）=====
 const MQ=matchMedia("(max-width: 600px)");
+const TOUCH=matchMedia("(pointer: coarse)").matches; // 主要输入是手指（手机、平板）
 const isMobile=()=>MQ.matches;
 let HL=-1;
 function renderRank(){
@@ -728,7 +732,17 @@ window.addEventListener("resize",()=>{const w=$("chart").clientWidth;if(w===last
   chart.resize();if(CUR)draw(true)});
 $("expDesk").onclick=()=>exportPNG(false);
 $("expMob").onclick=()=>exportPNG(true);
-matchMedia("(prefers-color-scheme: dark)").addEventListener("change",()=>{renderModels();draw(true)});
+// ===== 日间 / 深色切换：默认跟随系统；点一下切到另一种并记住（保存在本浏览器）=====
+const TH_KEY="phoneSales.theme";
+const sysDark=matchMedia("(prefers-color-scheme: dark)");
+function themeNow(){return document.documentElement.dataset.theme||(sysDark.matches?"dark":"light")}
+function renderThemeBtn(){const d=themeNow()==="dark",b=$("themeBtn");
+  b.textContent=d?"☀️":"🌙";b.title=d?"切换到日间模式":"切换到深色模式";b.setAttribute("aria-label",b.title)}
+try{const v=localStorage.getItem(TH_KEY);if(v==="light"||v==="dark")document.documentElement.dataset.theme=v}catch(e){}
+$("themeBtn").onclick=()=>{const v=themeNow()==="dark"?"light":"dark";document.documentElement.dataset.theme=v;
+  try{localStorage.setItem(TH_KEY,v)}catch(e){};renderThemeBtn()};
+renderThemeBtn();
+sysDark.addEventListener("change",()=>{renderThemeBtn();renderModels();draw(true)});
 new MutationObserver(()=>{renderModels();draw(true)}).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
 
 function start(text){

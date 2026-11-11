@@ -143,7 +143,7 @@ td.bad{color:var(--warn)}
     <div class="row">
       <span class="lbl">数值</span>
       <div class="seg" id="valMode">
-        <button data-v="cum" aria-pressed="true">原始值</button>
+        <button data-v="cum" aria-pressed="true">累计销量</button>
         <button data-v="delta" aria-pressed="false">周环比增量</button>
       </div>
       <label class="check"><input type="checkbox" id="showLabel" checked> 显示数据标签</label>
@@ -226,9 +226,12 @@ function key(r){return r.brand+"|"+r.model}
 // 图表/列表/表格中的名字：当前显示的机型都属于同一品牌时不写品牌，跨品牌时才写
 let MULTI=false;
 function setBrandMode(sel){MULTI=new Set(sel.map(r=>r.brand)).size>1}
-function label(r){return MULTI?r.brand+" "+r.model:r.model}
+// 以数字开头或不超过 3 个字符的机型名（如 15、16、600系列、Win、K90）单独看认不出、也容易与其他品牌重名，始终带品牌
+const needsBrand=m=>/^\d/.test(m)||[...m].length<=3;
+const full=r=>r.brand+" "+r.model;
+function label(r){return MULTI||needsBrand(r.model)?full(r):r.model}
 // 机型选择芯片：「全部」视图下芯片来自多个品牌，始终写品牌
-function chipLabel(r){return S.brand==="全部"?r.brand+" "+r.model:r.model}
+function chipLabel(r){return S.brand==="全部"||needsBrand(r.model)?full(r):r.model}
 function colorOf(r){return PAL[ROWS.indexOf(r)%PAL.length]}
 function hasData(r){return r.vals.some(v=>v!=null)}
 function series(r){ // 返回按周索引的数值
@@ -300,9 +303,11 @@ function mobileRank(sel,datas,o){
   o.listH=rows*ML.row+ML.gapTop;
   o.names=sel.map(()=>null);shown.forEach((it,k)=>{o.names[it.i]=String(k+1)});
 }
-// 列表名字：完整名（含品牌）放得下就完整显示；放不下先去掉品牌，仍放不下再截断
-function listName(r,max){const full=label(r);
-  return textW(full,13)<=max?full:fitText(r.model,max,13,400)}
+// 列表名字：完整名（含品牌）放得下就完整显示；放不下先去掉品牌，仍放不下再截断。
+// 需要品牌才能认出的机型（见 needsBrand）不去品牌，直接截断
+function listName(r,max){const nm=label(r);
+  if(textW(nm,13)<=max)return nm;
+  return fitText(needsBrand(r.model)?nm:r.model,max,13,400)}
 function mobileList(o,t){
   const g=[],W=o.W,H=o.H,colW=(W-ML.pad*2)/o.cols,top=H-30-o.listH+ML.gapTop;
   const cells=o.rank.map((it,k)=>({k,it}));if(o.more)cells.push({more:o.more});
@@ -310,7 +315,7 @@ function mobileList(o,t){
   const rows=Math.ceil(cells.length/o.cols);
   cells.forEach((c,n)=>{const col=Math.floor(n/rows),row=n%rows; // 先竖后横，阅读顺序 1→6 再 7→12
     const x=ML.pad+col*colW,y=top+row*ML.row+ML.row/2;
-    if(c.more){g.push({type:"text",x,y,silent:true,style:{text:`另有 ${c.more} 个机型未列出`,fill:t.mu,font:`12px ${FONT()}`,textVerticalAlign:"middle"}});return}
+    if(c.more){g.push({type:"text",x,y,silent:true,style:{text:`另有 ${c.more} 个机型未列出（灰线）`,fill:t.mu,font:`12px ${FONT()}`,textVerticalAlign:"middle"}});return}
     const {it,k}=c,num=String(k+1),vt=Math.round(it.v).toLocaleString("zh-CN"),col_=colorOf(it.r);
     const vW=textW(vt,12,400,MONO);
     g.push({type:"text",x,y,silent:true,style:{text:num,fill:col_,font:`700 13px ${FONT()}`,textVerticalAlign:"middle"}});
@@ -343,7 +348,7 @@ function buildOption(sel,cats,datas,o){
       top:o.exp?(o.mobile?78:80):36,bottom:o.exp?(o.mobile?36+o.listH:40):(o.mobile?50:84),containLabel:true},
     xAxis:{type:"category",data:catT,boundaryGap:false,
       axisLine:{lineStyle:{color:t.ln}},axisLabel:{color:t.mu,fontSize:f.ax,hideOverlap:true},axisTick:{show:false}},
-    yAxis:{type:S.log?"log":"value",name:o.exp?"":(S.val==="cum"?"万台":"周增量（万台）"),nameTextStyle:{color:t.mu,fontSize:f.ax},
+    yAxis:{type:S.log?"log":"value",name:o.exp?"":(S.val==="cum"?"累计销量（万台）":"周环比增量（万台）"),nameTextStyle:{color:t.mu,fontSize:f.ax},
       scale:!S.log,axisLabel:{color:t.mu,fontFamily:MONO,fontSize:f.ax},splitLine:{lineStyle:{color:t.ln,type:"dashed"}}},
     series:ser};
   if(o.exp){
@@ -466,6 +471,15 @@ function placeLabels(inst,ctx,lo,hi){
   const base=[...(ctx.base||[])];
   if(o.exp)base.push({type:"text",left:o.mobile?16:20,bottom:o.mobile?12:14,silent:true,
     style:{text:"muinocriz.github.io/smartphoneSellOut",fill:t.mu,font:`12px ${FONT()}`}});
+  // 导出图：没有名字/序号的线改成浅灰细线，只表示「还有其他机型」，不用颜色误导；桌面导出在底部注明数量
+  // （手机导出的数量写在下方列表末尾）
+  if(o.exp){const done=new Set(L.map(l=>l.i));
+    const un=sel.map((r,i)=>i).filter(i=>lastIdx(datas[i],lo,hi)>=0&&!done.has(i));
+    if(un.length){const u=new Set(un);
+      inst.setOption({series:sel.map((r,i)=>u.has(i)?{z:1,showSymbol:false,label:{show:false},
+        lineStyle:{color:t.mu,width:1,opacity:.35},itemStyle:{color:t.mu,opacity:.35}}:{z:3})});
+      if(!o.mobile)base.push({type:"text",right:20,bottom:14,silent:true,
+        style:{text:`另有 ${un.length} 个机型未标注（灰线）`,fill:t.mu,font:`12px ${FONT()}`}})}}
   ctx.labels=L;
   inst.setOption({graphic:[...base,...g]},{replaceMerge:["graphic"]});
 }
@@ -569,10 +583,17 @@ function renderTable(sel){ // 列与图表横轴一致
 }
 
 function selectBrandAll(){S.sel=new Set(rowsOfBrand().filter(hasData).map(key))}
+// 「全部」默认：每个品牌各选最近一周增量最大的 1 款。
+// 先比「最近一个能算出增量的周」谁更新（已停更的机型靠后），同一周再比增量大小
+function lastDelta(r){for(let i=r.vals.length-1;i>0;i--)if(r.vals[i]!=null&&r.vals[i-1]!=null)return {w:i,d:r.vals[i]-r.vals[i-1]};return null}
+function selectBrandTops(){const top=new Map();
+  ROWS.forEach(r=>{const x=lastDelta(r);if(!x)return;const t=top.get(r.brand);
+    if(!t||x.w>t.w||(x.w===t.w&&x.d>t.d))top.set(r.brand,{r,...x})});
+  S.sel=new Set([...top.values()].map(x=>key(x.r)))}
 
 $("brands").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;
   S.brand=b.dataset.b;
-  if(S.brand==="全部"){S.sel=new Set(ROWS.filter(r=>hasData(r)&&(r.cat.startsWith("旗舰"))&&r.vals[r.vals.length-1]!=null).slice(0,6).map(key))}
+  if(S.brand==="全部")selectBrandTops();
   else selectBrandAll();
   S.list=null;renderBrands();renderModels();renderLists();draw(false)});
 $("models").addEventListener("change",e=>{const k=e.target.dataset.k;if(!k)return;
@@ -584,7 +605,11 @@ $("selNone").onclick=()=>{S.sel.clear();renderModels();renderListState();draw(S.
 // ===== 用户自定义列表（保存在本浏览器 localStorage）=====
 const LS_KEY="phoneSales.lists.v1";
 let LISTS=[];
-function loadLists(){try{const v=JSON.parse(localStorage.getItem(LS_KEY)||"[]");LISTS=Array.isArray(v)?v.filter(x=>x&&x.id&&Array.isArray(x.models)):[]}catch(e){LISTS=[]}}
+// 旧版数据里部分机型名带品牌前缀（如「小米|小米 17系列」），读取时统一去掉，旧列表仍能对上
+function normKey(k){const i=k.indexOf("|");if(i<0)return k;const b=k.slice(0,i),m=k.slice(i+1);
+  return m.startsWith(b)&&m.length>b.length?b+"|"+m.slice(b.length).trim():k}
+function loadLists(){try{const v=JSON.parse(localStorage.getItem(LS_KEY)||"[]");
+  LISTS=Array.isArray(v)?v.filter(x=>x&&x.id&&Array.isArray(x.models)).map(x=>({...x,models:x.models.map(String).map(normKey)})):[]}catch(e){LISTS=[]}}
 function saveLists(){try{localStorage.setItem(LS_KEY,JSON.stringify(LISTS));return true}catch(e){$("listState").innerHTML='<span class="dirty">浏览器禁止存储，列表在关闭页面后会丢失</span>';return false}}
 const esc=t=>String(t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const curList=()=>LISTS.find(l=>l.id===S.list)||null;
@@ -634,7 +659,7 @@ $("listImport").addEventListener("change",async e=>{const f=e.target.files[0];if
   try{const arr=JSON.parse(await f.text());if(!Array.isArray(arr))throw 0;let n=0;
     arr.forEach(x=>{if(!x||!Array.isArray(x.models)||!x.models.length)return;
       let name=String(x.name||"").trim()||nextName();if(LISTS.some(l=>l.name===name))name+="（导入）";
-      LISTS.push({id:"l"+Date.now().toString(36)+(n++),name,models:x.models.map(String)})});
+      LISTS.push({id:"l"+Date.now().toString(36)+(n++),name,models:x.models.map(String).map(normKey)})});
     saveLists();renderLists();alert(`已导入 ${n} 个列表`)}catch(_){alert("文件格式不正确，请选择本页面导出的 JSON")}
   e.target.value=""});
 loadLists();renderLists();

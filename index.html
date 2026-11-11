@@ -259,7 +259,7 @@ const MONO="IBM Plex Mono, monospace";
 const theme=()=>({fg:css("--fg"),mu:css("--muted"),ln:css("--line"),pn:css("--panel")});
 const fmtV=v=>(+v).toLocaleString("zh-CN",{maximumFractionDigits:2});
 let MEAS=null;
-function textW(t,size,weight){MEAS=MEAS||document.createElement("canvas").getContext("2d");MEAS.font=`${weight||400} ${size}px ${FONT()}`;return MEAS.measureText(t).width}
+function textW(t,size,weight,fam){MEAS=MEAS||document.createElement("canvas").getContext("2d");MEAS.font=`${weight||400} ${size}px ${fam||FONT()}`;return MEAS.measureText(t).width}
 function fitText(t,max,size,weight){if(textW(t,size,weight)<=max)return t;
   while(t.length>1&&textW(t+"…",size,weight)>max)t=t.slice(0,-1);return t+"…"}
 // 各尺寸参数：mobile 以 400px 宽设计、3 倍导出，所有文字 ≥12px
@@ -275,15 +275,45 @@ function seriesData(sel,cats){
 function lastIdx(d,lo,hi){for(let k=Math.min(hi,d.length-1);k>=lo;k--)if(d[k]!=null)return k;return -1}
 // 线尾文字：屏幕/桌面只写名字（数据标签另显示），手机版附末值
 function endText(r,d,lo,hi,o){const j=lastIdx(d,lo,hi);if(j<0)return null;
-  return o.mobile?label(r)+" "+fmtV(d[j]):label(r)}
+  return label(r)}
 
+// ===== 手机导出：线尾只标序号，名字和数值放到图下方的排行列表 =====
+// 按最新值从高到低编号，顺序与线尾的上下位置基本一致；列表最多 2 列 × 6 行，超出的不编号并注明数量
+const ML={row:21,rows:6,pad:16,gapTop:10};
+function mobileRank(sel,datas,o){
+  const items=sel.map((r,i)=>{const j=lastIdx(datas[i],o.lo,o.hi);return j<0?null:{i,r,v:datas[i][j]}}).filter(Boolean)
+    .sort((a,b)=>b.v-a.v);
+  const cols=items.length>4?2:1,cap=cols*ML.rows;
+  let shown=items;if(items.length>cap)shown=items.slice(0,cap-1);
+  o.rank=shown;o.more=items.length-shown.length;o.cols=cols;
+  const rows=Math.ceil((shown.length+(o.more?1:0))/cols);
+  o.listH=rows*ML.row+ML.gapTop;
+  o.names=sel.map(()=>null);shown.forEach((it,k)=>{o.names[it.i]=String(k+1)});
+}
+function mobileList(o,t){
+  const g=[],W=o.W,H=o.H,colW=(W-ML.pad*2)/o.cols,top=H-30-o.listH+ML.gapTop;
+  const cells=o.rank.map((it,k)=>({k,it}));if(o.more)cells.push({more:o.more});
+  const nW=textW(String(o.rank.length),13,700)+8,sw=14;
+  const rows=Math.ceil(cells.length/o.cols);
+  cells.forEach((c,n)=>{const col=Math.floor(n/rows),row=n%rows; // 先竖后横，阅读顺序 1→6 再 7→12
+    const x=ML.pad+col*colW,y=top+row*ML.row+ML.row/2;
+    if(c.more){g.push({type:"text",x,y,silent:true,style:{text:`另有 ${c.more} 个机型未列出`,fill:t.mu,font:`12px ${FONT()}`,textVerticalAlign:"middle"}});return}
+    const {it,k}=c,num=String(k+1),vt=fmtV(it.v),col_=colorOf(it.r);
+    const vW=textW(vt,12,400,MONO);
+    g.push({type:"text",x,y,silent:true,style:{text:num,fill:col_,font:`700 13px ${FONT()}`,textVerticalAlign:"middle"}});
+    g.push({type:"line",silent:true,shape:{x1:x+nW,y1:y,x2:x+nW+sw,y2:y},style:{stroke:col_,lineWidth:3,lineCap:"round"}});
+    const nmX=x+nW+sw+6,nmMax=colW-(nW+sw+6)-vW-10;
+    g.push({type:"text",x:nmX,y,silent:true,style:{text:fitText(label(it.r),nmMax,13,400),fill:t.fg,font:`13px ${FONT()}`,textVerticalAlign:"middle"}});
+    g.push({type:"text",x:x+colW-8,y,silent:true,style:{text:vt,fill:t.mu,font:`12px ${MONO}`,textAlign:"right",textVerticalAlign:"middle"}});
+  });
+  return g;
+}
 function buildOption(sel,cats,datas,o){
   const t=theme(),f=spec(o),W=o.W;
   // 右侧留出线尾名字的宽度（超过上限则截断名字）
   const maxEnd=Math.round(W*f.maxEnd);
-  o.names=sel.map((r,i)=>{const tx=endText(r,datas[i],o.lo,o.hi,o);if(tx==null)return null;
-    const nm=fitText(label(r),maxEnd-(o.mobile?textW(tx.slice(label(r).length),f.end,500):0)-14,f.end,500);
-    return o.mobile?nm+tx.slice(label(r).length):nm});
+  if(o.mobile)mobileRank(sel,datas,o);
+  else o.names=sel.map((r,i)=>endText(r,datas[i],o.lo,o.hi,o)==null?null:fitText(label(r),maxEnd-14,f.end,500));
   const endW=Math.max(0,...o.names.filter(Boolean).map(x=>textW(x,f.end,500)));
   const ser=sel.map((r,i)=>({name:label(r),type:"line",data:datas[i],connectNulls:false,smooth:false,
     symbol:"circle",symbolSize:f.sym,
@@ -297,7 +327,7 @@ function buildOption(sel,cats,datas,o){
     animation:!o.exp,animationDuration:400,
     textStyle:{fontFamily:FONT()},
     grid:{left:o.mobile?8:12,right:Math.ceil(endW)+(o.mobile?18:22),
-      top:o.exp?(o.mobile?78:80):36,bottom:o.exp?(o.mobile?36:40):84,containLabel:true},
+      top:o.exp?(o.mobile?78:80):36,bottom:o.exp?(o.mobile?36+o.listH:40):84,containLabel:true},
     xAxis:{type:"category",data:catT,boundaryGap:false,
       axisLine:{lineStyle:{color:t.ln}},axisLabel:{color:t.mu,fontSize:f.ax,hideOverlap:true},axisTick:{show:false}},
     yAxis:{type:S.log?"log":"value",name:o.exp?"":(S.val==="cum"?"万台":"周增量（万台）"),nameTextStyle:{color:t.mu,fontSize:f.ax},
@@ -404,7 +434,7 @@ function placeLabels(inst,ctx,lo,hi){
     g.push({type:"rect",id:"eb"+l.i,z:100,silent:true,shape:{x:l.x,y:l.y-l.h/2,width:l.w,height:l.h,r:3},
       style:{fill:t.pn,opacity:.88}});
     g.push({type:"text",id:"et"+l.i,z:101,x:l.x+4,y:l.y,cursor:"default",
-      style:{text:l.text,fill:l.color,font:`500 ${f.end}px ${FONT()}`,textVerticalAlign:"middle"},
+      style:{text:l.text,fill:l.color,font:`${o.mobile?700:500} ${f.end}px ${FONT()}`,textVerticalAlign:"middle"},
       onmouseover:()=>inst.dispatchAction({type:"highlight",seriesIndex:l.i}),
       onmouseout:()=>inst.dispatchAction({type:"downplay",seriesIndex:l.i})});
   });
@@ -466,9 +496,9 @@ async function exportPNG(mobile){
     div.style.cssText=`position:fixed;left:-10000px;top:0;width:${W}px;height:${H}px`;
     document.body.appendChild(div);
     const inst=echarts.init(div,null,{renderer:"canvas",devicePixelRatio:dpr,width:W,height:H});
-    const o={exp:true,mobile,W,lo:0,hi:cats.length-1};
+    const o={exp:true,mobile,W,H,lo:0,hi:cats.length-1};
     inst.setOption(buildOption(sel,cats,ds,o));
-    placeLabels(inst,{sel,datas:ds,o,base:[]},0,cats.length-1);
+    placeLabels(inst,{sel,datas:ds,o,base:mobile?mobileList(o,theme()):[]},0,cats.length-1);
     const url=inst.getDataURL({type:"png",pixelRatio:dpr,backgroundColor:theme().pn});
     inst.dispose();div.remove();
     const rg=cats.length?(cats[0].t.split("\n")[0]+"-"+cats[cats.length-1].t.split("\n")[0]):"";

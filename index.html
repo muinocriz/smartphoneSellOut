@@ -390,8 +390,11 @@ function placeLabels(inst,ctx,lo,hi){
   }
   const g=[];
   ctx.skipped=L.filter(l=>l.skip).length+sel.filter((r,i)=>lastIdx(datas[i],lo,hi)>=0&&!o.names[i]).length;
+  // 放不下的名字不再隐藏：留在线尾原位，按重要性（数值从高到低）逐级变淡；悬停该线时完全显出
+  // 导出的静态图无法悬停，淡色名字只会叠成一团，因此导出时不画
+  const faint=o.exp?[]:L.filter(l=>l.skip).sort((a,b)=>a.py-b.py);
   L.splice(0,L.length,...L.filter(l=>!l.skip));
-  L.forEach(l=>{
+  L.forEach(l=>{l.op=1;
     const lead=l.atEnd?Math.abs(l.y-l.y0)>2||l.x-l.px>off+4:Math.hypot(l.x-l.px,l.y-l.py)>off+h2(l);
     l.lead=lead;
     if(lead){const tx=l.x<l.px?l.x+l.w:l.x,ty=Math.max(l.y-l.h/2,Math.min(l.y+l.h/2,l.py));
@@ -405,6 +408,18 @@ function placeLabels(inst,ctx,lo,hi){
       onmouseover:()=>inst.dispatchAction({type:"highlight",seriesIndex:l.i}),
       onmouseout:()=>inst.dispatchAction({type:"downplay",seriesIndex:l.i})});
   });
+  faint.forEach((l,k)=>{
+    l.op=Math.max(.12,.42-k*.03);l.faint=true;l.lead=false;
+    l.x=Math.min(l.px+off,W-2-l.w);l.y=Math.max(top+l.h/2,Math.min(bottom-l.h/2,l.py));
+    g.push({type:"rect",id:"eb"+l.i,z:102,silent:true,shape:{x:l.x,y:l.y-l.h/2,width:l.w,height:l.h,r:3},
+      style:{fill:t.pn,opacity:0}});
+    g.push({type:"text",id:"et"+l.i,z:103-k*.001,x:l.x+4,y:l.y,cursor:"default",
+      style:{text:l.text,fill:l.color,opacity:l.op,font:`${f.end}px ${FONT()}`,textVerticalAlign:"middle"},
+      onmouseover:()=>inst.dispatchAction({type:"highlight",seriesIndex:l.i}),
+      onmouseout:()=>inst.dispatchAction({type:"downplay",seriesIndex:l.i})});
+    L.push(l);
+  });
+  ctx.faint=faint.length;
   const base=[...(ctx.base||[])];
   if(o.exp)base.push({type:"text",left:o.mobile?16:20,bottom:o.mobile?12:14,silent:true,
     style:{text:"muinocriz.github.io/smartphoneSellOut",fill:t.mu,font:`12px ${FONT()}`}});
@@ -414,7 +429,10 @@ function placeLabels(inst,ctx,lo,hi){
 const h2=l=>l.h*0.75+2;
 // 悬停某条线时，其他线尾标签随之淡化
 function fadeLabels(inst,ctx,idx){if(!ctx||!ctx.labels)return;
-  inst.setOption({graphic:ctx.labels.flatMap(l=>{const op=idx<0||idx===l.i?1:.25;
+  inst.setOption({graphic:ctx.labels.flatMap(l=>{
+    if(l.faint){const on=idx===l.i;
+      return [{id:"et"+l.i,style:{opacity:on?1:idx<0?l.op:l.op*.4}},{id:"eb"+l.i,style:{opacity:on?.92:0}}]}
+    const op=idx<0||idx===l.i?1:.25;
     return [{id:"et"+l.i,style:{opacity:op}},{id:"eb"+l.i,style:{opacity:op*.88}},...(l.lead?[{id:"eg"+l.i,style:{opacity:op*.7}}]:[])]})})}
 
 let CUR=null;
@@ -465,7 +483,7 @@ function renderNote(sel){
     if(a!=null&&b!=null&&b<a)msgs.push(`<b>${label(r)}</b> 在 ${WEEKS[i]} 由 ${a} 降至 ${b}，疑似数据异常`)}});
   const empty=sel.filter(r=>!hasData(r)).map(label);
   if(empty.length)msgs.push(`${empty.join("、")} 暂无数据`);
-  if(CUR&&CUR.skipped)msgs.push(`另有 ${CUR.skipped} 条线因空间不足未在线尾标注名称，可悬停查看或减少所选机型`);
+  if(CUR&&CUR.skipped)msgs.push(`另有 ${CUR.skipped} 条线因空间不足，名字以淡色显示在线尾（越靠后越淡），悬停该线可看清`);
   if(S.axis==="launch"){const nod=sel.filter(r=>hasData(r)&&r.offs.every(o=>o==null)).map(label);
     if(nod.length)msgs.push(`<b>${nod.join("、")}</b> 未填写或无法识别发布日期，未在此视图显示`)}
   $("note").innerHTML=(S.axis==="launch"?"「发布后第 N 周」以发布日所在周为第 1 周，按 ISO 周对齐。":"拖动图下方滑块或修改周期选择可调整显示范围。")+(msgs.length?" "+msgs.join("；")+"。":"");

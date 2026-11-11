@@ -290,6 +290,9 @@ function mobileRank(sel,datas,o){
   o.listH=rows*ML.row+ML.gapTop;
   o.names=sel.map(()=>null);shown.forEach((it,k)=>{o.names[it.i]=String(k+1)});
 }
+// 列表名字：完整名（含品牌）放得下就完整显示；放不下先去掉品牌，仍放不下再截断
+function listName(r,max){const full=label(r);
+  return textW(full,13)<=max?full:fitText(r.model,max,13,400)}
 function mobileList(o,t){
   const g=[],W=o.W,H=o.H,colW=(W-ML.pad*2)/o.cols,top=H-30-o.listH+ML.gapTop;
   const cells=o.rank.map((it,k)=>({k,it}));if(o.more)cells.push({more:o.more});
@@ -298,12 +301,12 @@ function mobileList(o,t){
   cells.forEach((c,n)=>{const col=Math.floor(n/rows),row=n%rows; // 先竖后横，阅读顺序 1→6 再 7→12
     const x=ML.pad+col*colW,y=top+row*ML.row+ML.row/2;
     if(c.more){g.push({type:"text",x,y,silent:true,style:{text:`另有 ${c.more} 个机型未列出`,fill:t.mu,font:`12px ${FONT()}`,textVerticalAlign:"middle"}});return}
-    const {it,k}=c,num=String(k+1),vt=fmtV(it.v),col_=colorOf(it.r);
+    const {it,k}=c,num=String(k+1),vt=Math.round(it.v).toLocaleString("zh-CN"),col_=colorOf(it.r);
     const vW=textW(vt,12,400,MONO);
     g.push({type:"text",x,y,silent:true,style:{text:num,fill:col_,font:`700 13px ${FONT()}`,textVerticalAlign:"middle"}});
     g.push({type:"line",silent:true,shape:{x1:x+nW,y1:y,x2:x+nW+sw,y2:y},style:{stroke:col_,lineWidth:3,lineCap:"round"}});
     const nmX=x+nW+sw+6,nmMax=colW-(nW+sw+6)-vW-10;
-    g.push({type:"text",x:nmX,y,silent:true,style:{text:fitText(label(it.r),nmMax,13,400),fill:t.fg,font:`13px ${FONT()}`,textVerticalAlign:"middle"}});
+    g.push({type:"text",x:nmX,y,silent:true,style:{text:listName(it.r,nmMax),fill:t.fg,font:`13px ${FONT()}`,textVerticalAlign:"middle"}});
     g.push({type:"text",x:x+colW-8,y,silent:true,style:{text:vt,fill:t.mu,font:`12px ${MONO}`,textAlign:"right",textVerticalAlign:"middle"}});
   });
   return g;

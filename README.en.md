@@ -23,7 +23,7 @@ The author compiled and entered the figures by hand from these bloggers' public 
   - 📱 Mobile: 4:5 portrait, 1200×1500, with numbers at the line ends and a list below the chart ranked by latest value.
   - Lines with no room for a name or number are drawn in light grey, and their count is noted.
 - **Phone layout**: on screens up to 600px wide, the on-page chart uses the same style as the mobile export. Tap a list item to highlight its line.
-- **Week range**: drag the slider under the chart, use the start/end week dropdowns, or scroll the mouse wheel over the chart to change which weeks are shown.
+- **Week range**: drag the slider under the chart, use the start/end week dropdowns, or scroll the mouse wheel over the chart to change which weeks are shown. On phones and tablets you can't drag or pinch on the chart to zoom, so that swiping over it still scrolls the page; use the slider or the dropdowns instead.
 - **Two x-axis modes**:
   - Calendar week: weeks in order (W34, W35, …).
   - Week N after launch: the week containing the launch date counts as week 1, so you can compare models that launched at different times.
@@ -88,7 +88,7 @@ In the repository, go to Settings → Pages, set Source to `Deploy from a branch
 
 - Charts use [Apache ECharts](https://echarts.apache.org/) 5.4.3, loaded from cdnjs.
 - Fonts are Noto Sans SC and IBM Plex Mono from Google Fonts. If they fail to load, the page falls back to system fonts and still works.
-- The page follows the system's light / dark theme and works on phones.
+- The page follows the system's light / dark theme by default; the 🌙 / ☀️ button at the top right switches it manually, and the choice is saved in this browser. It works on phones.
 - The interface is in Chinese.
 
 ## Design decisions
@@ -105,6 +105,7 @@ These rules were settled after several rounds of changes. Please keep them when 
 - **Mobile export.** Designed at 400px wide and exported at 3×; text is at least 12px at phone width; lines are 2px, 3px when highlighted; the background is opaque and follows the page's light or dark theme.
 - **Values in the phone list are rounded to integers.** Data labels on the chart keep up to two decimals.
 - **Data points are not drawn when more than 12 lines are shown.**
+- **Chart zoom is off on touch devices** (where the main input is a finger), so swiping over the chart still scrolls the page.
 - **Chinese text uses Noto Sans SC; numbers use IBM Plex Mono.** The chart is laid out again once the fonts finish loading.
 - **Colours follow brand families**: Xiaomi and REDMI orange; Huawei and Honor red; OPPO and OnePlus green; vivo and iQOO blue; Apple purple. The two brands in a family are offset slightly in hue, and models within a brand use different shades. A new brand needs a line in `BRAND_HUE` in `index.html`; otherwise it uses the generic palette.
 

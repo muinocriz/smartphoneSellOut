@@ -315,7 +315,7 @@ function mobileList(o,t){
   const rows=Math.ceil(cells.length/o.cols);
   cells.forEach((c,n)=>{const col=Math.floor(n/rows),row=n%rows; // 先竖后横，阅读顺序 1→6 再 7→12
     const x=ML.pad+col*colW,y=top+row*ML.row+ML.row/2;
-    if(c.more){g.push({type:"text",x,y,silent:true,style:{text:`另有 ${c.more} 个机型未列出`,fill:t.mu,font:`12px ${FONT()}`,textVerticalAlign:"middle"}});return}
+    if(c.more){g.push({type:"text",x,y,silent:true,style:{text:`另有 ${c.more} 个机型未列出（灰线）`,fill:t.mu,font:`12px ${FONT()}`,textVerticalAlign:"middle"}});return}
     const {it,k}=c,num=String(k+1),vt=Math.round(it.v).toLocaleString("zh-CN"),col_=colorOf(it.r);
     const vW=textW(vt,12,400,MONO);
     g.push({type:"text",x,y,silent:true,style:{text:num,fill:col_,font:`700 13px ${FONT()}`,textVerticalAlign:"middle"}});
@@ -471,6 +471,15 @@ function placeLabels(inst,ctx,lo,hi){
   const base=[...(ctx.base||[])];
   if(o.exp)base.push({type:"text",left:o.mobile?16:20,bottom:o.mobile?12:14,silent:true,
     style:{text:"muinocriz.github.io/smartphoneSellOut",fill:t.mu,font:`12px ${FONT()}`}});
+  // 导出图：没有名字/序号的线改成浅灰细线，只表示「还有其他机型」，不用颜色误导；桌面导出在底部注明数量
+  // （手机导出的数量写在下方列表末尾）
+  if(o.exp){const done=new Set(L.map(l=>l.i));
+    const un=sel.map((r,i)=>i).filter(i=>lastIdx(datas[i],lo,hi)>=0&&!done.has(i));
+    if(un.length){const u=new Set(un);
+      inst.setOption({series:sel.map((r,i)=>u.has(i)?{z:1,showSymbol:false,label:{show:false},
+        lineStyle:{color:t.mu,width:1,opacity:.35},itemStyle:{color:t.mu,opacity:.35}}:{z:3})});
+      if(!o.mobile)base.push({type:"text",right:20,bottom:14,silent:true,
+        style:{text:`另有 ${un.length} 个机型未标注（灰线）`,fill:t.mu,font:`12px ${FONT()}`}})}}
   ctx.labels=L;
   inst.setOption({graphic:[...base,...g]},{replaceMerge:["graphic"]});
 }
@@ -574,10 +583,12 @@ function renderTable(sel){ // 列与图表横轴一致
 }
 
 function selectBrandAll(){S.sel=new Set(rowsOfBrand().filter(hasData).map(key))}
-// 「全部」默认：每个品牌各选累计销量（最新一个有数据的周）最高的 1 款
-const latest=r=>{for(let i=r.vals.length-1;i>=0;i--)if(r.vals[i]!=null)return r.vals[i];return null};
+// 「全部」默认：每个品牌各选最近一周增量最大的 1 款。
+// 先比「最近一个能算出增量的周」谁更新（已停更的机型靠后），同一周再比增量大小
+function lastDelta(r){for(let i=r.vals.length-1;i>0;i--)if(r.vals[i]!=null&&r.vals[i-1]!=null)return {w:i,d:r.vals[i]-r.vals[i-1]};return null}
 function selectBrandTops(){const top=new Map();
-  ROWS.forEach(r=>{const v=latest(r);if(v==null)return;const t=top.get(r.brand);if(!t||v>t.v)top.set(r.brand,{r,v})});
+  ROWS.forEach(r=>{const x=lastDelta(r);if(!x)return;const t=top.get(r.brand);
+    if(!t||x.w>t.w||(x.w===t.w&&x.d>t.d))top.set(r.brand,{r,...x})});
   S.sel=new Set([...top.values()].map(x=>key(x.r)))}
 
 $("brands").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;

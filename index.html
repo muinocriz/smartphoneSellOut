@@ -11,7 +11,7 @@
 :root{
   --bg:#f5f6f8; --panel:#ffffff; --fg:#1b2030; --muted:#636a7d; --line:#dfe2ea;
   --accent:#2f5bd3; --accent-soft:#e6ecfb; --warn:#b4541a;
-  --f-body:"IBM Plex Sans SC","Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  --f-body:"Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
   --f-num:"IBM Plex Mono",ui-monospace,Menlo,monospace;
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
@@ -166,8 +166,6 @@ td.bad{color:var(--warn)}
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js"></script>
-</body>
-</html>
 <script>
 // ===== 配置：周列所属年份（ISO 周）。若列名写成 2026W34 这种格式，会自动识别年份 =====
 const DEFAULT_YEAR=2026;
@@ -178,7 +176,6 @@ const isoW1Mon=y=>{const j4=Date.UTC(y,0,4);const dow=(new Date(j4).getUTCDay()+
 const monOf=d=>{const t=Date.UTC(d[0],d[1]-1,d[2]);const dow=(new Date(t).getUTCDay()+6)%7;return t-dow*DAY};
 const fmtMD=t=>{const d=new Date(t);return (d.getUTCMonth()+1)+"/"+d.getUTCDate()};
 let WEEKS=[],WMON=[],ROWS=[],BRANDS=[];
-const weekMonAt=i=>WMON[i];
 
 // 简单 CSV 解析（支持引号字段）
 function parseCSV(text){
@@ -279,19 +276,19 @@ function fitText(t,max,size,weight){if(textW(t,size,weight)<=max)return t;
 function spec(o){return o.mobile
   ?{ax:12,end:13,val:12,lw:2,lwH:3,sym:5,maxEnd:0.40}
   :{ax:11,end:12,val:11,lw:2,lwH:3,sym:o.exp?6:7,maxEnd:0.24}}
+// 一个机型按当前横轴（自然周 / 发布后第 N 周）排列的数值，图和表格共用
+function axisData(r,cats){const vs=series(r);
+  if(S.axis==="week")return vs;
+  const m=new Map();vs.forEach((v,i)=>{if(v!=null&&r.offs[i]!=null)m.set(r.offs[i],v)});
+  return cats.map(c=>m.has(c.k)?m.get(c.k):null)}
 function seriesData(sel,cats){
-  return sel.map(r=>{const vs=series(r);let d;
-    if(S.axis==="week")d=vs;
-    else{const m=new Map();vs.forEach((v,i)=>{if(v!=null&&r.offs[i]!=null)m.set(r.offs[i],v)});d=cats.map(c=>m.has(c.k)?m.get(c.k):null)}
-    if(S.log)d=d.map(v=>v!=null&&v<=0?null:v);
-    return d})}
+  return sel.map(r=>{const d=axisData(r,cats);
+    return S.log?d.map(v=>v!=null&&v<=0?null:v):d})}
 function lastIdx(d,lo,hi){for(let k=Math.min(hi,d.length-1);k>=lo;k--)if(d[k]!=null)return k;return -1}
-// 线尾文字：屏幕/桌面只写名字（数据标签另显示），手机版附末值
-function endText(r,d,lo,hi,o){const j=lastIdx(d,lo,hi);if(j<0)return null;
-  return label(r)}
 
-// ===== 手机导出：线尾只标序号，名字和数值放到图下方的排行列表 =====
-// 按最新值从高到低编号，顺序与线尾的上下位置基本一致；列表最多 2 列 × 6 行，超出的不编号并注明数量
+// ===== 手机（网页与导出）：线尾只标序号，名字和数值放到图下方的排行列表 =====
+// 按最新值从高到低编号，顺序与线尾的上下位置基本一致。
+// 导出：最多 2 列 × 6 行，超出的不编号并注明数量；网页：单列、全部列出
 const ML={row:21,rows:6,pad:16,gapTop:10};
 function mobileRank(sel,datas,o){
   const items=sel.map((r,i)=>{const j=lastIdx(datas[i],o.lo,o.hi);return j<0?null:{i,r,v:datas[i][j]}}).filter(Boolean)
@@ -329,7 +326,7 @@ function buildOption(sel,cats,datas,o){
   // 右侧留出线尾名字的宽度（超过上限则截断名字）
   const maxEnd=Math.round(W*f.maxEnd);
   if(o.mobile)mobileRank(sel,datas,o);
-  else o.names=sel.map((r,i)=>endText(r,datas[i],o.lo,o.hi,o)==null?null:fitText(label(r),maxEnd-14,f.end,500));
+  else o.names=sel.map((r,i)=>lastIdx(datas[i],o.lo,o.hi)<0?null:fitText(label(r),maxEnd-14,f.end,500));
   const endW=Math.max(0,...o.names.filter(Boolean).map(x=>textW(x,f.end,500)));
   const ser=sel.map((r,i)=>({name:label(r),type:"line",data:datas[i],connectNulls:false,smooth:false,
     symbol:"circle",symbolSize:f.sym,showSymbol:sel.length<=12, // 线很多时不画数据点，避免白色描边叠成竖条
@@ -438,13 +435,13 @@ function placeLabels(inst,ctx,lo,hi){
   const g=[];
   ctx.skipped=L.filter(l=>l.skip).length+sel.filter((r,i)=>lastIdx(datas[i],lo,hi)>=0&&!o.names[i]).length;
   // 放不下的名字不再隐藏：留在线尾原位，按重要性（数值从高到低）逐级变淡；悬停该线时完全显出
-  // 导出的静态图无法悬停，淡色名字只会叠成一团，因此导出时不画
-  const faint=o.exp?[]:L.filter(l=>l.skip).sort((a,b)=>a.py-b.py);
+  // 导出的静态图无法悬停，淡色名字只会叠成一团，因此导出时不画；手机网页下方列表已列全，也不画
+  const faint=o.exp||o.mobile?[]:L.filter(l=>l.skip).sort((a,b)=>a.py-b.py);
   L.splice(0,L.length,...L.filter(l=>!l.skip));
   L.forEach(l=>{l.op=1;
     const lead=l.atEnd?Math.abs(l.y-l.y0)>2||l.x-l.px>off+4:Math.hypot(l.x-l.px,l.y-l.py)>off+h2(l);
     l.lead=lead;
-    if(lead){const tx=l.x<l.px?l.x+l.w:l.x,ty=Math.max(l.y-l.h/2,Math.min(l.y+l.h/2,l.py));
+    if(lead){const tx=l.x<l.px?l.x+l.w:l.x;
       g.push({type:"polyline",id:"eg"+l.i,z:99,silent:true,
         shape:{points:l.atEnd?[[l.px+3,l.py],[l.x-4,l.y],[l.x,l.y]]:[[l.px,l.py],[tx,l.y]]},
         style:{stroke:l.color,lineWidth:1,opacity:.7,fill:null}})}
@@ -466,7 +463,6 @@ function placeLabels(inst,ctx,lo,hi){
       onmouseout:()=>inst.dispatchAction({type:"downplay",seriesIndex:l.i})});
     L.push(l);
   });
-  ctx.faint=faint.length;
   const base=[...(ctx.base||[])];
   if(o.exp)base.push({type:"text",left:o.mobile?16:20,bottom:o.mobile?12:14,silent:true,
     style:{text:"muinocriz.github.io/smartphoneSellOut",fill:t.mu,font:`12px ${FONT()}`}});
@@ -525,7 +521,7 @@ function highlight(i){
 // ===== 导出 PNG：🖥️ 桌面 1200×675 @2x；📱 手机 400×500（4:5）@3x = 1200×1500 =====
 async function exportPNG(mobile){
   if(!CUR||!CUR.sel.some(hasData)){alert("请先选择有数据的机型");return}
-  const btn=$(mobile?"expMob":"expDesk");btn.disabled=true;
+  const btn=$(mobile?"expMob":"expDesk"),prevM=MULTI;btn.disabled=true;
   try{
     if(document.fonts&&document.fonts.ready)await document.fonts.ready;
     const W=mobile?400:1200,H=mobile?500:675,dpr=mobile?3:2;
@@ -534,7 +530,7 @@ async function exportPNG(mobile){
     const keep=CUR.sel.map((r,i)=>datas[i].some(v=>v!=null));
     const sel=CUR.sel.filter((r,i)=>keep[i]),ds=datas.filter((d,i)=>keep[i]);
     if(!sel.length){alert("当前周期范围内所选机型没有数据");return}
-    var prevM=MULTI;setBrandMode(sel);
+    setBrandMode(sel);
     const div=document.createElement("div");
     div.style.cssText=`position:fixed;left:-10000px;top:0;width:${W}px;height:${H}px`;
     document.body.appendChild(div);
@@ -546,8 +542,9 @@ async function exportPNG(mobile){
     inst.dispose();div.remove();
     const rg=cats.length?(cats[0].t.split("\n")[0]+"-"+cats[cats.length-1].t.split("\n")[0]):"";
     const a=document.createElement("a");a.href=url;
-    a.download=`新机周销量_${S.brand}_${rg}_${mobile?"手机":"桌面"}.png`;a.click();
-  }finally{btn.disabled=false;if(typeof prevM==="boolean")MULTI=prevM}
+    const bs=[...new Set(sel.map(r=>r.brand))]; // 与图内副标题一致：同一品牌写品牌名，否则写「多品牌」
+    a.download=`新机周销量_${bs.length===1?bs[0]:"多品牌"}_${rg}_${mobile?"手机":"桌面"}.png`;a.click();
+  }finally{btn.disabled=false;MULTI=prevM}
 }
 
 function renderNote(sel){
@@ -556,15 +553,16 @@ function renderNote(sel){
     if(a!=null&&b!=null&&b<a)msgs.push(`<b>${label(r)}</b> 在 ${WEEKS[i]} 由 ${a} 降至 ${b}，疑似数据异常`)}});
   const empty=sel.filter(r=>!hasData(r)).map(label);
   if(empty.length)msgs.push(`${empty.join("、")} 暂无数据`);
-  if(CUR&&CUR.skipped)msgs.push(`另有 ${CUR.skipped} 条线因空间不足，名字以淡色显示在线尾（越靠后越淡），悬停该线可看清`);
+  if(CUR&&CUR.skipped&&!CUR.o.mobile)msgs.push(`另有 ${CUR.skipped} 条线因空间不足，名字以淡色显示在线尾（越靠后越淡），悬停该线可看清`);
   if(S.axis==="launch"){const nod=sel.filter(r=>hasData(r)&&r.offs.every(o=>o==null)).map(label);
     if(nod.length)msgs.push(`<b>${nod.join("、")}</b> 未填写或无法识别发布日期，未在此视图显示`)}
   $("note").innerHTML=(S.axis==="launch"?"「发布后第 N 周」以发布日所在周为第 1 周，按 ISO 周对齐。":"拖动图下方滑块或修改周期选择可调整显示范围。")+(msgs.length?" "+msgs.join("；")+"。":"");
 }
-function renderTable(sel){
-  if(!sel.length){$("tbl").innerHTML="";return}
-  const h=`<tr><th>机型</th><th>发布日期</th>${WEEKS.map(w=>`<th>${w}</th>`).join("")}</tr>`;
-  const b=sel.map(r=>{const vs=series(r);
+function renderTable(sel){ // 列与图表横轴一致
+  const cats=CUR?CUR.cats:[];
+  if(!sel.length||!cats.length){$("tbl").innerHTML="";return}
+  const h=`<tr><th>机型</th><th>发布日期</th>${cats.map(c=>`<th>${c.t.split("\n")[0]}</th>`).join("")}</tr>`;
+  const b=sel.map(r=>{const vs=axisData(r,cats);
     return `<tr><td><span class="dot" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${colorOf(r)};margin-right:6px"></span>${label(r)}</td><td>${r.date}</td>${
       vs.map(v=>v==null?`<td class="na">—</td>`:`<td class="n${v<0?" bad":""}">${v.toFixed(2)}</td>`).join("")}</tr>`}).join("");
   $("tbl").innerHTML=`<thead>${h}</thead><tbody>${b}</tbody>`;
@@ -656,7 +654,10 @@ chart.on("datazoom",()=>{const dz=chart.getOption().dataZoom[0];S.from=dz.startV
 $("rank").addEventListener("click",e=>{const li=e.target.closest("li");if(li)highlight(+li.dataset.i)});
 MQ.addEventListener("change",()=>{chart.resize();draw(true)});
 chart.on("mouseover",{componentType:"series"},p=>fadeLabels(chart,CUR,p.seriesIndex));
-chart.on("mouseout",{componentType:"series"},()=>fadeLabels(chart,CUR,-1));
+// 移开后回到列表里点选的那条线（若有），保持图和列表的高亮状态一致
+chart.on("mouseout",{componentType:"series"},()=>{
+  if(HL>=0)chart.dispatchAction({type:"highlight",seriesIndex:HL});
+  fadeLabels(chart,CUR,HL)});
 // 手机滚动时地址栏伸缩也会触发 resize（只改高度），此时不重画，避免图表反复闪动
 let lastW=0;
 window.addEventListener("resize",()=>{const w=$("chart").clientWidth;if(w===lastW)return;lastW=w;

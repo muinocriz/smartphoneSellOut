@@ -77,6 +77,10 @@ td.n{font-family:var(--f-num);font-variant-numeric:tabular-nums}
 td.na{color:var(--muted)}
 td.bad{color:var(--warn)}
 @media (max-width:600px){#chart{height:380px}}
+.chart-head{display:flex;justify-content:flex-end;align-items:center;gap:6px;margin-bottom:4px}
+.chart-head .note{margin-right:2px}
+.ico{font-size:16px;line-height:1;padding:4px 8px}
+.ico[disabled]{opacity:.5;cursor:progress}
 .load{display:flex;flex-wrap:wrap;align-items:center;gap:10px;font-size:13px;color:var(--muted)}
 .load.err{color:var(--warn)}
 </style>
@@ -141,6 +145,11 @@ td.bad{color:var(--warn)}
   </section>
 
   <section class="panel">
+    <div class="chart-head">
+      <span class="note">导出 PNG</span>
+      <button class="mini ico" id="expDesk" title="导出桌面端 PNG（16:9，2400×1350）" aria-label="导出桌面端 PNG">🖥️</button>
+      <button class="mini ico" id="expMob" title="导出移动端 PNG（4:5 竖图，1200×1500，适合手机查看）" aria-label="导出移动端 PNG">📱</button>
+    </div>
     <div id="chart" role="img" aria-label="所选机型周销量折线图"></div>
     <p class="note" id="note"></p>
   </section>
@@ -244,44 +253,210 @@ function syncRange(cats){
   $("from").value=S.from;$("to").value=S.to;
 }
 
+// ===== 绘图：线尾直接标名（代替图例），屏幕与导出共用 =====
+const FONT=()=>css("--f-body")||"sans-serif";
+const MONO="IBM Plex Mono, monospace";
+const theme=()=>({fg:css("--fg"),mu:css("--muted"),ln:css("--line"),pn:css("--panel")});
+const fmtV=v=>(+v).toLocaleString("zh-CN",{maximumFractionDigits:2});
+let MEAS=null;
+function textW(t,size,weight){MEAS=MEAS||document.createElement("canvas").getContext("2d");MEAS.font=`${weight||400} ${size}px ${FONT()}`;return MEAS.measureText(t).width}
+function fitText(t,max,size,weight){if(textW(t,size,weight)<=max)return t;
+  while(t.length>1&&textW(t+"…",size,weight)>max)t=t.slice(0,-1);return t+"…"}
+// 各尺寸参数：mobile 以 400px 宽设计、3 倍导出，所有文字 ≥12px
+function spec(o){return o.mobile
+  ?{ax:12,end:13,val:12,lw:2,lwH:3,sym:5,maxEnd:0.40}
+  :{ax:11,end:12,val:11,lw:2,lwH:3,sym:o.exp?6:7,maxEnd:0.24}}
+function seriesData(sel,cats){
+  return sel.map(r=>{const vs=series(r);let d;
+    if(S.axis==="week")d=vs;
+    else{const m=new Map();vs.forEach((v,i)=>{if(v!=null&&r.offs[i]!=null)m.set(r.offs[i],v)});d=cats.map(c=>m.has(c.k)?m.get(c.k):null)}
+    if(S.log)d=d.map(v=>v!=null&&v<=0?null:v);
+    return d})}
+function lastIdx(d,lo,hi){for(let k=Math.min(hi,d.length-1);k>=lo;k--)if(d[k]!=null)return k;return -1}
+// 线尾文字：屏幕/桌面只写名字（数据标签另显示），手机版附末值
+function endText(r,d,lo,hi,o){const j=lastIdx(d,lo,hi);if(j<0)return null;
+  return o.mobile?label(r)+" "+fmtV(d[j]):label(r)}
+
+function buildOption(sel,cats,datas,o){
+  const t=theme(),f=spec(o),W=o.W;
+  // 右侧留出线尾名字的宽度（超过上限则截断名字）
+  const maxEnd=Math.round(W*f.maxEnd);
+  o.names=sel.map((r,i)=>{const tx=endText(r,datas[i],o.lo,o.hi,o);if(tx==null)return null;
+    const nm=fitText(label(r),maxEnd-(o.mobile?textW(tx.slice(label(r).length),f.end,500):0)-14,f.end,500);
+    return o.mobile?nm+tx.slice(label(r).length):nm});
+  const endW=Math.max(0,...o.names.filter(Boolean).map(x=>textW(x,f.end,500)));
+  const ser=sel.map((r,i)=>({name:label(r),type:"line",data:datas[i],connectNulls:false,smooth:false,
+    symbol:"circle",symbolSize:f.sym,
+    lineStyle:{width:f.lw,color:colorOf(r)},itemStyle:{color:colorOf(r),borderColor:t.pn,borderWidth:1.5},
+    label:{show:S.label&&!o.mobile,position:"top",fontSize:f.val,color:t.fg,fontFamily:MONO,
+      formatter:p=>p.value==null?"":fmtV(p.value),textBorderColor:t.pn,textBorderWidth:2},
+    labelLayout:{hideOverlap:true},
+    emphasis:{focus:"series",lineStyle:{width:f.lwH}}}));
+  const catT=cats.map(c=>c.t);
+  const opt={
+    animation:!o.exp,animationDuration:400,
+    textStyle:{fontFamily:FONT()},
+    grid:{left:o.mobile?8:12,right:Math.ceil(endW)+(o.mobile?18:22),
+      top:o.exp?(o.mobile?78:80):36,bottom:o.exp?(o.mobile?36:40):84,containLabel:true},
+    xAxis:{type:"category",data:catT,boundaryGap:false,
+      axisLine:{lineStyle:{color:t.ln}},axisLabel:{color:t.mu,fontSize:f.ax,hideOverlap:true},axisTick:{show:false}},
+    yAxis:{type:S.log?"log":"value",name:o.exp?"":(S.val==="cum"?"万台":"周增量（万台）"),nameTextStyle:{color:t.mu,fontSize:f.ax},
+      scale:!S.log,axisLabel:{color:t.mu,fontFamily:MONO,fontSize:f.ax},splitLine:{lineStyle:{color:t.ln,type:"dashed"}}},
+    series:ser};
+  if(o.exp){
+    const rg=cats.length?catT[0].split("\n")[0]+" – "+catT[catT.length-1].split("\n")[0]:"";
+    const sub=[S.brand==="全部"?"":S.brand,rg,S.val==="cum"?"累计销量（万台）":"周环比增量（万台）",S.log?"对数纵轴":""].filter(Boolean).join(" · ");
+    opt.title={text:"新机周销量追踪",subtext:sub,left:o.mobile?16:20,top:o.mobile?16:18,itemGap:6,
+      textStyle:{color:t.fg,fontSize:o.mobile?18:20,fontWeight:700,fontFamily:FONT()},
+      subtextStyle:{color:t.mu,fontSize:o.mobile?12:13,fontFamily:FONT()}};
+  }else{
+    opt.tooltip={trigger:"axis",backgroundColor:t.pn,borderColor:t.ln,textStyle:{color:t.fg},
+      valueFormatter:v=>v==null?"—":(+v).toFixed(2)+" 万台"};
+    opt.dataZoom=[{type:"slider",xAxisIndex:0,startValue:S.from,endValue:S.to,bottom:14,height:22,
+        borderColor:t.ln,fillerColor:"rgba(100,130,220,.18)",textStyle:{color:t.mu},brushSelect:false,
+        dataBackground:{lineStyle:{color:t.ln},areaStyle:{color:t.ln}}},
+      {type:"inside",xAxisIndex:0,startValue:S.from,endValue:S.to}];
+  }
+  return opt;
+}
+
+// 线尾标签避让：
+// 1) 末点在最右侧的线，标签放在右侧栏，彼此上下推开（先下推、再收回绘图区），被推开的用引导线连回线尾；
+// 2) 中途结束的线，在线尾周围试多个候选位置（右/右上/右下/上/下），按「与其他标签重叠、压到折线、超出绘图区」打分取最优；
+//    都不理想且线尾靠近右侧时退回右侧栏 + 引导线；离得远就取得分最高的位置（标签自带底色，压线也可读）。
+function stack(L,top,bottom,gap){
+  L.sort((a,b)=>a.y0-b.y0);let prev=null;
+  for(const l of L){l.y=Math.max(l.y0,prev?prev.y+(prev.h+l.h)/2+gap:-1e9);prev=l}
+  let next=null;
+  for(const l of [...L].reverse()){l.y=Math.min(l.y,next?next.y-(next.h+l.h)/2-gap:bottom-l.h/2);next=l}
+  prev=null;for(const l of L){l.y=Math.max(l.y,top+l.h/2,prev?prev.y+(prev.h+l.h)/2+gap:-1e9);prev=l}
+}
+function segHitsBox(x1,y1,x2,y2,r){ // Liang–Barsky
+  let t0=0,t1=1;const dx=x2-x1,dy=y2-y1;
+  for(const [p,q] of [[-dx,x1-r.x0],[dx,r.x1-x1],[-dy,y1-r.y0],[dy,r.y1-y1]]){
+    if(p===0){if(q<0)return false}else{const t=q/p;if(p<0){if(t>t1)return false;if(t>t0)t0=t}else{if(t<t0)return false;if(t<t1)t1=t}}}
+  return true}
+function boxOf(l,x,y){return {x0:x,x1:x+l.w,y0:y-l.h/2,y1:y+l.h/2}}
+const boxHit=(a,b)=>a.x0<b.x1&&b.x0<a.x1&&a.y0<b.y1&&b.y0<a.y1;
+function placeLabels(inst,ctx,lo,hi){
+  const {sel,datas,o}=ctx,t=theme(),f=spec(o);
+  let rect;try{rect=inst.getModel().getComponent("grid").coordinateSystem.getRect()}catch(e){rect={x:0,y:0,width:inst.getWidth(),height:inst.getHeight()}}
+  const W=inst.getWidth(),right=rect.x+rect.width,top=rect.y,bottom=rect.y+rect.height,off=o.mobile?6:8;
+  // 每条线在可见窗口内的折线（像素），用于避让
+  const segs=[];
+  sel.forEach((r,i)=>{const d=datas[i];let p=null;
+    for(let k=lo;k<=Math.min(hi,d.length-1);k++){if(d[k]==null){p=null;continue}
+      const q=inst.convertToPixel({seriesIndex:i},[k,d[k]]);if(p)segs.push({i,x1:p[0],y1:p[1],x2:q[0],y2:q[1]});p=q}});
+  // 数据标签（数值）也作为障碍物
+  const vbox=[];
+  if(S.label&&!o.mobile)sel.forEach((r,i)=>{const d=datas[i];
+    for(let k=lo;k<=Math.min(hi,d.length-1);k++){if(d[k]==null)continue;
+      const q=inst.convertToPixel({seriesIndex:i},[k,d[k]]),w=textW(fmtV(d[k]),f.val)+2,yb=q[1]-f.sym/2-5;
+      vbox.push({x0:q[0]-w/2,x1:q[0]+w/2,y0:yb-f.val-2,y1:yb})}});
+  const L=[];
+  sel.forEach((r,i)=>{const d=datas[i],j=lastIdx(d,lo,hi);if(j<0||!o.names[i])return;
+    const pt=inst.convertToPixel({seriesIndex:i},[j,d[j]]);if(!pt||!isFinite(pt[1]))return;
+    const text=o.names[i];
+    L.push({i,text,color:colorOf(r),px:pt[0],py:pt[1],y0:pt[1],w:textW(text,f.end,500)+8,h:f.end+6,
+      atEnd:pt[0]>=right-2})});
+  const gap=o.mobile?1:2;
+  // 右侧栏容量：放不下时优先保留数值高（位置靠上）的线，其余不标
+  const cap=Math.max(1,Math.floor((bottom-top+8+gap)/((L[0]?L[0].h:20)+gap)));
+  let gut=L.filter(l=>l.atEnd).sort((a,b)=>a.py-b.py);
+  gut.slice(cap).forEach(l=>l.skip=true);gut=gut.slice(0,cap);
+  gut.forEach(l=>{l.x=Math.min(right+off,W-2-l.w)});
+  stack(gut,top-4,bottom+4,gap);
+  const placed=gut.map(l=>boxOf(l,l.x,l.y));
+  const mid=L.filter(l=>!l.atEnd).sort((a,b)=>b.px-a.px);
+  for(const l of mid){
+    const {px,py,w,h}=l;
+    const cands=[[px+off,py,0],[px+off,py-h*.75,1],[px+off,py+h*.75,1],[px-w/2,py-h/2-6,2],[px-w/2,py+h/2+6,2],
+      [px+off,py-h*1.5,3],[px+off,py+h*1.5,3],[px-w-off,py,4],[px-w+off,py-h/2-6,5],[px-w+off,py+h/2+6,5],
+      [px-w/2,py-h*1.6,6],[px-w/2,py+h*1.6,6]];
+    let best=null;
+    for(const [x,y,pen] of cands){
+      const bx=boxOf(l,x,y);let sc=pen;
+      if(bx.x0<2||bx.x1>W-2||bx.y0<top-4||bx.y1>bottom+4)sc+=1000;else if(bx.x0<rect.x)sc+=40; // 压到纵轴刻度区：轻罚
+      for(const pb of placed)if(boxHit(bx,pb))sc+=500;
+      for(const vb of vbox)if(boxHit(bx,vb))sc+=25;
+      for(const sg of segs){if(sg.i===l.i)continue;if(segHitsBox(sg.x1,sg.y1,sg.x2,sg.y2,bx))sc+=60}
+      for(const sg of segs){if(sg.i!==l.i)continue;if(segHitsBox(sg.x1,sg.y1,sg.x2,sg.y2,{x0:bx.x0+2,x1:bx.x1-2,y0:bx.y0+2,y1:bx.y1-2}))sc+=30}
+      if(!best||sc<best.sc)best={x,y,sc}}
+    if(best.sc>=60&&right-px<rect.width*.2&&gut.length<cap){ // 压线或重叠且离右侧不远：退到右侧栏
+      l.x=Math.min(right+off,W-2-l.w);l.atEnd=true;gut.push(l);stack(gut,top-4,bottom+4,gap);
+      placed.length=0;L.forEach(m=>{if(m.x!=null&&m.y!=null)placed.push(boxOf(m,m.x,m.y))});
+    }else if(best.sc>=500){l.skip=true // 无处可放（超出或与其他标签重叠）：不标
+    }else{l.x=best.x;l.y=best.y;placed.push(boxOf(l,l.x,l.y))}
+  }
+  const g=[];
+  ctx.skipped=L.filter(l=>l.skip).length+sel.filter((r,i)=>lastIdx(datas[i],lo,hi)>=0&&!o.names[i]).length;
+  L.splice(0,L.length,...L.filter(l=>!l.skip));
+  L.forEach(l=>{
+    const lead=l.atEnd?Math.abs(l.y-l.y0)>2||l.x-l.px>off+4:Math.hypot(l.x-l.px,l.y-l.py)>off+h2(l);
+    l.lead=lead;
+    if(lead){const tx=l.x<l.px?l.x+l.w:l.x,ty=Math.max(l.y-l.h/2,Math.min(l.y+l.h/2,l.py));
+      g.push({type:"polyline",id:"eg"+l.i,z:99,silent:true,
+        shape:{points:l.atEnd?[[l.px+3,l.py],[l.x-4,l.y],[l.x,l.y]]:[[l.px,l.py],[tx,l.y]]},
+        style:{stroke:l.color,lineWidth:1,opacity:.7,fill:null}})}
+    g.push({type:"rect",id:"eb"+l.i,z:100,silent:true,shape:{x:l.x,y:l.y-l.h/2,width:l.w,height:l.h,r:3},
+      style:{fill:t.pn,opacity:.88}});
+    g.push({type:"text",id:"et"+l.i,z:101,x:l.x+4,y:l.y,cursor:"default",
+      style:{text:l.text,fill:l.color,font:`500 ${f.end}px ${FONT()}`,textVerticalAlign:"middle"},
+      onmouseover:()=>inst.dispatchAction({type:"highlight",seriesIndex:l.i}),
+      onmouseout:()=>inst.dispatchAction({type:"downplay",seriesIndex:l.i})});
+  });
+  const base=[...(ctx.base||[])];
+  if(o.exp)base.push({type:"text",left:o.mobile?16:20,bottom:o.mobile?12:14,silent:true,
+    style:{text:"muinocriz.github.io/smartphoneSellOut",fill:t.mu,font:`12px ${FONT()}`}});
+  ctx.labels=L;
+  inst.setOption({graphic:[...base,...g]},{replaceMerge:["graphic"]});
+}
+const h2=l=>l.h*0.75+2;
+// 悬停某条线时，其他线尾标签随之淡化
+function fadeLabels(inst,ctx,idx){if(!ctx||!ctx.labels)return;
+  inst.setOption({graphic:ctx.labels.flatMap(l=>{const op=idx<0||idx===l.i?1:.25;
+    return [{id:"et"+l.i,style:{opacity:op}},{id:"eb"+l.i,style:{opacity:op*.88}},...(l.lead?[{id:"eg"+l.i,style:{opacity:op*.7}}]:[])]})})}
+
+let CUR=null;
 function draw(keepRange){
   const cats=categories();
   if(!keepRange){S.from=0;S.to=Math.max(0,cats.length-1)}
   syncRange(cats);
-  const fg=css("--fg"),mu=css("--muted"),ln=css("--line"),pn=css("--panel");
-  const sel=selected();
-  const ser=sel.map(r=>{
-    const vs=series(r);
-    let data;
-    if(S.axis==="week")data=vs;
-    else{const m=new Map();vs.forEach((v,i)=>{if(v!=null&&r.offs[i]!=null)m.set(r.offs[i],v)});data=cats.map(c=>m.has(c.k)?m.get(c.k):null)}
-    if(S.log)data=data.map(v=>v!=null&&v<=0?null:v);
-    return {name:label(r),type:"line",data,connectNulls:false,smooth:false,symbol:"circle",symbolSize:7,
-      lineStyle:{width:2.2,color:colorOf(r)},itemStyle:{color:colorOf(r),borderColor:pn,borderWidth:1.5},
-      label:{show:S.label,position:"top",fontSize:11,color:fg,fontFamily:"IBM Plex Mono, monospace",
-        formatter:p=>p.value==null?"":(+p.value).toLocaleString("zh-CN",{maximumFractionDigits:2}),
-        textBorderColor:pn,textBorderWidth:2},
-      labelLayout:{hideOverlap:true},emphasis:{focus:"series"}};
-  });
-  chart.setOption({
-    animationDuration:400,
-    grid:{left:56,right:24,top:sel.length>6?84:56,bottom:84,containLabel:false},
-    legend:{type:"scroll",top:0,textStyle:{color:fg},pageTextStyle:{color:mu},inactiveColor:ln},
-    tooltip:{trigger:"axis",backgroundColor:pn,borderColor:ln,textStyle:{color:fg},
-      valueFormatter:v=>v==null?"—":(+v).toFixed(2)+" 万台"},
-    xAxis:{type:"category",data:cats.map(c=>c.t),boundaryGap:false,
-      axisLine:{lineStyle:{color:ln}},axisLabel:{color:mu,fontSize:11},axisTick:{show:false}},
-    yAxis:{type:S.log?"log":"value",name:S.val==="cum"?"万台":"周增量（万台）",nameTextStyle:{color:mu},
-      scale:!S.log,axisLabel:{color:mu,fontFamily:"IBM Plex Mono, monospace"},splitLine:{lineStyle:{color:ln,type:"dashed"}}},
-    dataZoom:[{type:"slider",xAxisIndex:0,startValue:S.from,endValue:S.to,bottom:14,height:22,
-        borderColor:ln,fillerColor:"rgba(100,130,220,.18)",textStyle:{color:mu},brushSelect:false,
-        dataBackground:{lineStyle:{color:ln},areaStyle:{color:ln}}},
-      {type:"inside",xAxisIndex:0,startValue:S.from,endValue:S.to}],
-    series:ser,
-    graphic:sel.length&&sel.some(hasData)?[]:[{type:"text",left:"center",top:"middle",
-      style:{text:sel.length?"所选机型暂无销量数据":"请在上方选择至少一个机型",fill:mu,fontSize:14}}]
-  },{replaceMerge:["series","graphic"]});
+  const t=theme(),sel=selected(),datas=seriesData(sel,cats);
+  const o={exp:false,mobile:false,W:chart.getWidth(),lo:S.from,hi:S.to};
+  const base=sel.length&&sel.some(hasData)?[]:[{type:"text",left:"center",top:"middle",
+      style:{text:sel.length?"所选机型暂无销量数据":"请在上方选择至少一个机型",fill:t.mu,fontSize:14}}];
+  chart.setOption(buildOption(sel,cats,datas,o),{replaceMerge:["series","graphic","title","tooltip","dataZoom"]});
+  CUR={sel,cats,datas,o,base};
+  placeLabels(chart,CUR,S.from,S.to);
   renderNote(sel);renderTable(sel);
+}
+
+// ===== 导出 PNG：🖥️ 桌面 1200×675 @2x；📱 手机 400×500（4:5）@3x = 1200×1500 =====
+async function exportPNG(mobile){
+  if(!CUR||!CUR.sel.some(hasData)){alert("请先选择有数据的机型");return}
+  const btn=$(mobile?"expMob":"expDesk");btn.disabled=true;
+  try{
+    if(document.fonts&&document.fonts.ready)await document.fonts.ready;
+    const W=mobile?400:1200,H=mobile?500:675,dpr=mobile?3:2;
+    const lo=S.from,hi=S.to;
+    const cats=CUR.cats.slice(lo,hi+1),datas=CUR.datas.map(d=>d.slice(lo,hi+1));
+    const keep=CUR.sel.map((r,i)=>datas[i].some(v=>v!=null));
+    const sel=CUR.sel.filter((r,i)=>keep[i]),ds=datas.filter((d,i)=>keep[i]);
+    if(!sel.length){alert("当前周期范围内所选机型没有数据");return}
+    const div=document.createElement("div");
+    div.style.cssText=`position:fixed;left:-10000px;top:0;width:${W}px;height:${H}px`;
+    document.body.appendChild(div);
+    const inst=echarts.init(div,null,{renderer:"canvas",devicePixelRatio:dpr,width:W,height:H});
+    const o={exp:true,mobile,W,lo:0,hi:cats.length-1};
+    inst.setOption(buildOption(sel,cats,ds,o));
+    placeLabels(inst,{sel,datas:ds,o,base:[]},0,cats.length-1);
+    const url=inst.getDataURL({type:"png",pixelRatio:dpr,backgroundColor:theme().pn});
+    inst.dispose();div.remove();
+    const rg=cats.length?(cats[0].t.split("\n")[0]+"-"+cats[cats.length-1].t.split("\n")[0]):"";
+    const a=document.createElement("a");a.href=url;
+    a.download=`新机周销量_${S.brand}_${rg}_${mobile?"手机":"桌面"}.png`;a.click();
+  }finally{btn.disabled=false}
 }
 
 function renderNote(sel){
@@ -290,6 +465,7 @@ function renderNote(sel){
     if(a!=null&&b!=null&&b<a)msgs.push(`<b>${label(r)}</b> 在 ${WEEKS[i]} 由 ${a} 降至 ${b}，疑似数据异常`)}});
   const empty=sel.filter(r=>!hasData(r)).map(label);
   if(empty.length)msgs.push(`${empty.join("、")} 暂无数据`);
+  if(CUR&&CUR.skipped)msgs.push(`另有 ${CUR.skipped} 条线因空间不足未在线尾标注名称，可悬停查看或减少所选机型`);
   if(S.axis==="launch"){const nod=sel.filter(r=>hasData(r)&&r.offs.every(o=>o==null)).map(label);
     if(nod.length)msgs.push(`<b>${nod.join("、")}</b> 未填写或无法识别发布日期，未在此视图显示`)}
   $("note").innerHTML=(S.axis==="launch"?"「发布后第 N 周」以发布日所在周为第 1 周，按 ISO 周对齐。":"拖动图下方滑块或修改周期选择可调整显示范围。")+(msgs.length?" "+msgs.join("；")+"。":"");
@@ -382,8 +558,13 @@ function applyRange(){chart.dispatchAction({type:"dataZoom",startValue:S.from,en
 $("from").onchange=e=>{S.from=+e.target.value;if(S.from>S.to){S.to=S.from;$("to").value=S.to}applyRange()};
 $("to").onchange=e=>{S.to=+e.target.value;if(S.to<S.from){S.from=S.to;$("from").value=S.from}applyRange()};
 $("resetRange").onclick=()=>{S.from=0;S.to=$("to").options.length-1;$("from").value=S.from;$("to").value=S.to;applyRange()};
-chart.on("datazoom",()=>{const dz=chart.getOption().dataZoom[0];S.from=dz.startValue;S.to=dz.endValue;$("from").value=S.from;$("to").value=S.to});
-window.addEventListener("resize",()=>chart.resize());
+chart.on("datazoom",()=>{const dz=chart.getOption().dataZoom[0];S.from=dz.startValue;S.to=dz.endValue;$("from").value=S.from;$("to").value=S.to;
+  if(CUR){placeLabels(chart,CUR,S.from,S.to);renderNote(CUR.sel)}});
+chart.on("mouseover",{componentType:"series"},p=>fadeLabels(chart,CUR,p.seriesIndex));
+chart.on("mouseout",{componentType:"series"},()=>fadeLabels(chart,CUR,-1));
+window.addEventListener("resize",()=>{chart.resize();if(CUR){CUR.o.W=chart.getWidth();draw(true)}});
+$("expDesk").onclick=()=>exportPNG(false);
+$("expMob").onclick=()=>exportPNG(true);
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change",()=>draw(true));
 new MutationObserver(()=>draw(true)).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
 

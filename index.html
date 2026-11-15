@@ -598,11 +598,11 @@ function renderNote(sel){
     if(nod.length)msgs.push(`<b>${nod.join("、")}</b> 未填写或无法识别发布日期，未在此视图显示`)}
   $("note").innerHTML=(S.axis==="launch"?"「发布后第 N 周」以发布日所在周为第 1 周，按 ISO 周对齐。":"拖动图下方滑块或修改周期选择可调整显示范围。")+(msgs.length?" "+msgs.join("；")+"。":"");
 }
-function renderTable(sel){ // 列与图表横轴一致
+function renderTable(sel){ // 列与图表横轴一致，但倒序：最新的周放在最左（紧跟发布日期列）
   const cats=CUR?CUR.cats:[];
   if(!sel.length||!cats.length){$("tbl").innerHTML="";return}
-  const h=`<tr><th>机型</th><th>发布日期</th>${cats.map(c=>`<th>${c.t.split("\n")[0]}</th>`).join("")}</tr>`;
-  const b=sel.map(r=>{const vs=axisData(r,cats);
+  const h=`<tr><th>机型</th><th>发布日期</th>${cats.slice().reverse().map(c=>`<th>${c.t.split("\n")[0]}</th>`).join("")}</tr>`;
+  const b=sel.map(r=>{const vs=axisData(r,cats).slice().reverse();
     return `<tr><td><span class="dot" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${colorOf(r)};margin-right:6px"></span>${label(r)}</td><td>${r.date}</td>${
       vs.map(v=>v==null?`<td class="na">—</td>`:`<td class="n${v<0?" bad":""}">${v.toFixed(2)}</td>`).join("")}</tr>`}).join("");
   $("tbl").innerHTML=`<thead>${h}</thead><tbody>${b}</tbody>`;

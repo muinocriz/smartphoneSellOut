@@ -29,7 +29,7 @@ The author compiled and entered the figures by hand from these bloggers' public 
   - Week N after launch: the week containing the launch date counts as week 1, so you can compare models that launched at different times.
 - **Two value modes**: cumulative sales (累计销量), or week-over-week change (this week minus last week).
 - **Log y-axis**: useful when models differ greatly in scale, for example iPhone alongside other models.
-- **Data table**: the values for the selected models are listed below the chart, with columns matching the chart's x-axis.
+- **Data table**: the values for the selected models are listed below the chart, with the same columns as the chart's x-axis but in reverse order, so the latest week is on the left.
 - **Anomaly hints**: if a model's value is lower than the week before, the page flags it as a possible data-entry error. Models without a launch date are left out of the "week N after launch" view, and the page lists their names.
 - **This week's milestones (本周里程碑)**: the saved-lists row starts with an automatic collection, 「🏁 本周里程碑」, containing models whose cumulative sales crossed a multiple of 500,000 units (50 万台: 50, 100, 150, …) in the latest week. Click it to view them; the note under the chart says which milestone each one passed, and hovering the button shows the details. It updates with the data and can't be renamed or deleted.
 - **Saved lists (我的列表)**: save a set of models you often check as a template and restore it with one click.
@@ -108,6 +108,11 @@ These rules were settled after several rounds of changes. Please keep them when 
 - **Chart zoom is off on touch devices** (where the main input is a finger), so swiping over the chart still scrolls the page.
 - **Chinese text uses Noto Sans SC; numbers use IBM Plex Mono.** The chart is laid out again once the fonts finish loading.
 - **Colours follow brand families**: Xiaomi and REDMI orange; Huawei and Honor red; OPPO and OnePlus green; vivo and iQOO blue; Apple purple. The two brands in a family are offset slightly in hue, and models within a brand use different shades. A new brand needs a line in `BRAND_HUE` in `index.html`; otherwise it uses the generic palette.
+- **The data table puts the latest week on the left.** Column order: model → launch date → latest week → the week before → … → earliest week, so the newest figures are seen first. This order holds when switching the x-axis (calendar week / week N after launch) and the values (cumulative / week-over-week change); in the "week N after launch" view, the largest N is leftmost. The chart's x-axis still runs from earliest to latest.
+- **PNG export file names**: `新机周销量-<list or brand>-<x-axis>-<y-axis>-<桌面/手机>.png`, for example `新机周销量-华为-自然-总销量-桌面.png` or `新机周销量-本周里程碑-发布后-周增量-手机.png`.
+  - When a saved list is selected (a user list or 「本周里程碑」), its name is used instead of the brand; otherwise the current brand is used (which may be 「全部」).
+  - The x-axis part is 「自然」 (calendar week) or 「发布后」 (after launch); the y-axis part is 「总销量」 (cumulative) or 「周增量」 (weekly change); the last part is 「桌面」 (desktop) or 「手机」 (mobile), telling the two export buttons apart.
+  - The week range is not included. Characters not allowed in file names (`\ / : * ? " < > |`) in a list name are replaced with `_`.
 
 ## Note
 

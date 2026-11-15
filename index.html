@@ -577,12 +577,16 @@ async function exportPNG(mobile){
     placeLabels(inst,{sel,datas:ds,o,base:mobile?mobileList(o,theme()):[]},0,cats.length-1);
     const url=inst.getDataURL({type:"png",pixelRatio:dpr,backgroundColor:theme().pn});
     inst.dispose();div.remove();
-    const rg=cats.length?(cats[0].t.split("\n")[0]+"-"+cats[cats.length-1].t.split("\n")[0]):"";
     const a=document.createElement("a");a.href=url;
-    const bs=[...new Set(sel.map(r=>r.brand))]; // 与图内副标题一致：同一品牌写品牌名，否则写「多品牌」
-    a.download=`新机周销量_${bs.length===1?bs[0]:"多品牌"}_${rg}_${mobile?"手机":"桌面"}.png`;a.click();
+    a.download=exportName();a.click();
   }finally{btn.disabled=false;MULTI=prevM}
 }
+
+// 导出文件名：新机周销量-自定义列表名（选中时才有）-品牌-横轴-纵轴.png，两个导出按钮共用
+function exportName(){
+  const l=curList(); // 只取「我的列表」里用户自建的列表，自动生成的「本周里程碑」不算
+  const parts=["新机周销量",l?l.name:null,S.brand,S.axis==="launch"?"发布后":"自然",S.val==="delta"?"周增量":"总销量"];
+  return parts.filter(Boolean).map(s=>String(s).replace(/[\\/:*?"<>|]/g,"_")).join("-")+".png"}
 
 function renderNote(sel){
   const msgs=[];

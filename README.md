@@ -6,6 +6,12 @@
 
 在线访问：<https://muinocriz.github.io/smartphoneSellOut/>
 
+<p align="center">
+  <img src="screenshots/新机周销量-26折叠-发布后-总销量-桌面.png" alt="新机周销量-26折叠-发布后-总销量-桌面">
+  <br>
+  <sub>桌面网页示例截图</sub>
+</p>
+
 ## 数据来源
 
 - 主要来源：微博博主 **RD观测**

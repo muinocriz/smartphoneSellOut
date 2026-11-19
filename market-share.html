@@ -38,9 +38,155 @@
       color: #ffffff;
       box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);
     }
+
+    /* 网页操作台统一浅色视觉：与「销量榜单推算与出图」保持一致。
+       仅修改控制台与预览舞台，不修改 SVG 海报主题色、图表数据或导出逻辑。 */
+    html { background:#f5f7fb; color-scheme:light; }
+    body.market-share-light {
+      font-family:"Source Han Sans SC","Source Han Sans CN","思源黑体","Noto Sans CJK SC","Noto Sans SC",sans-serif;
+      background:#f5f7fb !important; color:#202a3d !important;
+    }
+    body.market-share-light ::-webkit-scrollbar {width:7px;height:7px}
+    body.market-share-light ::-webkit-scrollbar-track {background:#edf2f9}
+    body.market-share-light ::-webkit-scrollbar-thumb {background:#c1ccdd;border-radius:10px}
+
+    /* 左侧操作面板 */
+    body.market-share-light > aside {
+      background:#f5f7fb !important; color:#202a3d !important;
+      border-color:#e0e7f1 !important; scrollbar-color:#bfcde1 #eef2f8;
+    }
+    body.market-share-light > aside > div:first-child h1 {color:#202a3d !important;letter-spacing:-.025em}
+    body.market-share-light > aside > div:first-child > span {
+      background:#edf4ff !important;border-color:#d5e2f8 !important;
+      color:#52739b !important;
+    }
+    body.market-share-light > aside > div:first-child > div > div:first-child {
+      background:#edf4ff !important;border-color:#d5e2f8 !important;
+      color:#2865db !important;
+    }
+    body.market-share-light > aside > div:first-child > div > div:first-child > span {background:#3677ea !important}
+    body.market-share-light > aside > div[class*="bg-slate-800/70"] {
+      background:#ffffff !important; border:1px solid #e3eaf4 !important;
+      border-radius:16px !important; box-shadow:0 5px 18px #25467409;
+    }
+    body.market-share-light > aside > div[class*="bg-slate-800/70"] > label:first-child,
+    body.market-share-light > aside > div[class*="bg-slate-800/70"] > div:first-child > label:first-child {
+      color:#536a8c !important;font-weight:800;letter-spacing:.025em;
+    }
+    body.market-share-light > aside [class~="text-slate-400"],
+    body.market-share-light > aside [class~="text-slate-500"] {color:#72829a !important}
+    body.market-share-light > aside [class~="text-slate-300"] {color:#5a6b85 !important}
+    body.market-share-light > aside [class~="text-slate-200"],
+    body.market-share-light > aside [class~="text-white"] {color:#263853 !important}
+    body.market-share-light > aside [class~="text-blue-400"] {color:#2865db !important}
+    body.market-share-light > aside [class~="text-emerald-400"],
+    body.market-share-light > aside [class~="text-emerald-400/90"] {color:#278361 !important}
+    body.market-share-light > aside [class~="text-rose-400"] {color:#cf4563 !important}
+    body.market-share-light > aside [class~="text-sky-400"] {color:#2877ad !important}
+    body.market-share-light > aside [class~="text-amber-400"] {color:#ae761b !important}
+    body.market-share-light > aside [class~="border-slate-700"],
+    body.market-share-light > aside [class~="border-slate-700/80"],
+    body.market-share-light > aside [class~="border-slate-800"],
+    body.market-share-light > aside [class~="border-slate-700/70"] {border-color:#e0e8f3 !important}
+    body.market-share-light > aside [class~="bg-slate-900"],
+    body.market-share-light > aside [class~="bg-slate-950"],
+    body.market-share-light > aside [class~="bg-slate-900/90"] {background:#f8fafe !important}
+    body.market-share-light > aside [class~="bg-slate-800"],
+    body.market-share-light > aside [class~="bg-slate-800/80"],
+    body.market-share-light > aside [class~="bg-slate-700/80"] {background:#f0f5fc !important}
+    body.market-share-light > aside [class~="bg-slate-700"] {background:#d7e2f2 !important}
+
+    /* 五种图表模式：选中态采用第三模块的浅蓝描边，而不是深色渐变。 */
+    body.market-share-light #chartTypeGroup button.chart-btn {
+      border:1px solid #e2eaf7 !important; background:#f7f9fd !important;
+      color:#2b3c58 !important; box-shadow:none !important; min-height:50px;
+      border-radius:12px !important; line-height:1.45;
+    }
+    body.market-share-light #chartTypeGroup button.chart-btn:hover {background:#eff5ff !important;border-color:#b8cef3 !important}
+    body.market-share-light #chartTypeGroup button.chart-btn.tab-active {
+      border-color:#8fb8ff !important; background:#edf4ff !important;
+      color:#245bbd !important; box-shadow:inset 0 0 0 1px #a2c1ff !important;
+    }
+
+    /* 编辑字段、按钮与调节开关 */
+    body.market-share-light > aside input[type="text"],
+    body.market-share-light > aside input[type="number"] {
+      background:#ffffff !important; color:#263853 !important;
+      border:1px solid #d7e3f2 !important;
+      box-shadow:0 1px 2px #1f3e6410;
+    }
+    body.market-share-light > aside input[type="text"]:focus,
+    body.market-share-light > aside input[type="number"]:focus {
+      border-color:#7baaf7 !important; outline:2px solid #accbff55;
+    }
+    body.market-share-light > aside input[type="range"] {background:#dfe7f4 !important}
+    body.market-share-light > aside #brandInputsList > div {border-radius:8px}
+    body.market-share-light > aside #brandInputsList > div:nth-child(even) {background:#f8fafe}
+    body.market-share-light > aside #brandInputsList .data-num-input {background:#fff !important;border-color:#d8e3f2 !important;color:#233b59 !important}
+    body.market-share-light > aside #toggleDataEditorBtn {
+      background:#edf4ff !important;color:#2d64bf !important;
+      border:1px solid #dce8fb !important;border-radius:9px;
+    }
+    body.market-share-light > aside #toggleDataEditorBtn:hover {background:#e2edff !important}
+    body.market-share-light > aside #resetDataBtn {color:#2d66bd !important}
+    body.market-share-light > aside #resetDataBtn:hover {color:#174b99 !important}
+    body.market-share-light > aside .peer:checked + div {background:#2c6ce4 !important}
+    body.market-share-light > aside #toggleSafeZone.peer:checked + div {background:#f44c72 !important}
+    body.market-share-light > aside #safeRightSlider {accent-color:#f44c72}
+    body.market-share-light > aside #safeBottomSlider {accent-color:#efa21c}
+
+    /* 六套配色卡只改选择控件，不干预海报的颜色主题。 */
+    body.market-share-light #paletteGrid button {
+      background:#f7f9fd !important; color:#283c5a !important;
+      border:1px solid #e2eaf5 !important;border-radius:13px !important;
+      min-height:48px;
+    }
+    body.market-share-light #paletteGrid button:hover {background:#eef5ff !important;border-color:#bfd3f4 !important}
+    body.market-share-light #paletteGrid button[class~="border-blue-500"] {
+      background:#edf4ff !important; color:#265bb8 !important;
+      border-color:#5795f3 !important;
+      box-shadow:inset 0 0 0 1px #b4d0ff !important;
+    }
+
+    /* 主导出动作 */
+    body.market-share-light > aside #exportBtn {
+      background:#2865db !important; color:#ffffff !important;
+      border:1px solid #2865db !important;border-radius:13px !important;
+      box-shadow:0 8px 18px #2358bc24 !important;
+    }
+    body.market-share-light > aside #exportBtn:hover {background:#1e57c6 !important}
+    body.market-share-light > aside #exportBtn span,
+    body.market-share-light > aside #exportBtn svg {color:#fff !important}
+
+    /* 右侧实时预览舞台：匹配第三模块的浅蓝灰画布。 */
+    body.market-share-light > main {
+      background:#f0f4fb !important;color:#526780 !important;
+      border-left:1px solid #e1e8f2;justify-content:flex-start !important;
+      padding-top:26px !important;
+    }
+    body.market-share-light > main > div:first-child {color:#5c708f !important}
+    body.market-share-light > main > div:first-child [class~="text-slate-400"] {color:#607591 !important}
+    body.market-share-light > main > div:first-child span[class~="bg-slate-800"] {
+      background:#e7eef9 !important;color:#49617d !important;
+    }
+    body.market-share-light #posterContainer {
+      background:#fff !important;border:1px solid #dbe4f1;
+      box-shadow:0 16px 42px #243c6422 !important;
+    }
+    /* 主 SVG 的文字与海报主题保留原先字体、着色逻辑。 */
+    body.market-share-light #posterSvg {font-family:"Inter","Noto Sans SC",sans-serif}
+    @media (max-width:1023px) {
+      body.market-share-light > main {border-left:0;border-top:1px solid #e1e8f2;min-height:700px}
+      body.market-share-light > aside {border-color:#e1e8f2 !important}
+    }
+    @media (max-width:600px) {
+      body.market-share-light > main {padding:18px 12px 32px !important;min-height:600px}
+      body.market-share-light > aside {padding:16px 12px !important}
+      body.market-share-light > aside > div[class*="bg-slate-800/70"] {padding:14px !important}
+    }
   </style>
 </head>
-<body class="min-h-screen flex flex-col lg:flex-row overflow-x-hidden">
+<body class="market-share-light min-h-screen flex flex-col lg:flex-row overflow-x-hidden">
 
   <!-- 左侧控制台 -->
   <aside class="w-full lg:w-[420px] xl:w-[450px] bg-slate-900 border-b lg:border-b-0 lg:border-r border-slate-800 p-5 lg:p-6 flex flex-col gap-5 shrink-0 lg:h-screen lg:overflow-y-auto">

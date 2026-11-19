@@ -10,7 +10,7 @@
     w1Label:'inputW1Label',w2Label:'inputW2Label',
     w1Market:'inputW1Market',w2Market:'inputW2Market'
   };
-  let rows=[],pairs=[],sourceName='仓库 CSV';
+  let rows=[],pairs=[],sourceName='仓库 CSV',loadVersion=0;
   const byId=id=>document.getElementById(id);
   const num=n=>n>0?'+'+n.toFixed(1):n.toFixed(1);
   const weekLabel=id=>id.replace('W',' W');
@@ -104,8 +104,11 @@
     const nextPairs=data.pairIndices(next);
     if(!nextPairs.length)throw new Error('CSV 没有可比较的连续两周，请补充相邻 ISO 周');
     rows=next;pairs=nextPairs;sourceName=source;
+    if(typeof state.followLatestMarketShare!=='boolean')state.followLatestMarketShare=true;
     renderWeekChoices();
-    const selected=preferSaved?state.selectedWeek:null;
+    // Follow newly published weeks unless an older pair was explicitly selected.
+    if(!preferSaved)state.followLatestMarketShare=true;
+    const selected=preferSaved&&state.followLatestMarketShare===false?state.selectedWeek:null;
     if(preferSaved&&state.dataMode==='manual'){
       const selectedIndex=pairs.find(i=>rows[i].week===selected);
       byId('marketShareWeekSelect').value=selectedIndex===undefined?rows[pairs[pairs.length-1]].week:selected;
@@ -122,9 +125,15 @@
     return text;
   }
   async function reloadRepo(force){
+    const version=++loadVersion;
     status('正在读取仓库 market-share.csv…');
-    try{installCsv(await fetchRepositoryCsv(),'仓库 CSV',!force)}
-    catch(error){status(`仓库 CSV 读取失败：${error.message}。可以手动选择本地 CSV。`,true)}
+    try{
+      const text=await fetchRepositoryCsv();
+      if(version!==loadVersion)return; // A newer local import or reload takes precedence.
+      installCsv(text,'仓库 CSV',!force);
+    }catch(error){
+      if(version===loadVersion)status(`仓库 CSV 读取失败：${error.message}。可以手动选择本地 CSV。`,true);
+    }
   }
   function insertControls(){
     const card=byId('toggleDataEditorBtn').parentElement.parentElement;
@@ -140,12 +149,19 @@
       </div>`);
   }
   function bindEvents(){
-    byId('marketShareWeekSelect').addEventListener('change',e=>applyPair(e.target.value,false));
+    byId('marketShareWeekSelect').addEventListener('change',e=>{
+      const latest=pairs.length?rows[pairs[pairs.length-1]].week:null;
+      state.followLatestMarketShare=e.target.value===latest;
+      applyPair(e.target.value,false);
+    });
     byId('marketShareReloadCsv').addEventListener('click',()=>reloadRepo(true));
     byId('marketShareUploadCsv').addEventListener('change',async e=>{
       const file=e.target.files&&e.target.files[0];if(!file)return;
-      try{installCsv(data.decodeCSV(await file.arrayBuffer()),`本地文件 ${file.name}`,false)}
-      catch(err){status('CSV 导入失败：'+err.message,true)}
+      const version=++loadVersion;
+      try{
+        const text=data.decodeCSV(await file.arrayBuffer());
+        if(version===loadVersion)installCsv(text,`本地文件 ${file.name}`,false);
+      }catch(err){if(version===loadVersion)status('CSV 导入失败：'+err.message,true)}
       finally{e.target.value=''}
     });
     for(const [key,id] of Object.entries(AUTO_FIELDS)){

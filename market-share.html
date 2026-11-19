@@ -240,6 +240,21 @@
     /* 数值用 IBM Plex Mono；汉字和普通英文仍使用原来的正文字体。 */
     body.market-share-light .font-mono,body.market-share-light input[type="number"],body.market-share-light .data-num-input {font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace!important;font-variant-numeric:tabular-nums}
 
+    /* Control-panel section titles: shared hierarchy, no decorative icons or status colors. */
+    body.market-share-light > aside .control-section-heading {
+      display:block;
+      margin:0;
+      color:#344a68 !important;
+      font-family:inherit;
+      font-size:var(--ui-text-subheading) !important;
+      font-weight:800 !important;
+      line-height:1.5;
+      letter-spacing:0;
+      text-transform:none;
+    }
+    body.market-share-light > aside .control-section-heading.section-heading-spaced {margin-bottom:10px}
+    body.market-share-light > aside .wm-card .control-section-heading {margin-bottom:5px}
+
     /* 两模块共用的浅色水印设置区 */
     .wm-card{background:#fff;border:1px solid #e0e7f1;border-radius:16px;padding:16px;color:#24364e;box-shadow:0 2px 12px #2546740c}
     .wm-card h3{font-size:var(--ui-text-md);font-weight:800;color:#344a68;margin:0 0 5px}
@@ -281,7 +296,7 @@
 
     <!-- 1. 图表类型切换 -->
     <div class="bg-slate-800/70 p-3.5 rounded-2xl border border-slate-700/70">
-      <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2.5">1. 选择数据可视化图表</label>
+      <h2 class="control-section-heading section-heading-spaced">1. 选择数据可视化图表</h2>
       <div class="grid grid-cols-2 gap-2" id="chartTypeGroup">
         <button data-type="combo" class="chart-btn tab-active py-2.5 px-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer col-span-2">
           <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="18" height="7" rx="1.5"/><line x1="12" y1="13" x2="12" y2="21"/><rect x="12" y="14" width="7" height="2.5" rx="0.8" fill="currentColor"/><rect x="6" y="18" width="6" height="2.5" rx="0.8"/></svg>
@@ -334,10 +349,7 @@
     <!-- 2. 自定义周度数据输入区（方便未来每周更新） -->
     <div class="bg-slate-800/70 p-3.5 rounded-2xl border border-slate-700/70 space-y-3">
       <div class="flex items-center justify-between">
-        <label class="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
-          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-          2. 录入 / 修改份额数据 (%)
-        </label>
+        <h2 class="control-section-heading">2. 录入 / 修改份额数据 (%)</h2>
         <button id="toggleDataEditorBtn" class="text-[11px] bg-slate-700 hover:bg-slate-600 text-slate-200 px-2.5 py-1 rounded-lg font-semibold transition cursor-pointer">
           展开编辑表格 ▾
         </button>
@@ -375,10 +387,7 @@
     <div id="safeControlPanel" class="bg-slate-800/70 p-3.5 rounded-2xl border border-slate-700/70 space-y-3">
       <div class="flex items-center justify-between">
         <div>
-          <label class="text-xs font-bold uppercase tracking-wider text-rose-400 flex items-center gap-1.5">
-            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L1 21h22L12 2zm0 3.8L19.5 19H4.5L12 5.8zM11 10v4h2v-4h-2zm0 6v2h2v-2h-2z"/></svg>
-            3. 抖音安全区独立规避
-          </label>
+          <h2 class="control-section-heading">3. 抖音安全区独立规避</h2>
           <p class="text-[11px] text-slate-400 mt-0.5">独立调节右侧交互栏与底部文案区的安全留白</p>
         </div>
         <label class="relative inline-flex items-center cursor-pointer">
@@ -409,7 +418,7 @@
     <!-- 4. 6大精选视觉配色方案：与第三模块一致，深蓝强调面板 -->
     <div id="paletteControlPanel" class="bg-slate-800/70 p-3.5 rounded-2xl border border-slate-700/70 space-y-2.5">
       <div class="flex items-center justify-between">
-        <label class="block text-xs font-bold uppercase tracking-wider text-slate-400">4. 海报主题与配色方案</label>
+        <h2 class="control-section-heading">4. 海报主题与配色方案</h2>
         <span id="activePaletteName" class="text-[11px] font-semibold text-blue-400">柔雾丁香</span>
       </div>
       <div class="grid grid-cols-2 gap-2" id="paletteGrid">
@@ -419,7 +428,7 @@
 
     <!-- 5. 自定义标题文案 -->
     <div class="bg-slate-800/70 p-3.5 rounded-2xl border border-slate-700/70 space-y-2.5">
-      <label class="block text-xs font-bold uppercase tracking-wider text-slate-400">5. 编辑战报文案</label>
+      <h2 class="control-section-heading">5. 编辑战报文案</h2>
       <div>
         <label class="text-[11px] text-slate-400 block mb-1">主标题</label>
         <input type="text" id="inputTitle" value="2026 W45 国内手机市场份额周环比变化" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500">
@@ -469,7 +478,7 @@
 
     <!-- 6. 图片水印：SVG 海报渲染与 PNG 导出同步 -->
     <div class="wm-card" id="watermarkControls">
-      <h3>6. 图片水印</h3>
+      <h2 class="control-section-heading">6. 图片水印</h2>
       <p>两种模式互斥，默认均关闭。水印会同时显示在预览和导出的图片中。</p>
       <div class="wm-section">
         <div class="wm-head"><div><strong>全屏倾斜水印</strong><small>斜向重复平铺在图表区域</small></div><input id="wmDiagonalEnabled" class="wm-toggle" type="checkbox" aria-label="开启全屏倾斜水印"></div>

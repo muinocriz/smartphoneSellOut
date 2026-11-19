@@ -127,6 +127,13 @@ python3 -m http.server 8000
 └── README.en.md      英文说明
 ```
 
+## 字体与数字排版
+
+- 第一模块已有的 `--f-num: "IBM Plex Mono",ui-monospace,Menlo,monospace` 继续保留。
+- 第二、第三模块的排名、销量、百分比、倍数、周期数字、表格和相关输入字段统一优先使用 **IBM Plex Mono**；普通中文和英文仍使用对应页面的正文字体。混排的数字片段会单独指定等宽字体。
+- 第三模块 Canvas 导出会按照数字/文字片段分别绘制，并对独立数字做光学左边界修正。第二模块 SVG 导出尝试临时内嵌字体以保持 PNG 一致性。
+- IBM Plex Mono 通过 Google Fonts 加载；网络不可用时回退至系统等宽字体。完全离线且要求像素级一致的环境，建议在设备上安装 IBM Plex Mono。
+
 ## 技术说明
 
 - 销量追踪图表使用 [Apache ECharts](https://echarts.apache.org/) 5.4.3，从 cdnjs 加载。

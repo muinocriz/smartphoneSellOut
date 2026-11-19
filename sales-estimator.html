@@ -480,7 +480,25 @@ function rounded(ctx,x,y,w,h,r,color){if(w<=0||h<=0)return;ctx.beginPath();const
 function horizontalRule(ctx,y,p){ctx.strokeStyle=p.hair;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(70,y);ctx.lineTo(1010,y);ctx.stroke()}
 function wrapCanvas(ctx,str,x,y,maxWidth,size,lineHeight,color,weight='650',maxLines=3){let row='',lines=[];for(const c of Array.from(String(str))){if(measureMixedCanvas(ctx,row+c,size,weight).width>maxWidth&&row){lines.push(row);row=c}else row+=c}if(row)lines.push(row);lines=lines.slice(0,maxLines);lines.forEach((v,i)=>canvasText(ctx,v,x,y+i*lineHeight,size,color,weight));return y+lines.length*lineHeight}
 function posterHeading(type,o,p){const titles={top:'热销机型 TOP10',versus:'同榜机型 销量 PK',brands:'品牌上榜实力',leader:'榜首究竟有多强？'};const subs={top:'入榜机型 · 估算销量排名',versus:'相同统计周期 · 像素标定对比',brands:'仅限当前榜单的入榜样本',leader:'头部差距与集中度分析'};return {title:titles[type],sub:subs[type]}}
-function posterFrame(ctx,W,H,type,o,p,includeFooter=true){ctx.fillStyle=p.bg;ctx.fillRect(0,0,W,H);ctx.globalAlpha=.07;ctx.fillStyle=p.bar;ctx.beginPath();ctx.arc(1120,-50,370,0,2*Math.PI);ctx.fill();ctx.globalAlpha=1;const copy=getPosterCopy(type,o);rounded(ctx,70,55,162,42,13,p.panel);canvasText(ctx,copy.markLeft,87,84,25,p.accent,'800');canvasText(ctx,copy.markRight,1010,84,22,p.sub,'600','right');canvasText(ctx,copy.title,70,189,72,p.ink,'850','left',940);canvasText(ctx,copy.subtitle,72,239,29,p.sub,'550','left',940);rounded(ctx,70,258,Math.min(900,Math.max(250,18*Array.from(o.d.label).length+48)),48,15,p.panel);canvasText(ctx,o.d.label,91,291,26,p.accent,'760');horizontalRule(ctx,321,p);
+// 与市场份额模块统一为浅灰蓝画布 + 白色圆角海报卡片。
+function drawPosterBackdrop(ctx,W,H,p){
+ ctx.save();
+ ctx.fillStyle='#edf2f9';ctx.fillRect(0,0,W,H);
+ const x=23,y=24,w=W-46,h=H-48,r=32;
+ ctx.shadowColor='rgba(34,60,96,0.13)';
+ ctx.shadowBlur=25;ctx.shadowOffsetY=9;
+ rounded(ctx,x,y,w,h,r,'#ffffff');
+ ctx.shadowColor='transparent';ctx.shadowBlur=0;ctx.shadowOffsetY=0;
+ ctx.strokeStyle='#dce5f0';ctx.lineWidth=1.6;
+ ctx.beginPath();ctx.roundRect(x+.8,y+.8,w-1.6,h-1.6,r);ctx.stroke();
+ ctx.save();ctx.beginPath();ctx.roundRect(x,y,w,h,r);ctx.clip();
+ ctx.fillStyle='rgba(84,113,153,0.044)';
+ for(let gy=y+17;gy<y+h-12;gy+=27){
+  for(let gx=x+18;gx<x+w-12;gx+=27){ctx.fillRect(gx,gy,2,2)}
+ }
+ ctx.restore();ctx.restore();
+}
+function posterFrame(ctx,W,H,type,o,p,includeFooter=true){ctx.save();ctx.beginPath();ctx.roundRect(23,24,W-46,H-48,32);ctx.clip();ctx.globalAlpha=.065;ctx.fillStyle=p.bar;ctx.beginPath();ctx.arc(1120,-50,370,0,2*Math.PI);ctx.fill();ctx.restore();const copy=getPosterCopy(type,o);rounded(ctx,70,55,162,42,13,p.panel);canvasText(ctx,copy.markLeft,87,84,25,p.accent,'800');canvasText(ctx,copy.markRight,1010,84,22,p.sub,'600','right');canvasText(ctx,copy.title,70,189,72,p.ink,'850','left',940);canvasText(ctx,copy.subtitle,72,239,29,p.sub,'550','left',940);rounded(ctx,70,258,Math.min(900,Math.max(250,18*Array.from(o.d.label).length+48)),48,15,p.panel);canvasText(ctx,o.d.label,91,291,26,p.accent,'760');horizontalRule(ctx,321,p);
  if(includeFooter)drawPosterFooter(ctx,H,type,o,p,0,0);
 }
 // 页脚单独定位：右侧/底部安全区是“内容不能越过”的边界，
@@ -503,8 +521,16 @@ function drawPosterFooter(ctx,H,type,o,p,bottomFraction=0,rightFraction=0){
  lines.forEach((line,i)=>canvasText(ctx,line,70,g.start+35+i*32,i===2?21:23,p.sub,i===2?'500':'560','left',maxWidth));
  ctx.restore();
 }
-function paintBar(ctx,x,y,w,h,ratio,p,highlight=false){rounded(ctx,x,y,w,h,h/2,p.panel);rounded(ctx,x,y,Math.max(2,w*Math.min(1,Math.max(0,ratio))),h,h/2,highlight?p.bar2:p.bar)}
-function drawTop(ctx,H,o,p){const entries=o.models.slice(0,10);if(!entries.length)return;const rowY=355,room=(H-535),rowHeight=room/10,max=entries[0].pixels;entries.forEach((m,i)=>{const y=rowY+i*rowHeight;if(i===0)rounded(ctx,58,y-15,964,rowHeight-4,16,p.panel2);const ink=i===0?p.bar2:p.ink;canvasText(ctx,String(m.rank).padStart(2,'0'),80,y+23,29,p.accent,'850');canvasText(ctx,m.name,151,y+22,31,ink,'680','left',570);canvasText(ctx,o.fit.k===null?'待标定':displayWan(m.sale)+' 万台',999,y+22,30,ink,'750','right',300);paintBar(ctx,151,y+40,848,13,m.pixels/max,p,i===0)})}
+function paintBar(ctx,x,y,w,h,ratio,p,highlight=false){rounded(ctx,x,y,w,h,h/2,p.hair);rounded(ctx,x,y,Math.max(2,w*Math.min(1,Math.max(0,ratio))),h,h/2,highlight?p.bar2:p.bar)}
+function drawTop(ctx,H,o,p){const entries=o.models.slice(0,10);if(!entries.length)return;
+ // TOP10 的数据区独立放入白色内卡，形成清晰的图表容器。
+ const cardX=52,cardY=338,cardW=976,cardH=H-520;
+ ctx.save();ctx.shadowColor='rgba(30,59,93,0.07)';ctx.shadowBlur=13;ctx.shadowOffsetY=5;
+ rounded(ctx,cardX,cardY,cardW,cardH,26,'#ffffff');ctx.restore();
+ ctx.strokeStyle='#e2eaf3';ctx.lineWidth=2;ctx.beginPath();
+ ctx.roundRect(cardX+1,cardY+1,cardW-2,cardH-2,25);ctx.stroke();
+ const rowY=355,room=(H-535),rowHeight=room/10,max=entries[0].pixels;
+ entries.forEach((m,i)=>{const y=rowY+i*rowHeight;if(i===0)rounded(ctx,62,y-11,956,rowHeight-9,14,p.panel2);const ink=i===0?p.bar2:p.ink;canvasText(ctx,String(m.rank).padStart(2,'0'),80,y+23,29,p.accent,'850');canvasText(ctx,m.name,151,y+22,31,ink,'680','left',570);canvasText(ctx,o.fit.k===null?'待标定':displayWan(m.sale)+' 万台',999,y+22,30,ink,'750','right',300);paintBar(ctx,151,y+40,848,13,m.pixels/max,p,i===0)})}
 function chooseDuelModelLabel(ctx,original,maxWidth,baseSize=43){
  // 机型名称严格单行：完整名优先；超宽时删除品牌前缀；仍超宽则逐步缩小字体。
  const full=String(original||'').trim().replace(/\s+/g,' ');
@@ -575,7 +601,8 @@ function drawLeader(ctx,H,o,p){const a=o.models[0],b=o.models[1];if(!a||!b)retur
  const start=H===1440?740:858;canvasText(ctx,'第一名对比第二名',80,start,30,p.sub,'650');canvasText(ctx,'约 '+displayTimes(o.ratio),80,start+95,76,p.accent,'900');canvasText(ctx,'领先估算销量',80,start+156,28,p.sub,'650');canvasText(ctx,o.fit.k===null?'待标定':displayWan(a.sale-b.sale)+' 万台',80,start+220,51,p.ink,'780');const y=start+266;horizontalRule(ctx,y,p);canvasText(ctx,'样本内销量集中度',80,y+58,32,p.ink,'760');const items=[['TOP3占比',o.top3],['TOP5占比',o.top5]];const step=H===1440?97:145;items.forEach(([label,val],i)=>{const yy=y+108+i*step;canvasText(ctx,label,82,yy,29,p.sub,'650');canvasText(ctx,displayPct(val),997,yy,38,p.ink,'830','right');paintBar(ctx,83,yy+15,915,16,val,p,i===0)})}
 function drawSafeGuides(ctx,W,H,p){if(!socialState.safeEnabled||!socialState.safeGuides)return;const right=Math.max(0,Math.min(.35,socialState.safeRight/100)),bottom=Math.max(0,Math.min(.35,socialState.safeBottom/100));const rw=W*right,bh=H*bottom;ctx.save();ctx.fillStyle='rgba(255,80,110,0.12)';if(rw>0)ctx.fillRect(W-rw,0,rw,H);ctx.fillStyle='rgba(255,179,37,0.13)';if(bh>0)ctx.fillRect(0,H-bh,W,bh);ctx.setLineDash([12,10]);ctx.lineWidth=3;if(rw>0){ctx.strokeStyle='rgba(255,88,124,0.92)';ctx.beginPath();ctx.moveTo(W-rw,0);ctx.lineTo(W-rw,H);ctx.stroke();}if(bh>0){ctx.strokeStyle='rgba(255,176,31,0.95)';ctx.beginPath();ctx.moveTo(0,H-bh);ctx.lineTo(W,H-bh);ctx.stroke();}ctx.setLineDash([]);if(rw>0){rounded(ctx,W-rw-248,32,220,42,14,'rgba(255,88,124,0.92)');canvasText(ctx,'右侧交互安全区 '+Math.round(right*100)+'%',W-rw-138,60,20,'#ffffff','800','center',200)}if(bh>0){rounded(ctx,34,H-bh-56,236,42,14,'rgba(255,176,31,0.96)');canvasText(ctx,'底部文案安全区 '+Math.round(bottom*100)+'%',152,H-bh-28,20,'#12202f','900','center',220)}ctx.restore()}
 function drawPoster(type,canvas,o=derivedData(),showGuides=false){const H=socialState.ratio==='9:16'?1920:1440,W=1080;canvas.width=W;canvas.height=H;const ctx=canvas.getContext('2d',{alpha:false});const p=socialPalettes[socialState.theme];const right=socialState.safeEnabled?Math.max(0,Math.min(.35,socialState.safeRight/100)):0;const bottom=socialState.safeEnabled?Math.max(0,Math.min(.35,socialState.safeBottom/100)):0;const drawCore=(targetCtx,includeFooter=true)=>{posterFrame(targetCtx,W,H,type,o,p,includeFooter);if(type==='top')drawTop(targetCtx,H,o,p);else if(type==='versus')drawDuel(targetCtx,H,o,p);else if(type==='brands')drawBrands(targetCtx,H,o,p);else drawLeader(targetCtx,H,o,p);if(!canDownloadSocial(o,type)){targetCtx.save();targetCtx.translate(W/2,H/2);targetCtx.rotate(-.18);rounded(targetCtx,-452,-58,904,120,15,'#dfe7ef');targetCtx.globalAlpha=.96;canvasText(targetCtx,o.canPublish?'名称待补全 · 暂勿发布':o.fit.k?'标定冲突 · 请核对':'待标定 · 不可发布',0,19,59,p.warn,'900','center',850);targetCtx.restore()}};
- if(socialState.safeEnabled&&(right>0||bottom>0)){const temp=document.createElement('canvas');temp.width=W;temp.height=H;const tctx=temp.getContext('2d',{alpha:false});drawCore(tctx,false);ctx.fillStyle=p.bg;ctx.fillRect(0,0,W,H);const pad=socialState.ratio==='9:16'?26:20;const availW=W-W*right-pad*2,availH=H-H*bottom-pad*2,scale=Math.min(availW/W,availH/H,1);ctx.drawImage(temp,pad,pad,W*scale,H*scale);drawPosterFooter(ctx,H,type,o,p,bottom,right);}else{drawCore(ctx)}
+ drawPosterBackdrop(ctx,W,H,p);
+ if(socialState.safeEnabled&&(right>0||bottom>0)){const temp=document.createElement('canvas');temp.width=W;temp.height=H;const tctx=temp.getContext('2d',{alpha:true});drawCore(tctx,false);const pad=socialState.ratio==='9:16'?26:20;const availW=W-W*right-pad*2,availH=H-H*bottom-pad*2,scale=Math.min(availW/W,availH/H,1);ctx.drawImage(temp,pad,pad,W*scale,H*scale);drawPosterFooter(ctx,H,type,o,p,bottom,right);}else{drawCore(ctx)}
  if(showGuides)drawSafeGuides(ctx,W,H,p)
 }
 function csvQuote(v){return '"'+String(v??'').replace(/"/g,'""')+'"'}

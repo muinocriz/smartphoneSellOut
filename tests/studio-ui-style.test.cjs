@@ -98,7 +98,7 @@ test('market share uses local CSS without Tailwind and retains editing/export co
     'ms-editor-row','ms-preview','ms-overlay','ms-toggle-track','ms-csv-controls']) {
     assert.ok(marketCss.includes('.' + role), 'Missing local style role ' + role);
   }
-  assert.equal((market.match(/data-type="(?:combo|diverging|stacked|slope|dumbbell)"/g) || []).length, 5);
+  assert.equal((market.match(/<button data-type="(?:combo|diverging|stacked|slope|dumbbell)"/g) || []).length, 5);
   assert.match(market, /class="ms-editor-panel hidden"/);
   assert.match(market, /class="ms-toggle-track"/);
   assert.match(market, /function renderDataInputs\(\)/);

@@ -207,7 +207,7 @@
     <div class="bg-slate-800/70 p-3.5 rounded-2xl border border-slate-700/70 space-y-2.5">
       <div class="flex items-center justify-between">
         <label class="block text-xs font-bold uppercase tracking-wider text-slate-400">4. 海报主题与配色方案</label>
-        <span id="activePaletteName" class="text-[11px] font-semibold text-blue-400">暗夜红蓝 (OLED)</span>
+        <span id="activePaletteName" class="text-[11px] font-semibold text-blue-400">极光科技</span>
       </div>
       <div class="grid grid-cols-2 gap-2" id="paletteGrid">
         <!-- 由 JS 动态渲染 6 套精选色卡按钮 -->
@@ -432,31 +432,31 @@
     // 2. 6套高对比度数据新闻配色方案
     // ==========================================
     const PALETTES = {
-      oled_classic: {
-        id: 'oled_classic',
-        name: '暗夜红蓝 (OLED)',
+      tech_aurora: {
+        id: 'tech_aurora',
+        name: '极光科技',
         isDark: true,
-        swatches: ['#050505', '#e15759', '#4e9af1'],
-        bgTop: '#050505',
-        bgBottom: '#0b0f19',
-        cardBg: '#111622',
-        cardBorder: '#1e293b',
-        textPrimary: '#f8fafc',
-        textSecondary: '#94a3b8',
-        textMuted: '#64748b',
-        upColor: '#e15759',
-        upBg: 'rgba(225, 87, 89, 0.16)',
-        upRowHighlight: 'rgba(225, 87, 89, 0.14)',
-        downColor: '#4e9af1',
-        downBg: 'rgba(78, 154, 241, 0.16)',
-        downRowHighlight: 'rgba(78, 154, 241, 0.14)',
-        flatColor: '#94a3b8',
-        flatBg: 'rgba(148, 163, 184, 0.15)',
-        gridLine: '#1e293b',
-        axisLine: '#64748b',
-        badgeBg: 'rgba(225, 87, 89, 0.14)',
-        badgeBorder: 'rgba(225, 87, 89, 0.35)',
-        badgeText: '#fda4af'
+        swatches: ['#06172b', '#49e1c3', '#ff7aa4'],
+        bgTop: '#06172b',
+        bgBottom: '#0d2440',
+        cardBg: '#112b45',
+        cardBorder: '#24485e',
+        textPrimary: '#f3fcff',
+        textSecondary: '#b3d6e4',
+        textMuted: '#91afc2',
+        upColor: '#49e1c3',
+        upBg: 'rgba(73, 225, 195, 0.16)',
+        upRowHighlight: 'rgba(73, 225, 195, 0.14)',
+        downColor: '#ff7aa4',
+        downBg: 'rgba(255, 122, 164, 0.16)',
+        downRowHighlight: 'rgba(255, 122, 164, 0.14)',
+        flatColor: '#afc4d3',
+        flatBg: 'rgba(175, 196, 211, 0.15)',
+        gridLine: '#24485e',
+        axisLine: '#91afc2',
+        badgeBg: 'rgba(73, 225, 195, 0.12)',
+        badgeBorder: 'rgba(73, 225, 195, 0.32)',
+        badgeText: '#a1ffec'
       },
       editorial_paper: {
         id: 'editorial_paper',
@@ -510,57 +510,57 @@
         badgeBorder: 'rgba(16, 185, 129, 0.28)',
         badgeText: '#065f46'
       },
-      deep_finance: {
-        id: 'deep_finance',
-        name: '深海金融',
-        isDark: true,
-        swatches: ['#091526', '#f59e0b', '#38bdf8'],
-        bgTop: '#091526',
-        bgBottom: '#0f213a',
-        cardBg: '#122642',
-        cardBorder: '#1e3a5f',
-        textPrimary: '#f8fafc',
-        textSecondary: '#cbd5e1',
-        textMuted: '#64748b',
-        upColor: '#f59e0b',
-        upBg: 'rgba(245, 158, 11, 0.16)',
-        upRowHighlight: 'rgba(245, 158, 11, 0.14)',
-        downColor: '#38bdf8',
-        downBg: 'rgba(56, 189, 248, 0.16)',
-        downRowHighlight: 'rgba(56, 189, 248, 0.14)',
-        flatColor: '#94a3b8',
-        flatBg: 'rgba(148, 163, 184, 0.15)',
-        gridLine: '#1e3a5f',
-        axisLine: '#64748b',
-        badgeBg: 'rgba(245, 158, 11, 0.14)',
-        badgeBorder: 'rgba(245, 158, 11, 0.35)',
-        badgeText: '#fcd34d'
+      mist_minimal: {
+        id: 'mist_minimal',
+        name: '雾蓝极简',
+        isDark: false,
+        swatches: ['#f1f6f9', '#366b9a', '#be6e5c'],
+        bgTop: '#f1f6f9',
+        bgBottom: '#e6edf4',
+        cardBg: '#ffffff',
+        cardBorder: '#d6e1ea',
+        textPrimary: '#203047',
+        textSecondary: '#52657a',
+        textMuted: '#708399',
+        upColor: '#366b9a',
+        upBg: 'rgba(54, 107, 154, 0.11)',
+        upRowHighlight: 'rgba(54, 107, 154, 0.10)',
+        downColor: '#be6e5c',
+        downBg: 'rgba(190, 110, 92, 0.11)',
+        downRowHighlight: 'rgba(190, 110, 92, 0.10)',
+        flatColor: '#71859a',
+        flatBg: 'rgba(113, 133, 154, 0.12)',
+        gridLine: '#dce6ef',
+        axisLine: '#8295aa',
+        badgeBg: 'rgba(54, 107, 154, 0.08)',
+        badgeBorder: 'rgba(54, 107, 154, 0.24)',
+        badgeText: '#274e77'
       },
-      cyber_neon: {
-        id: 'cyber_neon',
-        name: '黑金奢华',
-        isDark: true,
-        swatches: ['#111113', '#ec4899', '#818cf8'],
-        bgTop: '#111113',
-        bgBottom: '#18181b',
-        cardBg: '#1f1f23',
-        cardBorder: '#2e2e34',
-        textPrimary: '#fafafa',
-        textSecondary: '#a1a1aa',
-        textMuted: '#71717a',
-        upColor: '#ec4899',
-        upBg: 'rgba(236, 72, 153, 0.16)',
-        upRowHighlight: 'rgba(236, 72, 153, 0.14)',
-        downColor: '#818cf8',
-        downBg: 'rgba(129, 140, 248, 0.16)',
-        downRowHighlight: 'rgba(129, 140, 248, 0.14)',
-        flatColor: '#a1a1aa',
-        flatBg: 'rgba(161, 161, 170, 0.15)',
-        gridLine: '#27272a',
-        axisLine: '#71717a',
-        badgeBg: 'rgba(236, 72, 153, 0.14)',
-        badgeBorder: 'rgba(236, 72, 153, 0.35)',
-        badgeText: '#f9a8d4'
+      coral_sunset: {
+        id: 'coral_sunset',
+        name: '日落珊瑚',
+        isDark: false,
+        swatches: ['#fff2e8', '#c35644', '#277b79'],
+        bgTop: '#fff2e8',
+        bgBottom: '#fae7db',
+        cardBg: '#fffbf7',
+        cardBorder: '#eccbbf',
+        textPrimary: '#402c2b',
+        textSecondary: '#76534e',
+        textMuted: '#916e65',
+        upColor: '#c35644',
+        upBg: 'rgba(195, 86, 68, 0.12)',
+        upRowHighlight: 'rgba(195, 86, 68, 0.10)',
+        downColor: '#277b79',
+        downBg: 'rgba(39, 123, 121, 0.12)',
+        downRowHighlight: 'rgba(39, 123, 121, 0.10)',
+        flatColor: '#947a75',
+        flatBg: 'rgba(148, 122, 117, 0.12)',
+        gridLine: '#f0d8cb',
+        axisLine: '#ab8679',
+        badgeBg: 'rgba(195, 86, 68, 0.09)',
+        badgeBorder: 'rgba(195, 86, 68, 0.25)',
+        badgeText: '#9e3c32'
       },
       morandi_sage: {
         id: 'morandi_sage',
@@ -603,7 +603,7 @@
         showSafeZone: true,        // 是否显示抖音辅助线
         rightMarginPct: 15,        // 右侧留白百分比 (默认 15%)
         bottomMarginPct: 10,       // 下侧留白百分比 (默认 10%)
-        paletteId: 'oled_classic', // 默认暗夜红蓝配色
+        paletteId: 'tech_aurora', // 默认极光科技配色
         title: '2026 W45 国内手机市场份额周环比变化',
         subtitle: '对比 W44 (10.26–11.1) 与 W45 (11.2–11.8) | 单位：百分点',
         insight: '本周大盘降约5% · 华为逆势涨 +1.4 突破20% · 苹果稳居榜首',
@@ -624,6 +624,8 @@
         return {
           ...def,
           ...parsed,
+          // 已删除的旧主题自动迁移到当前默认主题，避免预览和选中色卡不同步。
+          paletteId: Object.hasOwn(PALETTES, parsed.paletteId) ? parsed.paletteId : def.paletteId,
           brands: Array.isArray(parsed.brands) && parsed.brands.length > 0 ? parsed.brands : def.brands
         };
       } catch (e) {
@@ -642,7 +644,7 @@
     const state = loadSavedState();
 
     function getPalette() {
-      return PALETTES[state.paletteId] || PALETTES.oled_classic;
+      return PALETTES[state.paletteId] || PALETTES.tech_aurora;
     }
 
     function getVisibleBrands() {

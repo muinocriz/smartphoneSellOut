@@ -52,13 +52,13 @@ test('shared fields and section headings include dynamic CSV controls', () => {
   assert.match(market, /ui-section-title/);
   assert.match(estimator, /safe-box-title ui-section-title/);
   assert.match(estimator, /class="field ui-field/);
-  const expectedSizes = {small:12, body:14, heading:16, metric:24, title:28};
+  const expectedSizes = {small:12, body:14, heading:16, metric:24};
   const declarations = [...shared.matchAll(/--ui-text-([a-z]+):(\d+)px;/g)]
     .map(([,name,value]) => [name, Number(value)]);
   assert.deepEqual(Object.fromEntries(declarations), expectedSizes);
-  assert.doesNotMatch(shared, /--ui-text-(?:xs|sm|md|subheading|section|feature|display)\b/);
+  assert.doesNotMatch(shared, /--ui-text-(?:xs|sm|md|subheading|section|feature|display|title)\b/);
   for (const source of [market, estimator, importer]) {
-    assert.doesNotMatch(source, /--ui-text-(?:xs|sm|md|subheading|section|feature|display)\b/);
+    assert.doesNotMatch(source, /--ui-text-(?:xs|sm|md|subheading|section|feature|display|title)\b/);
   }
   assert.match(shared, /ui-safe-slider-label/);
   assert.equal((market.match(/class="ui-safe-slider-label/g) || []).length, 2);

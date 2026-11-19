@@ -610,7 +610,7 @@ async function exportPNG(mobile){
 // 导出文件名：新机周销量-列表名或品牌-横轴-纵轴-桌面/手机.png
 // 选中了「我的列表」里的列表（自建的或自动生成的「本周里程碑」）时写列表名，不再写品牌
 function exportName(mobile){
-  const l=S.list===MS_ID?MILE:curList();
+  const l=S.list===MS_ID?MILE:S.list===RECENT_ID?RECENT:curList();
   const parts=["新机周销量",l?l.name:S.brand,S.axis==="launch"?"完整销售周":"自然",S.val==="delta"?"周增量":"总销量",mobile?"手机":"桌面"];
   return parts.filter(Boolean).map(s=>String(s).replace(/[\\/:*?"<>|]/g,"_")).join("-")+".png"}
 
@@ -685,6 +685,26 @@ function nextName(){const used=new Set(LISTS.map(l=>l.name));let i=1;while(used.
 function sameSel(l){const a=new Set(curKeys());return a.size===l.models.length&&l.models.every(k=>a.has(k))}
 // ===== 里程碑合集（自动生成，不可编辑）：最新一周累计销量跨过 50 万台整数倍的机型 =====
 // 「最新一周」按品牌取：该品牌数据更新到的最后一周（各品牌录入进度可能不同）
+// 自动选择CSV最近12个ISO自然周内上市的新机；与真实当周的最新数据对齐，不以访问日期为准。
+// 动态系统列表不写入localStorage，用户可勾选调整并通过“保存当前选择”保存快照。
+const RECENT_WEEKS=12,RECENT_ID="__recent12";
+let RECENT={id:RECENT_ID,name:"近12周新机",models:[],anchor:null};
+function computeRecent(){
+  let anchor=-1;
+  ROWS.forEach(r=>r.vals.forEach((v,i)=>{if(v!=null)anchor=Math.max(anchor,i)}));
+  if(anchor<0){RECENT={id:RECENT_ID,name:"近12周新机",models:[],anchor:null};return}
+  const end=WMON[anchor],start=end-(RECENT_WEEKS-1)*IsoSalesWeek.DAY*7;
+  const models=ROWS.filter(r=>hasData(r)&&(()=>{
+    const d=r.date.split(/[\/\-.]/).map(Number),m=IsoSalesWeek.isoMonday(d);
+    return m!=null&&m>=start&&m<=end;
+  })()).map(key);
+  RECENT={id:RECENT_ID,name:"近12周新机",models,anchor};
+}
+function recentButton(){
+  const n=RECENT.models.length,week=RECENT.anchor==null?"尚无有效数据":WEEKS[RECENT.anchor];
+  const tip="以最新数据周 "+week+" 为截止，自动包含该周及之前11个ISO周上市且有销量记录的机型。可通过机型选择器调整并保存为自定义列表。";
+  return `<button class="ms" data-id="${RECENT_ID}" aria-pressed="${S.list===RECENT_ID}" title="${esc(tip)}"${n?"":" disabled"}>✨ ${RECENT.name}<span class="cnt">${n}</span></button>`;
+}
 const MS_STEP=50,MS_ID="__milestone";
 let MILE={id:MS_ID,name:"本周里程碑",models:[],items:[]};
 function computeMilestones(){
@@ -701,7 +721,7 @@ function msButton(){const n=MILE.items.length;
   const tip=n?MILE.items.map(x=>`${full(x.r)} 突破 ${x.m} 万台（${WEEKS[x.w]}）`).join("\n"):`最新一周没有机型的累计销量跨过 ${MS_STEP} 万台的整数倍`;
   return `<button class="ms" data-id="${MS_ID}" aria-pressed="${S.list===MS_ID}" title="${esc(tip)}"${n?"":" disabled"}>🏁 ${MILE.name}<span class="cnt">${n}</span></button>`}
 function renderLists(){
-  $("lists").innerHTML=msButton()+(LISTS.length?LISTS.map(l=>`<button aria-pressed="${l.id===S.list}" data-id="${l.id}" title="${esc(l.models.map(k=>k.replace("|"," ")).join("、"))}">${esc(l.name)}<span class="cnt">${l.models.length}</span></button>`).join("")
+  $("lists").innerHTML=recentButton()+msButton()+(LISTS.length?LISTS.map(l=>`<button aria-pressed="${l.id===S.list}" data-id="${l.id}" title="${esc(l.models.map(k=>k.replace("|"," ")).join("、"))}">${esc(l.name)}<span class="cnt">${l.models.length}</span></button>`).join("")
     :'<span class="hint">选好机型后点「保存当前选择」，下次打开可一键恢复</span>');
   const l=curList();$("listEditor").hidden=!l;
   if(l){if(document.activeElement!==$("listName"))$("listName").value=l.name;disarm();renderListState()}
@@ -717,7 +737,7 @@ function applyList(l){
   S.brand=brands.length===1?brands[0]:"全部";S.sel=new Set(ks);S.list=l.id;
   renderBrands();renderModels();renderLists();draw(false)}
 $("lists").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;
-  const l=b.dataset.id===MS_ID?MILE:LISTS.find(x=>x.id===b.dataset.id);if(!l||!l.models.length)return;
+  const l=b.dataset.id===RECENT_ID?RECENT:b.dataset.id===MS_ID?MILE:LISTS.find(x=>x.id===b.dataset.id);if(!l||!l.models.length)return;
   if(S.list===l.id){S.list=null;renderLists();return}
   applyList(l)});
 $("listNew").onclick=()=>{const ks=curKeys();
@@ -788,8 +808,9 @@ new MutationObserver(()=>{renderModels();draw(true)}).observe(document.documentE
 
 function start(text){
   try{load(text)}catch(e){showLoad("CSV 格式无法识别："+e.message,true);return}
-  $("load").hidden=true;S.sel=new Set();selectBrandAll();computeMilestones();if(S.list===MS_ID)S.list=null;
-  renderBrands();renderModels();renderLists();draw(false);
+  $("load").hidden=true;computeMilestones();computeRecent();
+  if(RECENT.models.length){applyList(RECENT)}
+  else{S.list=null;S.sel=new Set();selectBrandAll();renderBrands();renderModels();renderLists();draw(false)}
 }
 // 线尾名字的宽度按当时可用的字体测量；网页字体晚到时重新排布一次，避免名字位置偏移
 if(document.fonts){document.fonts.ready.then(()=>{if(CUR)draw(true)});

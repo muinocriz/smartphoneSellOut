@@ -327,8 +327,46 @@ function posterFrame(ctx,W,H,type,o,p){ctx.fillStyle=p.bg;ctx.fillRect(0,0,W,H);
 }
 function paintBar(ctx,x,y,w,h,ratio,p,highlight=false){rounded(ctx,x,y,w,h,h/2,p.panel);rounded(ctx,x,y,Math.max(2,w*Math.min(1,Math.max(0,ratio))),h,h/2,highlight?p.bar2:p.bar)}
 function drawTop(ctx,H,o,p){const entries=o.models.slice(0,10);if(!entries.length)return;const rowY=355,room=(H-535),rowHeight=room/10,max=entries[0].pixels;entries.forEach((m,i)=>{const y=rowY+i*rowHeight;if(i===0)rounded(ctx,58,y-15,964,rowHeight-4,16,p.panel2);const ink=i===0?p.bar2:p.ink;canvasText(ctx,String(m.rank).padStart(2,'0'),80,y+23,29,p.accent,'850');canvasText(ctx,m.name,151,y+22,31,ink,'680','left',570);canvasText(ctx,o.fit.k===null?'待标定':displayWan(m.sale)+' 万台',999,y+22,30,ink,'750','right',300);paintBar(ctx,151,y+40,848,13,m.pixels/max,p,i===0)})}
-function drawDuel(ctx,H,o,p){const a=o.models[socialState.duelA]||o.models[0],b=o.models[socialState.duelB]||o.models[1];if(!a||!b)return;const ratio=a.pixels/b.pixels;const y=360;const panelH=H===1440?535:800;[[a,0],[b,1]].forEach(([m,i])=>{const x=i?553:70;rounded(ctx,x,y,457,panelH,28,p.panel);canvasText(ctx,'对阵 '+(i?'B':'A')+'   ·   第 '+m.rank+' 名',x+30,y+58,27,p.accent,'800');wrapCanvas(ctx,m.name,x+30,y+123,397,41,54,p.ink,'780',3);canvasText(ctx,'估算销量',x+30,y+panelH-160,23,p.sub,'600');const v=o.fit.k!==null?displayWan(m.sale):'待标定';canvasText(ctx,v,x+30,y+panelH-100,70,p.ink,'820','left',350);canvasText(ctx,o.fit.k!==null?'万台':'',x+30,y+panelH-55,28,p.sub,'600');paintBar(ctx,x+30,y+panelH-39,397,14,m.pixels/Math.max(a.pixels,b.pixels),p,i===0)});
- const below=y+panelH+50;canvasText(ctx,'销量比例',70,below+28,28,p.sub,'650');canvasText(ctx,(a.pixels>=b.pixels?a.name:b.name)+' 为较高一方',70,below+81,26,p.sub,'600','left',930);canvasText(ctx,displayTimes(Math.max(ratio,1/ratio)),70,below+162,93,p.accent,'900');canvasText(ctx,'两款估算销量差值',70,below+220,27,p.sub,'650');canvasText(ctx,o.fit.k===null?'待标定':displaySale(Math.abs(a.sale-b.sale)),70,below+280,52,p.ink,'800');
+function chooseDuelModelLabel(ctx,original,maxWidth,baseSize=43){
+ // 机型名称严格单行：完整名优先；超宽时删除品牌前缀；仍超宽则逐步缩小字体。
+ const full=String(original||'').trim().replace(/\s+/g,' ');
+ const short=full.replace(/^(?:华为|荣耀|小米|REDMI|OPPO|vivo|iQOO|一加|苹果|Apple)\s*(?:[·・:：—-]\s*)?/i,'').trim();
+ const measure=(t,size)=>{ctx.font=`800 ${size}px ${CJK_FONT}`;return ctx.measureText(t).width};
+ const label=measure(full,baseSize)<=maxWidth?full:(short&&short!==full?short:full);
+ let size=baseSize;
+ while(size>20&&measure(label,size)>maxWidth)size--;
+ // 极端超长型号保留最小可读字号，再通过 canvasText 的 maxWidth 作最后的保护。
+ return {text:label,size};
+}
+function drawDuel(ctx,H,o,p){
+ const a=o.models[socialState.duelA]||o.models[0],b=o.models[socialState.duelB]||o.models[1];
+ if(!a||!b)return;
+ const ratio=Math.max(0.00001,a.pixels)/Math.max(0.00001,b.pixels);
+ const y=360,panelH=H===1440?535:710;
+ [[a,0],[b,1]].forEach(([m,i])=>{
+  const x=i?553:70,innerX=x+32,innerW=393;
+  rounded(ctx,x,y,457,panelH,28,p.panel);
+  canvasText(ctx,'对阵 '+(i?'B':'A')+'   ·   第 '+m.rank+' 名',innerX,y+60,27,p.accent,'800');
+  const model=chooseDuelModelLabel(ctx,m.name,innerW,43);
+  canvasText(ctx,model.text,innerX,y+145,model.size,p.ink,'800','left',innerW);
+  ctx.strokeStyle=p.hair;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(innerX,y+191);ctx.lineTo(innerX+innerW,y+191);ctx.stroke();
+  // 销量说明、主要数字、单位、柱条采用独立基线，避免彼此挤压或重叠。
+  canvasText(ctx,'估算销量',innerX,y+panelH-205,25,p.sub,'630');
+  const volume=o.fit.k!==null?displayWan(m.sale):'待标定';
+  canvasText(ctx,volume,innerX,y+panelH-120,68,p.ink,'830','left',innerW);
+  canvasText(ctx,o.fit.k!==null?'万台':'',innerX,y+panelH-68,27,p.sub,'620');
+  paintBar(ctx,innerX,y+panelH-40,innerW,15,m.pixels/Math.max(1,a.pixels,b.pixels),p,i===0);
+ });
+ const high=a.pixels>=b.pixels?a:b;
+ const below=y+panelH+34;
+ const roomy=H!==1440;
+ canvasText(ctx,'销量比例',70,below+(roomy?38:31),29,p.sub,'720');
+ const description='销量较高：'+high.name;
+ const note=chooseDuelModelLabel(ctx,description,940,27);
+ canvasText(ctx,note.text,70,below+(roomy?104:84),note.size,p.sub,'620','left',940);
+ canvasText(ctx,displayTimes(Math.max(ratio,1/ratio)),70,below+(roomy?246:190),roomy?103:88,p.accent,'900');
+ canvasText(ctx,'两款估算销量差值',70,below+(roomy?354:257),28,p.sub,'700');
+ canvasText(ctx,o.fit.k===null?'待标定':displaySale(Math.abs(a.sale-b.sale)),70,below+(roomy?458:329),roomy?60:50,p.ink,'830','left',940);
 }
 function drawBrands(ctx,H,o,p){
  const brands=o.brands.slice(0,7);if(!brands.length)return;

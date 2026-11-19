@@ -65,6 +65,16 @@ test('shared fields and section headings include dynamic CSV controls', () => {
   assert.equal((estimator.match(/class="safe-slider-label ui-safe-slider-label"/g) || []).length, 2);
 });
 
+test('console font stacks come from shared tokens, not repeated literals', () => {
+  assert.match(shared, /--ui-font-body:/);
+  assert.match(shared, /--ui-font-number:/);
+  for (const source of [market, estimator]) {
+    assert.match(inline(source), /font-family:var\(--ui-font-body\)/);
+    assert.match(inline(source), /font-family:var\(--ui-font-number\)/);
+    assert.doesNotMatch(inline(source), /font-family:"IBM Plex Mono",ui-monospace/);
+  }
+});
+
 test('data and poster logic are still present after CSS migration', () => {
   assert.match(market, /function renderDumbbellChart\(/);
   assert.match(market, /function getComputedMarketData\(/);

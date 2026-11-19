@@ -47,13 +47,16 @@ test('theme cards use one class model and preserve selection handlers', () => {
 });
 
 test('shared fields and section headings include dynamic CSV controls', () => {
-  assert.match(importer, /class="ui-field grow/);
+  assert.match(importer, /class="ui-field ui-field--inline grow/);
   assert.match(importer, /class="ui-section-title">CSV 数据源与历史周/);
   assert.match(market, /ui-section-title/);
   assert.match(estimator, /safe-box-title ui-section-title/);
   assert.match(estimator, /class="field ui-field/);
   assert.match(shared, /--ui-text-md:14px/);
   assert.match(shared, /--ui-text-subheading:16px/);
+  assert.match(shared, /ui-safe-slider-label/);
+  assert.equal((market.match(/class="ui-safe-slider-label/g) || []).length, 2);
+  assert.equal((estimator.match(/class="safe-slider-label ui-safe-slider-label"/g) || []).length, 2);
 });
 
 test('data and poster logic are still present after CSS migration', () => {

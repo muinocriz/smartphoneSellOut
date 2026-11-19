@@ -312,26 +312,6 @@
 
       <!-- 折叠的数据编辑面板 -->
       <div id="dataEditorPanel" class="hidden space-y-3 pt-2 border-t border-slate-700/80">
-        <!-- 周期与大盘描述 -->
-        <div class="grid grid-cols-2 gap-2">
-          <div>
-            <label class="text-[10px] text-slate-400 block mb-0.5">基准周标签</label>
-            <input type="text" id="inputW1Label" value="W44 (10.26 - 11.1)" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-[11px] text-white">
-          </div>
-          <div>
-            <label class="text-[10px] text-slate-400 block mb-0.5">对比周标签</label>
-            <input type="text" id="inputW2Label" value="W45 (11.2 - 11.8)" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-[11px] text-white">
-          </div>
-          <div>
-            <label class="text-[10px] text-slate-400 block mb-0.5">基准周大盘</label>
-            <input type="text" id="inputW1Market" value="大盘趋势：略微上升 ↗" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-[11px] text-white">
-          </div>
-          <div>
-            <label class="text-[10px] text-slate-400 block mb-0.5">对比周大盘</label>
-            <input type="text" id="inputW2Market" value="大盘趋势：环比下降约 5% ↘" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-[11px] text-white">
-          </div>
-        </div>
-
         <!-- 品牌份额输入表 -->
         <div class="bg-slate-900/90 rounded-xl p-2 border border-slate-700/80">
           <div class="grid grid-cols-12 text-[10px] font-bold text-slate-400 pb-1.5 mb-1.5 border-b border-slate-800 px-1">
@@ -418,6 +398,38 @@
       <div>
         <label class="text-[11px] text-slate-400 block mb-1">核心洞察标签</label>
         <input type="text" id="inputInsight" value="本周大盘降约5% · 华为逆势涨 +1.4 突破20% · 苹果稳居榜首" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500">
+      </div>
+      <div class="pt-2 border-t border-slate-200 space-y-2.5">
+        <label class="block text-xs font-bold text-slate-500">顶部两周趋势卡片</label>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="text-[11px] text-slate-400 block mb-1" for="inputW1Label">左卡片 · 基准周标签</label>
+            <input type="text" id="inputW1Label" value="W44 (10.26 - 11.1)" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-blue-500">
+          </div>
+          <div>
+            <label class="text-[11px] text-slate-400 block mb-1" for="inputW2Label">右卡片 · 对比周标签</label>
+            <input type="text" id="inputW2Label" value="W45 (11.2 - 11.8)" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-blue-500">
+          </div>
+        </div>
+        <div>
+          <label class="text-[11px] text-slate-400 block mb-1" for="inputW1Market">左卡片 · 基准周趋势说明</label>
+          <input type="text" id="inputW1Market" value="大盘趋势：略微上升 ↗" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-blue-500">
+        </div>
+        <div>
+          <label class="text-[11px] text-slate-400 block mb-1" for="inputW2Market">右卡片 · 对比周趋势说明</label>
+          <input type="text" id="inputW2Market" value="大盘趋势：环比下降约 5% ↘" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-blue-500">
+        </div>
+      </div>
+      <div class="pt-2 border-t border-slate-200 space-y-2.5">
+        <label class="block text-xs font-bold text-slate-500">底部水印与数据口径</label>
+        <div>
+          <label class="text-[11px] text-slate-400 block mb-1" for="inputFooterSource">底部第一行 · 数据口径</label>
+          <input type="text" id="inputFooterSource" value="数据口径：国内手机市场 Sell-Out 销量占比（OPPO含一加/realme，vivo含iQOO）" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-blue-500">
+        </div>
+        <div>
+          <label class="text-[11px] text-slate-400 block mb-1" for="inputFooterNote">底部第二行 · 补充说明</label>
+          <input type="text" id="inputFooterNote" value="底色高亮标注本周最大份额提升与最大回落品牌 · 适配抖音 3:4 安全区" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-blue-500">
+        </div>
       </div>
     </div>
 
@@ -801,6 +813,8 @@
         w2Label: 'W45 (11.2 - 11.8)',
         w1Market: '大盘趋势：略微上升 ↗',
         w2Market: '大盘趋势：环比下降约 5% ↘',
+        footerSource: '数据口径：国内手机市场 Sell-Out 销量占比（OPPO含一加/realme，vivo含iQOO）',
+        footerNote: '底色高亮标注本周最大份额提升与最大回落品牌 · 适配抖音 3:4 安全区',
         brands: getDefaultBrands()
       };
     }
@@ -1036,13 +1050,13 @@
         fill: P.textMuted,
         'font-size': '13.5',
         'font-weight': '500'
-      }, '数据口径：国内手机市场 Sell-Out 销量占比（OPPO含一加/realme，vivo含iQOO）'));
+      }, state.footerSource));
       svg.appendChild(svgEl('text', {
         x: leftPad, y: footerY + 36,
         fill: P.textMuted,
         'font-size': '13',
         'font-weight': '500'
-      }, '底色高亮标注本周最大份额提升与最大回落品牌 · 适配抖音 3:4 安全区'));
+      }, state.footerNote));
     }
 
     // ==========================================
@@ -2029,6 +2043,8 @@
       document.getElementById('inputW2Label').value = state.w2Label;
       document.getElementById('inputW1Market').value = state.w1Market;
       document.getElementById('inputW2Market').value = state.w2Market;
+      document.getElementById('inputFooterSource').value = state.footerSource ?? '';
+      document.getElementById('inputFooterNote').value = state.footerNote ?? '';
 
       const rVal = state.rightMarginPct;
       document.getElementById('safeRightSlider').value = rVal;
@@ -2086,6 +2102,8 @@
       document.getElementById('inputW2Label').addEventListener('input', (e) => { state.w2Label = e.target.value; saveStateToLocal(); renderPoster(); });
       document.getElementById('inputW1Market').addEventListener('input', (e) => { state.w1Market = e.target.value; saveStateToLocal(); renderPoster(); });
       document.getElementById('inputW2Market').addEventListener('input', (e) => { state.w2Market = e.target.value; saveStateToLocal(); renderPoster(); });
+      document.getElementById('inputFooterSource').addEventListener('input', (e) => { state.footerSource = e.target.value; saveStateToLocal(); renderPoster(); });
+      document.getElementById('inputFooterNote').addEventListener('input', (e) => { state.footerNote = e.target.value; saveStateToLocal(); renderPoster(); });
 
       document.getElementById('resetDataBtn').addEventListener('click', () => {
         localStorage.removeItem(STORAGE_KEY);

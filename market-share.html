@@ -267,8 +267,8 @@
 
   <!-- 左侧控制台 -->
   <aside class="w-full lg:w-[420px] xl:w-[450px] bg-slate-900 border-b lg:border-b-0 lg:border-r border-slate-800 p-5 lg:p-6 flex flex-col gap-5 shrink-0 lg:h-screen lg:overflow-y-auto">
-    <!-- 顶部品牌标题 -->
-    <div class="flex items-center justify-between">
+    <!-- 顶部品牌标题：自然纵向排列，避免周次标签挤压主标题 -->
+    <div class="space-y-3 pb-1">
       <div>
         <div class="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-blue-500/15 border border-blue-500/30 text-blue-400 text-xs font-semibold mb-1.5">
           <span class="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></span>
@@ -276,7 +276,7 @@
         </div>
         <h1 class="text-xl font-extrabold tracking-tight text-white">手机份额战报 · 3:4 出图台</h1>
       </div>
-      <span id="currentMarketShareWeek" class="text-xs text-slate-400 bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-700">2026 W44→W45</span>
+      <span id="currentMarketShareWeek" class="inline-block whitespace-nowrap text-xs text-slate-400 bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-700">2026 W44→W45</span>
     </div>
 
     <!-- 1. 图表类型切换 -->

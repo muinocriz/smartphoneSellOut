@@ -49,6 +49,23 @@
 }
 .studio-ui .ui-section-title.section-heading-spaced {margin-bottom:10px}
 
+/* Consistent helper copy and safe-area slider labels in both panels. */
+.studio-ui .ui-control-description {
+  font-size:var(--ui-text-sm) !important;
+  line-height:1.7;
+  color:var(--ui-muted);
+}
+.studio-ui .ui-safe-slider-label {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:8px;
+  font-size:var(--ui-text-md) !important;
+  font-weight:700;
+  line-height:1.5;
+}
+
 /* One field appearance for title editors and selection controls. */
 .studio-ui .ui-field {
   box-sizing:border-box;

@@ -6,6 +6,7 @@ const path = require('node:path');
 const root = path.resolve(__dirname, '..');
 const get = name => fs.readFileSync(path.join(root, name), 'utf8');
 const shared = get('studio-ui.css');
+const index = get('index.html');
 const market = get('market-share.html');
 const marketCss = get('market-share.css');
 const importer = get('market-share-import.js');
@@ -74,6 +75,23 @@ test('console font stacks come from shared tokens, not repeated literals', () =>
     assert.match(source, /font-family:var\(--ui-font-number\)/);
     assert.doesNotMatch(source, /font-family:"IBM Plex Mono",ui-monospace/);
   }
+});
+
+test('system UI font is shared across whole consoles without changing poster fonts', () => {
+  assert.match(shared, /--ui-font-body:system-ui,-apple-system,BlinkMacSystemFont,/);
+  assert.match(index, /href="studio-ui\.css"/);
+  assert.match(index, /\.page-tabs\{font-family:var\(--ui-font-body,var\(--f-body\)\)/);
+  assert.match(index, /const FONT=\(\)=>css\("--f-body"\)/);
+  for (const source of [marketCss, inline(estimator)]) {
+    assert.match(source, /font-family:var\(--ui-font-body\)/);
+    assert.doesNotMatch(source, /font-family:"Noto Sans SC"/);
+  }
+  for (const source of [shared, inline(estimator)]) {
+    assert.doesNotMatch(source, /font-weight:(?:650|750|780|850)\b/);
+  }
+  assert.match(marketCss, /#posterSvg\{[^}]*font-family:Inter,"Noto Sans SC",sans-serif/);
+  assert.match(estimator, /function canvasText\(/);
+  assert.match(shared, /--ui-font-number:"IBM Plex Mono"/);
 });
 
 test('headers and selector buttons share explicit UI roles', () => {

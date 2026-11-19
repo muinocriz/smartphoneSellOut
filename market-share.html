@@ -856,7 +856,7 @@
       clip.appendChild(svgEl('rect',{x:14,y:14,width:Math.max(1,safeRightX-24),height:Math.max(1,safeBottomY-25)}));
       defs.appendChild(clip);
       const overlay=svgEl('g',{'clip-path':'url(#'+clipId+')','pointer-events':'none',opacity:String(opacity)});
-      const common={'fill':'#425772','font-weight':'700','font-family':'"Source Han Sans SC","Noto Sans SC",sans-serif','font-size':String(fontSize),'text-anchor':'middle'};
+      const common={'fill':getPalette().textMuted,'font-weight':'700','font-family':'"Source Han Sans SC","Noto Sans SC",sans-serif','font-size':String(fontSize),'text-anchor':'middle'};
       const cx=(14+safeRightX-10)/2,cy=(14+safeBottomY-11)/2;
       if(diagonal){
         const gap=Math.max(110,Math.min(420,Number(wm.diagonalGap)||220));

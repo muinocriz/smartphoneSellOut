@@ -112,6 +112,7 @@ brand,model,category,date,2026W34,2026W35
 - **维护纪律**：新增海报主题先改 `poster-themes.js` 的语义色；模块2／3色卡从该脚本读取主题色。涉及 SVG／Canvas 海报渲染、主题语义或导出代码的修改才做对应主题、比例和 PNG／ZIP 的针对性验收；仅修改操作台 CSS 不要求全面导出测试。
 - **字体与字号**：模块 2／3 的网页操作台只保留 **4 档字号**：12px（辅助说明）、14px（正文、表格及输入控件）、16px（普通章节和面板标题）、24px（重点指标、大型分区标题及页面主标题）。旧 11px 并入 12px；旧 20px 根据用途归入 16px 或 24px。没有明确的信息层级差异，不得为了装饰或微调增加新字号，优先调整字重、颜色及间距。只在**独立纯数值字段**使用 IBM Plex Mono，包括数字输入、排行、销量与比例；中文标题、列名、选项、日期及数字与中文混排的说明（例如“3:4 竖屏比例”“15%（推荐）”）使用中文无衬线正文字体，不要因其中存在数字而给整个元素添加 `font-mono`。网页操作台的字号规范不覆盖 SVG／Canvas 海报内部独立字号与排版。字体从网络加载失败时回退系统字体；Canvas 单独数字做字形左边界修正。
 - **共享操作台 CSS（单一来源）**：模块2、3均以 `<link rel="stylesheet" href="studio-ui.css">` 加载 `studio-ui.css`。它统一 4 个 `--ui-text-*` 字号变量、字体栈、颜色、间距和 `.ui-panel`／`.ui-section-title`／`.ui-field`／`.ui-palette-grid`／`.ui-palette-card`／`.ui-swatches`／`.ui-watermark-card` 等控件。添加相同功能的控件，先复用 `ui-*` 类，不在模块内部重新写同名色卡／水印 CSS；模块特有布局可保留在各自 HTML。
+- **顶部标题与选项字体**：模块2／3统一使用 `.ui-eyebrow`（英文标识及圆点）、`.ui-page-title`（24px、800 字重）、`.ui-meta-badge`（周次／状态胶囊）和 `.ui-choice`（图表类型或榜单选项，14px、700 字重）。较长标题允许在窄屏自然换行；不再分别维护模块专属顶部字体规则，保持 SVG／Canvas 海报排版独立。
 - **维护边界**：`studio-ui.css` 只控制网页操作台，不覆盖海报 SVG、Canvas、`poster-themes.js` 或第三方 ECharts。模块2的尾部操作台样式仍有 Tailwind／历史覆盖规则，修改时优先消除与共享类冲突的局部定义，不新增大范围 `!important`。模块3的主题按钮在 `syncPaletteChooser()` 中切换 `is-selected`，模块2在 `renderPaletteButtons()` 中设置该类与 `aria-pressed`。
 - **轻量防回退检查**：修改共享样式或控件 HTML 时运行 `node --test tests/studio-ui-style.test.cjs`，同时只检查两模块主题色卡和相关水印卡片在常见桌面／窄屏下的溢出与间距。静态检查不能替代实际页面视觉验收。
 

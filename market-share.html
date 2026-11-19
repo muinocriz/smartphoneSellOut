@@ -219,7 +219,6 @@
     body.market-share-light > aside #safeControlPanel input[type="range"] {border-radius:999px}
     body.market-share-light > aside #safeControlPanel #safeRightSlider {accent-color:#ef4367}
     body.market-share-light > aside #safeControlPanel #safeBottomSlider {accent-color:#e6980c}
-    body.market-share-light > aside #paletteControlPanel #activePaletteName {color:#2865db !important}
     body.market-share-light > aside #paletteControlPanel #paletteGrid button {
       background:#f7f9fd !important;
       color:#283c5a !important;
@@ -417,10 +416,7 @@
 
     <!-- 4. 6大精选视觉配色方案：与第三模块一致，深蓝强调面板 -->
     <div id="paletteControlPanel" class="bg-slate-800/70 p-3.5 rounded-2xl border border-slate-700/70 space-y-2.5">
-      <div class="flex items-center justify-between">
-        <h2 class="control-section-heading">4. 海报主题与配色方案</h2>
-        <span id="activePaletteName" class="text-[11px] font-semibold text-blue-400">柔雾丁香</span>
-      </div>
+      <h2 class="control-section-heading">4. 海报主题与配色方案</h2>
       <div class="grid grid-cols-2 gap-2" id="paletteGrid">
         <!-- 由 JS 动态渲染 6 套精选色卡按钮 -->
       </div>
@@ -1968,28 +1964,23 @@
     // ==========================================
     function renderPaletteButtons() {
       const grid = document.getElementById('paletteGrid');
-      const nameDisplay = document.getElementById('activePaletteName');
       grid.innerHTML = '';
 
       Object.values(PALETTES).forEach(pal => {
         const isSelected = state.paletteId === pal.id;
-        if (isSelected) {
-          nameDisplay.textContent = pal.name;
-        }
-
         const btn = document.createElement('button');
-        btn.className = `p-2.5 rounded-xl text-left transition flex items-center justify-between border cursor-pointer ${
+        btn.className = `p-2 rounded-xl text-left transition flex items-center justify-between gap-1.5 min-w-0 border cursor-pointer ${
           isSelected
             ? 'border-blue-500 bg-slate-900 text-white shadow-md shadow-blue-500/15'
             : 'border-slate-700/80 bg-slate-800/80 text-slate-300 hover:bg-slate-700/80'
         }`;
 
         btn.innerHTML = `
-          <span class="text-[11px] font-bold truncate pr-1.5">${pal.name.split(' ')[0]}</span>
-          <span class="flex items-center gap-1 shrink-0">
-            <span class="w-3 h-3 rounded-full border border-slate-500/60" style="background:${pal.swatches[0]}"></span>
-            <span class="w-3 h-3 rounded-full" style="background:${pal.swatches[1]}"></span>
-            <span class="w-3 h-3 rounded-full" style="background:${pal.swatches[2]}"></span>
+          <span class="text-[11px] font-bold whitespace-nowrap">${pal.name.split(' ')[0]}</span>
+          <span class="flex items-center gap-0.5 shrink-0" aria-hidden="true">
+            <span class="w-2.5 h-2.5 rounded-full border border-slate-500/60" style="background:${pal.swatches[0]}"></span>
+            <span class="w-2.5 h-2.5 rounded-full" style="background:${pal.swatches[1]}"></span>
+            <span class="w-2.5 h-2.5 rounded-full" style="background:${pal.swatches[2]}"></span>
           </span>
         `;
 

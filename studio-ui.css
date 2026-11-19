@@ -4,13 +4,12 @@
  * Prefer ui-* semantic classes; keep module-specific layout in each page.
  */
 :root {
-  --ui-text-xs:11px;
-  --ui-text-sm:12px;
-  --ui-text-md:14px;
-  --ui-text-subheading:16px;
-  --ui-text-section:20px;
-  --ui-text-feature:24px;
-  --ui-text-display:28px;
+  /* Five semantic font sizes. */
+  --ui-text-small:12px;
+  --ui-text-body:14px;
+  --ui-text-heading:16px;
+  --ui-text-metric:24px;
+  --ui-text-title:28px;
   --ui-font-body:"Source Han Sans SC","Source Han Sans CN","思源黑体","Noto Sans CJK SC","Noto Sans SC",sans-serif;
   --ui-font-number:"IBM Plex Mono",ui-monospace,Menlo,monospace;
   --ui-ink:#24364e;
@@ -40,7 +39,7 @@
   display:block;
   margin:0;
   font-family:var(--ui-font-body);
-  font-size:var(--ui-text-subheading);
+  font-size:var(--ui-text-heading);
   font-weight:800;
   line-height:1.5;
   letter-spacing:0;
@@ -51,7 +50,7 @@
 
 /* Consistent helper copy and safe-area slider labels in both panels. */
 .studio-ui .ui-control-description {
-  font-size:var(--ui-text-sm) !important;
+  font-size:var(--ui-text-small) !important;
   line-height:1.7;
   color:var(--ui-muted);
 }
@@ -61,7 +60,7 @@
   justify-content:space-between;
   gap:12px;
   margin-bottom:8px;
-  font-size:var(--ui-text-md) !important;
+  font-size:var(--ui-text-body) !important;
   font-weight:700;
   line-height:1.5;
 }
@@ -77,7 +76,7 @@
   border-radius:10px;
   padding:8px 12px;
   font-family:var(--ui-font-body);
-  font-size:var(--ui-text-md) !important; /* Wins over legacy Tailwind text-xs. */
+  font-size:var(--ui-text-body) !important; /* Wins over legacy Tailwind text-xs. */
   line-height:1.5;
   outline:none;
 }
@@ -124,7 +123,7 @@
 .studio-ui .ui-palette-card:focus-visible {outline:2px solid #8eb6f8;outline-offset:2px}
 .studio-ui .ui-palette-name {
   min-width:0;
-  font-size:var(--ui-text-sm);
+  font-size:var(--ui-text-small);
   font-weight:800;
   white-space:nowrap;
   overflow:hidden;
@@ -148,7 +147,7 @@
 .studio-ui .ui-watermark-card {padding:16px}
 .studio-ui .ui-watermark-card .ui-section-title {margin-bottom:5px}
 .studio-ui .ui-watermark-card > p {
-  font-size:var(--ui-text-xs);
+  font-size:var(--ui-text-small);
   line-height:1.65;
   color:#7888a0;
   margin:0 0 13px;
@@ -161,8 +160,8 @@
   margin-top:16px;
 }
 .studio-ui .wm-head {display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:9px}
-.studio-ui .wm-head strong {font-size:var(--ui-text-md);color:#293d56}
-.studio-ui .wm-head small {display:block;color:#7d8ea7;font-size:var(--ui-text-xs);line-height:1.5;margin-top:2px}
+.studio-ui .wm-head strong {font-size:var(--ui-text-body);color:#293d56}
+.studio-ui .wm-head small {display:block;color:#7d8ea7;font-size:var(--ui-text-small);line-height:1.5;margin-top:2px}
 .studio-ui .wm-toggle {
   appearance:none;
   position:relative;
@@ -191,7 +190,7 @@
 .studio-ui .wm-toggle:checked::before {transform:translateX(19px)}
 .studio-ui .wm-toggle:focus-visible {outline:2px solid #8eb6f8;outline-offset:2px}
 .studio-ui .wm-field {display:grid;gap:5px;margin-top:10px;min-width:0}
-.studio-ui .wm-field label {font-size:var(--ui-text-xs);font-weight:700;color:#526a89}
+.studio-ui .wm-field label {font-size:var(--ui-text-small);font-weight:700;color:#526a89}
 .studio-ui .wm-field input[type="text"] {
   box-sizing:border-box;
   width:100%;
@@ -202,12 +201,12 @@
   padding:9px 11px;
   color:#24364e;
   font-family:var(--ui-font-body);
-  font-size:var(--ui-text-md);
+  font-size:var(--ui-text-body);
   outline:none;
 }
 .studio-ui .wm-field input[type="text"]:focus {border-color:#5896ee;box-shadow:0 0 0 2px #c7dcff}
 .studio-ui .wm-field input[type="range"] {width:100%;accent-color:var(--ui-accent);cursor:pointer}
-.studio-ui .wm-field label span {float:right;color:var(--ui-accent);font-size:var(--ui-text-xs);font-weight:800}
+.studio-ui .wm-field label span {float:right;color:var(--ui-accent);font-size:var(--ui-text-small);font-weight:800}
 .studio-ui .wm-grid {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 @media(max-width:460px) {
   .studio-ui .wm-grid {grid-template-columns:1fr}

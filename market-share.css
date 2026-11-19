@@ -178,6 +178,24 @@ body.market-share-light{
 .market-share-light .ms-overlay-icon-svg.ms-rose{fill:#ef4367}
 .market-share-light .ms-overlay-icon-svg.ms-amber{fill:#e9aa32}
 .market-share-light .ms-overlay-icon-text{font-size:var(--ui-text-small);font-weight:700;color:white}
+/* Dynamically inserted CSV import controls. */
+.market-share-light .ms-csv-controls{
+  display:grid;gap:10px;padding-bottom:12px;margin-bottom:4px;
+  border-bottom:1px solid #e0e8f3
+}
+.market-share-light .ms-csv-row{display:flex;align-items:center;flex-wrap:wrap;gap:8px}
+.market-share-light .ms-csv-row .ui-field{min-width:160px;max-width:100%}
+.market-share-light .ms-upload-btn{
+  display:inline-flex;align-items:center;border:1px solid #dce5ef;
+  border-radius:9px;padding:8px 10px;background:#f1f5f9;
+  font-size:var(--ui-text-small);font-weight:700;color:#344866;cursor:pointer
+}
+.market-share-light .ms-upload-btn:hover{background:#e8eef6}
+.market-share-light .ms-csv-status{
+  margin:0;color:#72829a;font-size:var(--ui-text-small);line-height:1.6
+}
+.market-share-light .ms-csv-error{color:#b43c50}
+
 @media(min-width:1024px){
   body.market-share-light{flex-direction:row}
   .market-share-light .ms-sidebar{

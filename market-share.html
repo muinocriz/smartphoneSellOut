@@ -216,8 +216,7 @@
     }
 
     /* 数值用 IBM Plex Mono；汉字和普通英文仍使用原来的正文字体。 */
-    body.market-share-light .numeric-glyph,body.market-share-light .font-mono,body.market-share-light input[type="number"],body.market-share-light .data-num-input {font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace!important;font-variant-numeric:tabular-nums}
-    body.market-share-light input[type="text"],body.market-share-light textarea,body.market-share-light select{font-family:"IBM Plex Mono","Source Han Sans SC","Noto Sans SC",sans-serif;font-variant-numeric:tabular-nums}
+    body.market-share-light .font-mono,body.market-share-light input[type="number"],body.market-share-light .data-num-input {font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace!important;font-variant-numeric:tabular-nums}
   </style>
 </head>
 <body class="market-share-light min-h-screen flex flex-col lg:flex-row overflow-x-hidden">
@@ -862,36 +861,14 @@
       if(last<raw.length)runs.push({text:raw.slice(last),number:false});
       return runs.length?runs:[{text:raw,number:false}];
     }
-    function applyDigitTypography(root=document.body){
-      if(!root||!document.createTreeWalker)return;
-      const accept=node=>{
-        if(!/\d/.test(node.nodeValue||''))return NodeFilter.FILTER_REJECT;
-        const parent=node.parentElement;
-        if(!parent||parent.closest('script,style,svg,textarea,select,option,pre,code,.numeric-glyph,[contenteditable="true"]'))return NodeFilter.FILTER_REJECT;
-        return NodeFilter.FILTER_ACCEPT;
-      };
-      const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,{acceptNode:accept});const found=[];let node;
-      while((node=walker.nextNode()))found.push(node);
-      for(const part of found){if(!part.parentNode)continue;const runs=numericTextRuns(part.nodeValue);if(!runs.some(r=>r.number))continue;
-        const frag=document.createDocumentFragment();
-        for(const run of runs){if(!run.text)continue;if(!run.number){frag.appendChild(document.createTextNode(run.text));continue}
-          const digit=document.createElement('span');digit.className='numeric-glyph';digit.textContent=run.text;frag.appendChild(digit)}
-        part.parentNode.replaceChild(frag,part);
-      }
-    }
-    function initDigitTypography(){
-      applyDigitTypography();if(typeof MutationObserver==='undefined')return;
-      let scheduled=false;new MutationObserver(()=>{if(scheduled)return;scheduled=true;requestAnimationFrame(()=>{scheduled=false;applyDigitTypography()})})
-      .observe(document.body,{subtree:true,childList:true,characterData:true});
-    }
-
     function svgEl(tag, attrs = {}, textContent = null) {
       const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
       for (const [k, v] of Object.entries(attrs)) {
         el.setAttribute(k, v);
       }
       if (textContent !== null) {
-        const runs=tag==='text'?numericTextRuns(textContent):[{text:String(textContent),number:false}];
+        const numericOnly=tag==='text'&&/^[+\-−]?\d[\d.,:/–-]*(?:\s*(?:%|％|pp|倍|万台))?$/.test(String(textContent).trim());
+        const runs=numericOnly?numericTextRuns(textContent):[{text:String(textContent),number:false}];
         if(tag==='text'&&runs.some(r=>r.number)){
           el.setAttribute('xml:space','preserve');
           for(const run of runs){
@@ -2190,6 +2167,5 @@
       renderPoster();
     });
   </script>
-  <script>initDigitTypography();</script>
 </body>
 </html>

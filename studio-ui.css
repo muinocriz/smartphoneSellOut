@@ -1,0 +1,193 @@
+/*
+ * Shared operation-console UI for market-share.html and sales-estimator.html.
+ * Deliberately excludes SVG/Canvas posters and dashboard charts.
+ * Prefer ui-* semantic classes; keep module-specific layout in each page.
+ */
+:root {
+  --ui-text-xs:11px;
+  --ui-text-sm:12px;
+  --ui-text-md:14px;
+  --ui-text-subheading:16px;
+  --ui-text-section:20px;
+  --ui-text-feature:24px;
+  --ui-text-display:28px;
+  --ui-font-body:"Source Han Sans SC","Source Han Sans CN","思源黑体","Noto Sans CJK SC","Noto Sans SC",sans-serif;
+  --ui-font-number:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --ui-ink:#24364e;
+  --ui-muted:#71829b;
+  --ui-border:#e0e7f1;
+  --ui-card:#fff;
+  --ui-card-subtle:#f7f9fd;
+  --ui-accent:#2865db;
+  --ui-space-xs:4px;
+  --ui-space-sm:8px;
+  --ui-space-md:12px;
+  --ui-space-lg:16px;
+  --ui-space-xl:24px;
+  --ui-swatch-size:12px;
+  --ui-swatch-gap:4px;
+}
+
+/* Shared panel roles. Content width and section position remain module-specific. */
+.studio-ui .ui-panel {
+  background:var(--ui-card);
+  border:1px solid var(--ui-border);
+  border-radius:16px;
+  color:#202a3d;
+  box-shadow:0 2px 12px #2546740c;
+}
+.studio-ui .ui-section-title {
+  display:block;
+  margin:0;
+  font-family:var(--ui-font-body);
+  font-size:var(--ui-text-subheading);
+  font-weight:800;
+  line-height:1.5;
+  letter-spacing:0;
+  color:#344a68;
+  text-transform:none;
+}
+.studio-ui .ui-section-title.section-heading-spaced {margin-bottom:10px}
+
+/* One field appearance for title editors and selection controls. */
+.studio-ui .ui-field {
+  box-sizing:border-box;
+  min-width:0;
+  width:100%;
+  background:#fff;
+  color:var(--ui-ink);
+  border:1px solid #d7e3f2;
+  border-radius:10px;
+  padding:8px 12px;
+  font-family:var(--ui-font-body);
+  font-size:var(--ui-text-md) !important; /* Wins over legacy Tailwind text-xs. */
+  line-height:1.5;
+  outline:none;
+}
+.studio-ui input.ui-field,.studio-ui select.ui-field {min-height:40px}
+.studio-ui .ui-field:focus-visible {
+  border-color:#5e8bee;
+  box-shadow:0 0 0 3px #dce9ff;
+}
+
+/* Same palette structure in both independent iframes. */
+.studio-ui .ui-palette-grid {
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:10px;
+  margin-top:10px;
+}
+.studio-ui .ui-palette-card {
+  box-sizing:border-box;
+  min-width:0;
+  min-height:50px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  padding:10px 12px;
+  border-radius:12px;
+  border:1px solid #dfe7f2;
+  background:var(--ui-card-subtle);
+  color:#283c5a;
+  text-align:left;
+  cursor:pointer;
+  font-family:var(--ui-font-body);
+  transition:background-color .16s,border-color .16s,box-shadow .16s;
+}
+.studio-ui .ui-palette-card:hover {background:#eff5ff;border-color:#b9cff1}
+.studio-ui .ui-palette-card.is-selected {
+  background:#eaf2ff;
+  color:#245bbd;
+  border-color:#3f82e9;
+  box-shadow:inset 0 0 0 1px #9ac0ff;
+}
+.studio-ui .ui-palette-card:focus-visible {outline:2px solid #8eb6f8;outline-offset:2px}
+.studio-ui .ui-palette-name {
+  min-width:0;
+  font-size:var(--ui-text-sm);
+  font-weight:800;
+  white-space:nowrap;
+}
+.studio-ui .ui-swatches {display:flex;gap:var(--ui-swatch-gap);align-items:center;flex-shrink:0}
+.studio-ui .ui-swatches .ui-swatch {
+  width:var(--ui-swatch-size);
+  height:var(--ui-swatch-size);
+  flex:0 0 var(--ui-swatch-size);
+  display:inline-block;
+  border-radius:50%;
+  border:1px solid #ffffffaa;
+  box-shadow:0 1px 3px #0003;
+}
+@media(max-width:360px) {
+  .studio-ui .ui-palette-grid {grid-template-columns:1fr}
+}
+
+/* Watermark inputs and switches are intentionally identical across modules. */
+.studio-ui .ui-watermark-card {padding:16px}
+.studio-ui .ui-watermark-card .ui-section-title {margin-bottom:5px}
+.studio-ui .ui-watermark-card > p {
+  font-size:var(--ui-text-xs);
+  line-height:1.65;
+  color:#7888a0;
+  margin:0 0 13px;
+}
+.studio-ui .wm-section {
+  padding:13px;
+  background:#f8fafe;
+  border:1px solid #e1eaf5;
+  border-radius:13px;
+  margin-top:16px;
+}
+.studio-ui .wm-head {display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:9px}
+.studio-ui .wm-head strong {font-size:var(--ui-text-md);color:#293d56}
+.studio-ui .wm-head small {display:block;color:#7d8ea7;font-size:var(--ui-text-xs);line-height:1.5;margin-top:2px}
+.studio-ui .wm-toggle {
+  appearance:none;
+  position:relative;
+  width:46px;
+  height:26px;
+  border:1px solid #b8c8dd;
+  background:#dce5f2;
+  border-radius:999px;
+  cursor:pointer;
+  flex-shrink:0;
+  transition:background .16s,border-color .16s;
+}
+.studio-ui .wm-toggle::before {
+  content:"";
+  position:absolute;
+  left:3px;
+  top:3px;
+  width:18px;
+  height:18px;
+  border-radius:50%;
+  background:#fff;
+  box-shadow:0 1px 4px #1626413b;
+  transition:transform .16s;
+}
+.studio-ui .wm-toggle:checked {background:#2f6cdf;border-color:#2f6cdf}
+.studio-ui .wm-toggle:checked::before {transform:translateX(19px)}
+.studio-ui .wm-toggle:focus-visible {outline:2px solid #8eb6f8;outline-offset:2px}
+.studio-ui .wm-field {display:grid;gap:5px;margin-top:10px;min-width:0}
+.studio-ui .wm-field label {font-size:var(--ui-text-xs);font-weight:700;color:#526a89}
+.studio-ui .wm-field input[type="text"] {
+  box-sizing:border-box;
+  width:100%;
+  min-width:0;
+  border:1px solid #d7e3f2;
+  border-radius:10px;
+  background:#fff;
+  padding:9px 11px;
+  color:#24364e;
+  font-family:var(--ui-font-body);
+  font-size:var(--ui-text-md);
+  outline:none;
+}
+.studio-ui .wm-field input[type="text"]:focus {border-color:#5896ee;box-shadow:0 0 0 2px #c7dcff}
+.studio-ui .wm-field input[type="range"] {width:100%;accent-color:var(--ui-accent);cursor:pointer}
+.studio-ui .wm-field label span {float:right;color:var(--ui-accent);font-size:var(--ui-text-xs);font-weight:800}
+.studio-ui .wm-grid {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+@media(max-width:460px) {
+  .studio-ui .wm-grid {grid-template-columns:1fr}
+}

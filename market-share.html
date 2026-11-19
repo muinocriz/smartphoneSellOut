@@ -207,7 +207,7 @@
     <div class="bg-slate-800/70 p-3.5 rounded-2xl border border-slate-700/70 space-y-2.5">
       <div class="flex items-center justify-between">
         <label class="block text-xs font-bold uppercase tracking-wider text-slate-400">4. 海报主题与配色方案</label>
-        <span id="activePaletteName" class="text-[11px] font-semibold text-blue-400">极光科技</span>
+        <span id="activePaletteName" class="text-[11px] font-semibold text-blue-400">柔雾丁香</span>
       </div>
       <div class="grid grid-cols-2 gap-2" id="paletteGrid">
         <!-- 由 JS 动态渲染 6 套精选色卡按钮 -->
@@ -432,31 +432,31 @@
     // 2. 6套高对比度数据新闻配色方案
     // ==========================================
     const PALETTES = {
-      tech_aurora: {
-        id: 'tech_aurora',
-        name: '极光科技',
-        isDark: true,
-        swatches: ['#06172b', '#49e1c3', '#ff7aa4'],
-        bgTop: '#06172b',
-        bgBottom: '#0d2440',
-        cardBg: '#112b45',
-        cardBorder: '#24485e',
-        textPrimary: '#f3fcff',
-        textSecondary: '#b3d6e4',
-        textMuted: '#91afc2',
-        upColor: '#49e1c3',
-        upBg: 'rgba(73, 225, 195, 0.16)',
-        upRowHighlight: 'rgba(73, 225, 195, 0.14)',
-        downColor: '#ff7aa4',
-        downBg: 'rgba(255, 122, 164, 0.16)',
-        downRowHighlight: 'rgba(255, 122, 164, 0.14)',
-        flatColor: '#afc4d3',
-        flatBg: 'rgba(175, 196, 211, 0.15)',
-        gridLine: '#24485e',
-        axisLine: '#91afc2',
-        badgeBg: 'rgba(73, 225, 195, 0.12)',
-        badgeBorder: 'rgba(73, 225, 195, 0.32)',
-        badgeText: '#a1ffec'
+      lilac_cloud: {
+        id: 'lilac_cloud',
+        name: '柔雾丁香',
+        isDark: false,
+        swatches: ['#f5f2fb', '#7155a4', '#b86b81'],
+        bgTop: '#f5f2fb',
+        bgBottom: '#eae5f4',
+        cardBg: '#fefcff',
+        cardBorder: '#ddd5ea',
+        textPrimary: '#2e2540',
+        textSecondary: '#625576',
+        textMuted: '#80728f',
+        upColor: '#7155a4',
+        upBg: 'rgba(113, 85, 164, 0.12)',
+        upRowHighlight: 'rgba(113, 85, 164, 0.11)',
+        downColor: '#b05267',
+        downBg: 'rgba(176, 82, 103, 0.12)',
+        downRowHighlight: 'rgba(176, 82, 103, 0.11)',
+        flatColor: '#82758f',
+        flatBg: 'rgba(130, 117, 143, 0.12)',
+        gridLine: '#e8e1f2',
+        axisLine: '#8c7d9f',
+        badgeBg: 'rgba(113, 85, 164, 0.09)',
+        badgeBorder: 'rgba(113, 85, 164, 0.25)',
+        badgeText: '#61428f'
       },
       editorial_paper: {
         id: 'editorial_paper',
@@ -603,7 +603,7 @@
         showSafeZone: true,        // 是否显示抖音辅助线
         rightMarginPct: 15,        // 右侧留白百分比 (默认 15%)
         bottomMarginPct: 10,       // 下侧留白百分比 (默认 10%)
-        paletteId: 'tech_aurora', // 默认极光科技配色
+        paletteId: 'lilac_cloud', // 默认柔雾丁香配色
         title: '2026 W45 国内手机市场份额周环比变化',
         subtitle: '对比 W44 (10.26–11.1) 与 W45 (11.2–11.8) | 单位：百分点',
         insight: '本周大盘降约5% · 华为逆势涨 +1.4 突破20% · 苹果稳居榜首',
@@ -644,7 +644,7 @@
     const state = loadSavedState();
 
     function getPalette() {
-      return PALETTES[state.paletteId] || PALETTES.tech_aurora;
+      return PALETTES[state.paletteId] || PALETTES.lilac_cloud;
     }
 
     function getVisibleBrands() {

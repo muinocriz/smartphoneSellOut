@@ -1042,6 +1042,7 @@
     // 新增：双图组合模式 (上：横向100%堆叠份额格局 + 下：发散涨跌条形图)
     // ==========================================
     function renderComboChart(svg, P, boxX, boxY, boxW, boxH) {
+      const innerRadius=Math.round(900*window.PosterThemes.layout.innerRadiusRatio);
       const gap = 14;
       const topH = Math.round((boxH - gap) * 0.29);
       const botH = boxH - gap - topH;
@@ -1049,7 +1050,7 @@
 
       // --- 上半卡片：横向 100% 堆叠格局对比 ---
       svg.appendChild(svgEl('rect', {
-        x: boxX, y: boxY, width: boxW, height: topH, rx: 16,
+        x: boxX, y: boxY, width: boxW, height: topH, rx: innerRadius,
         fill: P.cardBg, stroke: P.cardBorder, 'stroke-width': '1.5'
       }));
 
@@ -1148,7 +1149,7 @@
 
       // --- 下半卡片：横向发散条形图（含最大提升/最大回落底色高亮） ---
       svg.appendChild(svgEl('rect', {
-        x: boxX, y: botY, width: boxW, height: botH, rx: 16,
+        x: boxX, y: botY, width: boxW, height: botH, rx: innerRadius,
         fill: P.cardBg, stroke: P.cardBorder, 'stroke-width': '1.5'
       }));
 

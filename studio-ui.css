@@ -4,12 +4,11 @@
  * Prefer ui-* semantic classes; keep module-specific layout in each page.
  */
 :root {
-  /* Five semantic font sizes. */
+  /* Four semantic font sizes: supporting, body, headings, emphasis. */
   --ui-text-small:12px;
   --ui-text-body:14px;
   --ui-text-heading:16px;
   --ui-text-metric:24px;
-  --ui-text-title:28px;
   --ui-font-body:"Source Han Sans SC","Source Han Sans CN","思源黑体","Noto Sans CJK SC","Noto Sans SC",sans-serif;
   --ui-font-number:"IBM Plex Mono",ui-monospace,Menlo,monospace;
   --ui-ink:#24364e;

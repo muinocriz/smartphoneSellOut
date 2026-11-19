@@ -185,34 +185,45 @@
       body.market-share-light > aside > div[class*="bg-slate-800/70"] {padding:14px !important}
     }
 
-    /* 高级设置区对齐第三模块的深蓝面板与配色按钮。 */
+
+    /* 高级设置面板：与其它白色卡片保持一致。保留红/橙安全区语义色。 */
     body.market-share-light > aside #safeControlPanel,
     body.market-share-light > aside #paletteControlPanel {
-      background:linear-gradient(180deg,#101a2a 0%,#152238 100%) !important;
-      border:1px solid #253756 !important; color:#f4f7ff !important;
-      box-shadow:0 10px 26px #09111d18 !important;
+      background:#ffffff !important;
+      color:#202a3d !important;
+      border:1px solid #e0e7f1 !important;
+      border-radius:16px !important;
+      box-shadow:0 2px 12px #2546740c !important;
     }
     body.market-share-light > aside #safeControlPanel [class~="text-slate-400"],
-    body.market-share-light > aside #paletteControlPanel [class~="text-slate-400"] {color:#b1c1d8 !important}
+    body.market-share-light > aside #paletteControlPanel [class~="text-slate-400"] {color:#72829a !important}
     body.market-share-light > aside #safeControlPanel [class~="text-slate-300"],
     body.market-share-light > aside #safeControlPanel [class~="text-slate-200"],
-    body.market-share-light > aside #paletteControlPanel [class~="text-slate-300"] {color:#e3eafa !important}
-    body.market-share-light > aside #safeControlPanel [class~="text-rose-400"] {color:#ff5a79 !important}
-    body.market-share-light > aside #safeControlPanel [class~="text-amber-400"] {color:#ffae23 !important}
+    body.market-share-light > aside #paletteControlPanel [class~="text-slate-300"] {color:#344866 !important}
+    body.market-share-light > aside #safeControlPanel [class~="text-rose-400"] {color:#ef4367 !important}
+    body.market-share-light > aside #safeControlPanel [class~="text-amber-400"] {color:#e6980c !important}
     body.market-share-light > aside #safeControlPanel [class~="bg-slate-700"],
-    body.market-share-light > aside #safeControlPanel input[type="range"] {background:#2f3e5a !important}
-    body.market-share-light > aside #safeControlPanel [class~="border-slate-700"] {border-color:#2b3d5b !important}
-    body.market-share-light > aside #paletteControlPanel #activePaletteName {color:#6fb6ff !important}
+    body.market-share-light > aside #safeControlPanel input[type="range"] {background:#e4ebf5 !important}
+    body.market-share-light > aside #safeControlPanel [class~="border-slate-700"] {border-color:#e0e8f3 !important}
+    body.market-share-light > aside #safeControlPanel input[type="range"] {border-radius:999px}
+    body.market-share-light > aside #safeControlPanel #safeRightSlider {accent-color:#ef4367}
+    body.market-share-light > aside #safeControlPanel #safeBottomSlider {accent-color:#e6980c}
+    body.market-share-light > aside #paletteControlPanel #activePaletteName {color:#2865db !important}
     body.market-share-light > aside #paletteControlPanel #paletteGrid button {
-      background:#111d31 !important; color:#f3f7ff !important;
-      border:1px solid #2b3e61 !important;
+      background:#f7f9fd !important;
+      color:#283c5a !important;
+      border:1px solid #dfe8f5 !important;
+      border-radius:12px !important;
     }
     body.market-share-light > aside #paletteControlPanel #paletteGrid button:hover {
-      background:#1d2d49 !important; border-color:#5084db !important;
+      background:#eff5ff !important;
+      border-color:#bad0f1 !important;
     }
     body.market-share-light > aside #paletteControlPanel #paletteGrid button[class~="border-blue-500"] {
-      background:#1a2842 !important; color:#ffffff !important;
-      border-color:#3683ff !important;box-shadow:0 0 0 1px #3683ff55 inset !important;
+      background:#eaf2ff !important;
+      color:#235cbf !important;
+      border-color:#3f82e9 !important;
+      box-shadow:inset 0 0 0 1px #9ac0ff !important;
     }
 
     /* 数值用 IBM Plex Mono；汉字和普通英文仍使用原来的正文字体。 */

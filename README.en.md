@@ -1,17 +1,28 @@
-# Smartphone Sales Tracking & Market Share Visualizer · smartphoneSellOut
+# Smartphone Sales, Market Share & Ranking Estimator · smartphoneSellOut
 
 [简体中文](README.md) | English
 
-A static, no-backend, no-build smartphone market visualization project with two homepage tabs: **销量追踪** (Sales Tracking, the default), charting weekly and cumulative sell-out (SO) by smartphone model in units of 10,000 phones; and **市场份额** (Market Share), for comparing brand shares across two weeks and creating 3:4 social-media posters. The tabs use **separate data and settings**: Sales Tracking reads `data.csv`, whereas Market Share is edited inside its own page and does not derive its data from the CSV.
+A static, no-backend, no-build smartphone market visualization project with three homepage tabs: **销量追踪** (Sales Tracking, default), charting cumulative and weekly smartphone sell-out; **市场份额** (Market Share), comparing two weeks of brand shares; and **榜单推算与出图** (Ranking Estimator & Poster Studio), estimating in-chart smartphone sales from screenshot bar lengths calibrated against known sales. Each tab has its own data: only Sales Tracking reads `data.csv`. The other tools use data edited within their own pages.
 
 Live site: <https://muinocriz.github.io/smartphoneSellOut/>
 
 ## Updates — November 19, 2026
 
-- **Two homepage tabs**: `index.html` now switches between Sales Tracking (the default) and Market Share. The latter runs from the separate `market-share.html` file and is reachable via a [direct link](https://muinocriz.github.io/smartphoneSellOut/#market-share).
+- **Three homepage tabs**: `index.html` switches between Sales Tracking (default), Market Share and Ranking Estimator & Poster Studio. The latter two are separate files (`market-share.html` and `sales-estimator.html`); direct links: [Market Share](https://muinocriz.github.io/smartphoneSellOut/#market-share) and [Ranking Estimator](https://muinocriz.github.io/smartphoneSellOut/#sales-estimator).
 - **New market-share poster studio**: compare two weeks, edit brand/sub-brand shares, choose among five charts and six colour themes, preview TikTok/Douyin safe areas, and export a 1200×1600 PNG.
 - **Refreshed poster palettes**: retired 暗夜红蓝 (OLED Red/Blue), 深海金融 (Deep Finance), 黑金奢华 (Black-Gold Luxury), and the interim 极光科技 (Aurora Tech) theme. Added 柔雾丁香 (Soft Lilac), 雾蓝极简 (Mist Blue Minimal), and 日落珊瑚 (Sunset Coral), while keeping 编辑部米白 (Editorial Ivory), 极简纯白 (Pure White), and 莫兰迪绿野 (Morandi Sage). Soft Lilac is now the default.
 - **Existing sales features preserved**: model filters, saved lists, sell-out charts, data tables, and desktop/mobile PNG exports remain available.
+
+## Ranking estimator & poster studio (third module)
+
+Open **榜单推算与出图** on the homepage or [go directly to the third tab](https://muinocriz.github.io/smartphoneSellOut/#sales-estimator).
+
+- **Bar-length measurement**: includes example September 2026 TOP40 and W45 TOP30 screenshots, and supports importing similar horizontal blue-bar ranking screenshots with manually editable model names.
+- **Calibration**: enter sales for one model or the combined sales of up to five models. You can input a cumulative-sales difference such as `782.87-689.03`. Conflicting calibration groups are flagged, and each ranking is calibrated independently.
+- **Visual publishing**: four poster types (TOP10, two-model comparison, brand-family ranking and leader gap), six themes, 3:4 or 9:16 export, separate right/bottom Douyin safe areas, customizable titles, captions, brand marks and footnotes, plus CSV/ZIP exports.
+- **Editable poster copy**: clearing the last character from a field keeps it blank, rather than restoring a default. Defaults return only when the reset button is clicked.
+
+> **Data scope**: bar charts without an axis scale give relative proportions, not absolute sales. Provide a known, consistent sales reference before publishing estimated volumes. Brand-family totals describe only the **models present in the screenshot**, never full-market brand sales or market share. Example rankings do not sync with `data.csv` and are not official statistics.
 
 ## Market-share poster studio
 
@@ -87,7 +98,7 @@ In the **市场份额** tab, open **录入 / 修改份额数据** → **展开�
 
 ## Local preview
 
-If you double-click `index.html`, your browser may block the Sales Tracking tab from reading the local `data.csv`. The page then offers 「手动选择 CSV」 (Choose CSV manually). To load both tabs reliably, run a local server from the project folder:
+If you double-click `index.html`, your browser may block the Sales Tracking tab from reading the local `data.csv`. The page then offers 「手动选择 CSV」 (Choose CSV manually). To load all three tabs reliably, run a local server from the project folder:
 
 ```bash
 python3 -m http.server 8000
@@ -101,9 +112,10 @@ In the repository, go to Settings → Pages, set Source to `Deploy from a branch
 ## Files
 
 ```
-├── index.html        Two-tab homepage and sales tracker (styles and scripts)
-├── market-share.html Market-share charts and poster exporter
-├── data.csv          Sales-tracking data (not used by Market Share)
+├── index.html           Three-tab homepage and sales tracker
+├── market-share.html    Market-share charts and poster exporter
+├── sales-estimator.html Bar-length ranking estimator and poster studio
+├── data.csv             Sales-tracking data (not used by the other tabs)
 ├── README.md         Chinese README
 └── README.en.md      English README
 ```
@@ -114,7 +126,7 @@ In the repository, go to Settings → Pages, set Source to `Deploy from a branch
 - The market-share poster is rendered in native SVG and exported through Canvas; its editor uses the Tailwind CSS CDN and runs separately from the sales tracker.
 - Fonts are Noto Sans SC and IBM Plex Mono from Google Fonts. If they fail to load, the page falls back to system fonts and still works.
 - The Sales Tracking page follows the system's light/dark preference by default; the 🌙 / ☀️ button switches it manually and saves the choice locally. The Market Share studio has six independent poster palettes.
-- Each tab has its own browser storage: Sales Tracking saved lists and Market Share editor settings do not overwrite one another.
+- The tabs run in separate documents. Sales Tracking saved lists and Market Share editor settings have separate browser storage; ranking estimates and text edits apply to the estimator page's current session.
 - The interface is in Chinese.
 
 ## Design decisions

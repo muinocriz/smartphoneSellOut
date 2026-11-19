@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>新机周销量追踪</title>
+<title>销量追踪 · 市场份额</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;700&display=swap">
 <style>
@@ -93,19 +93,33 @@ td.bad{color:var(--warn)}
 .rank em{font-style:normal;font-family:var(--f-num);font-size:12px;color:var(--muted)}
 .load{display:flex;flex-wrap:wrap;align-items:center;gap:10px;font-size:13px;color:var(--muted)}
 .load.err{color:var(--warn)}
+
+/* 首页双栏目切换；市场份额在独立文档中运行，避免 CSS 和图表脚本互相干扰 */
+.page-tabs{display:inline-flex;align-items:center;gap:4px;padding:4px;background:var(--panel);border:1px solid var(--line);border-radius:10px}
+.page-tabs button{font-size:17px;font-weight:700;white-space:nowrap;padding:6px 16px;border:0;border-radius:7px;background:transparent;color:var(--muted)}
+.page-tabs button:hover{color:var(--fg);background:var(--accent-soft)}
+.page-tabs button[aria-selected="true"]{color:var(--accent);background:var(--accent-soft)}
+.sales-view{display:grid;gap:16px;min-width:0}
+#shareView{min-width:0}
+.share-frame{display:block;width:100%;height:calc(100dvh - 116px);min-height:780px;border:1px solid var(--line);border-radius:10px;background:#0f172a}
+@media(max-width:600px){.page-tabs button{font-size:16px;padding:6px 13px}.share-frame{min-height:900px}}
 </style>
 </head>
 <body>
 
 <div class="wrap">
   <header>
-    <h1>新机周销量追踪</h1>
+    <nav class="page-tabs" role="tablist" aria-label="首页栏目">
+      <button id="tabSales" type="button" role="tab" aria-selected="true" aria-controls="salesView">销量追踪</button>
+      <button id="tabShare" type="button" role="tab" aria-selected="false" aria-controls="shareView" tabindex="-1">市场份额</button>
+    </nav>
     <div class="hd-r">
       <span class="sub" id="sub">正在读取 data.csv…</span>
       <a class="gh" href="https://github.com/muinocriz/smartphoneSellOut" target="_blank" rel="noopener">GitHub 项目 ↗</a>
       <button class="theme" id="themeBtn" type="button"></button>
     </div>
   </header>
+  <div class="sales-view" id="salesView" role="tabpanel" aria-labelledby="tabSales">
   <div class="load" id="load" hidden>
     <span id="loadMsg"></span>
     <label class="check"><input type="file" id="pick" accept=".csv,text/csv"> 手动选择 CSV</label>
@@ -167,6 +181,10 @@ td.bad{color:var(--warn)}
   </section>
 
   <section class="panel tbl"><table id="tbl"></table></section>
+  </div>
+  <section id="shareView" role="tabpanel" aria-labelledby="tabShare" hidden>
+    <iframe id="shareFrame" class="share-frame" title="手机市场份额可视化与海报生成" data-src="market-share.html" loading="lazy"></iframe>
+  </section>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js"></script>
@@ -763,6 +781,95 @@ $("pick").addEventListener("change",async e=>{const f=e.target.files[0];if(f)sta
 fetch(DATA_URL+"?t="+Date.now()).then(r=>{if(!r.ok)throw new Error(r.status);return r.arrayBuffer()})
   .then(b=>start(decode(b)))
   .catch(()=>showLoad(location.protocol==="file:"?"直接双击打开时浏览器不允许读取本地 data.csv，请手动选择文件，或通过网页服务器访问。":"没有读取到同目录下的 data.csv，请检查文件名，或手动选择文件。",true));
+</script>
+
+<script>
+/* 顶部栏目切换：默认销量追踪，可通过 #market-share 直接访问份额工具 */
+(() => {
+  const salesTab = document.getElementById("tabSales");
+  const shareTab = document.getElementById("tabShare");
+  const salesView = document.getElementById("salesView");
+  const shareView = document.getElementById("shareView");
+  const shareFrame = document.getElementById("shareFrame");
+  const sub = document.getElementById("sub");
+  let frameObserver = null;
+
+  function resizeShareFrame() {
+    if (shareView.hidden || !shareFrame.hasAttribute("src")) return;
+    let isStacked = false;
+    try {
+      const win = shareFrame.contentWindow;
+      const doc = shareFrame.contentDocument;
+      isStacked = win.innerWidth < 1024;
+      if (isStacked && doc) {
+        const aside = doc.querySelector("aside");
+        const main = doc.querySelector("main");
+        if (aside && main) {
+          const height = Math.ceil(aside.getBoundingClientRect().height + main.getBoundingClientRect().height + 8);
+          shareFrame.style.height = Math.max(900, height) + "px";
+          return;
+        }
+      }
+    } catch (_) { /* 跨域等场景退回固定高度 */ }
+    shareFrame.style.height = Math.max(780, window.innerHeight - 116) + "px";
+  }
+
+  function activate(view, updateUrl = false) {
+    const isShare = view === "share";
+    salesView.hidden = isShare;
+    shareView.hidden = !isShare;
+    salesTab.setAttribute("aria-selected", String(!isShare));
+    shareTab.setAttribute("aria-selected", String(isShare));
+    salesTab.tabIndex = isShare ? -1 : 0;
+    shareTab.tabIndex = isShare ? 0 : -1;
+    sub.hidden = isShare;
+    if (updateUrl) {
+      const hash = isShare ? "#market-share" : "#sales";
+      if (location.hash !== hash) history.pushState(null, "", hash);
+    }
+    if (isShare) {
+      if (!shareFrame.hasAttribute("src")) shareFrame.src = shareFrame.dataset.src;
+      requestAnimationFrame(resizeShareFrame);
+    } else {
+      // 隐藏后再返回时，确保 ECharts 重新测量实际容器宽度。
+      requestAnimationFrame(() => window.dispatchEvent(new Event("resize")));
+    }
+  }
+
+  function syncFromUrl() {
+    activate(location.hash === "#market-share" ? "share" : "sales");
+  }
+  salesTab.addEventListener("click", () => activate("sales", true));
+  shareTab.addEventListener("click", () => activate("share", true));
+  [salesTab, shareTab].forEach((tab, i, tabs) => {
+    tab.addEventListener("keydown", event => {
+      if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+      event.preventDefault();
+      const next = event.key === "Home" ? 0 : event.key === "End" ? 1 :
+        (i + (event.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length;
+      tabs[next].focus();
+      activate(next === 1 ? "share" : "sales", true);
+    });
+  });
+  window.addEventListener("popstate", syncFromUrl);
+  window.addEventListener("hashchange", syncFromUrl);
+  window.addEventListener("resize", resizeShareFrame);
+  shareFrame.addEventListener("load", () => {
+    if (frameObserver) frameObserver.disconnect();
+    try {
+      const doc = shareFrame.contentDocument;
+      const aside = doc.querySelector("aside");
+      const main = doc.querySelector("main");
+      if (aside && main && window.ResizeObserver) {
+        frameObserver = new ResizeObserver(resizeShareFrame);
+        frameObserver.observe(aside);
+        frameObserver.observe(main);
+      }
+    } catch (_) { /* 页面无法读取时仍可直接显示 */ }
+    resizeShareFrame();
+  });
+  syncFromUrl();
+})();
 </script>
 </body>
 </html>

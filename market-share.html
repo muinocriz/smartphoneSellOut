@@ -1,0 +1,1913 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>2026 国内手机市场份额战报 · 3:4 抖音数据可视化</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: #0f172a;
+      color: #f8fafc;
+    }
+    /* 自定义滚动条 */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #1e293b;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #475569;
+      border-radius: 9999px;
+    }
+    /* 海报容器等比缩放容器 */
+    .poster-stage {
+      aspect-ratio: 3 / 4;
+      width: 100%;
+      max-width: 540px;
+      box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.65);
+    }
+    .tab-active {
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+      color: #ffffff;
+      box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col lg:flex-row overflow-x-hidden">
+
+  <!-- 左侧控制台 -->
+  <aside class="w-full lg:w-[420px] xl:w-[450px] bg-slate-900 border-b lg:border-b-0 lg:border-r border-slate-800 p-5 lg:p-6 flex flex-col gap-5 shrink-0 lg:h-screen lg:overflow-y-auto">
+    <!-- 顶部品牌标题 -->
+    <div class="flex items-center justify-between">
+      <div>
+        <div class="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-blue-500/15 border border-blue-500/30 text-blue-400 text-xs font-semibold mb-1.5">
+          <span class="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></span>
+          DATA JOURNALISM STUDIO
+        </div>
+        <h1 class="text-xl font-extrabold tracking-tight text-white">手机份额战报 · 3:4 出图台</h1>
+      </div>
+      <span class="text-xs text-slate-400 bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-700">2026 W44→W45</span>
+    </div>
+
+    <!-- 1. 图表类型切换 -->
+    <div class="bg-slate-800/70 p-3.5 rounded-2xl border border-slate-700/70">
+      <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2.5">1. 选择数据可视化图表</label>
+      <div class="grid grid-cols-2 gap-2" id="chartTypeGroup">
+        <button data-type="combo" class="chart-btn tab-active py-2.5 px-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer col-span-2">
+          <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="18" height="7" rx="1.5"/><line x1="12" y1="13" x2="12" y2="21"/><rect x="12" y="14" width="7" height="2.5" rx="0.8" fill="currentColor"/><rect x="6" y="18" width="6" height="2.5" rx="0.8"/></svg>
+          <span>双图组合模式 (堆叠格局 + 发散涨跌) ★</span>
+        </button>
+        <button data-type="diverging" class="chart-btn bg-slate-800 hover:bg-slate-700 text-slate-300 py-2.5 px-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer">
+          <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="12" y1="3" x2="12" y2="21"/><rect x="12" y="5" width="8" height="4" rx="1" fill="currentColor"/><rect x="5" y="13" width="7" height="4" rx="1"/></svg>
+          <span>横向发散条形图</span>
+        </button>
+        <button data-type="stacked" class="chart-btn bg-slate-800 hover:bg-slate-700 text-slate-300 py-2.5 px-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer">
+          <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="4" width="5" height="16" rx="1"/><rect x="15" y="4" width="5" height="16" rx="1"/><path d="M9 9C12 9 12 11 15 11" stroke-dasharray="2 2"/></svg>
+          <span>100% 堆叠图</span>
+        </button>
+        <button data-type="slope" class="chart-btn bg-slate-800 hover:bg-slate-700 text-slate-300 py-2.5 px-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer">
+          <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 17L20 7M4 8L20 16"/><circle cx="4" cy="17" r="2"/><circle cx="20" cy="7" r="2"/></svg>
+          <span>坡度图</span>
+        </button>
+        <button data-type="dumbbell" class="chart-btn bg-slate-800 hover:bg-slate-700 text-slate-300 py-2.5 px-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer">
+          <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="6" y1="8" x2="18" y2="8"/><circle cx="6" cy="8" r="2.5"/><circle cx="18" cy="8" r="2.5" fill="currentColor"/><line x1="8" y1="16" x2="15" y2="16"/><circle cx="15" cy="16" r="2.5"/><circle cx="8" cy="16" r="2.5" fill="currentColor"/></svg>
+          <span>哑铃图</span>
+        </button>
+      </div>
+
+      <!-- 附加数据维度选项 -->
+      <div class="mt-3 pt-3 border-t border-slate-700/80 space-y-2.5">
+        <div id="showOtherOption" class="flex items-center justify-between">
+          <div>
+            <div class="text-xs font-semibold text-slate-200">显示“其他”自动推算项</div>
+            <div class="text-[11px] text-slate-400">发散/组合图默认聚焦前六大主流品牌</div>
+          </div>
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" id="toggleOtherBrand" class="sr-only peer">
+            <div class="w-10 h-5 bg-slate-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+          </label>
+        </div>
+
+        <div id="subBrandOption" class="flex items-center justify-between">
+          <div>
+            <div class="text-xs font-semibold text-slate-200">堆叠图拆分展示子品牌</div>
+            <div class="text-[11px] text-slate-400">独立展示一加/realme 与 iQOO 份额</div>
+          </div>
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" id="splitSubBrands" class="sr-only peer" checked>
+            <div class="w-10 h-5 bg-slate-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. 自定义周度数据输入区（方便未来每周更新） -->
+    <div class="bg-slate-800/70 p-3.5 rounded-2xl border border-slate-700/70 space-y-3">
+      <div class="flex items-center justify-between">
+        <label class="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          2. 录入 / 修改份额数据 (%)
+        </label>
+        <button id="toggleDataEditorBtn" class="text-[11px] bg-slate-700 hover:bg-slate-600 text-slate-200 px-2.5 py-1 rounded-lg font-semibold transition cursor-pointer">
+          展开编辑表格 ▾
+        </button>
+      </div>
+
+      <!-- 折叠的数据编辑面板 -->
+      <div id="dataEditorPanel" class="hidden space-y-3 pt-2 border-t border-slate-700/80">
+        <!-- 周期与大盘描述 -->
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="text-[10px] text-slate-400 block mb-0.5">基准周标签</label>
+            <input type="text" id="inputW1Label" value="W44 (10.26 - 11.1)" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-[11px] text-white">
+          </div>
+          <div>
+            <label class="text-[10px] text-slate-400 block mb-0.5">对比周标签</label>
+            <input type="text" id="inputW2Label" value="W45 (11.2 - 11.8)" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-[11px] text-white">
+          </div>
+          <div>
+            <label class="text-[10px] text-slate-400 block mb-0.5">基准周大盘</label>
+            <input type="text" id="inputW1Market" value="大盘趋势：略微上升 ↗" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-[11px] text-white">
+          </div>
+          <div>
+            <label class="text-[10px] text-slate-400 block mb-0.5">对比周大盘</label>
+            <input type="text" id="inputW2Market" value="大盘趋势：环比下降约 5% ↘" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-[11px] text-white">
+          </div>
+        </div>
+
+        <!-- 品牌份额输入表 -->
+        <div class="bg-slate-900/90 rounded-xl p-2 border border-slate-700/80">
+          <div class="grid grid-cols-12 text-[10px] font-bold text-slate-400 pb-1.5 mb-1.5 border-b border-slate-800 px-1">
+            <span class="col-span-4">品牌</span>
+            <span class="col-span-3 text-center">上周(%)</span>
+            <span class="col-span-3 text-center">本周(%)</span>
+            <span class="col-span-2 text-right">环比</span>
+          </div>
+          <div id="brandInputsList" class="space-y-1.5 max-h-[260px] overflow-y-auto pr-1">
+            <!-- 由 JS 动态渲染品牌输入框 -->
+          </div>
+          <div class="mt-2 pt-1.5 border-t border-slate-800 flex items-center justify-between text-[11px] px-1">
+            <span class="text-slate-400">自动推算“其他”份额：</span>
+            <span id="otherAutoSummary" class="font-mono font-bold text-slate-200">2.6% → 2.6%</span>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between">
+          <span class="text-[11px] text-emerald-400/90 flex items-center gap-1">
+            <span>●</span> 已开启浏览器本地自动记忆（刷新不丢失）
+          </span>
+          <button id="resetDataBtn" class="text-[11px] text-slate-400 hover:text-white underline cursor-pointer">恢复默认 W44/W45 示例数据</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. 抖音安全区独立双向规避设置 -->
+    <div class="bg-slate-800/70 p-3.5 rounded-2xl border border-slate-700/70 space-y-3">
+      <div class="flex items-center justify-between">
+        <div>
+          <label class="text-xs font-bold uppercase tracking-wider text-rose-400 flex items-center gap-1.5">
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L1 21h22L12 2zm0 3.8L19.5 19H4.5L12 5.8zM11 10v4h2v-4h-2zm0 6v2h2v-2h-2z"/></svg>
+            3. 抖音安全区独立规避
+          </label>
+          <p class="text-[11px] text-slate-400 mt-0.5">独立调节右侧交互栏与底部文案区的安全留白</p>
+        </div>
+        <label class="relative inline-flex items-center cursor-pointer">
+          <input type="checkbox" id="toggleSafeZone" class="sr-only peer" checked>
+          <div class="w-10 h-5 bg-slate-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-rose-500"></div>
+        </label>
+      </div>
+
+      <!-- 右侧留白滑块 -->
+      <div>
+        <div class="flex justify-between text-xs text-slate-300 mb-1">
+          <span>右侧交互栏留白宽度</span>
+          <span id="safeRightVal" class="font-mono font-bold text-rose-400">15% (推荐)</span>
+        </div>
+        <input type="range" id="safeRightSlider" min="0" max="22" value="15" class="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-rose-500">
+      </div>
+
+      <!-- 下方留白滑块 -->
+      <div>
+        <div class="flex justify-between text-xs text-slate-300 mb-1">
+          <span>下方文案区留白高度</span>
+          <span id="safeBottomVal" class="font-mono font-bold text-amber-400">10% (推荐)</span>
+        </div>
+        <input type="range" id="safeBottomSlider" min="0" max="20" value="10" class="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-amber-500">
+      </div>
+    </div>
+
+    <!-- 4. 6大精选视觉配色方案 -->
+    <div class="bg-slate-800/70 p-3.5 rounded-2xl border border-slate-700/70 space-y-2.5">
+      <div class="flex items-center justify-between">
+        <label class="block text-xs font-bold uppercase tracking-wider text-slate-400">4. 海报主题与配色方案</label>
+        <span id="activePaletteName" class="text-[11px] font-semibold text-blue-400">暗夜红蓝 (OLED)</span>
+      </div>
+      <div class="grid grid-cols-2 gap-2" id="paletteGrid">
+        <!-- 由 JS 动态渲染 6 套精选色卡按钮 -->
+      </div>
+    </div>
+
+    <!-- 5. 自定义标题文案 -->
+    <div class="bg-slate-800/70 p-3.5 rounded-2xl border border-slate-700/70 space-y-2.5">
+      <label class="block text-xs font-bold uppercase tracking-wider text-slate-400">5. 编辑战报文案</label>
+      <div>
+        <label class="text-[11px] text-slate-400 block mb-1">主标题</label>
+        <input type="text" id="inputTitle" value="2026 W45 国内手机市场份额周环比变化" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500">
+      </div>
+      <div>
+        <label class="text-[11px] text-slate-400 block mb-1">副标题（时间与单位口径）</label>
+        <input type="text" id="inputSubtitle" value="对比 W44 (10.26–11.1) 与 W45 (11.2–11.8) | 单位：百分点" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500">
+      </div>
+      <div>
+        <label class="text-[11px] text-slate-400 block mb-1">核心洞察标签</label>
+        <input type="text" id="inputInsight" value="本周大盘降约5% · 华为逆势涨 +1.4 突破20% · 苹果稳居榜首" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500">
+      </div>
+    </div>
+
+    <!-- 导出按钮 -->
+    <div class="mt-auto pt-2">
+      <button id="exportBtn" class="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 hover:from-blue-500 hover:to-violet-500 text-white font-extrabold text-sm shadow-lg shadow-blue-600/30 transition transform active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+        <span>导出 3:4 高清抖音海报 (1200×1600 PNG)</span>
+      </button>
+      <p class="text-[11px] text-center text-slate-400 mt-2">导出时将自动隐藏红色/琥珀色安全区辅助线，输出纯净原图</p>
+    </div>
+  </aside>
+
+  <!-- 右侧实时 3:4 画布预览舞台 -->
+  <main class="flex-1 bg-slate-950 p-4 sm:p-8 flex flex-col items-center justify-center min-h-[720px] relative">
+    <!-- 顶部状态提示条 -->
+    <div class="w-full max-w-[540px] flex items-center justify-between mb-3 px-1">
+      <div class="flex items-center gap-2 text-xs text-slate-400">
+        <span class="px-2 py-0.5 rounded bg-slate-800 text-slate-200 font-mono">3:4 竖屏比例</span>
+        <span>基准 900×1200px</span>
+      </div>
+      <div id="toastMsg" class="text-xs font-medium text-emerald-400 opacity-0 transition-opacity duration-300">
+        ✓ 已成功生成高清海报！
+      </div>
+    </div>
+
+    <!-- 3:4 海报容器（核心 SVG 渲染区 + 抖音模拟叠加层） -->
+    <div id="posterContainer" class="poster-stage relative rounded-2xl overflow-hidden bg-slate-900 select-none">
+      <!-- 高精度响应式 SVG 画布 (逻辑坐标 900 x 1200) -->
+      <svg id="posterSvg" viewBox="0 0 900 1200" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" class="block w-full h-full"></svg>
+
+      <!-- 抖音 UI 安全区检测叠加层（导出时自动忽略，仅用于实时预览检查） -->
+      <div id="douyinOverlay" class="absolute inset-0 pointer-events-none transition-opacity duration-200">
+        <!-- 右侧危险遮挡警戒带 -->
+        <div id="dyRightZone" class="absolute top-0 right-0 bottom-0 bg-rose-500/15 border-l-2 border-dashed border-rose-500/80 flex flex-col justify-between items-center py-6" style="width: 15%;">
+          <div class="bg-rose-600/90 text-white text-[10px] font-bold px-1.5 py-0.5 rounded shadow text-center leading-tight">
+            右侧避让<br><span id="dyRightTag">15%</span>
+          </div>
+
+          <!-- 模拟抖音右侧悬浮按钮列 -->
+          <div class="flex flex-col items-center gap-4 mb-16 opacity-85">
+            <div class="relative">
+              <div class="w-9 h-9 rounded-full bg-slate-700 border-2 border-white flex items-center justify-center text-[10px] font-bold text-white shadow">数码</div>
+              <div class="w-4 h-4 rounded-full bg-rose-500 text-white text-[11px] font-bold flex items-center justify-center absolute -bottom-1.5 left-1/2 -translate-x-1/2">+</div>
+            </div>
+            <div class="flex flex-col items-center">
+              <svg class="w-7 h-7 text-rose-500 drop-shadow" fill="currentColor" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+              <span class="text-[10px] text-white font-semibold drop-shadow">2.4w</span>
+            </div>
+            <div class="flex flex-col items-center">
+              <svg class="w-7 h-7 text-white drop-shadow" fill="currentColor" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              <span class="text-[10px] text-white font-semibold drop-shadow">1892</span>
+            </div>
+            <div class="flex flex-col items-center">
+              <svg class="w-7 h-7 text-amber-400 drop-shadow" fill="currentColor" viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+              <span class="text-[10px] text-white font-semibold drop-shadow">3410</span>
+            </div>
+            <div class="flex flex-col items-center">
+              <svg class="w-7 h-7 text-white drop-shadow" fill="currentColor" viewBox="0 0 24 24"><path d="M14 9V5l7 7-7 7v-4.1c-5 0-8.5 1.6-11 5.1 1-5 4-10 11-11z"/></svg>
+              <span class="text-[10px] text-white font-semibold drop-shadow">965</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 底部抖音标题栏安全区提示（独立调节高度） -->
+        <div id="dyBottomZone" class="absolute bottom-0 left-0 right-0 bg-amber-500/15 border-t-2 border-dashed border-amber-400/70 flex items-end justify-between p-2.5" style="height: 10%;">
+          <span class="text-[10px] text-amber-200 bg-slate-950/80 px-2 py-0.5 rounded font-semibold">底部文案/进度条避让区 (<span id="dyBottomTag">10%</span>)</span>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // ==========================================
+    // 1. 默认数据模型与自动汇总计算
+    // ==========================================
+    function getDefaultBrands() {
+      return [
+        { id: 'apple', name: '苹果', w1: 28.7, w2: 29.3, brandColor: '#3b82f6' },
+        { id: 'huawei', name: '华为', w1: 19.4, w2: 20.8, brandColor: '#ef4444' },
+        { id: 'xiaomi', name: '小米', w1: 13.4, w2: 13.0, brandColor: '#f97316' },
+        {
+          id: 'oppo',
+          name: 'OPPO系',
+          brandColor: '#10b981',
+          subBrands: [
+            { name: 'OPPO主品牌', w1: 8.5, w2: 8.2, shade: '#059669' },
+            { name: '一加', w1: 3.8, w2: 3.9, shade: '#34d399' },
+            { name: 'realme', w1: 0.2, w2: 0.2, shade: '#6ee7b7' }
+          ]
+        },
+        {
+          id: 'vivo',
+          name: 'vivo系',
+          brandColor: '#6366f1',
+          subBrands: [
+            { name: 'vivo主品牌', w1: 8.1, w2: 8.1, shade: '#4f46e5' },
+            { name: 'iQOO', w1: 3.7, w2: 3.3, shade: '#818cf8' }
+          ]
+        },
+        { id: 'honor', name: '荣耀', w1: 11.6, w2: 10.6, brandColor: '#06b6d4' }
+      ];
+    }
+
+    function getComputedMarketData() {
+      let totalW1 = 0;
+      let totalW2 = 0;
+
+      const list = state.brands.map(b => {
+        if (b.subBrands && b.subBrands.length > 0) {
+          const sumW1 = +b.subBrands.reduce((acc, s) => acc + (parseFloat(s.w1) || 0), 0).toFixed(2);
+          const sumW2 = +b.subBrands.reduce((acc, s) => acc + (parseFloat(s.w2) || 0), 0).toFixed(2);
+          const diff = +(sumW2 - sumW1).toFixed(2);
+          totalW1 += sumW1;
+          totalW2 += sumW2;
+
+          const subs = b.subBrands.map(s => {
+            const sw1 = +(parseFloat(s.w1) || 0).toFixed(2);
+            const sw2 = +(parseFloat(s.w2) || 0).toFixed(2);
+            return {
+              ...s,
+              w44: sw1,
+              w45: sw2,
+              diff: +(sw2 - sw1).toFixed(2)
+            };
+          });
+
+          const subNote = subs
+            .filter(s => s.name !== 'OPPO主品牌' && s.name !== 'vivo主品牌')
+            .map(s => `${s.name} ${s.w45.toFixed(1)}%`)
+            .join('/');
+
+          return {
+            id: b.id,
+            name: b.name,
+            w44: sumW1,
+            w45: sumW2,
+            diff,
+            brandColor: b.brandColor,
+            subNote,
+            subBrands: subs
+          };
+        } else {
+          const w1 = +(parseFloat(b.w1) || 0).toFixed(2);
+          const w2 = +(parseFloat(b.w2) || 0).toFixed(2);
+          const diff = +(w2 - w1).toFixed(2);
+          totalW1 += w1;
+          totalW2 += w2;
+
+          return {
+            id: b.id,
+            name: b.name,
+            w44: w1,
+            w45: w2,
+            diff,
+            brandColor: b.brandColor,
+            subNote: null,
+            subBrands: null
+          };
+        }
+      });
+
+      const otherW1 = +Math.max(0, 100 - totalW1).toFixed(2);
+      const otherW2 = +Math.max(0, 100 - totalW2).toFixed(2);
+      const otherDiff = +(otherW2 - otherW1).toFixed(2);
+
+      list.push({
+        id: 'other',
+        name: '其他',
+        w44: otherW1,
+        w45: otherW2,
+        diff: otherDiff,
+        brandColor: '#64748b',
+        subNote: null,
+        subBrands: null
+      });
+
+      return list;
+    }
+
+    function getExtremeIds(dataList) {
+      let maxGainId = null;
+      let maxGainVal = 0;
+      let maxDropId = null;
+      let maxDropVal = 0;
+
+      dataList.forEach(item => {
+        if (item.diff > maxGainVal) {
+          maxGainVal = item.diff;
+          maxGainId = item.id;
+        }
+        if (item.diff < maxDropVal) {
+          maxDropVal = item.diff;
+          maxDropId = item.id;
+        }
+      });
+
+      return { maxGainId, maxDropId };
+    }
+
+    // ==========================================
+    // 2. 6套高对比度数据新闻配色方案
+    // ==========================================
+    const PALETTES = {
+      oled_classic: {
+        id: 'oled_classic',
+        name: '暗夜红蓝 (OLED)',
+        isDark: true,
+        swatches: ['#050505', '#e15759', '#4e9af1'],
+        bgTop: '#050505',
+        bgBottom: '#0b0f19',
+        cardBg: '#111622',
+        cardBorder: '#1e293b',
+        textPrimary: '#f8fafc',
+        textSecondary: '#94a3b8',
+        textMuted: '#64748b',
+        upColor: '#e15759',
+        upBg: 'rgba(225, 87, 89, 0.16)',
+        upRowHighlight: 'rgba(225, 87, 89, 0.14)',
+        downColor: '#4e9af1',
+        downBg: 'rgba(78, 154, 241, 0.16)',
+        downRowHighlight: 'rgba(78, 154, 241, 0.14)',
+        flatColor: '#94a3b8',
+        flatBg: 'rgba(148, 163, 184, 0.15)',
+        gridLine: '#1e293b',
+        axisLine: '#64748b',
+        badgeBg: 'rgba(225, 87, 89, 0.14)',
+        badgeBorder: 'rgba(225, 87, 89, 0.35)',
+        badgeText: '#fda4af'
+      },
+      editorial_paper: {
+        id: 'editorial_paper',
+        name: '编辑部米白',
+        isDark: false,
+        swatches: ['#f8f5ef', '#c83e37', '#2b5b84'],
+        bgTop: '#f8f5ef',
+        bgBottom: '#efeae0',
+        cardBg: '#ffffff',
+        cardBorder: '#e2dcd0',
+        textPrimary: '#1c1917',
+        textSecondary: '#57534e',
+        textMuted: '#78716c',
+        upColor: '#c83e37',
+        upBg: 'rgba(200, 62, 55, 0.12)',
+        upRowHighlight: 'rgba(200, 62, 55, 0.10)',
+        downColor: '#2b5b84',
+        downBg: 'rgba(43, 91, 132, 0.12)',
+        downRowHighlight: 'rgba(43, 91, 132, 0.10)',
+        flatColor: '#78716c',
+        flatBg: 'rgba(120, 113, 108, 0.12)',
+        gridLine: '#e7e2d8',
+        axisLine: '#78716c',
+        badgeBg: 'rgba(200, 62, 55, 0.08)',
+        badgeBorder: 'rgba(200, 62, 55, 0.25)',
+        badgeText: '#991b1b'
+      },
+      pure_white: {
+        id: 'pure_white',
+        name: '极简纯白',
+        isDark: false,
+        swatches: ['#ffffff', '#10b981', '#f43f5e'],
+        bgTop: '#ffffff',
+        bgBottom: '#f8fafc',
+        cardBg: '#ffffff',
+        cardBorder: '#e2e8f0',
+        textPrimary: '#0f172a',
+        textSecondary: '#475569',
+        textMuted: '#94a3b8',
+        upColor: '#10b981',
+        upBg: 'rgba(16, 185, 129, 0.12)',
+        upRowHighlight: 'rgba(16, 185, 129, 0.10)',
+        downColor: '#f43f5e',
+        downBg: 'rgba(244, 63, 94, 0.12)',
+        downRowHighlight: 'rgba(244, 63, 94, 0.10)',
+        flatColor: '#64748b',
+        flatBg: 'rgba(100, 116, 139, 0.12)',
+        gridLine: '#f1f5f9',
+        axisLine: '#94a3b8',
+        badgeBg: 'rgba(16, 185, 129, 0.09)',
+        badgeBorder: 'rgba(16, 185, 129, 0.28)',
+        badgeText: '#065f46'
+      },
+      deep_finance: {
+        id: 'deep_finance',
+        name: '深海金融',
+        isDark: true,
+        swatches: ['#091526', '#f59e0b', '#38bdf8'],
+        bgTop: '#091526',
+        bgBottom: '#0f213a',
+        cardBg: '#122642',
+        cardBorder: '#1e3a5f',
+        textPrimary: '#f8fafc',
+        textSecondary: '#cbd5e1',
+        textMuted: '#64748b',
+        upColor: '#f59e0b',
+        upBg: 'rgba(245, 158, 11, 0.16)',
+        upRowHighlight: 'rgba(245, 158, 11, 0.14)',
+        downColor: '#38bdf8',
+        downBg: 'rgba(56, 189, 248, 0.16)',
+        downRowHighlight: 'rgba(56, 189, 248, 0.14)',
+        flatColor: '#94a3b8',
+        flatBg: 'rgba(148, 163, 184, 0.15)',
+        gridLine: '#1e3a5f',
+        axisLine: '#64748b',
+        badgeBg: 'rgba(245, 158, 11, 0.14)',
+        badgeBorder: 'rgba(245, 158, 11, 0.35)',
+        badgeText: '#fcd34d'
+      },
+      cyber_neon: {
+        id: 'cyber_neon',
+        name: '黑金奢华',
+        isDark: true,
+        swatches: ['#111113', '#ec4899', '#818cf8'],
+        bgTop: '#111113',
+        bgBottom: '#18181b',
+        cardBg: '#1f1f23',
+        cardBorder: '#2e2e34',
+        textPrimary: '#fafafa',
+        textSecondary: '#a1a1aa',
+        textMuted: '#71717a',
+        upColor: '#ec4899',
+        upBg: 'rgba(236, 72, 153, 0.16)',
+        upRowHighlight: 'rgba(236, 72, 153, 0.14)',
+        downColor: '#818cf8',
+        downBg: 'rgba(129, 140, 248, 0.16)',
+        downRowHighlight: 'rgba(129, 140, 248, 0.14)',
+        flatColor: '#a1a1aa',
+        flatBg: 'rgba(161, 161, 170, 0.15)',
+        gridLine: '#27272a',
+        axisLine: '#71717a',
+        badgeBg: 'rgba(236, 72, 153, 0.14)',
+        badgeBorder: 'rgba(236, 72, 153, 0.35)',
+        badgeText: '#f9a8d4'
+      },
+      morandi_sage: {
+        id: 'morandi_sage',
+        name: '莫兰迪绿野',
+        isDark: false,
+        swatches: ['#eef3ef', '#d97706', '#2d6a4f'],
+        bgTop: '#eef3ef',
+        bgBottom: '#e2eae4',
+        cardBg: '#f9fbf9',
+        cardBorder: '#cbd8ce',
+        textPrimary: '#1b2e23',
+        textSecondary: '#4a6354',
+        textMuted: '#748c7d',
+        upColor: '#d97706',
+        upBg: 'rgba(217, 119, 6, 0.13)',
+        upRowHighlight: 'rgba(217, 119, 6, 0.11)',
+        downColor: '#2d6a4f',
+        downBg: 'rgba(45, 106, 79, 0.13)',
+        downRowHighlight: 'rgba(45, 106, 79, 0.11)',
+        flatColor: '#748c7d',
+        flatBg: 'rgba(116, 140, 125, 0.12)',
+        gridLine: '#dce6de',
+        axisLine: '#748c7d',
+        badgeBg: 'rgba(217, 119, 6, 0.10)',
+        badgeBorder: 'rgba(217, 119, 6, 0.28)',
+        badgeText: '#92400e'
+      }
+    };
+
+    // ==========================================
+    // 3. 全局状态管理（支持 localStorage 自动持久化）
+    // ==========================================
+    const STORAGE_KEY = 'phone_market_share_viz_state_v1';
+
+    function getDefaultState() {
+      return {
+        chartType: 'combo',        // 默认展示 'combo' | 'diverging' | 'stacked' | 'slope' | 'dumbbell'
+        showOtherBrand: false,     // 是否在发散/坡度/哑铃图中展示“其他”
+        splitSubBrands: true,      // 堆叠图是否拆分子品牌
+        showSafeZone: true,        // 是否显示抖音辅助线
+        rightMarginPct: 15,        // 右侧留白百分比 (默认 15%)
+        bottomMarginPct: 10,       // 下侧留白百分比 (默认 10%)
+        paletteId: 'oled_classic', // 默认暗夜红蓝配色
+        title: '2026 W45 国内手机市场份额周环比变化',
+        subtitle: '对比 W44 (10.26–11.1) 与 W45 (11.2–11.8) | 单位：百分点',
+        insight: '本周大盘降约5% · 华为逆势涨 +1.4 突破20% · 苹果稳居榜首',
+        w1Label: 'W44 (10.26 - 11.1)',
+        w2Label: 'W45 (11.2 - 11.8)',
+        w1Market: '大盘趋势：略微上升 ↗',
+        w2Market: '大盘趋势：环比下降约 5% ↘',
+        brands: getDefaultBrands()
+      };
+    }
+
+    function loadSavedState() {
+      const def = getDefaultState();
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return def;
+        const parsed = JSON.parse(raw);
+        return {
+          ...def,
+          ...parsed,
+          brands: Array.isArray(parsed.brands) && parsed.brands.length > 0 ? parsed.brands : def.brands
+        };
+      } catch (e) {
+        return def;
+      }
+    }
+
+    function saveStateToLocal() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      } catch (e) {
+        // 忽略无痕模式或存储满的异常
+      }
+    }
+
+    const state = loadSavedState();
+
+    function getPalette() {
+      return PALETTES[state.paletteId] || PALETTES.oled_classic;
+    }
+
+    function getVisibleBrands() {
+      const all = getComputedMarketData();
+      if (state.showOtherBrand) return all;
+      return all.filter(d => d.id !== 'other');
+    }
+
+    function formatDiff(diff) {
+      if (diff > 0) return `+${diff.toFixed(1)}`;
+      if (diff < 0) return `${diff.toFixed(1)}`;
+      return `0.0`;
+    }
+
+    function formatDiffPct(diff) {
+      if (diff > 0) return `+${diff.toFixed(1)}%`;
+      if (diff < 0) return `${diff.toFixed(1)}%`;
+      return `0.0%`;
+    }
+
+    function formatDiffPP(diff) {
+      if (diff > 0) return `+${diff.toFixed(1)}pp`;
+      if (diff < 0) return `${diff.toFixed(1)}pp`;
+      return `0.0pp`;
+    }
+
+    function svgEl(tag, attrs = {}, textContent = null) {
+      const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+      for (const [k, v] of Object.entries(attrs)) {
+        el.setAttribute(k, v);
+      }
+      if (textContent !== null) {
+        el.textContent = textContent;
+      }
+      return el;
+    }
+
+    // ==========================================
+    // 4. 核心海报与五大图表渲染引擎 (900 x 1200)
+    // ==========================================
+    function renderPoster() {
+      const svg = document.getElementById('posterSvg');
+      svg.innerHTML = '';
+      const P = getPalette();
+
+      // 计算安全绘制区域（严格遵循独立的右侧与下方安全留白）
+      const W = 900;
+      const H = 1200;
+      const leftPad = 44;
+      const rightSafeReserve = Math.round(W * (state.rightMarginPct / 100));
+      const safeRightX = W - Math.max(36, rightSafeReserve + 14);
+      const contentWidth = safeRightX - leftPad;
+
+      const bottomSafeReserve = Math.round(H * (state.bottomMarginPct / 100));
+      const safeBottomY = H - Math.max(24, bottomSafeReserve);
+
+      // 1. 背景层与细微网格
+      const defs = svgEl('defs');
+      const bgGrad = svgEl('linearGradient', { id: 'posterBgGrad', x1: '0', y1: '0', x2: '0', y2: '1' });
+      bgGrad.appendChild(svgEl('stop', { offset: '0%', 'stop-color': P.bgTop }));
+      bgGrad.appendChild(svgEl('stop', { offset: '100%', 'stop-color': P.bgBottom }));
+      defs.appendChild(bgGrad);
+
+      const dotPattern = svgEl('pattern', { id: 'dotGrid', width: '24', height: '24', patternUnits: 'userSpaceOnUse' });
+      dotPattern.appendChild(svgEl('circle', {
+        cx: '2', cy: '2', r: '1',
+        fill: P.isDark ? 'rgba(148,163,184,0.07)' : 'rgba(15,23,42,0.04)'
+      }));
+      defs.appendChild(dotPattern);
+      svg.appendChild(defs);
+
+      svg.appendChild(svgEl('rect', { x: 0, y: 0, width: W, height: H, fill: 'url(#posterBgGrad)' }));
+      svg.appendChild(svgEl('rect', { x: 0, y: 0, width: W, height: H, fill: 'url(#dotGrid)' }));
+
+      // 顶部标签栏
+      svg.appendChild(svgEl('rect', { x: leftPad, y: 34, width: 48, height: 5.5, rx: 2.75, fill: P.upColor }));
+      svg.appendChild(svgEl('text', {
+        x: leftPad + 60, y: 41,
+        fill: P.textSecondary,
+        'font-size': '14',
+        'font-weight': '700',
+        'letter-spacing': '1.3'
+      }, 'CHINA SMARTPHONE SELL-OUT · WEEKLY REPORT'));
+
+      // 2. 海报头部标题区（紧凑排版避免海报过长）
+      svg.appendChild(svgEl('text', {
+        x: leftPad, y: 86,
+        fill: P.textPrimary,
+        'font-size': '33',
+        'font-weight': '900',
+        'letter-spacing': '-0.5'
+      }, state.title));
+
+      svg.appendChild(svgEl('text', {
+        x: leftPad, y: 118,
+        fill: P.textSecondary,
+        'font-size': '17.5',
+        'font-weight': '500'
+      }, state.subtitle));
+
+      // 核心洞察摘要胶囊卡片
+      const insightY = 136;
+      svg.appendChild(svgEl('rect', {
+        x: leftPad, y: insightY,
+        width: contentWidth, height: 38,
+        rx: 10,
+        fill: P.badgeBg,
+        stroke: P.badgeBorder,
+        'stroke-width': '1.5'
+      }));
+      svg.appendChild(svgEl('text', {
+        x: leftPad + 14, y: insightY + 24.5,
+        fill: P.badgeText,
+        'font-size': '16',
+        'font-weight': '700'
+      }, `💡 ${state.insight}`));
+
+      // 大盘环境对比小指标卡（W1 vs W2）
+      const kpiY = 186;
+      const kpiGap = 12;
+      const kpiW = (contentWidth - kpiGap) / 2;
+
+      svg.appendChild(svgEl('rect', {
+        x: leftPad, y: kpiY, width: kpiW, height: 52, rx: 10,
+        fill: P.cardBg, stroke: P.cardBorder, 'stroke-width': '1.5'
+      }));
+      svg.appendChild(svgEl('text', { x: leftPad + 14, y: kpiY + 20, fill: P.textSecondary, 'font-size': '13', 'font-weight': '600' }, `${state.w1Label} 基准周`));
+      svg.appendChild(svgEl('text', { x: leftPad + 14, y: kpiY + 41, fill: P.textPrimary, 'font-size': '16', 'font-weight': '800' }, state.w1Market));
+
+      svg.appendChild(svgEl('rect', {
+        x: leftPad + kpiW + kpiGap, y: kpiY, width: kpiW, height: 52, rx: 10,
+        fill: P.cardBg, stroke: P.cardBorder, 'stroke-width': '1.5'
+      }));
+      svg.appendChild(svgEl('text', { x: leftPad + kpiW + kpiGap + 14, y: kpiY + 20, fill: P.textSecondary, 'font-size': '13', 'font-weight': '600' }, `${state.w2Label} 对比周`));
+      svg.appendChild(svgEl('text', { x: leftPad + kpiW + kpiGap + 14, y: kpiY + 41, fill: P.upColor, 'font-size': '16', 'font-weight': '800' }, state.w2Market));
+
+      // 3. 动态计算主图表区域（随下方安全区实时自适应压缩/舒展）
+      const footerHeight = 42;
+      const footerY = safeBottomY - footerHeight;
+      const chartTop = 252;
+      const chartBottom = footerY - 12;
+      const chartHeight = Math.max(420, chartBottom - chartTop);
+
+      // 根据当前选中的图表类型渲染对应图表
+      if (state.chartType === 'combo') {
+        renderComboChart(svg, P, leftPad, chartTop, contentWidth, chartHeight);
+      } else {
+        svg.appendChild(svgEl('rect', {
+          x: leftPad, y: chartTop,
+          width: contentWidth, height: chartHeight,
+          rx: 18,
+          fill: P.cardBg,
+          stroke: P.cardBorder,
+          'stroke-width': '1.5'
+        }));
+
+        if (state.chartType === 'diverging') {
+          renderDivergingBarChart(svg, P, leftPad, chartTop, contentWidth, chartHeight, false);
+        } else if (state.chartType === 'slope') {
+          renderSlopeChart(svg, P, leftPad, chartTop, contentWidth, chartHeight);
+        } else if (state.chartType === 'dumbbell') {
+          renderDumbbellChart(svg, P, leftPad, chartTop, contentWidth, chartHeight);
+        } else if (state.chartType === 'stacked') {
+          renderStackedFlowChart(svg, P, leftPad, chartTop, contentWidth, chartHeight);
+        }
+      }
+
+      // 4. 底部注脚区（紧贴下方安全区上沿，不越界）
+      svg.appendChild(svgEl('line', {
+        x1: leftPad, y1: footerY,
+        x2: safeRightX, y2: footerY,
+        stroke: P.cardBorder, 'stroke-width': '1'
+      }));
+      svg.appendChild(svgEl('text', {
+        x: leftPad, y: footerY + 17,
+        fill: P.textMuted,
+        'font-size': '13.5',
+        'font-weight': '500'
+      }, '数据口径：国内手机市场 Sell-Out 销量占比（OPPO含一加/realme，vivo含iQOO）'));
+      svg.appendChild(svgEl('text', {
+        x: leftPad, y: footerY + 36,
+        fill: P.textMuted,
+        'font-size': '13',
+        'font-weight': '500'
+      }, '底色高亮标注本周最大份额提升与最大回落品牌 · 适配抖音 3:4 安全区'));
+    }
+
+    // ==========================================
+    // 新增：双图组合模式 (上：横向100%堆叠份额格局 + 下：发散涨跌条形图)
+    // ==========================================
+    function renderComboChart(svg, P, boxX, boxY, boxW, boxH) {
+      const gap = 14;
+      const topH = Math.round((boxH - gap) * 0.29);
+      const botH = boxH - gap - topH;
+      const botY = boxY + topH + gap;
+
+      // --- 上半卡片：横向 100% 堆叠格局对比 ---
+      svg.appendChild(svgEl('rect', {
+        x: boxX, y: boxY, width: boxW, height: topH, rx: 16,
+        fill: P.cardBg, stroke: P.cardBorder, 'stroke-width': '1.5'
+      }));
+
+      svg.appendChild(svgEl('text', {
+        x: boxX + 20, y: boxY + 28,
+        fill: P.textPrimary, 'font-size': '17', 'font-weight': '800'
+      }, '① 整体份额格局 (100% 存量切片)'));
+
+      const allData = getComputedMarketData();
+      const stackSegs = [];
+      allData.forEach(b => {
+        if (state.splitSubBrands && b.subBrands) {
+          b.subBrands.forEach(sub => {
+            stackSegs.push({ name: sub.name, w1: sub.w44, w2: sub.w45, color: sub.shade });
+          });
+        } else {
+          stackSegs.push({ name: b.name.replace('系', ''), w1: b.w44, w2: b.w45, color: b.brandColor });
+        }
+      });
+
+      const barLeft = boxX + 78;
+      const barRight = boxX + boxW - 22;
+      const barTotalW = barRight - barLeft;
+      const barThick = Math.min(28, (topH - 76) / 2.6);
+
+      const row1Y = boxY + 46;
+      const row2Y = row1Y + barThick + Math.max(22, (topH - 76 - barThick * 2) * 0.55);
+
+      svg.appendChild(svgEl('text', {
+        x: boxX + 20, y: row1Y + barThick / 2 + 5,
+        fill: P.textSecondary, 'font-size': '15', 'font-weight': '800'
+      }, '基准周'));
+      svg.appendChild(svgEl('text', {
+        x: boxX + 20, y: row2Y + barThick / 2 + 5,
+        fill: P.textPrimary, 'font-size': '15', 'font-weight': '800'
+      }, '对比周'));
+
+      let x1Acc = barLeft;
+      let x2Acc = barLeft;
+
+      stackSegs.forEach((seg) => {
+        const w1Px = (seg.w1 / 100) * barTotalW;
+        const w2Px = (seg.w2 / 100) * barTotalW;
+
+        if (w1Px > 0.5 || w2Px > 0.5) {
+          const polyPts = `${x1Acc},${row1Y + barThick} ${x1Acc + w1Px},${row1Y + barThick} ${x2Acc + w2Px},${row2Y} ${x2Acc},${row2Y}`;
+          svg.appendChild(svgEl('polygon', {
+            points: polyPts,
+            fill: seg.color,
+            opacity: P.isDark ? '0.28' : '0.22'
+          }));
+        }
+
+        if (w1Px > 1) {
+          svg.appendChild(svgEl('rect', {
+            x: x1Acc, y: row1Y, width: Math.max(1, w1Px - 1.5), height: barThick,
+            rx: 3, fill: seg.color
+          }));
+          if (w1Px >= 42) {
+            svg.appendChild(svgEl('text', {
+              x: x1Acc + w1Px / 2, y: row1Y + barThick / 2 + 4.5,
+              'text-anchor': 'middle', fill: '#ffffff', 'font-size': '12.5', 'font-weight': '800'
+            }, `${seg.w1.toFixed(1)}%`));
+          }
+        }
+
+        if (w2Px > 1) {
+          svg.appendChild(svgEl('rect', {
+            x: x2Acc, y: row2Y, width: Math.max(1, w2Px - 1.5), height: barThick,
+            rx: 3, fill: seg.color
+          }));
+          if (w2Px >= 42) {
+            svg.appendChild(svgEl('text', {
+              x: x2Acc + w2Px / 2, y: row2Y + barThick / 2 + 4.5,
+              'text-anchor': 'middle', fill: '#ffffff', 'font-size': '12.5', 'font-weight': '800'
+            }, `${seg.w2.toFixed(1)}%`));
+          }
+        }
+
+        x1Acc += w1Px;
+        x2Acc += w2Px;
+      });
+
+      const legendBrands = allData.filter(d => d.id !== 'other');
+      let legX = boxX + 20;
+      const legY = boxY + topH - 14;
+      legendBrands.forEach(b => {
+        svg.appendChild(svgEl('rect', { x: legX, y: legY - 9, width: 10, height: 10, rx: 2.5, fill: b.brandColor }));
+        const bName = b.name.replace('系', '');
+        svg.appendChild(svgEl('text', {
+          x: legX + 14, y: legY,
+          fill: P.textSecondary, 'font-size': '12.5', 'font-weight': '700'
+        }, bName));
+        legX += bName.length * 13 + 30;
+      });
+
+      // --- 下半卡片：横向发散条形图（含最大提升/最大回落底色高亮） ---
+      svg.appendChild(svgEl('rect', {
+        x: boxX, y: botY, width: boxW, height: botH, rx: 16,
+        fill: P.cardBg, stroke: P.cardBorder, 'stroke-width': '1.5'
+      }));
+
+      svg.appendChild(svgEl('text', {
+        x: boxX + 20, y: botY + 28,
+        fill: P.textPrimary, 'font-size': '17', 'font-weight': '800'
+      }, '② 周环比净变化 (底色高亮最大升/降)'));
+
+      renderDivergingBarChart(svg, P, boxX, botY + 34, boxW, botH - 34, true);
+    }
+
+    // ==========================================
+    // 图表 0：横向发散条形图 (Diverging Bar Chart)
+    // ==========================================
+    function renderDivergingBarChart(svg, P, boxX, boxY, boxW, boxH, isCompact = false) {
+      const dataList = getVisibleBrands();
+      const { maxGainId, maxDropId } = getExtremeIds(dataList);
+
+      const labelColW = isCompact ? 152 : 168;
+      const plotLeft = boxX + labelColW;
+      const plotRight = boxX + boxW - 28;
+      const plotW = plotRight - plotLeft;
+
+      const rawMaxAbs = Math.max(1.5, ...dataList.map(d => Math.abs(d.diff)));
+      const maxAbs = Math.ceil(rawMaxAbs * 2) / 2 + 0.25;
+      const zeroX = plotLeft + plotW * 0.5;
+      const scaleX = (val) => zeroX + (val / maxAbs) * (plotW * 0.5);
+
+      const plotTop = boxY + (isCompact ? 10 : 32);
+      const plotBottom = boxY + boxH - (isCompact ? 56 : 86);
+      const plotH = plotBottom - plotTop;
+
+      const step = maxAbs <= 2 ? 0.5 : 1.0;
+      const ticks = [];
+      for (let t = -Math.floor(maxAbs / step) * step; t <= Math.floor(maxAbs / step) * step + 0.001; t += step) {
+        ticks.push(+t.toFixed(1));
+      }
+
+      ticks.forEach(t => {
+        const tx = scaleX(t);
+        const isZero = Math.abs(t) < 0.01;
+        svg.appendChild(svgEl('line', {
+          x1: tx, y1: plotTop,
+          x2: tx, y2: plotBottom,
+          stroke: isZero ? P.axisLine : P.gridLine,
+          'stroke-width': isZero ? '2.2' : '1.2'
+        }));
+
+        const tickLabel = t > 0 ? `+${t}` : `${t}`;
+        svg.appendChild(svgEl('text', {
+          x: tx, y: plotBottom + (isCompact ? 22 : 28),
+          'text-anchor': 'middle',
+          fill: isZero ? P.textPrimary : P.textSecondary,
+          'font-size': isCompact ? '14.5' : '17',
+          'font-weight': isZero ? '800' : '600'
+        }, tickLabel));
+      });
+      const rowH = plotH / dataList.length;
+      const barH = Math.min(isCompact ? 26 : 36, rowH * 0.46);
+
+      dataList.forEach((item, idx) => {
+        const rowTop = plotTop + idx * rowH;
+        const cy = rowTop + rowH * 0.5;
+        const isUp = item.diff > 0;
+        const isDown = item.diff < 0;
+        const barColor = isUp ? P.upColor : (isDown ? P.downColor : P.flatColor);
+
+        const isMaxGain = item.id === maxGainId && item.diff > 0;
+        const isMaxDrop = item.id === maxDropId && item.diff < 0;
+
+        if (isMaxGain || isMaxDrop) {
+          const hlColor = isMaxGain ? P.upRowHighlight : P.downRowHighlight;
+          const borderColor = isMaxGain ? P.upColor : P.downColor;
+          const rowPadY = Math.max(2, rowH * 0.06);
+
+          svg.appendChild(svgEl('rect', {
+            x: boxX + 12,
+            y: rowTop + rowPadY,
+            width: boxW - 24,
+            height: rowH - rowPadY * 2,
+            rx: 10,
+            fill: hlColor,
+            stroke: borderColor,
+            'stroke-opacity': '0.35',
+            'stroke-width': '1'
+          }));
+
+          const tagText = isMaxGain ? '▲ 最大提升' : '▼ 最大回落';
+          svg.appendChild(svgEl('text', {
+            x: boxX + boxW - 22,
+            y: rowTop + rowPadY + (isCompact ? 13 : 16),
+            'text-anchor': 'end',
+            fill: borderColor,
+            'font-size': isCompact ? '10.5' : '12',
+            'font-weight': '800',
+            opacity: '0.9'
+          }, tagText));
+        }
+
+        const displayName = item.name.replace('系', '');
+        svg.appendChild(svgEl('text', {
+          x: boxX + 22,
+          y: cy - (isCompact ? 1 : 3),
+          fill: P.textPrimary,
+          'font-size': isCompact ? '20' : '24',
+          'font-weight': '900'
+        }, displayName));
+
+        svg.appendChild(svgEl('text', {
+          x: boxX + 22,
+          y: cy + (isCompact ? 17 : 22),
+          fill: P.textSecondary,
+          'font-size': isCompact ? '13.5' : '15.5',
+          'font-weight': '600'
+        }, `${item.w44.toFixed(1)}% → ${item.w45.toFixed(1)}%`));
+
+        if (Math.abs(item.diff) >= 0.01) {
+          const targetX = scaleX(item.diff);
+          const barW = Math.abs(targetX - zeroX);
+          const r = Math.min(6, barW / 2);
+          const yTop = cy - barH / 2;
+          const yBot = cy + barH / 2;
+
+          let pathD = '';
+          if (isUp) {
+            pathD = `M ${zeroX} ${yTop} L ${targetX - r} ${yTop} Q ${targetX} ${yTop} ${targetX} ${yTop + r} L ${targetX} ${yBot - r} Q ${targetX} ${yBot} ${targetX - r} ${yBot} L ${zeroX} ${yBot} Z`;
+          } else {
+            pathD = `M ${zeroX} ${yTop} L ${targetX + r} ${yTop} Q ${targetX} ${yTop} ${targetX} ${yTop + r} L ${targetX} ${yBot - r} Q ${targetX} ${yBot} ${targetX + r} ${yBot} L ${zeroX} ${yBot} Z`;
+          }
+
+          svg.appendChild(svgEl('path', { d: pathD, fill: barColor }));
+
+          svg.appendChild(svgEl('text', {
+            x: isUp ? targetX + 10 : targetX - 10,
+            y: cy + (isCompact ? 6.5 : 8),
+            'text-anchor': isUp ? 'start' : 'end',
+            fill: barColor,
+            'font-size': isCompact ? '19' : '22.5',
+            'font-weight': '900'
+          }, formatDiff(item.diff)));
+        } else {
+          svg.appendChild(svgEl('circle', { cx: zeroX, cy: cy, r: 4.5, fill: P.flatColor }));
+          svg.appendChild(svgEl('text', {
+            x: zeroX + 10, y: cy + 6,
+            'text-anchor': 'start', fill: P.flatColor,
+            'font-size': isCompact ? '16' : '19', 'font-weight': '800'
+          }, '0.0'));
+        }
+      });
+
+      const legendY = boxY + boxH - (isCompact ? 12 : 22);
+      const centerLegendX = plotLeft + plotW * 0.5;
+
+      svg.appendChild(svgEl('circle', { cx: centerLegendX - 145, cy: legendY - 5, r: 6.5, fill: P.upColor }));
+      svg.appendChild(svgEl('text', {
+        x: centerLegendX - 132, y: legendY,
+        fill: P.textPrimary, 'font-size': isCompact ? '14' : '17', 'font-weight': '700'
+      }, '份额上升'));
+
+      svg.appendChild(svgEl('circle', { cx: centerLegendX - 25, cy: legendY - 5, r: 6.5, fill: P.downColor }));
+      svg.appendChild(svgEl('text', {
+        x: centerLegendX - 12, y: legendY,
+        fill: P.textPrimary, 'font-size': isCompact ? '14' : '17', 'font-weight': '700'
+      }, '份额下降'));
+
+      svg.appendChild(svgEl('rect', {
+        x: centerLegendX + 85, y: legendY - 12, width: 14, height: 14, rx: 3,
+        fill: P.upRowHighlight, stroke: P.upColor, 'stroke-width': '1'
+      }));
+      svg.appendChild(svgEl('text', {
+        x: centerLegendX + 104, y: legendY,
+        fill: P.textSecondary, 'font-size': isCompact ? '13.5' : '16', 'font-weight': '600'
+      }, '底色=极值行'));
+    }
+
+    // ==========================================
+    // 图表 1：坡度图 (Slope Chart) - 自动防重叠布局
+    // ==========================================
+    function renderSlopeChart(svg, P, boxX, boxY, boxW, boxH) {
+      const dataList = getVisibleBrands();
+      svg.appendChild(svgEl('text', {
+        x: boxX + 26, y: boxY + 38,
+        fill: P.textPrimary, 'font-size': '20', 'font-weight': '800'
+      }, '品牌份额坡度变化 (Slope Chart)'));
+
+      const legendX = boxX + boxW - 220;
+      svg.appendChild(svgEl('circle', { cx: legendX, cy: boxY + 32, r: 6, fill: P.upColor }));
+      svg.appendChild(svgEl('text', { x: legendX + 12, y: boxY + 37, fill: P.textSecondary, 'font-size': '15', 'font-weight': '600' }, '份额上升'));
+      svg.appendChild(svgEl('circle', { cx: legendX + 95, cy: boxY + 32, r: 6, fill: P.downColor }));
+      svg.appendChild(svgEl('text', { x: legendX + 107, y: boxY + 37, fill: P.textSecondary, 'font-size': '15', 'font-weight': '600' }, '份额下滑'));
+
+      const leftLabelMargin = 165;
+      const rightLabelMargin = 195;
+      const axisLeftX = boxX + leftLabelMargin;
+      const axisRightX = boxX + boxW - rightLabelMargin;
+
+      const plotTop = boxY + 95;
+      const plotBottom = boxY + boxH - 45;
+      const plotH = plotBottom - plotTop;
+
+      svg.appendChild(svgEl('line', { x1: axisLeftX, y1: plotTop - 10, x2: axisLeftX, y2: plotBottom + 10, stroke: P.axisLine, 'stroke-width': '2.5' }));
+      svg.appendChild(svgEl('line', { x1: axisRightX, y1: plotTop - 10, x2: axisRightX, y2: plotBottom + 10, stroke: P.axisLine, 'stroke-width': '2.5' }));
+
+      svg.appendChild(svgEl('text', { x: axisLeftX, y: plotTop - 24, 'text-anchor': 'middle', fill: P.textPrimary, 'font-size': '19', 'font-weight': '800' }, '基准周份额'));
+      svg.appendChild(svgEl('text', { x: axisRightX, y: plotTop - 24, 'text-anchor': 'middle', fill: P.textPrimary, 'font-size': '19', 'font-weight': '800' }, '对比周份额'));
+
+      const allVals = dataList.flatMap(d => [d.w44, d.w45]);
+      const maxVal = Math.max(30.5, ...allVals) + 1;
+      const minVal = Math.max(0, Math.min(...allVals) - 1.5);
+      const mapY = (val) => {
+        const norm = Math.pow(Math.max(0, (val - minVal) / (maxVal - minVal)), 0.72);
+        return plotBottom - norm * plotH;
+      };
+
+      const items = dataList.map(d => ({
+        ...d,
+        rawY1: mapY(d.w44),
+        rawY2: mapY(d.w45),
+        y1: mapY(d.w44),
+        y2: mapY(d.w45)
+      }));
+
+      const relaxLabels = (key, minGap) => {
+        const sorted = [...items].sort((a, b) => a[key] - b[key]);
+        for (let iter = 0; iter < 14; iter++) {
+          for (let i = 1; i < sorted.length; i++) {
+            const diff = sorted[i][key] - sorted[i - 1][key];
+            if (diff < minGap) {
+              const push = (minGap - diff) / 2;
+              sorted[i - 1][key] -= push;
+              sorted[i][key] += push;
+            }
+          }
+        }
+      };
+      relaxLabels('y1', 42);
+      relaxLabels('y2', 42);
+
+      items.forEach(item => {
+        const isUp = item.diff > 0;
+        const isDown = item.diff < 0;
+        const strokeColor = isUp ? P.upColor : (isDown ? P.downColor : P.flatColor);
+        const strokeWidth = Math.abs(item.diff) >= 1.0 ? 4.5 : (isUp || isDown ? 3.2 : 2);
+        const opacity = item.id === 'other' ? 0.55 : 0.95;
+
+        svg.appendChild(svgEl('line', {
+          x1: axisLeftX, y1: item.rawY1,
+          x2: axisRightX, y2: item.rawY2,
+          stroke: strokeColor,
+          'stroke-width': strokeWidth,
+          'stroke-linecap': 'round',
+          opacity: opacity
+        }));
+
+        svg.appendChild(svgEl('circle', {
+          cx: axisLeftX, cy: item.rawY1, r: isUp || isDown ? 6.5 : 5,
+          fill: P.cardBg, stroke: strokeColor, 'stroke-width': '3'
+        }));
+        svg.appendChild(svgEl('circle', {
+          cx: axisRightX, cy: item.rawY2, r: isUp || isDown ? 7.5 : 5.5,
+          fill: strokeColor
+        }));
+
+        if (Math.abs(item.y1 - item.rawY1) > 4) {
+          svg.appendChild(svgEl('line', {
+            x1: axisLeftX - 10, y1: item.rawY1,
+            x2: axisLeftX - 22, y2: item.y1,
+            stroke: P.axisLine, 'stroke-width': '1', 'stroke-dasharray': '2 2'
+          }));
+        }
+        if (Math.abs(item.y2 - item.rawY2) > 4) {
+          svg.appendChild(svgEl('line', {
+            x1: axisRightX + 10, y1: item.rawY2,
+            x2: axisRightX + 22, y2: item.y2,
+            stroke: P.axisLine, 'stroke-width': '1', 'stroke-dasharray': '2 2'
+          }));
+        }
+
+        svg.appendChild(svgEl('text', {
+          x: axisLeftX - 16, y: item.y1 + 5,
+          'text-anchor': 'end',
+          fill: isUp ? strokeColor : P.textPrimary,
+          'font-size': '17',
+          'font-weight': isUp ? '800' : '700'
+        }, `${item.name} ${item.w44.toFixed(1)}%`));
+
+        const rightTextX = axisRightX + 16;
+        svg.appendChild(svgEl('text', {
+          x: rightTextX, y: item.y2 + 5,
+          'text-anchor': 'start',
+          fill: P.textPrimary,
+          'font-size': '18',
+          'font-weight': '800'
+        }, `${item.w45.toFixed(1)}%`));
+
+        const badgeX = rightTextX + 66;
+        const badgeBg = isUp ? P.upBg : (isDown ? P.downBg : P.flatBg);
+        svg.appendChild(svgEl('rect', {
+          x: badgeX, y: item.y2 - 13,
+          width: 74, height: 25, rx: 6,
+          fill: badgeBg
+        }));
+        svg.appendChild(svgEl('text', {
+          x: badgeX + 37, y: item.y2 + 5,
+          'text-anchor': 'middle',
+          fill: strokeColor,
+          'font-size': '15',
+          'font-weight': '800'
+        }, formatDiffPct(item.diff)));
+      });
+    }
+
+    // ==========================================
+    // 图表 2：哑铃图 (Dumbbell Plot) - 聚焦增减跨度
+    // ==========================================
+    function renderDumbbellChart(svg, P, boxX, boxY, boxW, boxH) {
+      const dataList = getVisibleBrands();
+      const { maxGainId, maxDropId } = getExtremeIds(dataList);
+
+      svg.appendChild(svgEl('text', {
+        x: boxX + 26, y: boxY + 38,
+        fill: P.textPrimary, 'font-size': '20', 'font-weight': '800'
+      }, '市场份额增减跨度 (Dumbbell Plot)'));
+
+      const legY = boxY + 70;
+      svg.appendChild(svgEl('circle', { cx: boxX + 34, cy: legY, r: 6.5, fill: P.cardBg, stroke: P.textSecondary, 'stroke-width': '2.5' }));
+      svg.appendChild(svgEl('text', { x: boxX + 48, y: legY + 5, fill: P.textSecondary, 'font-size': '15', 'font-weight': '600' }, '基准份额'));
+
+      svg.appendChild(svgEl('circle', { cx: boxX + 145, cy: legY, r: 7, fill: P.upColor }));
+      svg.appendChild(svgEl('text', { x: boxX + 159, y: legY + 5, fill: P.textSecondary, 'font-size': '15', 'font-weight': '600' }, '份额上升'));
+
+      svg.appendChild(svgEl('circle', { cx: boxX + 255, cy: legY, r: 7, fill: P.downColor }));
+      svg.appendChild(svgEl('text', { x: boxX + 269, y: legY + 5, fill: P.textSecondary, 'font-size': '15', 'font-weight': '600' }, '份额下降'));
+
+      const labelColW = 128;
+      const rightBadgeColW = 96;
+      const plotLeft = boxX + labelColW;
+      const plotRight = boxX + boxW - rightBadgeColW;
+      const plotW = plotRight - plotLeft;
+
+      const plotTop = boxY + 108;
+      const plotBottom = boxY + boxH - 48;
+      const rowH = (plotBottom - plotTop) / dataList.length;
+
+      const maxScale = Math.max(32, Math.ceil(Math.max(...dataList.flatMap(d => [d.w44, d.w45])) / 5) * 5 + 2);
+      const ticks = [0, 5, 10, 15, 20, 25, 30];
+      ticks.forEach(t => {
+        if (t > maxScale) return;
+        const tx = plotLeft + (t / maxScale) * plotW;
+        svg.appendChild(svgEl('line', {
+          x1: tx, y1: plotTop - 10, x2: tx, y2: plotBottom,
+          stroke: P.gridLine, 'stroke-width': '1', 'stroke-dasharray': t === 0 ? 'none' : '4 4'
+        }));
+        svg.appendChild(svgEl('text', {
+          x: tx, y: plotBottom + 24,
+          'text-anchor': 'middle',
+          fill: P.textMuted, 'font-size': '14', 'font-weight': '600'
+        }, `${t}%`));
+      });
+
+      dataList.forEach((item, idx) => {
+        const cy = plotTop + idx * rowH + rowH * 0.5;
+        const isUp = item.diff > 0;
+        const isDown = item.diff < 0;
+        const color = isUp ? P.upColor : (isDown ? P.downColor : P.flatColor);
+
+        const isMaxGain = item.id === maxGainId && item.diff > 0;
+        const isMaxDrop = item.id === maxDropId && item.diff < 0;
+
+        if (isMaxGain || isMaxDrop) {
+          svg.appendChild(svgEl('rect', {
+            x: boxX + 16, y: plotTop + idx * rowH + 4,
+            width: boxW - 32, height: rowH - 8,
+            rx: 10,
+            fill: isMaxGain ? P.upRowHighlight : P.downRowHighlight
+          }));
+        } else if (idx % 2 === 0) {
+          svg.appendChild(svgEl('rect', {
+            x: boxX + 16, y: plotTop + idx * rowH + 4,
+            width: boxW - 32, height: rowH - 8,
+            rx: 10,
+            fill: P.isDark ? 'rgba(255,255,255,0.025)' : 'rgba(15,23,42,0.025)'
+          }));
+        }
+
+        svg.appendChild(svgEl('text', {
+          x: plotLeft - 14, y: item.subNote ? cy - 2 : cy + 6,
+          'text-anchor': 'end',
+          fill: P.textPrimary, 'font-size': '18', 'font-weight': '800'
+        }, item.name));
+
+        if (item.subNote) {
+          svg.appendChild(svgEl('text', {
+            x: plotLeft - 14, y: cy + 16,
+            'text-anchor': 'end',
+            fill: P.textMuted, 'font-size': '11.5', 'font-weight': '500'
+          }, item.subNote));
+        }
+
+        const x44 = plotLeft + (item.w44 / maxScale) * plotW;
+        const x45 = plotLeft + (item.w45 / maxScale) * plotW;
+
+        if (Math.abs(x45 - x44) > 1) {
+          svg.appendChild(svgEl('line', {
+            x1: x44, y1: cy, x2: x45, y2: cy,
+            stroke: color, 'stroke-width': '6', 'stroke-linecap': 'round'
+          }));
+        }
+
+        svg.appendChild(svgEl('circle', {
+          cx: x44, cy: cy, r: 7,
+          fill: P.cardBg, stroke: P.textSecondary, 'stroke-width': '2.5'
+        }));
+
+        svg.appendChild(svgEl('circle', {
+          cx: x45, cy: cy, r: 8.5,
+          fill: color, stroke: P.cardBg, 'stroke-width': '2'
+        }));
+
+        const minX = Math.min(x44, x45);
+        const maxX = Math.max(x44, x45);
+
+        if (item.diff === 0) {
+          svg.appendChild(svgEl('text', {
+            x: maxX + 14, y: cy + 5,
+            fill: P.textSecondary, 'font-size': '15', 'font-weight': '700'
+          }, `${item.w45.toFixed(1)}% (持平)`));
+        } else {
+          svg.appendChild(svgEl('text', {
+            x: isUp ? minX - 12 : maxX + 12,
+            y: cy + 5,
+            'text-anchor': isUp ? 'end' : 'start',
+            fill: P.textMuted, 'font-size': '14', 'font-weight': '600'
+          }, `${item.w44.toFixed(1)}%`));
+
+          svg.appendChild(svgEl('text', {
+            x: isUp ? maxX + 14 : minX - 14,
+            y: cy + 6,
+            'text-anchor': isUp ? 'start' : 'end',
+            fill: color, 'font-size': '17', 'font-weight': '900'
+          }, `${item.w45.toFixed(1)}%`));
+        }
+
+        const badgeBg = isUp ? P.upBg : (isDown ? P.downBg : P.flatBg);
+        svg.appendChild(svgEl('rect', {
+          x: plotRight + 10, y: cy - 14,
+          width: 74, height: 28, rx: 7,
+          fill: badgeBg
+        }));
+        svg.appendChild(svgEl('text', {
+          x: plotRight + 47, y: cy + 5,
+          'text-anchor': 'middle',
+          fill: color, 'font-size': '15', 'font-weight': '800'
+        }, formatDiffPP(item.diff)));
+      });
+    }
+
+    // ==========================================
+    // 图表 3：100% 堆叠流动柱形图 (Zero-Sum Flow)
+    // ==========================================
+    function renderStackedFlowChart(svg, P, boxX, boxY, boxW, boxH) {
+      svg.appendChild(svgEl('text', {
+        x: boxX + 26, y: boxY + 38,
+        fill: P.textPrimary, 'font-size': '20', 'font-weight': '800'
+      }, '100% 存量博弈与份额流向'));
+
+      svg.appendChild(svgEl('text', {
+        x: boxX + 26, y: boxY + 62,
+        fill: P.textSecondary, 'font-size': '14.5', 'font-weight': '500'
+      }, '左右等高 100% 切片，通过贝塞尔流动带直观展现各品牌份额此消彼长'));
+
+      const allData = getComputedMarketData();
+      const stackItems = [];
+      allData.forEach(b => {
+        if (state.splitSubBrands && b.subBrands) {
+          b.subBrands.forEach(sub => {
+            stackItems.push({
+              name: sub.name,
+              w44: sub.w44,
+              w45: sub.w45,
+              diff: sub.diff,
+              color: sub.shade,
+              isSub: true
+            });
+          });
+        } else {
+          stackItems.push({
+            name: b.name,
+            w44: b.w44,
+            w45: b.w45,
+            diff: b.diff,
+            color: b.brandColor,
+            isSub: false
+          });
+        }
+      });
+
+      const barW = 128;
+      const leftBarX = boxX + 125;
+      const rightBarX = boxX + boxW - 145 - barW;
+      const plotTop = boxY + 104;
+      const plotBottom = boxY + boxH - 32;
+      const totalH = plotBottom - plotTop;
+
+      svg.appendChild(svgEl('text', {
+        x: leftBarX + barW / 2, y: plotTop - 14,
+        'text-anchor': 'middle', fill: P.textPrimary, 'font-size': '18', 'font-weight': '800'
+      }, '基准周 (100%)'));
+
+      svg.appendChild(svgEl('text', {
+        x: rightBarX + barW / 2, y: plotTop - 14,
+        'text-anchor': 'middle', fill: P.textPrimary, 'font-size': '18', 'font-weight': '800'
+      }, '对比周 (100%)'));
+
+      let accY44 = plotTop;
+      let accY45 = plotTop;
+
+      stackItems.forEach((seg) => {
+        const h44 = (seg.w44 / 100) * totalH;
+        const h45 = (seg.w45 / 100) * totalH;
+
+        const y44Top = accY44;
+        const y44Bot = accY44 + h44;
+        const y45Top = accY45;
+        const y45Bot = accY45 + h45;
+
+        const c1x = leftBarX + barW + (rightBarX - (leftBarX + barW)) * 0.45;
+        const c2x = leftBarX + barW + (rightBarX - (leftBarX + barW)) * 0.55;
+        const pathD = `
+          M ${leftBarX + barW} ${y44Top}
+          C ${c1x} ${y44Top}, ${c2x} ${y45Top}, ${rightBarX} ${y45Top}
+          L ${rightBarX} ${y45Bot}
+          C ${c2x} ${y45Bot}, ${c1x} ${y44Bot}, ${leftBarX + barW} ${y44Bot}
+          Z
+        `;
+        svg.appendChild(svgEl('path', {
+          d: pathD,
+          fill: seg.color,
+          opacity: P.isDark ? '0.24' : '0.20'
+        }));
+
+        svg.appendChild(svgEl('rect', {
+          x: leftBarX, y: y44Top, width: barW, height: Math.max(1, h44 - 1.5),
+          rx: 4, fill: seg.color
+        }));
+
+        svg.appendChild(svgEl('rect', {
+          x: rightBarX, y: y45Top, width: barW, height: Math.max(1, h45 - 1.5),
+          rx: 4, fill: seg.color
+        }));
+
+        if (h44 >= 22) {
+          svg.appendChild(svgEl('text', {
+            x: leftBarX + barW / 2, y: y44Top + h44 / 2 + 5,
+            'text-anchor': 'middle', fill: '#ffffff', 'font-size': h44 >= 34 ? '16' : '13', 'font-weight': '800'
+          }, `${seg.w44.toFixed(1)}%`));
+        }
+
+        if (h45 >= 22) {
+          svg.appendChild(svgEl('text', {
+            x: rightBarX + barW / 2, y: y45Top + h45 / 2 + 5,
+            'text-anchor': 'middle', fill: '#ffffff', 'font-size': h45 >= 34 ? '16' : '13', 'font-weight': '800'
+          }, `${seg.w45.toFixed(1)}%`));
+        }
+
+        const midY44 = y44Top + h44 / 2;
+        if (seg.w44 >= 2.0) {
+          svg.appendChild(svgEl('text', {
+            x: leftBarX - 12, y: midY44 + 5,
+            'text-anchor': 'end', fill: P.textPrimary, 'font-size': seg.isSub ? '14' : '16', 'font-weight': '700'
+          }, seg.name));
+        }
+
+        const midY45 = y45Top + h45 / 2;
+        const isUp = seg.diff > 0;
+        const isDown = seg.diff < 0;
+        const diffColor = isUp ? P.upColor : (isDown ? P.downColor : P.textMuted);
+
+        if (seg.w45 >= 2.0) {
+          const labelStr = h45 < 22
+            ? `${seg.w45.toFixed(1)}% (${formatDiffPct(seg.diff)})`
+            : `${formatDiffPct(seg.diff)}`;
+          svg.appendChild(svgEl('text', {
+            x: rightBarX + barW + 12, y: midY45 + 5,
+            'text-anchor': 'start', fill: diffColor, 'font-size': '15.5', 'font-weight': '800'
+          }, labelStr));
+        }
+
+        accY44 += h44;
+        accY45 += h45;
+      });
+    }
+
+    // ==========================================
+    // 5. 动态渲染数据编辑器输入框（支持子品牌实时联动）
+    // ==========================================
+    function renderDataInputs() {
+      const container = document.getElementById('brandInputsList');
+      container.innerHTML = '';
+
+      state.brands.forEach((b, bIdx) => {
+        if (b.subBrands) {
+          const sumW1 = b.subBrands.reduce((s, x) => s + (parseFloat(x.w1) || 0), 0);
+          const sumW2 = b.subBrands.reduce((s, x) => s + (parseFloat(x.w2) || 0), 0);
+          const diff = sumW2 - sumW1;
+
+          const groupHeader = document.createElement('div');
+          groupHeader.className = 'grid grid-cols-12 items-center bg-slate-800/80 px-2 py-1 rounded-lg text-[11px] font-bold text-slate-200';
+          groupHeader.innerHTML = `
+            <span class="col-span-4 flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full" style="background:${b.brandColor}"></span>${b.name}
+            </span>
+            <span class="col-span-3 text-center font-mono text-slate-300" id="grp_w1_${b.id}">${sumW1.toFixed(1)}</span>
+            <span class="col-span-3 text-center font-mono text-slate-300" id="grp_w2_${b.id}">${sumW2.toFixed(1)}</span>
+            <span class="col-span-2 text-right font-mono ${diff > 0 ? 'text-rose-400' : (diff < 0 ? 'text-sky-400' : 'text-slate-400')}" id="grp_diff_${b.id}">${formatDiff(diff)}</span>
+          `;
+          container.appendChild(groupHeader);
+
+          b.subBrands.forEach((sub, sIdx) => {
+            const sDiff = (parseFloat(sub.w2) || 0) - (parseFloat(sub.w1) || 0);
+            const row = document.createElement('div');
+            row.className = 'grid grid-cols-12 items-center gap-1 pl-3 pr-1 py-0.5 text-[11px]';
+            row.innerHTML = `
+              <span class="col-span-4 text-slate-400 truncate">└ ${sub.name}</span>
+              <input type="number" step="0.1" min="0" max="100" value="${sub.w1}" data-bidx="${bIdx}" data-sidx="${sIdx}" data-field="w1" class="data-num-input col-span-3 bg-slate-950 border border-slate-700 rounded px-1.5 py-1 text-center font-mono text-white focus:border-blue-500 focus:outline-none">
+              <input type="number" step="0.1" min="0" max="100" value="${sub.w2}" data-bidx="${bIdx}" data-sidx="${sIdx}" data-field="w2" class="data-num-input col-span-3 bg-slate-950 border border-slate-700 rounded px-1.5 py-1 text-center font-mono text-white focus:border-blue-500 focus:outline-none">
+              <span class="col-span-2 text-right font-mono text-[10.5px] ${sDiff > 0 ? 'text-rose-400' : (sDiff < 0 ? 'text-sky-400' : 'text-slate-500')}" id="sub_diff_${bIdx}_${sIdx}">${formatDiff(sDiff)}</span>
+            `;
+            container.appendChild(row);
+          });
+        } else {
+          const diff = (parseFloat(b.w2) || 0) - (parseFloat(b.w1) || 0);
+          const row = document.createElement('div');
+          row.className = 'grid grid-cols-12 items-center gap-1 px-1.5 py-0.5 text-[11px]';
+          row.innerHTML = `
+            <span class="col-span-4 font-bold text-slate-200 flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full" style="background:${b.brandColor}"></span>${b.name}
+            </span>
+            <input type="number" step="0.1" min="0" max="100" value="${b.w1}" data-bidx="${bIdx}" data-field="w1" class="data-num-input col-span-3 bg-slate-950 border border-slate-700 rounded px-1.5 py-1 text-center font-mono text-white focus:border-blue-500 focus:outline-none">
+            <input type="number" step="0.1" min="0" max="100" value="${b.w2}" data-bidx="${bIdx}" data-field="w2" class="data-num-input col-span-3 bg-slate-950 border border-slate-700 rounded px-1.5 py-1 text-center font-mono text-white focus:border-blue-500 focus:outline-none">
+            <span class="col-span-2 text-right font-mono font-bold ${diff > 0 ? 'text-rose-400' : (diff < 0 ? 'text-sky-400' : 'text-slate-500')}" id="brand_diff_${bIdx}">${formatDiff(diff)}</span>
+          `;
+          container.appendChild(row);
+        }
+      });
+
+      container.querySelectorAll('.data-num-input').forEach(inp => {
+        inp.addEventListener('input', (e) => {
+          const bIdx = parseInt(e.target.dataset.bidx, 10);
+          const sIdx = e.target.dataset.sidx !== undefined ? parseInt(e.target.dataset.sidx, 10) : null;
+          const field = e.target.dataset.field;
+          const val = parseFloat(e.target.value) || 0;
+
+          if (sIdx !== null) {
+            state.brands[bIdx].subBrands[sIdx][field] = val;
+            const sub = state.brands[bIdx].subBrands[sIdx];
+            const sDiff = (parseFloat(sub.w2) || 0) - (parseFloat(sub.w1) || 0);
+            const subDiffEl = document.getElementById(`sub_diff_${bIdx}_${sIdx}`);
+            subDiffEl.textContent = formatDiff(sDiff);
+            subDiffEl.className = `col-span-2 text-right font-mono text-[10.5px] ${sDiff > 0 ? 'text-rose-400' : (sDiff < 0 ? 'text-sky-400' : 'text-slate-500')}`;
+
+            const sumW1 = state.brands[bIdx].subBrands.reduce((s, x) => s + (parseFloat(x.w1) || 0), 0);
+            const sumW2 = state.brands[bIdx].subBrands.reduce((s, x) => s + (parseFloat(x.w2) || 0), 0);
+            const gDiff = sumW2 - sumW1;
+            document.getElementById(`grp_w1_${state.brands[bIdx].id}`).textContent = sumW1.toFixed(1);
+            document.getElementById(`grp_w2_${state.brands[bIdx].id}`).textContent = sumW2.toFixed(1);
+            const gDiffEl = document.getElementById(`grp_diff_${state.brands[bIdx].id}`);
+            gDiffEl.textContent = formatDiff(gDiff);
+            gDiffEl.className = `col-span-2 text-right font-mono ${gDiff > 0 ? 'text-rose-400' : (gDiff < 0 ? 'text-sky-400' : 'text-slate-400')}`;
+          } else {
+            state.brands[bIdx][field] = val;
+            const b = state.brands[bIdx];
+            const diff = (parseFloat(b.w2) || 0) - (parseFloat(b.w1) || 0);
+            const bDiffEl = document.getElementById(`brand_diff_${bIdx}`);
+            bDiffEl.textContent = formatDiff(diff);
+            bDiffEl.className = `col-span-2 text-right font-mono font-bold ${diff > 0 ? 'text-rose-400' : (diff < 0 ? 'text-sky-400' : 'text-slate-500')}`;
+          }
+
+          updateOtherSummaryText();
+          saveStateToLocal();
+          renderPoster();
+        });
+      });
+
+      updateOtherSummaryText();
+    }
+
+    function updateOtherSummaryText() {
+      const computed = getComputedMarketData();
+      const other = computed.find(d => d.id === 'other');
+      const el = document.getElementById('otherAutoSummary');
+      if (el && other) {
+        el.textContent = `${other.w44.toFixed(1)}% → ${other.w45.toFixed(1)}%`;
+      }
+    }
+
+    // ==========================================
+    // 6. 高清 PNG 导出引擎 (1200 x 1600 严格 3:4)
+    // ==========================================
+    function exportHighResPNG() {
+      const svg = document.getElementById('posterSvg');
+      const serializer = new XMLSerializer();
+      let source = serializer.serializeToString(svg);
+
+      if (!source.match(/^<svg[^>]+xmlns="http\:\/\/www\.w3\.org\/2000\/svg"/)) {
+        source = source.replace(/^<svg/, '<svg xmlns="http://www.w3.org/2000/svg"');
+      }
+
+      const svgBlob = new Blob([source], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(svgBlob);
+
+      const img = new Image();
+      img.onload = function () {
+        const canvas = document.createElement('canvas');
+        canvas.width = 1200;
+        canvas.height = 1600;
+        const ctx = canvas.getContext('2d');
+
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(img, 0, 0, 1200, 1600);
+        URL.revokeObjectURL(url);
+
+        canvas.toBlob(function (blob) {
+          const link = document.createElement('a');
+          const chartNames = {
+            combo: '双图组合模式',
+            diverging: '横向发散条形图',
+            slope: '坡度图',
+            dumbbell: '哑铃图',
+            stacked: '堆叠流动图'
+          };
+          link.download = `2026_手机份额战报_${chartNames[state.chartType]}_3比4抖音版.png`;
+          link.href = URL.createObjectURL(blob);
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+
+          const toast = document.getElementById('toastMsg');
+          toast.style.opacity = '1';
+          setTimeout(() => { toast.style.opacity = '0'; }, 3000);
+        }, 'image/png', 1.0);
+      };
+      img.src = url;
+    }
+
+    // ==========================================
+    // 7. 动态构建 6 套色卡选择器与事件绑定
+    // ==========================================
+    function renderPaletteButtons() {
+      const grid = document.getElementById('paletteGrid');
+      const nameDisplay = document.getElementById('activePaletteName');
+      grid.innerHTML = '';
+
+      Object.values(PALETTES).forEach(pal => {
+        const isSelected = state.paletteId === pal.id;
+        if (isSelected) {
+          nameDisplay.textContent = pal.name;
+        }
+
+        const btn = document.createElement('button');
+        btn.className = `p-2.5 rounded-xl text-left transition flex items-center justify-between border cursor-pointer ${
+          isSelected
+            ? 'border-blue-500 bg-slate-900 text-white shadow-md shadow-blue-500/15'
+            : 'border-slate-700/80 bg-slate-800/80 text-slate-300 hover:bg-slate-700/80'
+        }`;
+
+        btn.innerHTML = `
+          <span class="text-[11.5px] font-bold truncate pr-1.5">${pal.name.split(' ')[0]}</span>
+          <span class="flex items-center gap-1 shrink-0">
+            <span class="w-3 h-3 rounded-full border border-slate-500/60" style="background:${pal.swatches[0]}"></span>
+            <span class="w-3 h-3 rounded-full" style="background:${pal.swatches[1]}"></span>
+            <span class="w-3 h-3 rounded-full" style="background:${pal.swatches[2]}"></span>
+          </span>
+        `;
+
+        btn.addEventListener('click', () => {
+          state.paletteId = pal.id;
+          saveStateToLocal();
+          renderPaletteButtons();
+          renderPoster();
+        });
+
+        grid.appendChild(btn);
+      });
+    }
+
+    function updateControlVisibility() {
+      const subOpt = document.getElementById('subBrandOption');
+      const otherOpt = document.getElementById('showOtherOption');
+      const hasStack = state.chartType === 'stacked' || state.chartType === 'combo';
+      const hasList = state.chartType !== 'stacked';
+      subOpt.style.opacity = hasStack ? '1' : '0.45';
+      otherOpt.style.opacity = hasList ? '1' : '0.45';
+    }
+
+    function syncUIWithState() {
+      document.querySelectorAll('.chart-btn').forEach(b => {
+        if (b.dataset.type === state.chartType) {
+          b.classList.add('tab-active');
+          b.classList.remove('bg-slate-800', 'text-slate-300');
+        } else {
+          b.classList.remove('tab-active');
+          b.classList.add('bg-slate-800', 'text-slate-300');
+        }
+      });
+
+      document.getElementById('toggleOtherBrand').checked = !!state.showOtherBrand;
+      document.getElementById('splitSubBrands').checked = !!state.splitSubBrands;
+      document.getElementById('toggleSafeZone').checked = !!state.showSafeZone;
+      document.getElementById('douyinOverlay').style.opacity = state.showSafeZone ? '1' : '0';
+
+      document.getElementById('inputTitle').value = state.title;
+      document.getElementById('inputSubtitle').value = state.subtitle;
+      document.getElementById('inputInsight').value = state.insight;
+      document.getElementById('inputW1Label').value = state.w1Label;
+      document.getElementById('inputW2Label').value = state.w2Label;
+      document.getElementById('inputW1Market').value = state.w1Market;
+      document.getElementById('inputW2Market').value = state.w2Market;
+
+      const rVal = state.rightMarginPct;
+      document.getElementById('safeRightSlider').value = rVal;
+      document.getElementById('safeRightVal').textContent = rVal === 15 ? '15% (推荐)' : `${rVal}%`;
+      document.getElementById('dyRightTag').textContent = `${rVal}%`;
+      const dyRightZone = document.getElementById('dyRightZone');
+      dyRightZone.style.width = `${rVal}%`;
+      dyRightZone.style.display = rVal === 0 ? 'none' : 'flex';
+
+      const bVal = state.bottomMarginPct;
+      document.getElementById('safeBottomSlider').value = bVal;
+      document.getElementById('safeBottomVal').textContent = bVal === 10 ? '10% (推荐)' : `${bVal}%`;
+      document.getElementById('dyBottomTag').textContent = `${bVal}%`;
+      const dyBottomZone = document.getElementById('dyBottomZone');
+      dyBottomZone.style.height = `${bVal}%`;
+      dyBottomZone.style.display = bVal === 0 ? 'none' : 'flex';
+    }
+
+    function initEvents() {
+      syncUIWithState();
+      renderPaletteButtons();
+      renderDataInputs();
+      updateControlVisibility();
+
+      document.querySelectorAll('.chart-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.chart-btn').forEach(b => {
+            b.classList.remove('tab-active');
+            b.classList.add('bg-slate-800', 'text-slate-300');
+          });
+          btn.classList.add('tab-active');
+          btn.classList.remove('bg-slate-800', 'text-slate-300');
+
+          state.chartType = btn.dataset.type;
+          saveStateToLocal();
+          updateControlVisibility();
+          renderPoster();
+        });
+      });
+
+      const toggleEditorBtn = document.getElementById('toggleDataEditorBtn');
+      const editorPanel = document.getElementById('dataEditorPanel');
+      toggleEditorBtn.addEventListener('click', () => {
+        const isHidden = editorPanel.classList.contains('hidden');
+        if (isHidden) {
+          editorPanel.classList.remove('hidden');
+          toggleEditorBtn.textContent = '收起编辑表格 ▴';
+        } else {
+          editorPanel.classList.add('hidden');
+          toggleEditorBtn.textContent = '展开编辑表格 ▾';
+        }
+      });
+
+      document.getElementById('inputW1Label').addEventListener('input', (e) => { state.w1Label = e.target.value; saveStateToLocal(); renderPoster(); });
+      document.getElementById('inputW2Label').addEventListener('input', (e) => { state.w2Label = e.target.value; saveStateToLocal(); renderPoster(); });
+      document.getElementById('inputW1Market').addEventListener('input', (e) => { state.w1Market = e.target.value; saveStateToLocal(); renderPoster(); });
+      document.getElementById('inputW2Market').addEventListener('input', (e) => { state.w2Market = e.target.value; saveStateToLocal(); renderPoster(); });
+
+      document.getElementById('resetDataBtn').addEventListener('click', () => {
+        localStorage.removeItem(STORAGE_KEY);
+        Object.assign(state, getDefaultState());
+        syncUIWithState();
+        renderPaletteButtons();
+        renderDataInputs();
+        updateControlVisibility();
+        renderPoster();
+      });
+
+      document.getElementById('toggleOtherBrand').addEventListener('change', (e) => {
+        state.showOtherBrand = e.target.checked;
+        saveStateToLocal();
+        if (state.chartType === 'stacked') {
+          document.querySelector('[data-type="combo"]').click();
+        } else {
+          renderPoster();
+        }
+      });
+
+      document.getElementById('splitSubBrands').addEventListener('change', (e) => {
+        state.splitSubBrands = e.target.checked;
+        saveStateToLocal();
+        if (state.chartType !== 'stacked' && state.chartType !== 'combo') {
+          document.querySelector('[data-type="combo"]').click();
+        } else {
+          renderPoster();
+        }
+      });
+
+      const dyOverlay = document.getElementById('douyinOverlay');
+      document.getElementById('toggleSafeZone').addEventListener('change', (e) => {
+        state.showSafeZone = e.target.checked;
+        dyOverlay.style.opacity = state.showSafeZone ? '1' : '0';
+        saveStateToLocal();
+      });
+
+      const rightSlider = document.getElementById('safeRightSlider');
+      const rightVal = document.getElementById('safeRightVal');
+      const dyRightZone = document.getElementById('dyRightZone');
+      const dyRightTag = document.getElementById('dyRightTag');
+      rightSlider.addEventListener('input', (e) => {
+        const val = parseInt(e.target.value, 10);
+        state.rightMarginPct = val;
+        rightVal.textContent = val === 15 ? '15% (推荐)' : `${val}%`;
+        dyRightTag.textContent = `${val}%`;
+        dyRightZone.style.width = `${val}%`;
+        dyRightZone.style.display = val === 0 ? 'none' : 'flex';
+        saveStateToLocal();
+        renderPoster();
+      });
+
+      const bottomSlider = document.getElementById('safeBottomSlider');
+      const bottomVal = document.getElementById('safeBottomVal');
+      const dyBottomZone = document.getElementById('dyBottomZone');
+      const dyBottomTag = document.getElementById('dyBottomTag');
+      bottomSlider.addEventListener('input', (e) => {
+        const val = parseInt(e.target.value, 10);
+        state.bottomMarginPct = val;
+        bottomVal.textContent = val === 10 ? '10% (推荐)' : `${val}%`;
+        dyBottomTag.textContent = `${val}%`;
+        dyBottomZone.style.height = `${val}%`;
+        dyBottomZone.style.display = val === 0 ? 'none' : 'flex';
+        saveStateToLocal();
+        renderPoster();
+      });
+
+      document.getElementById('inputTitle').addEventListener('input', (e) => {
+        state.title = e.target.value;
+        saveStateToLocal();
+        renderPoster();
+      });
+      document.getElementById('inputSubtitle').addEventListener('input', (e) => {
+        state.subtitle = e.target.value;
+        saveStateToLocal();
+        renderPoster();
+      });
+      document.getElementById('inputInsight').addEventListener('input', (e) => {
+        state.insight = e.target.value;
+        saveStateToLocal();
+        renderPoster();
+      });
+
+      document.getElementById('exportBtn').addEventListener('click', exportHighResPNG);
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      initEvents();
+      renderPoster();
+    });
+  </script>
+</body>
+</html>

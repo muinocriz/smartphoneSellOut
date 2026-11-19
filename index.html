@@ -153,7 +153,7 @@ td.bad{color:var(--warn)}
       <span class="lbl">横轴</span>
       <div class="seg" id="axisMode">
         <button data-v="week" aria-pressed="true">自然周</button>
-        <button data-v="launch" aria-pressed="false">发布后第 N 周</button>
+        <button data-v="launch" aria-pressed="false">完整销售第 N 周</button>
       </div>
       <span class="lbl">周期</span>
       <select id="from" aria-label="起始周"></select><span class="note">至</span><select id="to" aria-label="结束周"></select>
@@ -200,6 +200,9 @@ const DATA_URL="data.csv";
 const DAY=864e5;
 const isoW1Mon=y=>{const j4=Date.UTC(y,0,4);const dow=(new Date(j4).getUTCDay()+6)%7;return j4-dow*DAY};
 const monOf=d=>{const t=Date.UTC(d[0],d[1]-1,d[2]);const dow=(new Date(t).getUTCDay()+6)%7;return t-dow*DAY};
+// 统一生命周期编号：上市日为周一则当周W1；否则上市当周为P0，下一完整ISO周为W1。
+const firstFullWeekMon=d=>{const monday=monOf(d);return Date.UTC(d[0],d[1]-1,d[2])===monday?monday:monday+7*DAY};
+const fullWeekIndex=(isoMonday,w1Monday)=>isoMonday<w1Monday?null:Math.round((isoMonday-w1Monday)/(7*DAY))+1;
 const fmtMD=t=>{const d=new Date(t);return (d.getUTCMonth()+1)+"/"+d.getUTCDate()};
 let WEEKS=[],WMON=[],ROWS=[],BRANDS=[];
 
@@ -232,10 +235,10 @@ function load(text){
   ROWS=t.slice(1).filter(c=>(c[ib]||"").trim()&&(c[im]||"").trim()).map(c=>{
     const dp=(c[id]||"").trim().split(/[\/\-.]/).map(Number);
     const ok=dp.length===3&&dp.every(n=>!isNaN(n));
-    const lm=ok?monOf(dp):null;
+    const w1m=ok?firstFullWeekMon(dp):null;
     return {brand:c[ib].trim(),model:c[im].trim(),cat:ic>=0?(c[ic]||"").trim():"",date:(c[id]||"").trim(),
       vals:wIdx.map(x=>{const v=(c[x.i]||"").trim().replace(/,/g,"");return v===""||isNaN(+v)?null:+v}),
-      offs:WMON.map(m=>lm==null?null:Math.round((m-lm)/(7*DAY))+1)}});
+      offs:WMON.map(m=>w1m==null?null:fullWeekIndex(m,w1m))}});
   assignColors();
   BRANDS=["全部",...new Set(ROWS.map(r=>r.brand))];
   if(!BRANDS.includes(S.brand))S.brand=BRANDS[1]||"全部";
@@ -322,7 +325,7 @@ function fitText(t,max,size,weight){if(textW(t,size,weight)<=max)return t;
 function spec(o){return o.mobile
   ?{ax:12,end:13,val:12,lw:2,lwH:3,sym:5,maxEnd:0.40}
   :{ax:11,end:12,val:11,lw:2,lwH:3,sym:o.exp?6:7,maxEnd:0.24}}
-// 一个机型按当前横轴（自然周 / 发布后第 N 周）排列的数值，图和表格共用
+// 一个机型按当前横轴（自然周 / 完整销售第 N 周）排列的数值，图和表格共用
 function axisData(r,cats){const vs=series(r);
   if(S.axis==="week")return vs;
   const m=new Map();vs.forEach((v,i)=>{if(v!=null&&r.offs[i]!=null)m.set(r.offs[i],v)});
@@ -608,7 +611,7 @@ async function exportPNG(mobile){
 // 选中了「我的列表」里的列表（自建的或自动生成的「本周里程碑」）时写列表名，不再写品牌
 function exportName(mobile){
   const l=S.list===MS_ID?MILE:curList();
-  const parts=["新机周销量",l?l.name:S.brand,S.axis==="launch"?"发布后":"自然",S.val==="delta"?"周增量":"总销量",mobile?"手机":"桌面"];
+  const parts=["新机周销量",l?l.name:S.brand,S.axis==="launch"?"完整销售周":"自然",S.val==="delta"?"周增量":"总销量",mobile?"手机":"桌面"];
   return parts.filter(Boolean).map(s=>String(s).replace(/[\\/:*?"<>|]/g,"_")).join("-")+".png"}
 
 function renderNote(sel){
@@ -623,7 +626,7 @@ function renderNote(sel){
   if(CUR&&CUR.skipped&&!CUR.o.mobile)msgs.push(`另有 ${CUR.skipped} 条线因空间不足，名字以淡色显示在线尾（越靠后越淡），悬停该线可看清`);
   if(S.axis==="launch"){const nod=sel.filter(r=>hasData(r)&&r.offs.every(o=>o==null)).map(label);
     if(nod.length)msgs.push(`<b>${nod.join("、")}</b> 未填写或无法识别发布日期，未在此视图显示`)}
-  $("note").innerHTML=(S.axis==="launch"?"「发布后第 N 周」以发布日所在周为第 1 周，按 ISO 周对齐。":"拖动图下方滑块或修改周期选择可调整显示范围。")+(msgs.length?" "+msgs.join("；")+"。":"");
+  $("note").innerHTML=(S.axis==="launch"?"「完整销售第 N 周」以所填日期起首个完整7天ISO自然周为W1；不足7天的上市当周P0不纳入本视图。若填的是发布日期而非开售日，需核实日期口径。":"拖动图下方滑块或修改周期选择可调整显示范围。")+(msgs.length?" "+msgs.join("；")+"。":"");
 }
 function renderTable(sel){ // 列与图表横轴一致，但倒序：最新的周放在最左（紧跟发布日期列）
   const cats=CUR?CUR.cats:[];

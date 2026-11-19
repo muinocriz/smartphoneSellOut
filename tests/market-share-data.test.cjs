@@ -40,5 +40,7 @@ test('rejects invalid source: missing columns, oversize subs, over 100%, bad wee
   assert.throws(()=>read(csv.replace(',iQOO,',',badIQOO,')),/缺少字段：iQOO/);
   assert.throws(()=>read(csv.replace('12.3,3.9,0.2','12.3,15.9,0.2')),/子品牌份额超过集团份额/);
   assert.throws(()=>read(csv.replace('29.3,20.8,13,12.3','49.3,20.8,13,12.3')),/超过 100%/);
+  // A slight excess must not silently overflow the 100% stacked charts.
+  assert.throws(()=>read(csv.replace('2026W45,下降约5%,29.3','2026W45,下降约5%,31.92')),/超过 100%/);
   assert.throws(()=>read(csv.replace('2026W45','2026W54')),/ISO 周不存在/);
 });

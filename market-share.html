@@ -13,7 +13,6 @@
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;700;900&display=swap" rel="stylesheet">
   <style>
     /* Shared control-panel type scale. Poster SVG typography remains independent. */
-    :root{--ui-text-xs:11px;--ui-text-sm:12px;--ui-text-md:14px;--ui-text-subheading:16px;--ui-text-section:20px;--ui-text-feature:24px;--ui-text-display:28px}
     body {
       font-family: 'Inter', 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif;
       background-color: #0f172a;
@@ -48,7 +47,7 @@
        仅修改控制台与预览舞台，不修改 SVG 海报主题色、图表数据或导出逻辑。 */
     html { background:#f5f7fb; color-scheme:light; }
     body.market-share-light {
-      font-family:"Source Han Sans SC","Source Han Sans CN","思源黑体","Noto Sans CJK SC","Noto Sans SC",sans-serif;
+      font-family:var(--ui-font-body);
       background:#f5f7fb !important; color:#202a3d !important;
     }
     body.market-share-light ::-webkit-scrollbar {width:7px;height:7px}
@@ -113,20 +112,12 @@
       color:#245bbd !important; box-shadow:inset 0 0 0 1px #a2c1ff !important;
     }
 
-    /* 输入框与下拉选项统一为操作台正文 14px；数值编辑器仍沿用其紧凑布局。 */
-    body.market-share-light > aside input[type="text"],
-    body.market-share-light > aside select,
-    body.market-share-light > aside textarea {
-      font-size:var(--ui-text-md) !important;
-    }
     /* 编辑字段、按钮与调节开关 */
-    body.market-share-light > aside input[type="text"],
     body.market-share-light > aside input[type="number"] {
       background:#ffffff !important; color:#263853 !important;
       border:1px solid #d7e3f2 !important;
       box-shadow:0 1px 2px #1f3e6410;
     }
-    body.market-share-light > aside input[type="text"]:focus,
     body.market-share-light > aside input[type="number"]:focus {
       border-color:#7baaf7 !important; outline:2px solid #accbff55;
     }
@@ -145,19 +136,6 @@
     body.market-share-light > aside #toggleSafeZone.peer:checked + div {background:#f44c72 !important}
     body.market-share-light > aside #safeRightSlider {accent-color:#f44c72}
     body.market-share-light > aside #safeBottomSlider {accent-color:#efa21c}
-
-    /* 六套配色卡只改选择控件，不干预海报的颜色主题。 */
-    body.market-share-light #paletteGrid button {
-      background:#f7f9fd !important; color:#283c5a !important;
-      border:1px solid #e2eaf5 !important;border-radius:13px !important;
-      min-height:48px;
-    }
-    body.market-share-light #paletteGrid button:hover {background:#eef5ff !important;border-color:#bfd3f4 !important}
-    body.market-share-light #paletteGrid button[class~="border-blue-500"] {
-      background:#edf4ff !important; color:#265bb8 !important;
-      border-color:#5795f3 !important;
-      box-shadow:inset 0 0 0 1px #b4d0ff !important;
-    }
 
     /* 主导出动作 */
     body.market-share-light > aside #exportBtn {
@@ -198,19 +176,16 @@
 
 
     /* 高级设置面板：与其它白色卡片保持一致。保留红/橙安全区语义色。 */
-    body.market-share-light > aside #safeControlPanel,
-    body.market-share-light > aside #paletteControlPanel {
+    body.market-share-light > aside #safeControlPanel {
       background:#ffffff !important;
       color:#202a3d !important;
       border:1px solid #e0e7f1 !important;
       border-radius:16px !important;
       box-shadow:0 2px 12px #2546740c !important;
     }
-    body.market-share-light > aside #safeControlPanel [class~="text-slate-400"],
-    body.market-share-light > aside #paletteControlPanel [class~="text-slate-400"] {color:#72829a !important}
+    body.market-share-light > aside #safeControlPanel [class~="text-slate-400"] {color:#72829a !important}
     body.market-share-light > aside #safeControlPanel [class~="text-slate-300"],
-    body.market-share-light > aside #safeControlPanel [class~="text-slate-200"],
-    body.market-share-light > aside #paletteControlPanel [class~="text-slate-300"] {color:#344866 !important}
+    body.market-share-light > aside #safeControlPanel [class~="text-slate-200"] {color:#344866 !important}
     body.market-share-light > aside #safeControlPanel [class~="text-rose-400"] {color:#ef4367 !important}
     body.market-share-light > aside #safeControlPanel [class~="text-amber-400"] {color:#e6980c !important}
     body.market-share-light > aside #safeControlPanel [class~="bg-slate-700"],
@@ -219,65 +194,15 @@
     body.market-share-light > aside #safeControlPanel input[type="range"] {border-radius:999px}
     body.market-share-light > aside #safeControlPanel #safeRightSlider {accent-color:#ef4367}
     body.market-share-light > aside #safeControlPanel #safeBottomSlider {accent-color:#e6980c}
-    body.market-share-light > aside #paletteControlPanel #paletteGrid button {
-      background:#f7f9fd !important;
-      color:#283c5a !important;
-      border:1px solid #dfe8f5 !important;
-      border-radius:12px !important;
-    }
-    body.market-share-light > aside #paletteControlPanel #paletteGrid button:hover {
-      background:#eff5ff !important;
-      border-color:#bad0f1 !important;
-    }
-    body.market-share-light > aside #paletteControlPanel #paletteGrid button[class~="border-blue-500"] {
-      background:#eaf2ff !important;
-      color:#235cbf !important;
-      border-color:#3f82e9 !important;
-      box-shadow:inset 0 0 0 1px #9ac0ff !important;
-    }
-
     /* 数值用 IBM Plex Mono；汉字和普通英文仍使用原来的正文字体。 */
-    body.market-share-light .font-mono,body.market-share-light input[type="number"],body.market-share-light .data-num-input {font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace!important;font-variant-numeric:tabular-nums}
-
-    /* Control-panel section titles: shared hierarchy, no decorative icons or status colors. */
-    body.market-share-light > aside .control-section-heading {
-      display:block;
-      margin:0;
-      color:#344a68 !important;
-      font-family:inherit;
-      font-size:var(--ui-text-subheading) !important;
-      font-weight:800 !important;
-      line-height:1.5;
-      letter-spacing:0;
-      text-transform:none;
-    }
-    body.market-share-light > aside .control-section-heading.section-heading-spaced {margin-bottom:10px}
-    body.market-share-light > aside .wm-card .control-section-heading {margin-bottom:5px}
+    body.market-share-light .font-mono,body.market-share-light input[type="number"],body.market-share-light .data-num-input {font-family:var(--ui-font-number)!important;font-variant-numeric:tabular-nums}
 
     /* 两模块共用的浅色水印设置区 */
-    .wm-card{background:#fff;border:1px solid #e0e7f1;border-radius:16px;padding:16px;color:#24364e;box-shadow:0 2px 12px #2546740c}
-    .wm-card h3{font-size:var(--ui-text-md);font-weight:800;color:#344a68;margin:0 0 5px}
-    .wm-card p{font-size:var(--ui-text-xs);line-height:1.65;color:#7888a0;margin:0 0 13px}
-    .wm-section{padding:13px;background:#f8fafe;border:1px solid #e1eaf5;border-radius:13px;margin-top:11px}
-    .wm-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:9px}
-    .wm-head strong{font-size:var(--ui-text-md);color:#293d56}
-    .wm-head small{display:block;color:#7d8ea7;font-size:var(--ui-text-xs);line-height:1.5;margin-top:2px}
-    .wm-toggle{appearance:none;position:relative;width:46px;height:26px;border:1px solid #b8c8dd;background:#dce5f2;border-radius:999px;cursor:pointer;flex-shrink:0;transition:background .16s,border-color .16s}
-    .wm-toggle:before{content:"";position:absolute;left:3px;top:3px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 4px #1626413b;transition:transform .16s}
-    .wm-toggle:checked{background:#2f6cdf;border-color:#2f6cdf}
-    .wm-toggle:checked:before{transform:translateX(19px)}
-    .wm-toggle:focus-visible{outline:2px solid #8eb6f8;outline-offset:2px}
-    .wm-field{display:grid;gap:5px;margin-top:10px;min-width:0}
-    .wm-field label{font-size:var(--ui-text-xs);font-weight:700;color:#526a89}
-    .wm-field input[type="text"]{width:100%;min-width:0;border:1px solid #d7e3f2;border-radius:10px;background:#fff;padding:9px 11px;color:#24364e;font-size:var(--ui-text-md);outline:none}
-    .wm-field input[type="text"]:focus{border-color:#5896ee;box-shadow:0 0 0 2px #c7dcff}
-    .wm-field input[type="range"]{width:100%;accent-color:#2865db;cursor:pointer}
-    .wm-field label span{float:right;color:#2865db;font-size:var(--ui-text-xs);font-weight:800}
-    .wm-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
-    @media(max-width:460px){.wm-grid{grid-template-columns:1fr}}
+
   </style>
+  <link rel="stylesheet" href="studio-ui.css">
 </head>
-<body class="market-share-light min-h-screen flex flex-col lg:flex-row overflow-x-hidden">
+<body class="studio-ui market-share-light min-h-screen flex flex-col lg:flex-row overflow-x-hidden">
 
   <!-- 左侧控制台 -->
   <aside class="w-full lg:w-[420px] xl:w-[450px] bg-slate-900 border-b lg:border-b-0 lg:border-r border-slate-800 p-5 lg:p-6 flex flex-col gap-5 shrink-0 lg:h-screen lg:overflow-y-auto">
@@ -288,14 +213,14 @@
           <span class="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></span>
           DATA JOURNALISM STUDIO
         </div>
-        <h1 class="text-xl font-extrabold tracking-tight text-white">手机份额战报 · 3:4 出图台</h1>
+        <h1 class="text-2xl font-extrabold tracking-tight text-white">手机份额战报 · 3:4 出图台</h1>
       </div>
       <span id="currentMarketShareWeek" class="inline-block whitespace-nowrap text-xs text-slate-400 bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-700">2026 W44→W45</span>
     </div>
 
     <!-- 1. 图表类型切换 -->
     <div class="bg-slate-800/70 p-3.5 rounded-2xl border border-slate-700/70">
-      <h2 class="control-section-heading section-heading-spaced">1. 选择数据可视化图表</h2>
+      <h2 class="ui-section-title section-heading-spaced">1. 选择数据可视化图表</h2>
       <div class="grid grid-cols-2 gap-2" id="chartTypeGroup">
         <button data-type="combo" class="chart-btn tab-active py-2.5 px-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer col-span-2">
           <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="18" height="7" rx="1.5"/><line x1="12" y1="13" x2="12" y2="21"/><rect x="12" y="14" width="7" height="2.5" rx="0.8" fill="currentColor"/><rect x="6" y="18" width="6" height="2.5" rx="0.8"/></svg>
@@ -324,7 +249,7 @@
         <div id="showOtherOption" class="flex items-center justify-between">
           <div>
             <div class="text-xs font-semibold text-slate-200">显示“其他”自动推算项</div>
-            <div class="text-[11px] text-slate-400">发散/组合图默认聚焦前六大主流品牌</div>
+            <div class="text-xs text-slate-400">发散/组合图默认聚焦前六大主流品牌</div>
           </div>
           <label class="relative inline-flex items-center cursor-pointer">
             <input type="checkbox" id="toggleOtherBrand" class="sr-only peer">
@@ -335,7 +260,7 @@
         <div id="subBrandOption" class="flex items-center justify-between">
           <div>
             <div class="text-xs font-semibold text-slate-200">堆叠图拆分展示子品牌</div>
-            <div class="text-[11px] text-slate-400">独立展示一加/realme 与 iQOO 份额</div>
+            <div class="text-xs text-slate-400">独立展示一加/realme 与 iQOO 份额</div>
           </div>
           <label class="relative inline-flex items-center cursor-pointer">
             <input type="checkbox" id="splitSubBrands" class="sr-only peer" checked>
@@ -348,8 +273,8 @@
     <!-- 2. 自定义周度数据输入区（方便未来每周更新） -->
     <div class="bg-slate-800/70 p-3.5 rounded-2xl border border-slate-700/70 space-y-3">
       <div class="flex items-center justify-between">
-        <h2 class="control-section-heading">2. 录入 / 修改份额数据 (%)</h2>
-        <button id="toggleDataEditorBtn" class="text-[11px] bg-slate-700 hover:bg-slate-600 text-slate-200 px-2.5 py-1 rounded-lg font-semibold transition cursor-pointer">
+        <h2 class="ui-section-title">2. 录入 / 修改份额数据 (%)</h2>
+        <button id="toggleDataEditorBtn" class="text-xs bg-slate-700 hover:bg-slate-600 text-slate-200 px-2.5 py-1 rounded-lg font-semibold transition cursor-pointer">
           展开编辑表格 ▾
         </button>
       </div>
@@ -358,7 +283,7 @@
       <div id="dataEditorPanel" class="hidden space-y-3 pt-2 border-t border-slate-700/80">
         <!-- 品牌份额输入表 -->
         <div class="bg-slate-900/90 rounded-xl p-2 border border-slate-700/80">
-          <div class="grid grid-cols-12 text-[11px] font-bold text-slate-400 pb-1.5 mb-1.5 border-b border-slate-800 px-1">
+          <div class="grid grid-cols-12 text-xs font-bold text-slate-400 pb-1.5 mb-1.5 border-b border-slate-800 px-1">
             <span class="col-span-4">品牌</span>
             <span class="col-span-3 text-center">上周(%)</span>
             <span class="col-span-3 text-center">本周(%)</span>
@@ -367,27 +292,27 @@
           <div id="brandInputsList" class="space-y-1.5 max-h-[260px] overflow-y-auto pr-1">
             <!-- 由 JS 动态渲染品牌输入框 -->
           </div>
-          <div class="mt-2 pt-1.5 border-t border-slate-800 flex items-center justify-between text-[11px] px-1">
+          <div class="mt-2 pt-1.5 border-t border-slate-800 flex items-center justify-between text-xs px-1">
             <span class="text-slate-400">自动推算“其他”份额：</span>
             <span id="otherAutoSummary" class="font-mono font-bold text-slate-200">2.6% → 2.6%</span>
           </div>
         </div>
 
         <div class="flex items-center justify-between">
-          <span class="text-[11px] text-emerald-400/90 flex items-center gap-1">
+          <span class="text-xs text-emerald-400/90 flex items-center gap-1">
             <span>●</span> 已开启浏览器本地自动记忆（刷新不丢失）
           </span>
-          <button id="resetDataBtn" class="text-[11px] text-slate-400 hover:text-white underline cursor-pointer">恢复默认 W44/W45 示例数据</button>
+          <button id="resetDataBtn" class="text-xs text-slate-400 hover:text-white underline cursor-pointer">恢复默认 W44/W45 示例数据</button>
         </div>
       </div>
     </div>
 
     <!-- 3. 抖音安全区独立双向规避设置：与第三模块一致，深蓝强调面板 -->
-    <div id="safeControlPanel" class="bg-slate-800/70 p-3.5 rounded-2xl border border-slate-700/70 space-y-3">
+    <div id="safeControlPanel" class="ui-panel bg-slate-800/70 p-3.5 rounded-2xl border border-slate-700/70 space-y-3">
       <div class="flex items-center justify-between">
         <div>
-          <h2 class="control-section-heading">3. 抖音安全区独立规避</h2>
-          <p class="text-[11px] text-slate-400 mt-0.5">独立调节右侧交互栏与底部文案区的安全留白</p>
+          <h2 class="ui-section-title">3. 抖音安全区独立规避</h2>
+          <p class="ui-control-description text-slate-400 mt-0.5">独立调节右侧交互栏与底部文案区的安全留白</p>
         </div>
         <label class="relative inline-flex items-center cursor-pointer">
           <input type="checkbox" id="toggleSafeZone" class="sr-only peer" checked>
@@ -397,7 +322,7 @@
 
       <!-- 右侧留白滑块 -->
       <div>
-        <div class="flex justify-between text-xs text-slate-300 mb-1">
+        <div class="ui-safe-slider-label text-slate-300">
           <span>右侧交互栏留白宽度</span>
           <span id="safeRightVal" class="font-bold text-rose-400">15% (推荐)</span>
         </div>
@@ -406,7 +331,7 @@
 
       <!-- 下方留白滑块 -->
       <div>
-        <div class="flex justify-between text-xs text-slate-300 mb-1">
+        <div class="ui-safe-slider-label text-slate-300">
           <span>下方文案区留白高度</span>
           <span id="safeBottomVal" class="font-bold text-amber-400">10% (推荐)</span>
         </div>
@@ -415,66 +340,66 @@
     </div>
 
     <!-- 4. 6大精选视觉配色方案：与第三模块一致，深蓝强调面板 -->
-    <div id="paletteControlPanel" class="bg-slate-800/70 p-3.5 rounded-2xl border border-slate-700/70 space-y-2.5">
-      <h2 class="control-section-heading">4. 海报主题与配色方案</h2>
-      <div class="grid grid-cols-2 gap-2" id="paletteGrid">
+    <div id="paletteControlPanel" class="ui-panel bg-slate-800/70 p-3.5 rounded-2xl border border-slate-700/70 space-y-2.5">
+      <h2 class="ui-section-title">4. 海报主题与配色方案</h2>
+      <div class="ui-palette-grid" id="paletteGrid">
         <!-- 由 JS 动态渲染 6 套精选色卡按钮 -->
       </div>
     </div>
 
     <!-- 5. 自定义标题文案 -->
     <div class="bg-slate-800/70 p-3.5 rounded-2xl border border-slate-700/70 space-y-2.5">
-      <h2 class="control-section-heading">5. 编辑战报文案</h2>
+      <h2 class="ui-section-title">5. 编辑战报文案</h2>
       <div>
-        <label class="text-[11px] text-slate-400 block mb-1">主标题</label>
-        <input type="text" id="inputTitle" value="2026 W45 国内手机市场份额周环比变化" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500">
+        <label class="text-xs text-slate-400 block mb-1">主标题</label>
+        <input type="text" id="inputTitle" value="2026 W45 国内手机市场份额周环比变化" class="ui-field w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500">
       </div>
       <div>
-        <label class="text-[11px] text-slate-400 block mb-1">副标题（时间与单位口径）</label>
-        <input type="text" id="inputSubtitle" value="对比 W44 (10.26–11.1) 与 W45 (11.2–11.8) | 单位：百分点" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500">
+        <label class="text-xs text-slate-400 block mb-1">副标题（时间与单位口径）</label>
+        <input type="text" id="inputSubtitle" value="对比 W44 (10.26–11.1) 与 W45 (11.2–11.8) | 单位：百分点" class="ui-field w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500">
       </div>
       <div>
-        <label class="text-[11px] text-slate-400 block mb-1">核心洞察标签</label>
-        <input type="text" id="inputInsight" value="本周大盘降约5% · 华为逆势涨 +1.4 突破20% · 苹果稳居榜首" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500">
+        <label class="text-xs text-slate-400 block mb-1">核心洞察标签</label>
+        <input type="text" id="inputInsight" value="本周大盘降约5% · 华为逆势涨 +1.4 突破20% · 苹果稳居榜首" class="ui-field w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500">
       </div>
       <div class="pt-2 border-t border-slate-200 space-y-2.5">
         <label class="block text-xs font-bold text-slate-500">顶部两周趋势卡片</label>
         <div class="grid grid-cols-2 gap-2">
           <div>
-            <label class="text-[11px] text-slate-400 block mb-1" for="inputW1Label">左卡片 · 基准周标签</label>
-            <input type="text" id="inputW1Label" value="W44 (10.26 - 11.1)" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-blue-500">
+            <label class="text-xs text-slate-400 block mb-1" for="inputW1Label">左卡片 · 基准周标签</label>
+            <input type="text" id="inputW1Label" value="W44 (10.26 - 11.1)" class="ui-field w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-blue-500">
           </div>
           <div>
-            <label class="text-[11px] text-slate-400 block mb-1" for="inputW2Label">右卡片 · 对比周标签</label>
-            <input type="text" id="inputW2Label" value="W45 (11.2 - 11.8)" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-blue-500">
+            <label class="text-xs text-slate-400 block mb-1" for="inputW2Label">右卡片 · 对比周标签</label>
+            <input type="text" id="inputW2Label" value="W45 (11.2 - 11.8)" class="ui-field w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-blue-500">
           </div>
         </div>
         <div>
-          <label class="text-[11px] text-slate-400 block mb-1" for="inputW1Market">左卡片 · 基准周趋势说明</label>
-          <input type="text" id="inputW1Market" value="大盘趋势：略微上升 ↗" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-blue-500">
+          <label class="text-xs text-slate-400 block mb-1" for="inputW1Market">左卡片 · 基准周趋势说明</label>
+          <input type="text" id="inputW1Market" value="大盘趋势：略微上升 ↗" class="ui-field w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-blue-500">
         </div>
         <div>
-          <label class="text-[11px] text-slate-400 block mb-1" for="inputW2Market">右卡片 · 对比周趋势说明</label>
-          <input type="text" id="inputW2Market" value="大盘趋势：环比下降约 5% ↘" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-blue-500">
+          <label class="text-xs text-slate-400 block mb-1" for="inputW2Market">右卡片 · 对比周趋势说明</label>
+          <input type="text" id="inputW2Market" value="大盘趋势：环比下降约 5% ↘" class="ui-field w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-blue-500">
         </div>
       </div>
       <div class="pt-2 border-t border-slate-200 space-y-2.5">
         <label class="block text-xs font-bold text-slate-500">底部水印与数据口径</label>
         <div>
-          <label class="text-[11px] text-slate-400 block mb-1" for="inputFooterSource">底部第一行 · 数据口径</label>
-          <input type="text" id="inputFooterSource" value="数据口径：国内手机市场 Sell-Out 销量占比（OPPO含一加/realme，vivo含iQOO）" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-blue-500">
+          <label class="text-xs text-slate-400 block mb-1" for="inputFooterSource">底部第一行 · 数据口径</label>
+          <input type="text" id="inputFooterSource" value="数据口径：国内手机市场 Sell-Out 销量占比（OPPO含一加/realme，vivo含iQOO）" class="ui-field w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-blue-500">
         </div>
         <div>
-          <label class="text-[11px] text-slate-400 block mb-1" for="inputFooterNote">底部第二行 · 补充说明</label>
-          <input type="text" id="inputFooterNote" value="底色高亮标注本周最大份额提升与最大回落品牌 · 适配抖音 3:4 安全区" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-blue-500">
+          <label class="text-xs text-slate-400 block mb-1" for="inputFooterNote">底部第二行 · 补充说明</label>
+          <input type="text" id="inputFooterNote" value="底色高亮标注本周最大份额提升与最大回落品牌 · 适配抖音 3:4 安全区" class="ui-field w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-blue-500">
         </div>
       </div>
     </div>
 
 
     <!-- 6. 图片水印：SVG 海报渲染与 PNG 导出同步 -->
-    <div class="wm-card" id="watermarkControls">
-      <h2 class="control-section-heading">6. 图片水印</h2>
+    <div class="wm-card ui-panel ui-watermark-card" id="watermarkControls">
+      <h2 class="ui-section-title">6. 图片水印</h2>
       <p>两种模式互斥，默认均关闭。水印会同时显示在预览和导出的图片中。</p>
       <div class="wm-section">
         <div class="wm-head"><div><strong>全屏倾斜水印</strong><small>斜向重复平铺在图表区域</small></div><input id="wmDiagonalEnabled" class="wm-toggle" type="checkbox" aria-label="开启全屏倾斜水印"></div>
@@ -501,7 +426,7 @@
         <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
         <span>导出 3:4 高清抖音海报 (1200×1600 PNG)</span>
       </button>
-      <p class="text-[11px] text-center text-slate-400 mt-2">导出时将自动隐藏红色/琥珀色安全区辅助线，输出纯净原图</p>
+      <p class="text-xs text-center text-slate-400 mt-2">导出时将自动隐藏红色/琥珀色安全区辅助线，输出纯净原图</p>
     </div>
   </aside>
 
@@ -527,38 +452,38 @@
       <div id="douyinOverlay" class="absolute inset-0 pointer-events-none transition-opacity duration-200">
         <!-- 右侧危险遮挡警戒带 -->
         <div id="dyRightZone" class="absolute top-0 right-0 bottom-0 bg-rose-500/15 border-l-2 border-dashed border-rose-500/80 flex flex-col justify-between items-center py-6" style="width: 15%;">
-          <div class="bg-rose-600/90 text-white text-[11px] font-bold px-1.5 py-0.5 rounded shadow text-center leading-tight">
+          <div class="bg-rose-600/90 text-white text-xs font-bold px-1.5 py-0.5 rounded shadow text-center leading-tight">
             右侧避让<br><span id="dyRightTag">15%</span>
           </div>
 
           <!-- 模拟抖音右侧悬浮按钮列 -->
           <div class="flex flex-col items-center gap-4 mb-16 opacity-85">
             <div class="relative">
-              <div class="w-9 h-9 rounded-full bg-slate-700 border-2 border-white flex items-center justify-center text-[11px] font-bold text-white shadow">数码</div>
-              <div class="w-4 h-4 rounded-full bg-rose-500 text-white text-[11px] font-bold flex items-center justify-center absolute -bottom-1.5 left-1/2 -translate-x-1/2">+</div>
+              <div class="w-9 h-9 rounded-full bg-slate-700 border-2 border-white flex items-center justify-center text-xs font-bold text-white shadow">数码</div>
+              <div class="w-4 h-4 rounded-full bg-rose-500 text-white text-xs font-bold flex items-center justify-center absolute -bottom-1.5 left-1/2 -translate-x-1/2">+</div>
             </div>
             <div class="flex flex-col items-center">
               <svg class="w-7 h-7 text-rose-500 drop-shadow" fill="currentColor" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
-              <span class="text-[11px] text-white font-semibold drop-shadow">2.4w</span>
+              <span class="text-xs text-white font-semibold drop-shadow">2.4w</span>
             </div>
             <div class="flex flex-col items-center">
               <svg class="w-7 h-7 text-white drop-shadow" fill="currentColor" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-              <span class="text-[11px] text-white font-semibold drop-shadow">1892</span>
+              <span class="text-xs text-white font-semibold drop-shadow">1892</span>
             </div>
             <div class="flex flex-col items-center">
               <svg class="w-7 h-7 text-amber-400 drop-shadow" fill="currentColor" viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
-              <span class="text-[11px] text-white font-semibold drop-shadow">3410</span>
+              <span class="text-xs text-white font-semibold drop-shadow">3410</span>
             </div>
             <div class="flex flex-col items-center">
               <svg class="w-7 h-7 text-white drop-shadow" fill="currentColor" viewBox="0 0 24 24"><path d="M14 9V5l7 7-7 7v-4.1c-5 0-8.5 1.6-11 5.1 1-5 4-10 11-11z"/></svg>
-              <span class="text-[11px] text-white font-semibold drop-shadow">965</span>
+              <span class="text-xs text-white font-semibold drop-shadow">965</span>
             </div>
           </div>
         </div>
 
         <!-- 底部抖音标题栏安全区提示（独立调节高度） -->
         <div id="dyBottomZone" class="absolute bottom-0 left-0 right-0 bg-amber-500/15 border-t-2 border-dashed border-amber-400/70 flex items-end justify-between p-2.5" style="height: 10%;">
-          <span class="text-[11px] text-amber-200 bg-slate-950/80 px-2 py-0.5 rounded font-semibold">底部文案/进度条避让区 (<span id="dyBottomTag">10%</span>)</span>
+          <span class="text-xs text-amber-200 bg-slate-950/80 px-2 py-0.5 rounded font-semibold">底部文案/进度条避让区 (<span id="dyBottomTag">10%</span>)</span>
         </div>
       </div>
     </div>
@@ -1766,7 +1691,7 @@
           const diff = sumW2 - sumW1;
 
           const groupHeader = document.createElement('div');
-          groupHeader.className = 'grid grid-cols-12 items-center bg-slate-800/80 px-2 py-1 rounded-lg text-[11px] font-bold text-slate-200';
+          groupHeader.className = 'grid grid-cols-12 items-center bg-slate-800/80 px-2 py-1 rounded-lg text-xs font-bold text-slate-200';
           groupHeader.innerHTML = `
             <span class="col-span-4 flex items-center gap-1.5">
               <span class="w-2 h-2 rounded-full" style="background:${b.brandColor}"></span>${b.name}
@@ -1780,19 +1705,19 @@
           b.subBrands.forEach((sub, sIdx) => {
             const sDiff = (parseFloat(sub.w2) || 0) - (parseFloat(sub.w1) || 0);
             const row = document.createElement('div');
-            row.className = 'grid grid-cols-12 items-center gap-1 pl-3 pr-1 py-0.5 text-[11px]';
+            row.className = 'grid grid-cols-12 items-center gap-1 pl-3 pr-1 py-0.5 text-xs';
             row.innerHTML = `
               <span class="col-span-4 text-slate-400 truncate">└ ${sub.name}</span>
               <input type="number" step="0.1" min="0" max="100" value="${sub.w1}" data-bidx="${bIdx}" data-sidx="${sIdx}" data-field="w1" class="data-num-input col-span-3 bg-slate-950 border border-slate-700 rounded px-1.5 py-1 text-center font-mono text-white focus:border-blue-500 focus:outline-none">
               <input type="number" step="0.1" min="0" max="100" value="${sub.w2}" data-bidx="${bIdx}" data-sidx="${sIdx}" data-field="w2" class="data-num-input col-span-3 bg-slate-950 border border-slate-700 rounded px-1.5 py-1 text-center font-mono text-white focus:border-blue-500 focus:outline-none">
-              <span class="col-span-2 text-right font-mono text-[11px] ${sDiff > 0 ? 'text-rose-400' : (sDiff < 0 ? 'text-sky-400' : 'text-slate-500')}" id="sub_diff_${bIdx}_${sIdx}">${formatDiff(sDiff)}</span>
+              <span class="col-span-2 text-right font-mono text-xs ${sDiff > 0 ? 'text-rose-400' : (sDiff < 0 ? 'text-sky-400' : 'text-slate-500')}" id="sub_diff_${bIdx}_${sIdx}">${formatDiff(sDiff)}</span>
             `;
             container.appendChild(row);
           });
         } else {
           const diff = (parseFloat(b.w2) || 0) - (parseFloat(b.w1) || 0);
           const row = document.createElement('div');
-          row.className = 'grid grid-cols-12 items-center gap-1 px-1.5 py-0.5 text-[11px]';
+          row.className = 'grid grid-cols-12 items-center gap-1 px-1.5 py-0.5 text-xs';
           row.innerHTML = `
             <span class="col-span-4 font-bold text-slate-200 flex items-center gap-1.5">
               <span class="w-2 h-2 rounded-full" style="background:${b.brandColor}"></span>${b.name}
@@ -1818,7 +1743,7 @@
             const sDiff = (parseFloat(sub.w2) || 0) - (parseFloat(sub.w1) || 0);
             const subDiffEl = document.getElementById(`sub_diff_${bIdx}_${sIdx}`);
             subDiffEl.textContent = formatDiff(sDiff);
-            subDiffEl.className = `col-span-2 text-right font-mono text-[11px] ${sDiff > 0 ? 'text-rose-400' : (sDiff < 0 ? 'text-sky-400' : 'text-slate-500')}`;
+            subDiffEl.className = `col-span-2 text-right font-mono text-xs ${sDiff > 0 ? 'text-rose-400' : (sDiff < 0 ? 'text-sky-400' : 'text-slate-500')}`;
 
             const sumW1 = state.brands[bIdx].subBrands.reduce((s, x) => s + (parseFloat(x.w1) || 0), 0);
             const sumW2 = state.brands[bIdx].subBrands.reduce((s, x) => s + (parseFloat(x.w2) || 0), 0);
@@ -1969,22 +1894,19 @@
       Object.values(PALETTES).forEach(pal => {
         const isSelected = state.paletteId === pal.id;
         const btn = document.createElement('button');
-        btn.className = `p-2 rounded-xl text-left transition flex items-center justify-between gap-1.5 min-w-0 border cursor-pointer ${
-          isSelected
-            ? 'border-blue-500 bg-slate-900 text-white shadow-md shadow-blue-500/15'
-            : 'border-slate-700/80 bg-slate-800/80 text-slate-300 hover:bg-slate-700/80'
-        }`;
-
+        btn.type = 'button';
+        btn.className = `ui-palette-card${isSelected ? ' is-selected' : ''}`;
+        btn.setAttribute('aria-pressed', String(isSelected));
         btn.innerHTML = `
-          <span class="text-xs font-bold whitespace-nowrap">${pal.name.split(' ')[0]}</span>
-          <span class="flex items-center gap-0.5 shrink-0" aria-hidden="true">
-            <span class="w-2.5 h-2.5 rounded-full border border-slate-500/60" style="background:${pal.swatches[0]}"></span>
-            <span class="w-2.5 h-2.5 rounded-full" style="background:${pal.swatches[1]}"></span>
-            <span class="w-2.5 h-2.5 rounded-full" style="background:${pal.swatches[2]}"></span>
+          <span class="ui-palette-name">${pal.name.split(' ')[0]}</span>
+          <span class="ui-swatches" aria-hidden="true">
+            <span class="ui-swatch" style="background:${pal.swatches[0]}"></span>
+            <span class="ui-swatch" style="background:${pal.swatches[1]}"></span>
+            <span class="ui-swatch" style="background:${pal.swatches[2]}"></span>
           </span>
         `;
 
-        btn.addEventListener('click', () => {
+                btn.addEventListener('click', () => {
           state.paletteId = pal.id;
           saveStateToLocal();
           renderPaletteButtons();

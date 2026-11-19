@@ -7,7 +7,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;700;900&display=swap" rel="stylesheet">
   <style>
     body {
       font-family: 'Inter', 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -214,6 +214,9 @@
       background:#1a2842 !important; color:#ffffff !important;
       border-color:#3683ff !important;box-shadow:0 0 0 1px #3683ff55 inset !important;
     }
+
+    /* 数值用 IBM Plex Mono；汉字和普通英文仍使用原来的正文字体。 */
+    body.market-share-light .numeric-glyph,body.market-share-light .font-mono,body.market-share-light input[type="number"],body.market-share-light .data-num-input {font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace!important;font-variant-numeric:tabular-nums}
   </style>
 </head>
 <body class="market-share-light min-h-screen flex flex-col lg:flex-row overflow-x-hidden">
@@ -847,13 +850,58 @@
       return `0.0pp`;
     }
 
+
+    const NUMERIC_TOKEN=/[+\-−]?\d+(?:[.,:/–-]\d+)*(?:[%％×])?/g;
+    function numericTextRuns(value){
+      const raw=String(value??''),runs=[];let last=0;
+      for(const m of raw.matchAll(NUMERIC_TOKEN)){
+        if(m.index>last)runs.push({text:raw.slice(last,m.index),number:false});
+        runs.push({text:m[0],number:true});last=m.index+m[0].length;
+      }
+      if(last<raw.length)runs.push({text:raw.slice(last),number:false});
+      return runs.length?runs:[{text:raw,number:false}];
+    }
+    function applyDigitTypography(root=document.body){
+      if(!root||!document.createTreeWalker)return;
+      const accept=node=>{
+        if(!/\d/.test(node.nodeValue||''))return NodeFilter.FILTER_REJECT;
+        const parent=node.parentElement;
+        if(!parent||parent.closest('script,style,svg,textarea,select,option,pre,code,.numeric-glyph,[contenteditable="true"]'))return NodeFilter.FILTER_REJECT;
+        return NodeFilter.FILTER_ACCEPT;
+      };
+      const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,{acceptNode:accept});const found=[];let node;
+      while((node=walker.nextNode()))found.push(node);
+      for(const part of found){if(!part.parentNode)continue;const runs=numericTextRuns(part.nodeValue);if(!runs.some(r=>r.number))continue;
+        const frag=document.createDocumentFragment();
+        for(const run of runs){if(!run.text)continue;if(!run.number){frag.appendChild(document.createTextNode(run.text));continue}
+          const digit=document.createElement('span');digit.className='numeric-glyph';digit.textContent=run.text;frag.appendChild(digit)}
+        part.parentNode.replaceChild(frag,part);
+      }
+    }
+    function initDigitTypography(){
+      applyDigitTypography();if(typeof MutationObserver==='undefined')return;
+      let scheduled=false;new MutationObserver(()=>{if(scheduled)return;scheduled=true;requestAnimationFrame(()=>{scheduled=false;applyDigitTypography()})})
+      .observe(document.body,{subtree:true,childList:true,characterData:true});
+    }
+
     function svgEl(tag, attrs = {}, textContent = null) {
       const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
       for (const [k, v] of Object.entries(attrs)) {
         el.setAttribute(k, v);
       }
       if (textContent !== null) {
-        el.textContent = textContent;
+        const runs=tag==='text'?numericTextRuns(textContent):[{text:String(textContent),number:false}];
+        if(tag==='text'&&runs.some(r=>r.number)){
+          el.setAttribute('xml:space','preserve');
+          for(const run of runs){
+            if(!run.text)continue;
+            if(!run.number){el.appendChild(document.createTextNode(run.text));continue}
+            const tspan=document.createElementNS('http://www.w3.org/2000/svg','tspan');
+            tspan.setAttribute('font-family','IBM Plex Mono, ui-monospace, monospace');
+            tspan.setAttribute('font-variant-numeric','tabular-nums');
+            tspan.textContent=run.text;el.appendChild(tspan);
+          }
+        }else el.textContent=textContent;
       }
       return el;
     }
@@ -2087,5 +2135,6 @@
       renderPoster();
     });
   </script>
+  <script>initDigitTypography();</script>
 </body>
 </html>

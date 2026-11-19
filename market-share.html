@@ -228,6 +228,24 @@
 
     /* 数值用 IBM Plex Mono；汉字和普通英文仍使用原来的正文字体。 */
     body.market-share-light .font-mono,body.market-share-light input[type="number"],body.market-share-light .data-num-input {font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace!important;font-variant-numeric:tabular-nums}
+
+    /* 两模块共用的浅色水印设置区 */
+    .wm-card{background:#fff;border:1px solid #e0e7f1;border-radius:16px;padding:16px;color:#24364e;box-shadow:0 2px 12px #2546740c}
+    .wm-card h3{font-size:13px;font-weight:800;color:#344a68;margin:0 0 5px}
+    .wm-card p{font-size:11px;line-height:1.65;color:#7888a0;margin:0 0 13px}
+    .wm-section{padding:13px;background:#f8fafe;border:1px solid #e1eaf5;border-radius:13px;margin-top:11px}
+    .wm-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:9px}
+    .wm-head strong{font-size:13px;color:#293d56}
+    .wm-head small{display:block;color:#7d8ea7;font-size:11px;line-height:1.5;margin-top:2px}
+    .wm-toggle{width:19px;height:19px;accent-color:#2865db;cursor:pointer;flex-shrink:0}
+    .wm-field{display:grid;gap:5px;margin-top:10px;min-width:0}
+    .wm-field label{font-size:11px;font-weight:700;color:#526a89}
+    .wm-field input[type="text"]{width:100%;min-width:0;border:1px solid #d7e3f2;border-radius:10px;background:#fff;padding:9px 11px;color:#24364e;font-size:13px;outline:none}
+    .wm-field input[type="text"]:focus{border-color:#5896ee;box-shadow:0 0 0 2px #c7dcff}
+    .wm-field input[type="range"]{width:100%;accent-color:#2865db;cursor:pointer}
+    .wm-field label span{float:right;color:#2865db;font-size:11px;font-weight:800}
+    .wm-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+    @media(max-width:460px){.wm-grid{grid-template-columns:1fr}}
   </style>
 </head>
 <body class="market-share-light min-h-screen flex flex-col lg:flex-row overflow-x-hidden">
@@ -429,6 +447,30 @@
         <div>
           <label class="text-[11px] text-slate-400 block mb-1" for="inputFooterNote">底部第二行 · 补充说明</label>
           <input type="text" id="inputFooterNote" value="底色高亮标注本周最大份额提升与最大回落品牌 · 适配抖音 3:4 安全区" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-blue-500">
+        </div>
+      </div>
+    </div>
+
+
+    <!-- 6. 图片水印：SVG 海报渲染与 PNG 导出同步 -->
+    <div class="wm-card" id="watermarkControls">
+      <h3>6. 图片水印</h3>
+      <p>两种模式互斥，默认均关闭。水印会同时显示在预览和导出的图片中。</p>
+      <div class="wm-section">
+        <div class="wm-head"><div><strong>全屏倾斜水印</strong><small>斜向重复平铺在图表区域</small></div><input id="wmDiagonalEnabled" class="wm-toggle" type="checkbox" aria-label="开启全屏倾斜水印"></div>
+        <div class="wm-field"><label for="wmDiagonalText">水印文案</label><input id="wmDiagonalText" type="text" value="RD·观测" maxlength="80"></div>
+        <div class="wm-grid">
+          <div class="wm-field"><label for="wmDiagonalOpacity">透明度 <span id="wmDiagonalOpacityValue">8%</span></label><input id="wmDiagonalOpacity" type="range" min="0" max="30" step="1" value="8"></div>
+          <div class="wm-field"><label for="wmDiagonalSize">字体大小 <span id="wmDiagonalSizeValue">32px</span></label><input id="wmDiagonalSize" type="range" min="16" max="72" step="1" value="32"></div>
+        </div>
+        <div class="wm-field"><label for="wmDiagonalGap">排版间距 <span id="wmDiagonalGapValue">220px</span></label><input id="wmDiagonalGap" type="range" min="110" max="420" step="10" value="220"></div>
+      </div>
+      <div class="wm-section">
+        <div class="wm-head"><div><strong>中心水印模式</strong><small>仅在图表内容区域中心显示一个大号水印</small></div><input id="wmCenterEnabled" class="wm-toggle" type="checkbox" aria-label="开启中心水印"></div>
+        <div class="wm-field"><label for="wmCenterText">水印文案</label><input id="wmCenterText" type="text" value="RD·观测" maxlength="80"></div>
+        <div class="wm-grid">
+          <div class="wm-field"><label for="wmCenterOpacity">透明度 <span id="wmCenterOpacityValue">12%</span></label><input id="wmCenterOpacity" type="range" min="0" max="30" step="1" value="12"></div>
+          <div class="wm-field"><label for="wmCenterSize">字体大小 <span id="wmCenterSizeValue">72px</span></label><input id="wmCenterSize" type="range" min="32" max="160" step="2" value="72"></div>
         </div>
       </div>
     </div>
@@ -815,6 +857,7 @@
         w2Market: '大盘趋势：环比下降约 5% ↘',
         footerSource: '数据口径：国内手机市场 Sell-Out 销量占比（OPPO含一加/realme，vivo含iQOO）',
         footerNote: '底色高亮标注本周最大份额提升与最大回落品牌 · 适配抖音 3:4 安全区',
+        watermark: {diagonalEnabled:false,diagonalText:'RD·观测',diagonalOpacity:8,diagonalSize:32,diagonalGap:220,centerEnabled:false,centerText:'RD·观测',centerOpacity:12,centerSize:72},
         brands: getDefaultBrands()
       };
     }
@@ -830,7 +873,8 @@
           ...parsed,
           // 已删除的旧主题自动迁移到当前默认主题，避免预览和选中色卡不同步。
           paletteId: Object.hasOwn(PALETTES, parsed.paletteId) ? parsed.paletteId : def.paletteId,
-          brands: Array.isArray(parsed.brands) && parsed.brands.length > 0 ? parsed.brands : def.brands
+          brands: Array.isArray(parsed.brands) && parsed.brands.length > 0 ? parsed.brands : def.brands,
+          watermark: {...def.watermark,...(parsed.watermark&&typeof parsed.watermark==='object'?parsed.watermark:{})}
         };
       } catch (e) {
         return def;

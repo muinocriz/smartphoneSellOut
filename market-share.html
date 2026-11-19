@@ -12,6 +12,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;700;900&display=swap" rel="stylesheet">
   <style>
+    /* Shared control-panel type scale. Poster SVG typography remains independent. */
+    :root{--ui-text-xs:11px;--ui-text-sm:12px;--ui-text-md:14px;--ui-text-subheading:16px;--ui-text-section:20px;--ui-text-feature:24px;--ui-text-display:28px}
     body {
       font-family: 'Inter', 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif;
       background-color: #0f172a;
@@ -234,23 +236,23 @@
 
     /* 两模块共用的浅色水印设置区 */
     .wm-card{background:#fff;border:1px solid #e0e7f1;border-radius:16px;padding:16px;color:#24364e;box-shadow:0 2px 12px #2546740c}
-    .wm-card h3{font-size:13px;font-weight:800;color:#344a68;margin:0 0 5px}
-    .wm-card p{font-size:11px;line-height:1.65;color:#7888a0;margin:0 0 13px}
+    .wm-card h3{font-size:var(--ui-text-md);font-weight:800;color:#344a68;margin:0 0 5px}
+    .wm-card p{font-size:var(--ui-text-xs);line-height:1.65;color:#7888a0;margin:0 0 13px}
     .wm-section{padding:13px;background:#f8fafe;border:1px solid #e1eaf5;border-radius:13px;margin-top:11px}
     .wm-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:9px}
-    .wm-head strong{font-size:13px;color:#293d56}
-    .wm-head small{display:block;color:#7d8ea7;font-size:11px;line-height:1.5;margin-top:2px}
+    .wm-head strong{font-size:var(--ui-text-md);color:#293d56}
+    .wm-head small{display:block;color:#7d8ea7;font-size:var(--ui-text-xs);line-height:1.5;margin-top:2px}
     .wm-toggle{appearance:none;position:relative;width:46px;height:26px;border:1px solid #b8c8dd;background:#dce5f2;border-radius:999px;cursor:pointer;flex-shrink:0;transition:background .16s,border-color .16s}
     .wm-toggle:before{content:"";position:absolute;left:3px;top:3px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 4px #1626413b;transition:transform .16s}
     .wm-toggle:checked{background:#2f6cdf;border-color:#2f6cdf}
     .wm-toggle:checked:before{transform:translateX(19px)}
     .wm-toggle:focus-visible{outline:2px solid #8eb6f8;outline-offset:2px}
     .wm-field{display:grid;gap:5px;margin-top:10px;min-width:0}
-    .wm-field label{font-size:11px;font-weight:700;color:#526a89}
-    .wm-field input[type="text"]{width:100%;min-width:0;border:1px solid #d7e3f2;border-radius:10px;background:#fff;padding:9px 11px;color:#24364e;font-size:13px;outline:none}
+    .wm-field label{font-size:var(--ui-text-xs);font-weight:700;color:#526a89}
+    .wm-field input[type="text"]{width:100%;min-width:0;border:1px solid #d7e3f2;border-radius:10px;background:#fff;padding:9px 11px;color:#24364e;font-size:var(--ui-text-md);outline:none}
     .wm-field input[type="text"]:focus{border-color:#5896ee;box-shadow:0 0 0 2px #c7dcff}
     .wm-field input[type="range"]{width:100%;accent-color:#2865db;cursor:pointer}
-    .wm-field label span{float:right;color:#2865db;font-size:11px;font-weight:800}
+    .wm-field label span{float:right;color:#2865db;font-size:var(--ui-text-xs);font-weight:800}
     .wm-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
     @media(max-width:460px){.wm-grid{grid-template-columns:1fr}}
   </style>
@@ -339,7 +341,7 @@
       <div id="dataEditorPanel" class="hidden space-y-3 pt-2 border-t border-slate-700/80">
         <!-- 品牌份额输入表 -->
         <div class="bg-slate-900/90 rounded-xl p-2 border border-slate-700/80">
-          <div class="grid grid-cols-12 text-[10px] font-bold text-slate-400 pb-1.5 mb-1.5 border-b border-slate-800 px-1">
+          <div class="grid grid-cols-12 text-[11px] font-bold text-slate-400 pb-1.5 mb-1.5 border-b border-slate-800 px-1">
             <span class="col-span-4">品牌</span>
             <span class="col-span-3 text-center">上周(%)</span>
             <span class="col-span-3 text-center">本周(%)</span>
@@ -383,7 +385,7 @@
       <div>
         <div class="flex justify-between text-xs text-slate-300 mb-1">
           <span>右侧交互栏留白宽度</span>
-          <span id="safeRightVal" class="font-mono font-bold text-rose-400">15% (推荐)</span>
+          <span id="safeRightVal" class="font-bold text-rose-400">15% (推荐)</span>
         </div>
         <input type="range" id="safeRightSlider" min="0" max="22" value="15" class="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-rose-500">
       </div>
@@ -392,7 +394,7 @@
       <div>
         <div class="flex justify-between text-xs text-slate-300 mb-1">
           <span>下方文案区留白高度</span>
-          <span id="safeBottomVal" class="font-mono font-bold text-amber-400">10% (推荐)</span>
+          <span id="safeBottomVal" class="font-bold text-amber-400">10% (推荐)</span>
         </div>
         <input type="range" id="safeBottomSlider" min="0" max="20" value="10" class="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-amber-500">
       </div>
@@ -497,7 +499,7 @@
     <!-- 顶部状态提示条 -->
     <div class="w-full max-w-[540px] flex items-center justify-between mb-3 px-1">
       <div class="flex items-center gap-2 text-xs text-slate-400">
-        <span class="px-2 py-0.5 rounded bg-slate-800 text-slate-200 font-mono">3:4 竖屏比例</span>
+        <span class="px-2 py-0.5 rounded bg-slate-800 text-slate-200">3:4 竖屏比例</span>
         <span>基准 900×1200px</span>
       </div>
       <div id="toastMsg" class="text-xs font-medium text-emerald-400 opacity-0 transition-opacity duration-300">
@@ -514,38 +516,38 @@
       <div id="douyinOverlay" class="absolute inset-0 pointer-events-none transition-opacity duration-200">
         <!-- 右侧危险遮挡警戒带 -->
         <div id="dyRightZone" class="absolute top-0 right-0 bottom-0 bg-rose-500/15 border-l-2 border-dashed border-rose-500/80 flex flex-col justify-between items-center py-6" style="width: 15%;">
-          <div class="bg-rose-600/90 text-white text-[10px] font-bold px-1.5 py-0.5 rounded shadow text-center leading-tight">
+          <div class="bg-rose-600/90 text-white text-[11px] font-bold px-1.5 py-0.5 rounded shadow text-center leading-tight">
             右侧避让<br><span id="dyRightTag">15%</span>
           </div>
 
           <!-- 模拟抖音右侧悬浮按钮列 -->
           <div class="flex flex-col items-center gap-4 mb-16 opacity-85">
             <div class="relative">
-              <div class="w-9 h-9 rounded-full bg-slate-700 border-2 border-white flex items-center justify-center text-[10px] font-bold text-white shadow">数码</div>
+              <div class="w-9 h-9 rounded-full bg-slate-700 border-2 border-white flex items-center justify-center text-[11px] font-bold text-white shadow">数码</div>
               <div class="w-4 h-4 rounded-full bg-rose-500 text-white text-[11px] font-bold flex items-center justify-center absolute -bottom-1.5 left-1/2 -translate-x-1/2">+</div>
             </div>
             <div class="flex flex-col items-center">
               <svg class="w-7 h-7 text-rose-500 drop-shadow" fill="currentColor" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
-              <span class="text-[10px] text-white font-semibold drop-shadow">2.4w</span>
+              <span class="text-[11px] text-white font-semibold drop-shadow">2.4w</span>
             </div>
             <div class="flex flex-col items-center">
               <svg class="w-7 h-7 text-white drop-shadow" fill="currentColor" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-              <span class="text-[10px] text-white font-semibold drop-shadow">1892</span>
+              <span class="text-[11px] text-white font-semibold drop-shadow">1892</span>
             </div>
             <div class="flex flex-col items-center">
               <svg class="w-7 h-7 text-amber-400 drop-shadow" fill="currentColor" viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
-              <span class="text-[10px] text-white font-semibold drop-shadow">3410</span>
+              <span class="text-[11px] text-white font-semibold drop-shadow">3410</span>
             </div>
             <div class="flex flex-col items-center">
               <svg class="w-7 h-7 text-white drop-shadow" fill="currentColor" viewBox="0 0 24 24"><path d="M14 9V5l7 7-7 7v-4.1c-5 0-8.5 1.6-11 5.1 1-5 4-10 11-11z"/></svg>
-              <span class="text-[10px] text-white font-semibold drop-shadow">965</span>
+              <span class="text-[11px] text-white font-semibold drop-shadow">965</span>
             </div>
           </div>
         </div>
 
         <!-- 底部抖音标题栏安全区提示（独立调节高度） -->
         <div id="dyBottomZone" class="absolute bottom-0 left-0 right-0 bg-amber-500/15 border-t-2 border-dashed border-amber-400/70 flex items-end justify-between p-2.5" style="height: 10%;">
-          <span class="text-[10px] text-amber-200 bg-slate-950/80 px-2 py-0.5 rounded font-semibold">底部文案/进度条避让区 (<span id="dyBottomTag">10%</span>)</span>
+          <span class="text-[11px] text-amber-200 bg-slate-950/80 px-2 py-0.5 rounded font-semibold">底部文案/进度条避让区 (<span id="dyBottomTag">10%</span>)</span>
         </div>
       </div>
     </div>
@@ -1778,7 +1780,7 @@
               <span class="col-span-4 text-slate-400 truncate">└ ${sub.name}</span>
               <input type="number" step="0.1" min="0" max="100" value="${sub.w1}" data-bidx="${bIdx}" data-sidx="${sIdx}" data-field="w1" class="data-num-input col-span-3 bg-slate-950 border border-slate-700 rounded px-1.5 py-1 text-center font-mono text-white focus:border-blue-500 focus:outline-none">
               <input type="number" step="0.1" min="0" max="100" value="${sub.w2}" data-bidx="${bIdx}" data-sidx="${sIdx}" data-field="w2" class="data-num-input col-span-3 bg-slate-950 border border-slate-700 rounded px-1.5 py-1 text-center font-mono text-white focus:border-blue-500 focus:outline-none">
-              <span class="col-span-2 text-right font-mono text-[10.5px] ${sDiff > 0 ? 'text-rose-400' : (sDiff < 0 ? 'text-sky-400' : 'text-slate-500')}" id="sub_diff_${bIdx}_${sIdx}">${formatDiff(sDiff)}</span>
+              <span class="col-span-2 text-right font-mono text-[11px] ${sDiff > 0 ? 'text-rose-400' : (sDiff < 0 ? 'text-sky-400' : 'text-slate-500')}" id="sub_diff_${bIdx}_${sIdx}">${formatDiff(sDiff)}</span>
             `;
             container.appendChild(row);
           });
@@ -1811,7 +1813,7 @@
             const sDiff = (parseFloat(sub.w2) || 0) - (parseFloat(sub.w1) || 0);
             const subDiffEl = document.getElementById(`sub_diff_${bIdx}_${sIdx}`);
             subDiffEl.textContent = formatDiff(sDiff);
-            subDiffEl.className = `col-span-2 text-right font-mono text-[10.5px] ${sDiff > 0 ? 'text-rose-400' : (sDiff < 0 ? 'text-sky-400' : 'text-slate-500')}`;
+            subDiffEl.className = `col-span-2 text-right font-mono text-[11px] ${sDiff > 0 ? 'text-rose-400' : (sDiff < 0 ? 'text-sky-400' : 'text-slate-500')}`;
 
             const sumW1 = state.brands[bIdx].subBrands.reduce((s, x) => s + (parseFloat(x.w1) || 0), 0);
             const sumW2 = state.brands[bIdx].subBrands.reduce((s, x) => s + (parseFloat(x.w2) || 0), 0);
@@ -1974,7 +1976,7 @@
         }`;
 
         btn.innerHTML = `
-          <span class="text-[11.5px] font-bold truncate pr-1.5">${pal.name.split(' ')[0]}</span>
+          <span class="text-[11px] font-bold truncate pr-1.5">${pal.name.split(' ')[0]}</span>
           <span class="flex items-center gap-1 shrink-0">
             <span class="w-3 h-3 rounded-full border border-slate-500/60" style="background:${pal.swatches[0]}"></span>
             <span class="w-3 h-3 rounded-full" style="background:${pal.swatches[1]}"></span>

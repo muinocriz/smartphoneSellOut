@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>2026 国内手机市场份额战报 · 3:4 抖音数据可视化</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="poster-themes.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;700;900&display=swap" rel="stylesheet">
@@ -679,166 +680,10 @@
     // ==========================================
     // 2. 6套高对比度数据新闻配色方案
     // ==========================================
-    const PALETTES = {
-      lilac_cloud: {
-        id: 'lilac_cloud',
-        name: '柔雾丁香',
-        isDark: false,
-        swatches: ['#f5f2fb', '#7155a4', '#b86b81'],
-        bgTop: '#f5f2fb',
-        bgBottom: '#eae5f4',
-        cardBg: '#fefcff',
-        cardBorder: '#ddd5ea',
-        textPrimary: '#2e2540',
-        textSecondary: '#625576',
-        textMuted: '#80728f',
-        upColor: '#7155a4',
-        upBg: 'rgba(113, 85, 164, 0.12)',
-        upRowHighlight: 'rgba(113, 85, 164, 0.11)',
-        downColor: '#b05267',
-        downBg: 'rgba(176, 82, 103, 0.12)',
-        downRowHighlight: 'rgba(176, 82, 103, 0.11)',
-        flatColor: '#82758f',
-        flatBg: 'rgba(130, 117, 143, 0.12)',
-        gridLine: '#e8e1f2',
-        axisLine: '#8c7d9f',
-        badgeBg: 'rgba(113, 85, 164, 0.09)',
-        badgeBorder: 'rgba(113, 85, 164, 0.25)',
-        badgeText: '#61428f'
-      },
-      editorial_paper: {
-        id: 'editorial_paper',
-        name: '编辑部米白',
-        isDark: false,
-        swatches: ['#f8f5ef', '#c83e37', '#2b5b84'],
-        bgTop: '#f8f5ef',
-        bgBottom: '#efeae0',
-        cardBg: '#ffffff',
-        cardBorder: '#e2dcd0',
-        textPrimary: '#1c1917',
-        textSecondary: '#57534e',
-        textMuted: '#78716c',
-        upColor: '#c83e37',
-        upBg: 'rgba(200, 62, 55, 0.12)',
-        upRowHighlight: 'rgba(200, 62, 55, 0.10)',
-        downColor: '#2b5b84',
-        downBg: 'rgba(43, 91, 132, 0.12)',
-        downRowHighlight: 'rgba(43, 91, 132, 0.10)',
-        flatColor: '#78716c',
-        flatBg: 'rgba(120, 113, 108, 0.12)',
-        gridLine: '#e7e2d8',
-        axisLine: '#78716c',
-        badgeBg: 'rgba(200, 62, 55, 0.08)',
-        badgeBorder: 'rgba(200, 62, 55, 0.25)',
-        badgeText: '#991b1b'
-      },
-      pure_white: {
-        id: 'pure_white',
-        name: '极简纯白',
-        isDark: false,
-        swatches: ['#ffffff', '#10b981', '#f43f5e'],
-        bgTop: '#ffffff',
-        bgBottom: '#f8fafc',
-        cardBg: '#ffffff',
-        cardBorder: '#e2e8f0',
-        textPrimary: '#0f172a',
-        textSecondary: '#475569',
-        textMuted: '#94a3b8',
-        upColor: '#10b981',
-        upBg: 'rgba(16, 185, 129, 0.12)',
-        upRowHighlight: 'rgba(16, 185, 129, 0.10)',
-        downColor: '#f43f5e',
-        downBg: 'rgba(244, 63, 94, 0.12)',
-        downRowHighlight: 'rgba(244, 63, 94, 0.10)',
-        flatColor: '#64748b',
-        flatBg: 'rgba(100, 116, 139, 0.12)',
-        gridLine: '#f1f5f9',
-        axisLine: '#94a3b8',
-        badgeBg: 'rgba(16, 185, 129, 0.09)',
-        badgeBorder: 'rgba(16, 185, 129, 0.28)',
-        badgeText: '#065f46'
-      },
-      mist_minimal: {
-        id: 'mist_minimal',
-        name: '雾蓝极简',
-        isDark: false,
-        swatches: ['#f1f6f9', '#366b9a', '#be6e5c'],
-        bgTop: '#f1f6f9',
-        bgBottom: '#e6edf4',
-        cardBg: '#ffffff',
-        cardBorder: '#d6e1ea',
-        textPrimary: '#203047',
-        textSecondary: '#52657a',
-        textMuted: '#708399',
-        upColor: '#366b9a',
-        upBg: 'rgba(54, 107, 154, 0.11)',
-        upRowHighlight: 'rgba(54, 107, 154, 0.10)',
-        downColor: '#be6e5c',
-        downBg: 'rgba(190, 110, 92, 0.11)',
-        downRowHighlight: 'rgba(190, 110, 92, 0.10)',
-        flatColor: '#71859a',
-        flatBg: 'rgba(113, 133, 154, 0.12)',
-        gridLine: '#dce6ef',
-        axisLine: '#8295aa',
-        badgeBg: 'rgba(54, 107, 154, 0.08)',
-        badgeBorder: 'rgba(54, 107, 154, 0.24)',
-        badgeText: '#274e77'
-      },
-      coral_sunset: {
-        id: 'coral_sunset',
-        name: '日落珊瑚',
-        isDark: false,
-        swatches: ['#fff2e8', '#c35644', '#277b79'],
-        bgTop: '#fff2e8',
-        bgBottom: '#fae7db',
-        cardBg: '#fffbf7',
-        cardBorder: '#eccbbf',
-        textPrimary: '#402c2b',
-        textSecondary: '#76534e',
-        textMuted: '#916e65',
-        upColor: '#c35644',
-        upBg: 'rgba(195, 86, 68, 0.12)',
-        upRowHighlight: 'rgba(195, 86, 68, 0.10)',
-        downColor: '#277b79',
-        downBg: 'rgba(39, 123, 121, 0.12)',
-        downRowHighlight: 'rgba(39, 123, 121, 0.10)',
-        flatColor: '#947a75',
-        flatBg: 'rgba(148, 122, 117, 0.12)',
-        gridLine: '#f0d8cb',
-        axisLine: '#ab8679',
-        badgeBg: 'rgba(195, 86, 68, 0.09)',
-        badgeBorder: 'rgba(195, 86, 68, 0.25)',
-        badgeText: '#9e3c32'
-      },
-      morandi_sage: {
-        id: 'morandi_sage',
-        name: '莫兰迪绿野',
-        isDark: false,
-        swatches: ['#eef3ef', '#d97706', '#2d6a4f'],
-        bgTop: '#eef3ef',
-        bgBottom: '#e2eae4',
-        cardBg: '#f9fbf9',
-        cardBorder: '#cbd8ce',
-        textPrimary: '#1b2e23',
-        textSecondary: '#4a6354',
-        textMuted: '#748c7d',
-        upColor: '#d97706',
-        upBg: 'rgba(217, 119, 6, 0.13)',
-        upRowHighlight: 'rgba(217, 119, 6, 0.11)',
-        downColor: '#2d6a4f',
-        downBg: 'rgba(45, 106, 79, 0.13)',
-        downRowHighlight: 'rgba(45, 106, 79, 0.11)',
-        flatColor: '#748c7d',
-        flatBg: 'rgba(116, 140, 125, 0.12)',
-        gridLine: '#dce6de',
-        axisLine: '#748c7d',
-        badgeBg: 'rgba(217, 119, 6, 0.10)',
-        badgeBorder: 'rgba(217, 119, 6, 0.28)',
-        badgeText: '#92400e'
-      }
-    };
+    // Shared with the Canvas poster studio: same six themes and the same color values.
+    const PALETTES = window.PosterThemes.palettes;
 
-    // ==========================================
+        // ==========================================
     // 3. 全局状态管理（支持 localStorage 自动持久化）
     // ==========================================
     const STORAGE_KEY = 'phone_market_share_viz_state_v1';
@@ -1057,16 +902,27 @@
       bgGrad.appendChild(svgEl('stop', { offset: '100%', 'stop-color': P.bgBottom }));
       defs.appendChild(bgGrad);
 
-      const dotPattern = svgEl('pattern', { id: 'dotGrid', width: '24', height: '24', patternUnits: 'userSpaceOnUse' });
+      // Shared background geometry with the Canvas studio: themed exterior,
+      // white rounded main card, thin themed border and subtle dot texture.
+      const L=window.PosterThemes.layout;
+      const inset=Math.round(W*L.outerInsetRatio);
+      const corner=Math.round(W*L.mainRadiusRatio);
+      const dotStep=Math.round(W*L.dotStepRatio);
+      const dotPattern = svgEl('pattern', { id:'dotGrid', width:dotStep, height:dotStep, patternUnits:'userSpaceOnUse' });
       dotPattern.appendChild(svgEl('circle', {
-        cx: '2', cy: '2', r: '1',
-        fill: P.isDark ? 'rgba(148,163,184,0.07)' : 'rgba(15,23,42,0.04)'
+        cx:2, cy:2, r:1, fill:P.textPrimary, opacity:String(L.dotOpacity)
       }));
       defs.appendChild(dotPattern);
+      const shadow=svgEl('filter',{id:'posterMainCardShadow',x:'-10%',y:'-10%',width:'120%',height:'120%'});
+      shadow.appendChild(svgEl('feDropShadow',{dx:0,dy:6,stdDeviation:9,'flood-color':'#223c60','flood-opacity':'.11'}));
+      defs.appendChild(shadow);
       svg.appendChild(defs);
 
-      svg.appendChild(svgEl('rect', { x: 0, y: 0, width: W, height: H, fill: 'url(#posterBgGrad)' }));
-      svg.appendChild(svgEl('rect', { x: 0, y: 0, width: W, height: H, fill: 'url(#dotGrid)' }));
+      svg.appendChild(svgEl('rect', {x:0,y:0,width:W,height:H,fill:'url(#posterBgGrad)'}));
+      const card={x:inset,y:inset,width:W-2*inset,height:H-2*inset,rx:corner};
+      svg.appendChild(svgEl('rect',{...card,fill:'#ffffff',filter:'url(#posterMainCardShadow)'}));
+      svg.appendChild(svgEl('rect',{...card,fill:'url(#dotGrid)'}));
+      svg.appendChild(svgEl('rect',{...card,fill:'none',stroke:P.cardBorder,'stroke-width':'1.5'}));
 
       // 顶部标签栏
       svg.appendChild(svgEl('rect', { x: leftPad, y: 34, width: 48, height: 5.5, rx: 2.75, fill: P.upColor }));

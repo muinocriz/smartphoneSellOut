@@ -237,7 +237,11 @@
     .wm-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:9px}
     .wm-head strong{font-size:13px;color:#293d56}
     .wm-head small{display:block;color:#7d8ea7;font-size:11px;line-height:1.5;margin-top:2px}
-    .wm-toggle{width:19px;height:19px;accent-color:#2865db;cursor:pointer;flex-shrink:0}
+    .wm-toggle{appearance:none;position:relative;width:46px;height:26px;border:1px solid #b8c8dd;background:#dce5f2;border-radius:999px;cursor:pointer;flex-shrink:0;transition:background .16s,border-color .16s}
+    .wm-toggle:before{content:"";position:absolute;left:3px;top:3px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 4px #1626413b;transition:transform .16s}
+    .wm-toggle:checked{background:#2f6cdf;border-color:#2f6cdf}
+    .wm-toggle:checked:before{transform:translateX(19px)}
+    .wm-toggle:focus-visible{outline:2px solid #8eb6f8;outline-offset:2px}
     .wm-field{display:grid;gap:5px;margin-top:10px;min-width:0}
     .wm-field label{font-size:11px;font-weight:700;color:#526a89}
     .wm-field input[type="text"]{width:100%;min-width:0;border:1px solid #d7e3f2;border-radius:10px;background:#fff;padding:9px 11px;color:#24364e;font-size:13px;outline:none}

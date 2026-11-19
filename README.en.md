@@ -124,6 +124,15 @@ In the repository, go to Settings → Pages, set Source to `Deploy from a branch
 └── README.en.md      English README
 ```
 
+## Image watermarks (tabs 2 and 3)
+
+The market-share tab includes **6. 图片水印** and the estimator studio includes **5. 图片水印**, with identical controls:
+
+- **Repeated diagonal watermark**: enable, message, opacity (8% default), size (32px default) and spacing (220px default).
+- **Single centered watermark**: enable, message, opacity (12% default) and size (72px default).
+- Both modes are off by default and mutually exclusive. Watermarks appear in live previews, exported PNG images and the estimator's four-image ZIP bundle. Watermarks are clipped to the artwork area, not the editing guides.
+- Settings persist locally in the browser, using the second tab's existing saved state and a separate watermark key in the third tab.
+
 ## Number typography
 
 - The first tab's existing `--f-num: "IBM Plex Mono",ui-monospace,Menlo,monospace` remains unchanged.

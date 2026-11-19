@@ -75,6 +75,20 @@ test('console font stacks come from shared tokens, not repeated literals', () =>
   }
 });
 
+test('headers and selector buttons share explicit UI roles', () => {
+  for (const c of ['ui-eyebrow','ui-eyebrow-dot','ui-page-title','ui-meta-badge','ui-choice']) {
+    assert.ok(shared.includes('.'+c), 'Missing shared '+c);
+  }
+  for (const [name,s] of [['market',market],['estimator',estimator]]) {
+    assert.match(s, /class="ui-eyebrow"/, name);
+    assert.match(s, /class="ui-page-title"/, name);
+    assert.match(s, /ui-meta-badge/, name);
+  }
+  assert.equal((market.match(/class="chart-btn ui-choice/g)||[]).length,5);
+  assert.equal((estimator.match(/class="tab ui-choice(?: active)?"/g)||[]).length,3);
+  assert.doesNotMatch(inline(estimator), /\.eyebrow\s*\{|h1\s*\{\s*font-size/);
+});
+
 test('data and poster logic are still present after CSS migration', () => {
   assert.match(market, /function renderDumbbellChart\(/);
   assert.match(market, /function getComputedMarketData\(/);

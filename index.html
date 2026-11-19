@@ -192,17 +192,14 @@ td.bad{color:var(--warn)}
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js"></script>
+<script src="iso-sales-week.js"></script>
 <script>
 // ===== 配置：周列所属年份（ISO 周）。若列名写成 2026W34 这种格式，会自动识别年份 =====
 const DEFAULT_YEAR=2026;
 const DATA_URL="data.csv";
 
-const DAY=864e5;
-const isoW1Mon=y=>{const j4=Date.UTC(y,0,4);const dow=(new Date(j4).getUTCDay()+6)%7;return j4-dow*DAY};
-const monOf=d=>{const t=Date.UTC(d[0],d[1]-1,d[2]);const dow=(new Date(t).getUTCDay()+6)%7;return t-dow*DAY};
-// 统一生命周期编号：上市日为周一则当周W1；否则上市当周为P0，下一完整ISO周为W1。
-const firstFullWeekMon=d=>{const monday=monOf(d);return Date.UTC(d[0],d[1]-1,d[2])===monday?monday:monday+7*DAY};
-const fullWeekIndex=(isoMonday,w1Monday)=>isoMonday<w1Monday?null:Math.round((isoMonday-w1Monday)/(7*DAY))+1;
+// ISO周计算的唯一实现位于 iso-sales-week.js，供网页和未来Node流水线共用。
+const {isoWeekMonday,firstFullWeekMonday,lifecycleWeekIndex,partialWeek,utcDate}=IsoSalesWeek;
 const fmtMD=t=>{const d=new Date(t);return (d.getUTCMonth()+1)+"/"+d.getUTCDate()};
 let WEEKS=[],WMON=[],ROWS=[],BRANDS=[];
 
@@ -231,14 +228,17 @@ function load(text){
   const wIdx=[];head.forEach((h,i)=>{const m=h.match(/^(?:(\d{4})[-_ ]?)?W(\d{1,2})$/i);if(m)wIdx.push({i,y:m[1]?+m[1]:DEFAULT_YEAR,w:+m[2],name:h})});
   if(!wIdx.length)throw new Error("没有找到周列（列名应为 W34 或 2026W34 这种格式）");
   WEEKS=wIdx.map(x=>x.name.toUpperCase());
-  WMON=wIdx.map(x=>isoW1Mon(x.y)+(x.w-1)*7*DAY);
+  WMON=wIdx.map(x=>isoWeekMonday(x.y,x.w));
+  if(WMON.some(m=>m==null)||new Set(WMON).size!==WMON.length)throw new Error("存在无效或重复的ISO周列");
   ROWS=t.slice(1).filter(c=>(c[ib]||"").trim()&&(c[im]||"").trim()).map(c=>{
     const dp=(c[id]||"").trim().split(/[\/\-.]/).map(Number);
-    const ok=dp.length===3&&dp.every(n=>!isNaN(n));
-    const w1m=ok?firstFullWeekMon(dp):null;
+    const ok=utcDate(dp)!=null;
+    const w1m=ok?firstFullWeekMonday(dp):null;
+    const p0=ok?partialWeek(dp):null;
     return {brand:c[ib].trim(),model:c[im].trim(),cat:ic>=0?(c[ic]||"").trim():"",date:(c[id]||"").trim(),
       vals:wIdx.map(x=>{const v=(c[x.i]||"").trim().replace(/,/g,"");return v===""||isNaN(+v)?null:+v}),
-      offs:WMON.map(m=>w1m==null?null:fullWeekIndex(m,w1m))}});
+      offs:WMON.map(m=>lifecycleWeekIndex(m,w1m)),
+      p0:p0?{days:p0.days,isoMonday:p0.isoMonday}:null}});
   assignColors();
   BRANDS=["全部",...new Set(ROWS.map(r=>r.brand))];
   if(!BRANDS.includes(S.brand))S.brand=BRANDS[1]||"全部";
@@ -626,14 +626,25 @@ function renderNote(sel){
   if(CUR&&CUR.skipped&&!CUR.o.mobile)msgs.push(`另有 ${CUR.skipped} 条线因空间不足，名字以淡色显示在线尾（越靠后越淡），悬停该线可看清`);
   if(S.axis==="launch"){const nod=sel.filter(r=>hasData(r)&&r.offs.every(o=>o==null)).map(label);
     if(nod.length)msgs.push(`<b>${nod.join("、")}</b> 日期缺失、无法识别或暂无完整销售周数据，未在此视图显示`)}
-  $("note").innerHTML=(S.axis==="launch"?"「完整销售第 N 周」以所填日期起首个完整7天ISO自然周为W1；不足7天的上市当周P0不纳入本视图。若填的是发布日期而非开售日，需核实日期口径。":"拖动图下方滑块或修改周期选择可调整显示范围。")+(msgs.length?" "+msgs.join("；")+"。":"");
+  $("note").innerHTML=(S.axis==="launch"?"「完整销售第 N 周」以所填日期起首个完整7天ISO自然周为W1；不足7天的上市当周P0不纳入W1起的图表，但会在表格单列P0天数与周末累计销量（非P0单周销量）。若填的是发布日期而非开售日，需核实日期口径。":"拖动图下方滑块或修改周期选择可调整显示范围。")+(msgs.length?" "+msgs.join("；")+"。":"");
 }
 function renderTable(sel){ // 列与图表横轴一致，但倒序：最新的周放在最左（紧跟发布日期列）
   const cats=CUR?CUR.cats:[];
   if(!sel.length||!cats.length){$("tbl").innerHTML="";return}
-  const h=`<tr><th>机型</th><th>发布日期</th>${cats.slice().reverse().map(c=>`<th>${c.t.split("\n")[0]}</th>`).join("")}</tr>`;
+  const lifecycle=S.axis==="launch";
+  // P0仅展示实际天数与其周末累计销量，绝不占用W1或折算成完整周。
+  const p0Headers=lifecycle?'<th title="上市周实际覆盖天数；周一上市不设置P0">P0天数</th><th title="P0所在ISO周的周末累计销量（万台），不等于P0单周销量；周增量模式仍显示累计值">P0末累计</th>':"";
+  const h=`<tr><th>机型</th><th>发布日期</th>${p0Headers}${cats.slice().reverse().map(c=>`<th>${c.t.split("\n")[0]}</th>`).join("")}</tr>`;
   const b=sel.map(r=>{const vs=axisData(r,cats).slice().reverse();
-    return `<tr><td><span class="dot" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${colorOf(r)};margin-right:6px"></span>${label(r)}</td><td>${r.date}</td>${
+    let p0Cells="";
+    if(lifecycle){
+      const idx=r.p0?WMON.indexOf(r.p0.isoMonday):-1;
+      const cum=idx>=0?r.vals[idx]:null;
+      p0Cells=r.p0
+        ?`<td class="n">${r.p0.days}天</td>${cum==null?'<td class="na">—</td>':`<td class="n">${cum.toFixed(2)}</td>`}`
+        :'<td class="na">不适用</td><td class="na">—</td>';
+    }
+    return `<tr><td><span class="dot" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${colorOf(r)};margin-right:6px"></span>${label(r)}</td><td>${r.date}</td>${p0Cells}${
       vs.map(v=>v==null?`<td class="na">—</td>`:`<td class="n${v<0?" bad":""}">${v.toFixed(2)}</td>`).join("")}</tr>`}).join("");
   $("tbl").innerHTML=`<thead>${h}</thead><tbody>${b}</tbody>`;
 }

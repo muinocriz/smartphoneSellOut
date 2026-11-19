@@ -7,10 +7,10 @@
 | 模块 | 页面 | 数据来源 / 编辑位置 | 导出 |
 | --- | --- | --- | --- |
 | 销量追踪 | `index.html` | 根目录 `data.csv` | 桌面、手机 PNG；列表 JSON |
-| 市场份额 | `market-share.html` | 页面内品牌、子品牌、战报文案；浏览器本地存储 | 3:4 PNG |
+| 市场份额 | `market-share.html` | 根目录 `market-share.csv` 自动读取或本地 CSV 导入；可手动修改，浏览器本地保存 | 3:4 PNG |
 | 榜单推算与出图 | `sales-estimator.html` | 导入榜单截图，读取柱长并按已知销量标定；各榜单分开处理 | 3:4 / 9:16 PNG、CSV、ZIP |
 
-三个模块使用独立页面，**不可把市场份额示例或榜单推算结果视为自动来自 `data.csv`**。浏览器清理网站数据、换设备后，本地编辑与自定义列表可能丢失。
+三个模块使用独立页面，**市场份额仅读取 `market-share.csv`，与销量追踪的 `data.csv` 不混用；榜单推算独立运行**。浏览器清理网站数据、换设备后，本地编辑与自定义列表可能丢失。
 
 ## 2. 销量追踪 CSV 规范
 
@@ -83,11 +83,12 @@ brand,model,category,date,2026W34,2026W35
 ## 4. 市场份额模块
 
 - 五种展示：双图组合、横向发散、100% 堆叠、坡度图、哑铃图。默认展示双图组合。
-- 直接在网页修改两周份额、品牌／子品牌、趋势卡与战报文案；「其他」份额按差额补足。允许按口径拆分 OPPO／一加／realme、vivo／iQOO。
-- 内置 W44／W45 是**可编辑示例**，不是实时或官方数据；修改示例初始值需检查 `getDefaultBrands()`、`getDefaultState()`。
+- 默认从 `market-share.csv` 自动读取历史数据，可选择任意相邻的两个连续 ISO 周，也可手动导入本地 CSV。修改份额时切换到浏览器保存的手动编辑模式；重新选择周次或点击“重载仓库 CSV”会恢复 CSV 数据。其他按六大集团差额补足。
+- CSV 表头严格推荐：`ISO 周,趋势,苹果,华为,小米,OPPO,一加,realme,vivo,iQOO,荣耀`（`vivo` 小写；解析时保留对历史 `VIVO` 的大小写兼容）。一行一周，如 `2026W45`。OPPO 列包含一加／realme，vivo 列包含 iQOO；拆分时主品牌 = 集团 − 子品牌，禁止重复加总。必须提供全字段，校验各项在 0–100%、子品牌不大于集团、六大集团合计不超过 100%。
+- 仓库 CSV 读取失败时，仍保留本地保存的配置或内置 W44/W45 示例；该示例不是官方统计。更新 CSV 后无需修改 HTML。手动修改标题、洞察与趋势描述会记录覆盖标记，不随周次切换被自动重写；点击“恢复所选周 CSV 原始数据”可撤销这些覆盖。
 - 六套主题：柔雾丁香、**编辑部米白（模块2与3统一默认）**、极简纯白、雾蓝极简、日落珊瑚、莫兰迪绿野。已选择过主题的浏览器仍优先使用本地保存的选项。
 - 网页输入区保持浅色卡片；海报有独立主题。SVG 绘制后经 Canvas 导出 1200×1600 PNG（3:4）。
-- 顶部趋势双卡、主副标题、洞察标签、底部数据口径两行均可在文案区编辑；本地保存、实时更新。
+- 顶部趋势双卡根据 CSV `趋势` 列说明大盘销量趋势；品牌份额变化以百分点（pp）表示，而不是份额相对涨跌幅。主副标题、洞察、趋势和底部水印文案均可手动编辑，覆盖项在本地保存。
 - 抖音右侧交互区／底部文案区是独立安全边界；预览参考线不应进入导出图。
 
 ## 5. 榜单推算模块
@@ -116,7 +117,7 @@ brand,model,category,date,2026W34,2026W35
 
 ## 7. 技术与部署
 
-- **静态页面**：`index.html`、`market-share.html`、`sales-estimator.html`；模块1必须加载共享日期脚本 `iso-sales-week.js`（提供浏览器 `IsoSalesWeek` 全局及 Node CommonJS 导出）；模块2/3共用主题脚本 `poster-themes.js`。无后端或打包步骤。部署须包含这些脚本。ISO周计算禁止在新模块中复制另一套实现。使用 `node --test tests/iso-sales-week.test.cjs` 运行日期边界测试。
+- **静态页面**：`index.html`、`market-share.html`、`sales-estimator.html`；模块1必须加载共享日期脚本 `iso-sales-week.js`（提供浏览器 `IsoSalesWeek` 全局及 Node CommonJS 导出）；模块2/3共用主题脚本 `poster-themes.js`；模块2额外加载 `market-share-data.js` 与 `market-share-import.js`，并复用 `iso-sales-week.js`。无后端或打包步骤。部署须包含这些脚本。ISO周计算禁止在新模块中复制另一套实现。使用 `node --test tests/iso-sales-week.test.cjs` 运行日期边界测试。
 - **依赖**：销量追踪使用 Apache ECharts 5.4.3（cdnjs）；市场份额编辑器使用 Tailwind CDN 和原生 SVG；图卡导出使用 Canvas；字体依赖 Google Fonts，必要时系统回退。完整离线部署请自行处理 CDN 和字体可达性。
 - **本地预览**：项目根目录执行 `python3 -m http.server 8000`，浏览器访问 `http://localhost:8000`；直接打开 HTML 可能触发 CSV 的本地文件访问限制。
 - **GitHub Pages**：Settings → Pages → `Deploy from a branch` → `master` → `/(root)`。

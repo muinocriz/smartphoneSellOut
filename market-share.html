@@ -59,16 +59,6 @@
       background:#f5f7fb !important; color:#202a3d !important;
       border-color:#e0e7f1 !important; scrollbar-color:#bfcde1 #eef2f8;
     }
-    body.market-share-light > aside > div:first-child h1 {color:#202a3d !important;letter-spacing:-.025em}
-    body.market-share-light > aside > div:first-child > span {
-      background:#edf4ff !important;border-color:#d5e2f8 !important;
-      color:#52739b !important;
-    }
-    body.market-share-light > aside > div:first-child > div > div:first-child {
-      background:#edf4ff !important;border-color:#d5e2f8 !important;
-      color:#2865db !important;
-    }
-    body.market-share-light > aside > div:first-child > div > div:first-child > span {background:#3677ea !important}
     body.market-share-light > aside > div[class*="bg-slate-800/70"] {
       background:#ffffff !important; border:1px solid #e3eaf4 !important;
       border-radius:16px !important; box-shadow:0 5px 18px #25467409;
@@ -209,36 +199,33 @@
     <!-- 顶部品牌标题：自然纵向排列，避免周次标签挤压主标题 -->
     <div class="space-y-3 pb-1">
       <div>
-        <div class="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-blue-500/15 border border-blue-500/30 text-blue-400 text-xs font-semibold mb-1.5">
-          <span class="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></span>
-          DATA JOURNALISM STUDIO
-        </div>
-        <h1 class="text-2xl font-extrabold tracking-tight text-white">手机份额战报 · 3:4 出图台</h1>
+        <div class="ui-eyebrow"><span class="ui-eyebrow-dot" aria-hidden="true"></span>DATA JOURNALISM STUDIO</div>
+        <h1 class="ui-page-title">手机份额战报 · 3:4 出图台</h1>
       </div>
-      <span id="currentMarketShareWeek" class="inline-block whitespace-nowrap text-xs text-slate-400 bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-700">2026 W44→W45</span>
+      <span id="currentMarketShareWeek" class="ui-meta-badge">2026 W44→W45</span>
     </div>
 
     <!-- 1. 图表类型切换 -->
     <div class="bg-slate-800/70 p-3.5 rounded-2xl border border-slate-700/70">
       <h2 class="ui-section-title section-heading-spaced">1. 选择数据可视化图表</h2>
       <div class="grid grid-cols-2 gap-2" id="chartTypeGroup">
-        <button data-type="combo" class="chart-btn tab-active py-2.5 px-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer col-span-2">
+        <button data-type="combo" class="chart-btn ui-choice tab-active py-2.5 px-2.5 rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer col-span-2">
           <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="18" height="7" rx="1.5"/><line x1="12" y1="13" x2="12" y2="21"/><rect x="12" y="14" width="7" height="2.5" rx="0.8" fill="currentColor"/><rect x="6" y="18" width="6" height="2.5" rx="0.8"/></svg>
           <span>双图组合模式 (堆叠格局 + 发散涨跌) ★</span>
         </button>
-        <button data-type="diverging" class="chart-btn bg-slate-800 hover:bg-slate-700 text-slate-300 py-2.5 px-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer">
+        <button data-type="diverging" class="chart-btn ui-choice bg-slate-800 hover:bg-slate-700 text-slate-300 py-2.5 px-2.5 rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer">
           <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="12" y1="3" x2="12" y2="21"/><rect x="12" y="5" width="8" height="4" rx="1" fill="currentColor"/><rect x="5" y="13" width="7" height="4" rx="1"/></svg>
           <span>横向发散条形图</span>
         </button>
-        <button data-type="stacked" class="chart-btn bg-slate-800 hover:bg-slate-700 text-slate-300 py-2.5 px-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer">
+        <button data-type="stacked" class="chart-btn ui-choice bg-slate-800 hover:bg-slate-700 text-slate-300 py-2.5 px-2.5 rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer">
           <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="4" width="5" height="16" rx="1"/><rect x="15" y="4" width="5" height="16" rx="1"/><path d="M9 9C12 9 12 11 15 11" stroke-dasharray="2 2"/></svg>
           <span>100% 堆叠图</span>
         </button>
-        <button data-type="slope" class="chart-btn bg-slate-800 hover:bg-slate-700 text-slate-300 py-2.5 px-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer">
+        <button data-type="slope" class="chart-btn ui-choice bg-slate-800 hover:bg-slate-700 text-slate-300 py-2.5 px-2.5 rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer">
           <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 17L20 7M4 8L20 16"/><circle cx="4" cy="17" r="2"/><circle cx="20" cy="7" r="2"/></svg>
           <span>坡度图</span>
         </button>
-        <button data-type="dumbbell" class="chart-btn bg-slate-800 hover:bg-slate-700 text-slate-300 py-2.5 px-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer">
+        <button data-type="dumbbell" class="chart-btn ui-choice bg-slate-800 hover:bg-slate-700 text-slate-300 py-2.5 px-2.5 rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer">
           <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="6" y1="8" x2="18" y2="8"/><circle cx="6" cy="8" r="2.5"/><circle cx="18" cy="8" r="2.5" fill="currentColor"/><line x1="8" y1="16" x2="15" y2="16"/><circle cx="15" cy="16" r="2.5"/><circle cx="8" cy="16" r="2.5" fill="currentColor"/></svg>
           <span>哑铃图</span>
         </button>

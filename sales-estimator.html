@@ -15,6 +15,86 @@
 .copy-mini{font-size:11px;color:#6b7d95}.copy-grid{display:grid;gap:12px;margin:14px 0 12px}.copy-box{background:#f8fbff;border:1px solid #dfe8f5;border-radius:16px;padding:14px 14px 12px}.copy-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}.copy-head b{font-size:14px;color:#21334d}.copy-desc{font-size:12px;color:#7285a0;line-height:1.7;margin:0 0 12px}.copy-two{display:grid;grid-template-columns:1fr 1fr;gap:12px}.copy-field{display:grid;gap:8px}.copy-field label{font-size:12px;font-weight:700;color:#476282}.copy-field input,.copy-field textarea{width:100%;border:1px solid #d7e3f2;border-radius:12px;padding:10px 12px;background:#fff;color:#22344f;line-height:1.6;font-size:13px;outline:none}.copy-field textarea{resize:vertical;min-height:96px}.copy-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:12px}.copy-actions button{border:none;border-radius:10px;background:#edf4ff;color:#2c5fb1;padding:9px 12px;font-weight:700}.copy-actions button:hover{filter:brightness(.98)}@media(max-width:760px){.copy-two{grid-template-columns:1fr}}
 .safe-editor{display:grid;gap:14px;margin-top:12px}.safe-box{background:linear-gradient(180deg,#101a2a 0%,#152238 100%);border:1px solid #223454;border-radius:18px;padding:16px 16px 14px;color:#f4f7ff;box-shadow:0 10px 26px #09111d18}.safe-box-head{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:6px}.safe-box-title{font-size:15px;font-weight:850;letter-spacing:.2px}.safe-note{font-size:12px;color:#6fb6ff;font-weight:800}.safe-box-desc{margin:0 0 12px;color:#b4c4db;font-size:12px;line-height:1.7}.switchline{display:flex;align-items:center;gap:10px;justify-content:flex-end;font-size:12px;color:#d8e6ff;font-weight:700}.switchline input{position:absolute;opacity:0;pointer-events:none}.switch-ui{width:54px;height:30px;border-radius:999px;background:#3a4966;position:relative;box-shadow:inset 0 0 0 1px #5d6d8d;transition:background .18s ease}.switch-ui::after{content:'';position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;box-shadow:0 2px 8px #0004;transition:left .18s ease,background .18s ease}.switchline input:checked + .switch-ui{background:linear-gradient(90deg,#ff4f72,#ff5f7d)}.switchline input:checked + .switch-ui::after{left:27px}.safe-slider{margin-top:12px}.safe-slider-label{display:flex;justify-content:space-between;gap:12px;align-items:center;font-size:13px;font-weight:700;margin-bottom:8px}.safe-slider-label span{color:#f4f8ff}.safe-slider-label b{color:#ff5a77;font-size:13px}.safe-slider.bottom .safe-slider-label b{color:#ffb01f}.range{width:100%;appearance:none;height:8px;border-radius:999px;background:#2f3e5a;outline:none}.range::-webkit-slider-thumb{appearance:none;width:26px;height:26px;border-radius:50%;background:#ff4f72;border:4px solid #7d2941;box-shadow:0 2px 10px #0004;cursor:pointer}.safe-slider.bottom .range::-webkit-slider-thumb{background:#f7a30d;border-color:#805913}.range::-moz-range-thumb{width:26px;height:26px;border-radius:50%;background:#ff4f72;border:4px solid #7d2941;box-shadow:0 2px 10px #0004;cursor:pointer}.safe-slider.bottom .range::-moz-range-thumb{background:#f7a30d;border-color:#805913}.safe-check{display:flex;align-items:center;gap:9px;margin-top:14px;padding-top:12px;border-top:1px solid #263757;font-size:12px;color:#d7e5ff}.safe-check input{width:16px;height:16px}.theme-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:12px}.palette-card{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;border-radius:18px;background:#111d31;border:1px solid #2b3e61;color:#fff;text-align:left;cursor:pointer;transition:.16s transform ease,.16s border-color ease,.16s box-shadow ease}.palette-card:hover{transform:translateY(-1px);border-color:#4e7fd8}.palette-card.active{border-color:#2b7cff;box-shadow:0 0 0 2px #2b7cff33 inset,0 8px 20px #09111d28}.palette-name{font-size:13px;font-weight:850}.swatches{display:flex;gap:10px;align-items:center}.swatches i{width:22px;height:22px;border-radius:50%;display:inline-block;border:1px solid #ffffff22;box-shadow:0 1px 3px #0003}@media(max-width:690px){.theme-grid{grid-template-columns:1fr}.safe-box-title{font-size:14px}}
 .numeric-value,.num,.rankcell,.relative,input[inputmode="decimal"],input[type="number"]{font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace!important;font-variant-numeric:tabular-nums}
+
+/* Desktop: 独立滚动操作栏 + 始终可见的右侧预览。
+   所有发布文案/品牌分析面板已并入左栏；预览不参与左栏的滚动。 */
+@media (min-width:1001px){
+  .studio-grid{
+    grid-template-columns:minmax(340px,420px) minmax(0,1fr);
+    height:clamp(480px,calc(100dvh - 145px),1160px);
+    align-items:stretch;
+    gap:20px;
+    min-height:0;
+  }
+  .studio-controls{
+    height:100%;
+    min-height:0;
+    min-width:0;
+    padding:0 14px 22px 0;
+    overflow-y:auto;
+    overflow-x:hidden;
+    overscroll-behavior-y:contain;
+    scrollbar-color:#b9c9df #eaf0f8;
+    scrollbar-width:thin;
+  }
+  .studio-controls::-webkit-scrollbar{width:8px}
+  .studio-controls::-webkit-scrollbar-track{background:#eaf0f8;border-radius:999px}
+  .studio-controls::-webkit-scrollbar-thumb{background:#b9c9df;border-radius:999px;border:2px solid #eaf0f8}
+  .studio-preview{
+    display:flex;
+    flex-direction:column;
+    min-height:0;
+    height:100%;
+    overflow:hidden;
+  }
+  .studio-preview .preview-titlebar{flex:0 0 auto}
+  .studio-preview .poster-viewport{
+    position:relative;
+    flex:1 1 auto;
+    min-height:0;
+    height:auto;
+    max-height:none;
+    overflow:hidden;
+    align-items:center;
+    justify-items:center;
+  }
+  .studio-preview .poster-viewport canvas{
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+    max-width:none;
+    max-height:none;
+    object-fit:contain;
+  }
+  .studio-preview .caption{flex:0 0 auto}
+}
+/* 发布说明、分析概览和标题工作台都在左栏内按顺序滚动。 */
+.studio-controls .studio-bottom{
+  display:grid;
+  grid-template-columns:minmax(0,1fr);
+  gap:14px;
+  margin-top:20px;
+  min-width:0;
+}
+.studio-controls .studio-bottom .story-card{padding:14px}
+.studio-controls .studio-bottom .righttop{flex-wrap:wrap}
+.studio-controls .studio-bottom .story-buttons button,
+.studio-controls .studio-bottom .data-exports button{white-space:normal}
+@media (max-width:1000px){
+  .studio-grid{height:auto;min-height:0;grid-template-columns:minmax(0,1fr)}
+  .studio-controls{
+    height:auto;max-height:none;min-height:0;
+    padding:10px 0;overflow:visible;
+  }
+  .studio-preview{height:auto;overflow:visible;display:block}
+  .studio-preview .poster-viewport{max-height:705px;height:auto;overflow:auto}
+  .studio-preview .poster-viewport canvas{max-height:660px}
+}
+@media (max-height:650px) and (min-width:1001px){
+  .studio-grid{height:calc(100dvh - 90px);min-height:350px}
+  .studio-preview .caption{font-size:11px;line-height:1.4}
+}
 </style></head><body><main class="shell">
 <div class="topline"><div><div class="eyebrow">BAR-LENGTH CALIBRATION / RD OBSERVATION</div><h1>手机销量 · 数据分析与图文工作台</h1><p class="subtitle">截图测量 → 已知累计销量差值标定 → 数据分析 → 一键导出小红书 / 抖音图卡。</p></div><div class="source">本地离线工具 · 思源黑体优先 · 不上传数据</div></div>
 <div class="tabs" id="tabs"><button type="button" class="tab active" data-ds="40">2026年9月 TOP40</button><button type="button" class="tab" data-ds="30">2026 W45 TOP30</button><button type="button" class="tab" data-ds="custom">+ 导入新榜单截图</button></div>
@@ -35,7 +115,7 @@
 <div class="table-actions"><input id="searchRows" class="field search" placeholder="搜索品牌 / 机型"><div class="actions-right"><span class="caption" id="visibleCount"></span><button class="secondary" id="resetSearch" type="button">全部</button></div></div><div class="tablewrap"><table class="ranktable"><thead><tr><th>排名</th><th>机型</th><th class="num">柱长 / px</th><th>相对柱长</th><th class="num">估算销量 / 万台</th></tr></thead><tbody id="rows"></tbody></table></div><div class="explain method">销量保留适当小数仅为方便比较，并非真实销量的精度保证。条纹和 JPEG 边缘可能引入约 ±1–2 像素的测量误差；较短柱条的不确定性相对更高。</div></section>
 <details class="panel details"><summary>查看原始榜单截图与像素测量方法</summary><div class="inside"><img class="preview" id="preview" alt="原始排行榜截图"><p id="previewInfo" class="caption"></p><div class="method">方法：识别蓝色柱条的垂直排列，取每条的中心横截面，测定从统一柱条起始位置到最右端的水平像素跨度。单机型标定 k = 销量 ÷ 柱长；多机型合计标定 k = 总销量 ÷ 所选柱长之和；多组标定使用通过原点的最小二乘拟合，并对明显偏离多数的标定自动进行异常提示和适度剔除。两张榜单按各自独立的像素比例拟合。</div></div></details>
 </div></div><section class="studio panel" id="socialStudio">
-  <div class="studiohead"><div><div class="eyebrow">SOCIAL CONTENT STUDIO / 新增功能</div><h2 class="studio-title">④ 图文内容工作台</h2><p class="panel-desc">从同一张榜单生成四种选题，导出 3:4 / 9:16 高清图卡、标题正文和派生指标。不同榜单独立标定。</p></div><span class="statuspill" id="publishStatus">待输入标定</span></div>
+  <div class="studiohead"><div><div class="eyebrow">SOCIAL CONTENT STUDIO / 新增功能</div><h2 class="studio-title">④ 图文内容工作台</h2><p class="panel-desc">从同一张榜单生成四种选题，导出 3:4 / 9:16 高清图卡、标题正文和派生指标。不同榜单独立标定。桌面端左侧独立滚动，右侧预览始终可见。</p></div><span class="statuspill" id="publishStatus">待输入标定</span></div>
   <div id="qualityGuard" class="msg warn" style="margin:0 0 18px">尚无标定数据：可预览像素比例，正式图卡与发布文案需先填入已知销量。</div>
   <div class="studio-grid">
     <div class="studio-controls">
@@ -108,14 +188,7 @@
         <button type="button" class="secondary" id="downloadAllCards">一键打包四张图 + 文案 + CSV</button>
       </div>
       <div class="msg" id="exportWarning">导出内容保留数据来源、估算口径及样本限制。</div>
-    </div>
-    <div class="studio-preview">
-      <div class="preview-titlebar"><span>实时画面预览</span><span id="previewSize">1080 × 1440</span></div>
-      <div class="poster-viewport"><canvas id="posterCanvas" width="1080" height="1440" aria-label="自动生成的手机销量图卡预览"></canvas></div>
-      <p class="caption">图卡所有数字均根据当前榜单计算；启用抖音安全区后，预览会显示参考线，成品版将自动收缩布局以避让右侧与底部区域。没有足够可靠的标定值时，禁止导出可能误导的绝对销量图卡。</p>
-    </div>
-  </div>
-  <div class="studio-bottom">
+      <div class="studio-bottom">
     <section class="story-card">
       <div class="righttop"><h3>自动生成的发布文案</h3><button type="button" class="secondary" id="copyStory">复制文案</button></div>
       <p class="caption">标题、数据分析、标签和口径说明均可编辑，切换选题/榜单会自动重新生成。编辑后复制的是你当前修改的版本。</p>
@@ -150,6 +223,14 @@
       <div class="story-buttons"><button type="button" class="secondary" id="regenHeadline">根据当前数据重新生成</button><button type="button" class="secondary" id="downloadHeadline">保存标题与轮播 TXT</button></div>
     </section>
   </div>
+    </div>
+    <div class="studio-preview">
+      <div class="preview-titlebar"><span>实时画面预览</span><span id="previewSize">1080 × 1440</span></div>
+      <div class="poster-viewport"><canvas id="posterCanvas" width="1080" height="1440" aria-label="自动生成的手机销量图卡预览"></canvas></div>
+      <p class="caption">图卡所有数字均根据当前榜单计算；启用抖音安全区后，预览会显示参考线，成品版将自动收缩布局以避让右侧与底部区域。没有足够可靠的标定值时，禁止导出可能误导的绝对销量图卡。</p>
+    </div>
+  </div>
+
 </section>
 
 <p class="caption" style="margin-top:18px">提示：仅对截图所列机型进行推算，不能据此计算全市场销量或品牌市场份额；“华为 畅享 100/100m”等合并行在图中是一个柱条，不能拆分两款销量。</p></main><div class="toast" id="toast" role="status"></div>

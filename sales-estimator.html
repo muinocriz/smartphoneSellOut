@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>手机销量推算与小红书抖音图文工作台</title>
+<script src="poster-themes.js"></script>
 <link rel='preconnect' href='https://fonts.googleapis.com'>
 <link rel='preconnect' href='https://fonts.gstatic.com' crossorigin>
 <link href='https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap' rel='stylesheet'>
@@ -221,12 +222,12 @@
         <section class="safe-box">
           <div class="safe-box-head"><span class="safe-box-title">4. 海报主题与配色方案</span><span class="safe-note">编辑部米白</span></div>
           <div class="theme-grid" id="paletteChooser">
-            <button type="button" class="palette-card" data-theme="lilac"><span class="palette-name">柔雾丁香</span><span class="swatches"><i style="background:#f2f3f8"></i><i style="background:#6d50bf"></i><i style="background:#c26f8d"></i></span></button>
-            <button type="button" class="palette-card active" data-theme="editorial"><span class="palette-name">编辑部米白</span><span class="swatches"><i style="background:#ece9e2"></i><i style="background:#d24834"></i><i style="background:#2e627f"></i></span></button>
-            <button type="button" class="palette-card" data-theme="pure"><span class="palette-name">极简纯白</span><span class="swatches"><i style="background:#f7f8fa"></i><i style="background:#16c197"></i><i style="background:#f64163"></i></span></button>
-            <button type="button" class="palette-card" data-theme="mist"><span class="palette-name">雾蓝极简</span><span class="swatches"><i style="background:#edf3f9"></i><i style="background:#3e78af"></i><i style="background:#d0896b"></i></span></button>
-            <button type="button" class="palette-card" data-theme="coral"><span class="palette-name">日落珊瑚</span><span class="swatches"><i style="background:#f3eee8"></i><i style="background:#d96b43"></i><i style="background:#2d8a8d"></i></span></button>
-            <button type="button" class="palette-card" data-theme="olive"><span class="palette-name">莫兰迪绿野</span><span class="swatches"><i style="background:#f4f3ee"></i><i style="background:#e4970e"></i><i style="background:#4d7f61"></i></span></button>
+            <button type="button" class="palette-card" data-theme="lilac"><span class="palette-name">柔雾丁香</span><span class="swatches"><i></i><i></i><i></i></span></button>
+            <button type="button" class="palette-card active" data-theme="editorial"><span class="palette-name">编辑部米白</span><span class="swatches"><i></i><i></i><i></i></span></button>
+            <button type="button" class="palette-card" data-theme="pure"><span class="palette-name">极简纯白</span><span class="swatches"><i></i><i></i><i></i></span></button>
+            <button type="button" class="palette-card" data-theme="mist"><span class="palette-name">雾蓝极简</span><span class="swatches"><i></i><i></i><i></i></span></button>
+            <button type="button" class="palette-card" data-theme="coral"><span class="palette-name">日落珊瑚</span><span class="swatches"><i></i><i></i><i></i></span></button>
+            <button type="button" class="palette-card" data-theme="olive"><span class="palette-name">莫兰迪绿野</span><span class="swatches"><i></i><i></i><i></i></span></button>
           </div>
           <select id="posterTheme" class="field" hidden>
             <option value="lilac">柔雾丁香</option>
@@ -386,15 +387,9 @@ const watermarkDefaults={diagonalEnabled:false,diagonalText:'RD·观测',diagona
 const watermarkState=(()=>{try{const prev=JSON.parse(localStorage.getItem(ESTIMATOR_WATERMARK_KEY)||'null');return {...watermarkDefaults,...(prev&&typeof prev==='object'?prev:{})}}catch(_){return {...watermarkDefaults}}})();
 const socialCopyState={title:'',subtitle:'',markLeft:'',markRight:'',disclaimer:''};
 const socialCopyDirty={title:false,subtitle:false,markLeft:false,markRight:false,disclaimer:false};
-const socialPalettes={
- lilac:{bg:'#f3f0f9',panel:'#ffffff',panel2:'#eee6f8',ink:'#2f2740',sub:'#766c92',hair:'#ddd2ef',bar:'#6d50bf',bar2:'#c07aa8',accent:'#6d50bf',warn:'#9b627a'},
- editorial:{bg:'#f3f0ea',panel:'#fffdfa',panel2:'#ece5db',ink:'#1f2b35',sub:'#67727d',hair:'#d7d1c8',bar:'#2e627f',bar2:'#d24834',accent:'#d24834',warn:'#9a6828'},
- pure:{bg:'#ffffff',panel:'#ffffff',panel2:'#f4f7fa',ink:'#17212b',sub:'#6e7d8d',hair:'#dde5ee',bar:'#16c197',bar2:'#f64163',accent:'#16c197',warn:'#b53f57'},
- mist:{bg:'#eff4f8',panel:'#ffffff',panel2:'#e4edf4',ink:'#243444',sub:'#698099',hair:'#d4e0eb',bar:'#3e78af',bar2:'#d0896b',accent:'#3e78af',warn:'#a26a4f'},
- coral:{bg:'#fbf5ef',panel:'#fffaf6',panel2:'#efe5dc',ink:'#27363b',sub:'#7a8484',hair:'#e4d7ca',bar:'#d96b43',bar2:'#2d8a8d',accent:'#d96b43',warn:'#9a6a46'},
- olive:{bg:'#f5f5f0',panel:'#ffffff',panel2:'#e8eadf',ink:'#243329',sub:'#6e7f72',hair:'#d8ddcf',bar:'#4d7f61',bar2:'#e4970e',accent:'#4d7f61',warn:'#916918'}
-};
-const paletteLabels={lilac:'柔雾丁香',editorial:'编辑部米白',pure:'极简纯白',mist:'雾蓝极简',coral:'日落珊瑚',olive:'莫兰迪绿野'};
+// Shared theme system: market-share SVG and estimator Canvas use identical tokens.
+const socialPalettes=window.PosterThemes.estimatorPalettes;
+const paletteLabels=Object.fromEntries(Object.entries(socialPalettes).map(([id,p])=>[id,p.name]));
 // 同系列口径：Apple；华为；小米系(小米/REDMI)；OPPO系(OPPO/一加)；荣耀；vivo系(vivo/iQOO)。
 function safeBrand(name){const v=String(name).trim();if(/^(?:iPhone|Apple|苹果)\b/i.test(v)||/^苹果/.test(v)||/^iPhone/i.test(v))return 'Apple';if(/^华为/.test(v))return '华为';if(/^荣耀/.test(v))return '荣耀';if(/^(?:REDMI|Xiaomi|Mi\s|小米|红米)/i.test(v))return '小米系';if(/^(?:OPPO|OnePlus|一加)/i.test(v))return 'OPPO系';if(/^(?:vivo|iQOO)/i.test(v))return 'vivo系';return '未识别品牌'}
 function derivedData(){const d=ds(),fit=getFit(),bars=d.bars||[],total=bars.reduce((x,b)=>x+b.pixels,0);
@@ -412,7 +407,18 @@ function displayTimes(v){return v===null||!Number.isFinite(v)?'—':fmt(v,2)+' �
 function displayPct(v){return Number.isFinite(v)?fmt(v*100,1)+'%':'—'}
 function displaySale(value){return value===null?'待标定':displayWan(value)+' 万台'}
 function updateSafeLabels(){const r=Math.round(socialState.safeRight),b=Math.round(socialState.safeBottom);if($('safeRightVal'))$('safeRightVal').textContent=r+'%'+(r===15?'（推荐）':'');if($('safeBottomVal'))$('safeBottomVal').textContent=b+'%'+(b===10?'（推荐）':'');if($('safeEnable'))$('safeEnable').checked=!!socialState.safeEnabled;if($('safeGuides'))$('safeGuides').checked=!!socialState.safeGuides;if($('safeRight'))$('safeRight').value=String(r);if($('safeBottom'))$('safeBottom').value=String(b)}
-function syncPaletteChooser(){const holder=$('paletteChooser');if(!holder)return;holder.querySelectorAll('[data-theme]').forEach(btn=>btn.classList.toggle('active',btn.dataset.theme===socialState.theme));const note=holder.parentElement?.querySelector('.safe-note');if(note)note.textContent=paletteLabels[socialState.theme]||'6 种可选';if($('posterTheme'))$('posterTheme').value=socialState.theme}
+function syncPaletteChooser(){
+ const holder=$('paletteChooser');if(!holder)return;
+ holder.querySelectorAll('[data-theme]').forEach(btn=>{
+  const theme=btn.dataset.theme;
+  btn.classList.toggle('active',theme===socialState.theme);
+  const colors=window.PosterThemes.swatches(theme);
+  btn.querySelectorAll('.swatches i').forEach((dot,i)=>{dot.style.background=colors[i]||'#ffffff'});
+ });
+ const note=holder.parentElement?.querySelector('.safe-note');
+ if(note)note.textContent=paletteLabels[socialState.theme]||'6 种可选';
+ if($('posterTheme'))$('posterTheme').value=socialState.theme;
+}
 function posterCopyDefaults(type,o){const hd=posterHeading(type,o);let warning=o.fit.fitMode==='robust'?' · 部分异常标定已排除':o.fit.fitMode==='single'?' · 仅1组标定':'';return {title:hd.title,subtitle:hd.sub,markLeft:'RD · 观测',markRight:'数码销量观察 / DATA REPORT',disclaimer:`RD观测榜单截图 · 柱长像素拟合 | 销量为估算值
 仅本次入榜样本，不代表全市场销量 / 品牌市场份额
 标定 ${o.d.calibrations.length} 组${warning} · 合并行按一条记录统计`}}
@@ -528,24 +534,39 @@ function horizontalRule(ctx,y,p){ctx.strokeStyle=p.hair;ctx.lineWidth=2;ctx.begi
 function wrapCanvas(ctx,str,x,y,maxWidth,size,lineHeight,color,weight='650',maxLines=3){let row='',lines=[];for(const c of Array.from(String(str))){if(measureMixedCanvas(ctx,row+c,size,weight).width>maxWidth&&row){lines.push(row);row=c}else row+=c}if(row)lines.push(row);lines=lines.slice(0,maxLines);lines.forEach((v,i)=>canvasText(ctx,v,x,y+i*lineHeight,size,color,weight));return y+lines.length*lineHeight}
 function posterHeading(type,o,p){const titles={top:'热销机型 TOP10',versus:'同榜机型 销量 PK',brands:'品牌上榜实力',leader:'榜首究竟有多强？'};const subs={top:'入榜机型 · 估算销量排名',versus:'相同统计周期 · 像素标定对比',brands:'仅限当前榜单的入榜样本',leader:'头部差距与集中度分析'};return {title:titles[type],sub:subs[type]}}
 // 与市场份额模块统一为浅灰蓝画布 + 白色圆角海报卡片。
+// Theme-colored exterior + white editorial content card.
 function drawPosterBackdrop(ctx,W,H,p){
+ const L=window.PosterThemes.layout;
  ctx.save();
- ctx.fillStyle='#edf2f9';ctx.fillRect(0,0,W,H);
- const x=23,y=24,w=W-46,h=H-48,r=32;
- ctx.shadowColor='rgba(34,60,96,0.13)';
- ctx.shadowBlur=25;ctx.shadowOffsetY=9;
+ const gradient=ctx.createLinearGradient(0,0,0,H);
+ gradient.addColorStop(0,p.bgTop);gradient.addColorStop(1,p.bgBottom);
+ ctx.fillStyle=gradient;ctx.fillRect(0,0,W,H);
+ const inset=Math.round(W*L.outerInsetRatio);
+ const r=Math.round(W*L.mainRadiusRatio),x=inset,y=inset,w=W-2*inset,h=H-2*inset;
+ ctx.shadowColor='rgba(34,60,96,0.11)';
+ ctx.shadowBlur=21;ctx.shadowOffsetY=7;
  rounded(ctx,x,y,w,h,r,'#ffffff');
  ctx.shadowColor='transparent';ctx.shadowBlur=0;ctx.shadowOffsetY=0;
- ctx.strokeStyle='#dce5f0';ctx.lineWidth=1.6;
+ ctx.strokeStyle=p.hair;ctx.lineWidth=1.6;
  ctx.beginPath();ctx.roundRect(x+.8,y+.8,w-1.6,h-1.6,r);ctx.stroke();
  ctx.save();ctx.beginPath();ctx.roundRect(x,y,w,h,r);ctx.clip();
- ctx.fillStyle='rgba(84,113,153,0.044)';
- for(let gy=y+17;gy<y+h-12;gy+=27){
-  for(let gx=x+18;gx<x+w-12;gx+=27){ctx.fillRect(gx,gy,2,2)}
+ const step=Math.round(W*L.dotStepRatio);
+ ctx.fillStyle=p.ink;ctx.globalAlpha=L.dotOpacity;
+ for(let gy=y+2;gy<y+h;gy+=step){
+  for(let gx=x+2;gx<x+w;gx+=step)ctx.fillRect(gx,gy,2,2);
  }
  ctx.restore();ctx.restore();
 }
-function posterFrame(ctx,W,H,type,o,p,includeFooter=true){ctx.save();ctx.beginPath();ctx.roundRect(23,24,W-46,H-48,32);ctx.clip();ctx.globalAlpha=.065;ctx.fillStyle=p.bar;ctx.beginPath();ctx.arc(1120,-50,370,0,2*Math.PI);ctx.fill();ctx.restore();const copy=getPosterCopy(type,o);rounded(ctx,70,55,162,42,13,p.panel);canvasText(ctx,copy.markLeft,87,84,25,p.accent,'800');canvasText(ctx,copy.markRight,1010,84,22,p.sub,'600','right');canvasText(ctx,copy.title,70,189,72,p.ink,'850','left',940);canvasText(ctx,copy.subtitle,72,239,29,p.sub,'550','left',940);rounded(ctx,70,258,Math.min(900,Math.max(250,18*Array.from(o.d.label).length+48)),48,15,p.panel);canvasText(ctx,o.d.label,91,291,26,p.accent,'760');horizontalRule(ctx,321,p);
+// Inner cards use the same white surface and themed border as module 2.
+function drawDataCard(ctx,x,y,w,h,p,r=22){
+ ctx.save();
+ ctx.shadowColor='rgba(34,60,96,0.065)';ctx.shadowBlur=13;ctx.shadowOffsetY=5;
+ rounded(ctx,x,y,w,h,r,'#ffffff');
+ ctx.restore();
+ ctx.strokeStyle=p.hair;ctx.lineWidth=1.6;
+ ctx.beginPath();ctx.roundRect(x+.8,y+.8,w-1.6,h-1.6,r);ctx.stroke();
+}
+function posterFrame(ctx,W,H,type,o,p,includeFooter=true){const copy=getPosterCopy(type,o);rounded(ctx,70,55,162,42,13,p.panel2);canvasText(ctx,copy.markLeft,87,84,25,p.accent,'800');canvasText(ctx,copy.markRight,1010,84,22,p.sub,'600','right');canvasText(ctx,copy.title,70,189,72,p.ink,'850','left',940);canvasText(ctx,copy.subtitle,72,239,29,p.sub,'550','left',940);rounded(ctx,70,258,Math.min(900,Math.max(250,18*Array.from(o.d.label).length+48)),48,15,p.panel2);canvasText(ctx,o.d.label,91,291,26,p.accent,'760');horizontalRule(ctx,321,p);
  if(includeFooter)drawPosterFooter(ctx,H,type,o,p,0,0);
 }
 // 页脚单独定位：右侧/底部安全区是“内容不能越过”的边界，
@@ -568,14 +589,11 @@ function drawPosterFooter(ctx,H,type,o,p,bottomFraction=0,rightFraction=0){
  lines.forEach((line,i)=>canvasText(ctx,line,70,g.start+35+i*32,i===2?21:23,p.sub,i===2?'500':'560','left',maxWidth));
  ctx.restore();
 }
-function paintBar(ctx,x,y,w,h,ratio,p,highlight=false){rounded(ctx,x,y,w,h,h/2,p.hair);rounded(ctx,x,y,Math.max(2,w*Math.min(1,Math.max(0,ratio))),h,h/2,highlight?p.bar2:p.bar)}
+function paintBar(ctx,x,y,w,h,ratio,p,highlight=false){rounded(ctx,x,y,w,h,h/2,p.track);rounded(ctx,x,y,Math.max(2,w*Math.min(1,Math.max(0,ratio))),h,h/2,highlight?p.bar2:p.bar)}
 function drawTop(ctx,H,o,p){const entries=o.models.slice(0,10);if(!entries.length)return;
  // TOP10 的数据区独立放入白色内卡，形成清晰的图表容器。
  const cardX=52,cardY=338,cardW=976,cardH=H-520;
- ctx.save();ctx.shadowColor='rgba(30,59,93,0.07)';ctx.shadowBlur=13;ctx.shadowOffsetY=5;
- rounded(ctx,cardX,cardY,cardW,cardH,26,'#ffffff');ctx.restore();
- ctx.strokeStyle='#e2eaf3';ctx.lineWidth=2;ctx.beginPath();
- ctx.roundRect(cardX+1,cardY+1,cardW-2,cardH-2,25);ctx.stroke();
+ drawDataCard(ctx,cardX,cardY,cardW,cardH,p,26);
  const rowY=355,room=(H-535),rowHeight=room/10,max=entries[0].pixels;
  entries.forEach((m,i)=>{const y=rowY+i*rowHeight;if(i===0)rounded(ctx,62,y-11,956,rowHeight-9,14,p.panel2);const ink=i===0?p.bar2:p.ink;canvasText(ctx,String(m.rank).padStart(2,'0'),80,y+23,29,p.accent,'850');canvasText(ctx,m.name,151,y+22,31,ink,'680','left',570);canvasText(ctx,o.fit.k===null?'待标定':displayWan(m.sale)+' 万台',999,y+22,30,ink,'750','right',300);paintBar(ctx,151,y+40,848,13,m.pixels/max,p,i===0)})}
 function chooseDuelModelLabel(ctx,original,maxWidth,baseSize=43){
@@ -596,7 +614,7 @@ function drawDuel(ctx,H,o,p){
  const y=360,panelH=H===1440?535:710;
  [[a,0],[b,1]].forEach(([m,i])=>{
   const x=i?553:70,innerX=x+32,innerW=393;
-  rounded(ctx,x,y,457,panelH,28,p.panel);
+  drawDataCard(ctx,x,y,457,panelH,p,28);
   canvasText(ctx,'对阵 '+(i?'B':'A')+'   ·   第 '+m.rank+' 名',innerX,y+60,27,p.accent,'800');
   const model=chooseDuelModelLabel(ctx,m.name,innerW,43);
   canvasText(ctx,model.text,innerX,y+145,model.size,p.ink,'800','left',innerW);
@@ -626,6 +644,7 @@ function drawBrands(ctx,H,o,p){
  // 分辨率不同使用独立纵向节奏，保证3:4和9:16均能完整展示，并避让页脚。
  const rowStep=Math.min(H===1440?151:206,Math.floor((footerY-sectionTop-58)/Math.max(1,n)));
  const first=brands[0].pixels||1;
+ drawDataCard(ctx,52,338,976,H-538,p,26);
  canvasText(ctx,`品牌系列榜 · ${n} 组｜上榜合计 ${o.models.length} 条`,x,367,27,p.sub,'600');
  brands.forEach((b,i)=>{
   const y=399+i*rowStep,hot=i===0;
@@ -644,7 +663,7 @@ function drawBrands(ctx,H,o,p){
  // 清晰明确：合并品牌系列，仅描述入榜样本。
  canvasText(ctx,'系列归并：小米+REDMI｜OPPO+一加｜vivo+iQOO',x,footerY-14,21,p.sub,'530','left',940);
 }
-function drawLeader(ctx,H,o,p){const a=o.models[0],b=o.models[1];if(!a||!b)return;rounded(ctx,70,367,940,H===1440?295:380,28,p.panel);canvasText(ctx,'本榜第一名',112,426,28,p.accent,'750');wrapCanvas(ctx,a.name,111,490,850,49,59,p.ink,'850',2);canvasText(ctx,o.fit.k===null?'待标定':displayWan(a.sale)+' 万台',110,H===1440?616:700,83,p.ink,'850','left',830);
+function drawLeader(ctx,H,o,p){const a=o.models[0],b=o.models[1];if(!a||!b)return;drawDataCard(ctx,70,367,940,H===1440?295:380,p,28);canvasText(ctx,'本榜第一名',112,426,28,p.accent,'750');wrapCanvas(ctx,a.name,111,490,850,49,59,p.ink,'850',2);canvasText(ctx,o.fit.k===null?'待标定':displayWan(a.sale)+' 万台',110,H===1440?616:700,83,p.ink,'850','left',830);
  const start=H===1440?740:858;canvasText(ctx,'第一名对比第二名',80,start,30,p.sub,'650');canvasText(ctx,'约 '+displayTimes(o.ratio),80,start+95,76,p.accent,'900');canvasText(ctx,'领先估算销量',80,start+156,28,p.sub,'650');canvasText(ctx,o.fit.k===null?'待标定':displayWan(a.sale-b.sale)+' 万台',80,start+220,51,p.ink,'780');const y=start+266;horizontalRule(ctx,y,p);canvasText(ctx,'样本内销量集中度',80,y+58,32,p.ink,'760');const items=[['TOP3占比',o.top3],['TOP5占比',o.top5]];const step=H===1440?97:145;items.forEach(([label,val],i)=>{const yy=y+108+i*step;canvasText(ctx,label,82,yy,29,p.sub,'650');canvasText(ctx,displayPct(val),997,yy,38,p.ink,'830','right');paintBar(ctx,83,yy+15,915,16,val,p,i===0)})}
 function drawSafeGuides(ctx,W,H,p){if(!socialState.safeEnabled||!socialState.safeGuides)return;const right=Math.max(0,Math.min(.35,socialState.safeRight/100)),bottom=Math.max(0,Math.min(.35,socialState.safeBottom/100));const rw=W*right,bh=H*bottom;ctx.save();ctx.fillStyle='rgba(255,80,110,0.12)';if(rw>0)ctx.fillRect(W-rw,0,rw,H);ctx.fillStyle='rgba(255,179,37,0.13)';if(bh>0)ctx.fillRect(0,H-bh,W,bh);ctx.setLineDash([12,10]);ctx.lineWidth=3;if(rw>0){ctx.strokeStyle='rgba(255,88,124,0.92)';ctx.beginPath();ctx.moveTo(W-rw,0);ctx.lineTo(W-rw,H);ctx.stroke();}if(bh>0){ctx.strokeStyle='rgba(255,176,31,0.95)';ctx.beginPath();ctx.moveTo(0,H-bh);ctx.lineTo(W,H-bh);ctx.stroke();}ctx.setLineDash([]);if(rw>0){rounded(ctx,W-rw-248,32,220,42,14,'rgba(255,88,124,0.92)');canvasText(ctx,'右侧交互安全区 '+Math.round(right*100)+'%',W-rw-138,60,20,'#ffffff','800','center',200)}if(bh>0){rounded(ctx,34,H-bh-56,236,42,14,'rgba(255,176,31,0.96)');canvasText(ctx,'底部文案安全区 '+Math.round(bottom*100)+'%',152,H-bh-28,20,'#12202f','900','center',220)}ctx.restore()}
 

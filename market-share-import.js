@@ -142,7 +142,7 @@
     const card=byId('toggleDataEditorBtn').parentElement.parentElement;
     card.insertAdjacentHTML('afterbegin',`
       <div class="space-y-2.5 pb-3 mb-3 border-b border-slate-200">
-        <label class="block text-xs font-bold text-emerald-700">CSV 数据源与历史周</label>
+        <h3 class="control-section-heading">CSV 数据源与历史周</h3>
         <div class="flex gap-2 flex-wrap items-center">
           <select id="marketShareWeekSelect" aria-label="选择市场份额对比周" class="grow min-w-[160px] max-w-full rounded-lg border border-slate-300 bg-white px-2 py-2 text-xs text-slate-800"></select>
           <button id="marketShareReloadCsv" type="button" class="rounded-lg bg-blue-50 px-2.5 py-2 text-xs font-semibold text-blue-700 border border-blue-200">重载仓库 CSV</button>

@@ -47,7 +47,7 @@
        仅修改控制台与预览舞台，不修改 SVG 海报主题色、图表数据或导出逻辑。 */
     html { background:#f5f7fb; color-scheme:light; }
     body.market-share-light {
-      font-family:"Source Han Sans SC","Source Han Sans CN","思源黑体","Noto Sans CJK SC","Noto Sans SC",sans-serif;
+      font-family:var(--ui-font-body);
       background:#f5f7fb !important; color:#202a3d !important;
     }
     body.market-share-light ::-webkit-scrollbar {width:7px;height:7px}
@@ -195,7 +195,7 @@
     body.market-share-light > aside #safeControlPanel #safeRightSlider {accent-color:#ef4367}
     body.market-share-light > aside #safeControlPanel #safeBottomSlider {accent-color:#e6980c}
     /* 数值用 IBM Plex Mono；汉字和普通英文仍使用原来的正文字体。 */
-    body.market-share-light .font-mono,body.market-share-light input[type="number"],body.market-share-light .data-num-input {font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace!important;font-variant-numeric:tabular-nums}
+    body.market-share-light .font-mono,body.market-share-light input[type="number"],body.market-share-light .data-num-input {font-family:var(--ui-font-number)!important;font-variant-numeric:tabular-nums}
 
     /* 两模块共用的浅色水印设置区 */
 

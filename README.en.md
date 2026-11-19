@@ -124,7 +124,7 @@ In the repository, go to Settings → Pages, set Source to `Deploy from a branch
 ## Number typography
 
 - The first tab's existing `--f-num: "IBM Plex Mono",ui-monospace,Menlo,monospace` remains unchanged.
-- The second and third tabs now use **IBM Plex Mono** for numbers in ranking labels, quantities, percentages, multipliers, dates, editable fields and exported poster text. Numbers embedded in ordinary prose use dedicated numeric runs, while surrounding Chinese and English retain their normal fonts.
+- The second and third tabs now apply **IBM Plex Mono only to dedicated numeric fields** such as sales, ranks, percentages, multipliers and numeric inputs. Dates, model names (e.g. iPhone 18 Pro Max), captions and other mixed prose retain the normal text font instead of automatic digit wrapping.
 - Canvas output in the estimator compensates for numeric left-side glyph bearings. Market-share SVG-to-PNG export attempts to embed the numeral font temporarily for rendering consistency.
 - IBM Plex Mono loads from Google Fonts; if unavailable, a system monospace fallback is used. Install IBM Plex Mono locally for fully offline, pixel-consistent output.
 

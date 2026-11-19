@@ -4,200 +4,22 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>2026 国内手机市场份额战报 · 3:4 抖音数据可视化</title>
-  <script src="https://cdn.tailwindcss.com"></script>
   <script src="poster-themes.js"></script>
   <script src="iso-sales-week.js"></script>
   <script src="market-share-data.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;700;900&display=swap" rel="stylesheet">
-  <style>
-    /* Shared control-panel type scale. Poster SVG typography remains independent. */
-    body {
-      font-family: 'Inter', 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif;
-      background-color: #0f172a;
-      color: #f8fafc;
-    }
-    /* 自定义滚动条 */
-    ::-webkit-scrollbar {
-      width: 6px;
-      height: 6px;
-    }
-    ::-webkit-scrollbar-track {
-      background: #1e293b;
-    }
-    ::-webkit-scrollbar-thumb {
-      background: #475569;
-      border-radius: 9999px;
-    }
-    /* 海报容器等比缩放容器 */
-    .poster-stage {
-      aspect-ratio: 3 / 4;
-      width: 100%;
-      max-width: 540px;
-      box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.65);
-    }
-    .tab-active {
-      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-      color: #ffffff;
-      box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);
-    }
 
-    /* 网页操作台统一浅色视觉：与「销量榜单推算与出图」保持一致。
-       仅修改控制台与预览舞台，不修改 SVG 海报主题色、图表数据或导出逻辑。 */
-    html { background:#f5f7fb; color-scheme:light; }
-    body.market-share-light {
-      font-family:var(--ui-font-body);
-      background:#f5f7fb !important; color:#202a3d !important;
-    }
-    body.market-share-light ::-webkit-scrollbar {width:7px;height:7px}
-    body.market-share-light ::-webkit-scrollbar-track {background:#edf2f9}
-    body.market-share-light ::-webkit-scrollbar-thumb {background:#c1ccdd;border-radius:10px}
-
-    /* 左侧操作面板 */
-    body.market-share-light > aside {
-      background:#f5f7fb !important; color:#202a3d !important;
-      border-color:#e0e7f1 !important; scrollbar-color:#bfcde1 #eef2f8;
-    }
-    body.market-share-light > aside > div[class*="bg-slate-800/70"] {
-      background:#ffffff !important; border:1px solid #e3eaf4 !important;
-      border-radius:16px !important; box-shadow:0 5px 18px #25467409;
-    }
-    body.market-share-light > aside > div[class*="bg-slate-800/70"] > label:first-child,
-    body.market-share-light > aside > div[class*="bg-slate-800/70"] > div:first-child > label:first-child {
-      color:#536a8c !important;font-weight:800;letter-spacing:.025em;
-    }
-    body.market-share-light > aside [class~="text-slate-400"],
-    body.market-share-light > aside [class~="text-slate-500"] {color:#72829a !important}
-    body.market-share-light > aside [class~="text-slate-300"] {color:#5a6b85 !important}
-    body.market-share-light > aside [class~="text-slate-200"],
-    body.market-share-light > aside [class~="text-white"] {color:#263853 !important}
-    body.market-share-light > aside [class~="text-blue-400"] {color:#2865db !important}
-    body.market-share-light > aside [class~="text-emerald-400"],
-    body.market-share-light > aside [class~="text-emerald-400/90"] {color:#278361 !important}
-    body.market-share-light > aside [class~="text-rose-400"] {color:#cf4563 !important}
-    body.market-share-light > aside [class~="text-sky-400"] {color:#2877ad !important}
-    body.market-share-light > aside [class~="text-amber-400"] {color:#ae761b !important}
-    body.market-share-light > aside [class~="border-slate-700"],
-    body.market-share-light > aside [class~="border-slate-700/80"],
-    body.market-share-light > aside [class~="border-slate-800"],
-    body.market-share-light > aside [class~="border-slate-700/70"] {border-color:#e0e8f3 !important}
-    body.market-share-light > aside [class~="bg-slate-900"],
-    body.market-share-light > aside [class~="bg-slate-950"],
-    body.market-share-light > aside [class~="bg-slate-900/90"] {background:#f8fafe !important}
-    body.market-share-light > aside [class~="bg-slate-800"],
-    body.market-share-light > aside [class~="bg-slate-800/80"],
-    body.market-share-light > aside [class~="bg-slate-700/80"] {background:#f0f5fc !important}
-    body.market-share-light > aside [class~="bg-slate-700"] {background:#d7e2f2 !important}
-
-    /* 五种图表模式：选中态采用第三模块的浅蓝描边，而不是深色渐变。 */
-    body.market-share-light #chartTypeGroup button.chart-btn {
-      border:1px solid #e2eaf7 !important; background:#f7f9fd !important;
-      color:#2b3c58 !important; box-shadow:none !important; min-height:50px;
-      border-radius:12px !important; line-height:1.45;
-    }
-    body.market-share-light #chartTypeGroup button.chart-btn:hover {background:#eff5ff !important;border-color:#b8cef3 !important}
-    body.market-share-light #chartTypeGroup button.chart-btn.tab-active {
-      border-color:#8fb8ff !important; background:#edf4ff !important;
-      color:#245bbd !important; box-shadow:inset 0 0 0 1px #a2c1ff !important;
-    }
-
-    /* 编辑字段、按钮与调节开关 */
-    body.market-share-light > aside input[type="number"] {
-      background:#ffffff !important; color:#263853 !important;
-      border:1px solid #d7e3f2 !important;
-      box-shadow:0 1px 2px #1f3e6410;
-    }
-    body.market-share-light > aside input[type="number"]:focus {
-      border-color:#7baaf7 !important; outline:2px solid #accbff55;
-    }
-    body.market-share-light > aside input[type="range"] {background:#dfe7f4 !important}
-    body.market-share-light > aside #brandInputsList > div {border-radius:8px}
-    body.market-share-light > aside #brandInputsList > div:nth-child(even) {background:#f8fafe}
-    body.market-share-light > aside #brandInputsList .data-num-input {background:#fff !important;border-color:#d8e3f2 !important;color:#233b59 !important}
-    body.market-share-light > aside #toggleDataEditorBtn {
-      background:#edf4ff !important;color:#2d64bf !important;
-      border:1px solid #dce8fb !important;border-radius:9px;
-    }
-    body.market-share-light > aside #toggleDataEditorBtn:hover {background:#e2edff !important}
-    body.market-share-light > aside #resetDataBtn {color:#2d66bd !important}
-    body.market-share-light > aside #resetDataBtn:hover {color:#174b99 !important}
-    body.market-share-light > aside .peer:checked + div {background:#2c6ce4 !important}
-    body.market-share-light > aside #toggleSafeZone.peer:checked + div {background:#f44c72 !important}
-    body.market-share-light > aside #safeRightSlider {accent-color:#f44c72}
-    body.market-share-light > aside #safeBottomSlider {accent-color:#efa21c}
-
-    /* 主导出动作 */
-    body.market-share-light > aside #exportBtn {
-      background:#2865db !important; color:#ffffff !important;
-      border:1px solid #2865db !important;border-radius:13px !important;
-      box-shadow:0 8px 18px #2358bc24 !important;
-    }
-    body.market-share-light > aside #exportBtn:hover {background:#1e57c6 !important}
-    body.market-share-light > aside #exportBtn span,
-    body.market-share-light > aside #exportBtn svg {color:#fff !important}
-
-    /* 右侧实时预览舞台：匹配第三模块的浅蓝灰画布。 */
-    body.market-share-light > main {
-      background:#f0f4fb !important;color:#526780 !important;
-      border-left:1px solid #e1e8f2;justify-content:flex-start !important;
-      padding-top:26px !important;
-    }
-    body.market-share-light > main > div:first-child {color:#5c708f !important}
-    body.market-share-light > main > div:first-child [class~="text-slate-400"] {color:#607591 !important}
-    body.market-share-light > main > div:first-child span[class~="bg-slate-800"] {
-      background:#e7eef9 !important;color:#49617d !important;
-    }
-    body.market-share-light #posterContainer {
-      background:#fff !important;border:1px solid #dbe4f1;
-      box-shadow:0 16px 42px #243c6422 !important;
-    }
-    /* 主 SVG 的文字与海报主题保留原先字体、着色逻辑。 */
-    body.market-share-light #posterSvg {font-family:"Inter","Noto Sans SC",sans-serif}
-    @media (max-width:1023px) {
-      body.market-share-light > main {border-left:0;border-top:1px solid #e1e8f2;min-height:700px}
-      body.market-share-light > aside {border-color:#e1e8f2 !important}
-    }
-    @media (max-width:600px) {
-      body.market-share-light > main {padding:18px 12px 32px !important;min-height:600px}
-      body.market-share-light > aside {padding:16px 12px !important}
-      body.market-share-light > aside > div[class*="bg-slate-800/70"] {padding:14px !important}
-    }
-
-
-    /* 高级设置面板：与其它白色卡片保持一致。保留红/橙安全区语义色。 */
-    body.market-share-light > aside #safeControlPanel {
-      background:#ffffff !important;
-      color:#202a3d !important;
-      border:1px solid #e0e7f1 !important;
-      border-radius:16px !important;
-      box-shadow:0 2px 12px #2546740c !important;
-    }
-    body.market-share-light > aside #safeControlPanel [class~="text-slate-400"] {color:#72829a !important}
-    body.market-share-light > aside #safeControlPanel [class~="text-slate-300"],
-    body.market-share-light > aside #safeControlPanel [class~="text-slate-200"] {color:#344866 !important}
-    body.market-share-light > aside #safeControlPanel [class~="text-rose-400"] {color:#ef4367 !important}
-    body.market-share-light > aside #safeControlPanel [class~="text-amber-400"] {color:#e6980c !important}
-    body.market-share-light > aside #safeControlPanel [class~="bg-slate-700"],
-    body.market-share-light > aside #safeControlPanel input[type="range"] {background:#e4ebf5 !important}
-    body.market-share-light > aside #safeControlPanel [class~="border-slate-700"] {border-color:#e0e8f3 !important}
-    body.market-share-light > aside #safeControlPanel input[type="range"] {border-radius:999px}
-    body.market-share-light > aside #safeControlPanel #safeRightSlider {accent-color:#ef4367}
-    body.market-share-light > aside #safeControlPanel #safeBottomSlider {accent-color:#e6980c}
-    /* 数值用 IBM Plex Mono；汉字和普通英文仍使用原来的正文字体。 */
-    body.market-share-light .font-mono,body.market-share-light input[type="number"],body.market-share-light .data-num-input {font-family:var(--ui-font-number)!important;font-variant-numeric:tabular-nums}
-
-    /* 两模块共用的浅色水印设置区 */
-
-  </style>
   <link rel="stylesheet" href="studio-ui.css">
+  <link rel="stylesheet" href="market-share.css">
 </head>
-<body class="studio-ui market-share-light min-h-screen flex flex-col lg:flex-row overflow-x-hidden">
+<body class="studio-ui market-share-light">
 
   <!-- 左侧控制台 -->
-  <aside class="w-full lg:w-[420px] xl:w-[450px] bg-slate-900 border-b lg:border-b-0 lg:border-r border-slate-800 p-5 lg:p-6 flex flex-col gap-5 shrink-0 lg:h-screen lg:overflow-y-auto">
+  <aside class="ms-sidebar">
     <!-- 顶部品牌标题：自然纵向排列，避免周次标签挤压主标题 -->
-    <div class="space-y-3 pb-1">
+    <div class="ms-intro">
       <div>
         <div class="ui-eyebrow"><span class="ui-eyebrow-dot" aria-hidden="true"></span>DATA JOURNALISM STUDIO</div>
         <h1 class="ui-page-title">手机份额战报 · 3:4 出图台</h1>
@@ -206,128 +28,128 @@
     </div>
 
     <!-- 1. 图表类型切换 -->
-    <div class="bg-slate-800/70 p-3.5 rounded-2xl border border-slate-700/70">
+    <div class="ms-card">
       <h2 class="ui-section-title section-heading-spaced">1. 选择数据可视化图表</h2>
-      <div class="grid grid-cols-2 gap-2" id="chartTypeGroup">
-        <button data-type="combo" class="chart-btn ui-choice tab-active py-2.5 px-2.5 rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer col-span-2">
-          <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="18" height="7" rx="1.5"/><line x1="12" y1="13" x2="12" y2="21"/><rect x="12" y="14" width="7" height="2.5" rx="0.8" fill="currentColor"/><rect x="6" y="18" width="6" height="2.5" rx="0.8"/></svg>
+      <div class="ms-chart-grid" id="chartTypeGroup">
+        <button data-type="combo" class="chart-btn ui-choice tab-active">
+          <svg class="ms-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="18" height="7" rx="1.5"/><line x1="12" y1="13" x2="12" y2="21"/><rect x="12" y="14" width="7" height="2.5" rx="0.8" fill="currentColor"/><rect x="6" y="18" width="6" height="2.5" rx="0.8"/></svg>
           <span>双图组合模式 (堆叠格局 + 发散涨跌) ★</span>
         </button>
-        <button data-type="diverging" class="chart-btn ui-choice bg-slate-800 hover:bg-slate-700 text-slate-300 py-2.5 px-2.5 rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer">
-          <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="12" y1="3" x2="12" y2="21"/><rect x="12" y="5" width="8" height="4" rx="1" fill="currentColor"/><rect x="5" y="13" width="7" height="4" rx="1"/></svg>
+        <button data-type="diverging" class="chart-btn ui-choice">
+          <svg class="ms-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="12" y1="3" x2="12" y2="21"/><rect x="12" y="5" width="8" height="4" rx="1" fill="currentColor"/><rect x="5" y="13" width="7" height="4" rx="1"/></svg>
           <span>横向发散条形图</span>
         </button>
-        <button data-type="stacked" class="chart-btn ui-choice bg-slate-800 hover:bg-slate-700 text-slate-300 py-2.5 px-2.5 rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer">
-          <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="4" width="5" height="16" rx="1"/><rect x="15" y="4" width="5" height="16" rx="1"/><path d="M9 9C12 9 12 11 15 11" stroke-dasharray="2 2"/></svg>
+        <button data-type="stacked" class="chart-btn ui-choice">
+          <svg class="ms-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="4" width="5" height="16" rx="1"/><rect x="15" y="4" width="5" height="16" rx="1"/><path d="M9 9C12 9 12 11 15 11" stroke-dasharray="2 2"/></svg>
           <span>100% 堆叠图</span>
         </button>
-        <button data-type="slope" class="chart-btn ui-choice bg-slate-800 hover:bg-slate-700 text-slate-300 py-2.5 px-2.5 rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer">
-          <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 17L20 7M4 8L20 16"/><circle cx="4" cy="17" r="2"/><circle cx="20" cy="7" r="2"/></svg>
+        <button data-type="slope" class="chart-btn ui-choice">
+          <svg class="ms-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 17L20 7M4 8L20 16"/><circle cx="4" cy="17" r="2"/><circle cx="20" cy="7" r="2"/></svg>
           <span>坡度图</span>
         </button>
-        <button data-type="dumbbell" class="chart-btn ui-choice bg-slate-800 hover:bg-slate-700 text-slate-300 py-2.5 px-2.5 rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer">
-          <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="6" y1="8" x2="18" y2="8"/><circle cx="6" cy="8" r="2.5"/><circle cx="18" cy="8" r="2.5" fill="currentColor"/><line x1="8" y1="16" x2="15" y2="16"/><circle cx="15" cy="16" r="2.5"/><circle cx="8" cy="16" r="2.5" fill="currentColor"/></svg>
+        <button data-type="dumbbell" class="chart-btn ui-choice">
+          <svg class="ms-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="6" y1="8" x2="18" y2="8"/><circle cx="6" cy="8" r="2.5"/><circle cx="18" cy="8" r="2.5" fill="currentColor"/><line x1="8" y1="16" x2="15" y2="16"/><circle cx="15" cy="16" r="2.5"/><circle cx="8" cy="16" r="2.5" fill="currentColor"/></svg>
           <span>哑铃图</span>
         </button>
       </div>
 
       <!-- 附加数据维度选项 -->
-      <div class="mt-3 pt-3 border-t border-slate-700/80 space-y-2.5">
-        <div id="showOtherOption" class="flex items-center justify-between">
+      <div class="ms-options">
+        <div id="showOtherOption" class="ms-option-row">
           <div>
-            <div class="text-xs font-semibold text-slate-200">显示“其他”自动推算项</div>
-            <div class="text-xs text-slate-400">发散/组合图默认聚焦前六大主流品牌</div>
+            <div class="ms-option-title">显示“其他”自动推算项</div>
+            <div class="ms-option-note">发散/组合图默认聚焦前六大主流品牌</div>
           </div>
-          <label class="relative inline-flex items-center cursor-pointer">
-            <input type="checkbox" id="toggleOtherBrand" class="sr-only peer">
-            <div class="w-10 h-5 bg-slate-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+          <label class="ms-toggle">
+            <input type="checkbox" id="toggleOtherBrand" >
+            <div class="ms-toggle-track"></div>
           </label>
         </div>
 
-        <div id="subBrandOption" class="flex items-center justify-between">
+        <div id="subBrandOption" class="ms-option-row">
           <div>
-            <div class="text-xs font-semibold text-slate-200">堆叠图拆分展示子品牌</div>
-            <div class="text-xs text-slate-400">独立展示一加/realme 与 iQOO 份额</div>
+            <div class="ms-option-title">堆叠图拆分展示子品牌</div>
+            <div class="ms-option-note">独立展示一加/realme 与 iQOO 份额</div>
           </div>
-          <label class="relative inline-flex items-center cursor-pointer">
-            <input type="checkbox" id="splitSubBrands" class="sr-only peer" checked>
-            <div class="w-10 h-5 bg-slate-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+          <label class="ms-toggle">
+            <input type="checkbox" id="splitSubBrands"  checked>
+            <div class="ms-toggle-track"></div>
           </label>
         </div>
       </div>
     </div>
 
     <!-- 2. 自定义周度数据输入区（方便未来每周更新） -->
-    <div class="bg-slate-800/70 p-3.5 rounded-2xl border border-slate-700/70 space-y-3">
-      <div class="flex items-center justify-between">
+    <div class="ms-card">
+      <div class="ms-row-between">
         <h2 class="ui-section-title">2. 录入 / 修改份额数据 (%)</h2>
-        <button id="toggleDataEditorBtn" class="text-xs bg-slate-700 hover:bg-slate-600 text-slate-200 px-2.5 py-1 rounded-lg font-semibold transition cursor-pointer">
+        <button id="toggleDataEditorBtn" class="ms-subtle-button">
           展开编辑表格 ▾
         </button>
       </div>
 
       <!-- 折叠的数据编辑面板 -->
-      <div id="dataEditorPanel" class="hidden space-y-3 pt-2 border-t border-slate-700/80">
+      <div id="dataEditorPanel" class="ms-editor-panel hidden">
         <!-- 品牌份额输入表 -->
-        <div class="bg-slate-900/90 rounded-xl p-2 border border-slate-700/80">
-          <div class="grid grid-cols-12 text-xs font-bold text-slate-400 pb-1.5 mb-1.5 border-b border-slate-800 px-1">
-            <span class="col-span-4">品牌</span>
-            <span class="col-span-3 text-center">上周(%)</span>
-            <span class="col-span-3 text-center">本周(%)</span>
-            <span class="col-span-2 text-right">环比</span>
+        <div class="ms-editor-shell">
+          <div class="ms-editor-row ms-editor-header">
+            <span >品牌</span>
+            <span >上周(%)</span>
+            <span >本周(%)</span>
+            <span >环比</span>
           </div>
-          <div id="brandInputsList" class="space-y-1.5 max-h-[260px] overflow-y-auto pr-1">
+          <div id="brandInputsList" class="ms-brand-list">
             <!-- 由 JS 动态渲染品牌输入框 -->
           </div>
-          <div class="mt-2 pt-1.5 border-t border-slate-800 flex items-center justify-between text-xs px-1">
-            <span class="text-slate-400">自动推算“其他”份额：</span>
-            <span id="otherAutoSummary" class="font-mono font-bold text-slate-200">2.6% → 2.6%</span>
+          <div class="ms-other-summary">
+            <span class="ms-muted">自动推算“其他”份额：</span>
+            <span id="otherAutoSummary" class="ms-number">2.6% → 2.6%</span>
           </div>
         </div>
 
-        <div class="flex items-center justify-between">
-          <span class="text-xs text-emerald-400/90 flex items-center gap-1">
+        <div class="ms-row-between">
+          <span class="ms-state-note">
             <span>●</span> 已开启浏览器本地自动记忆（刷新不丢失）
           </span>
-          <button id="resetDataBtn" class="text-xs text-slate-400 hover:text-white underline cursor-pointer">恢复默认 W44/W45 示例数据</button>
+          <button id="resetDataBtn" class="ms-link-button">恢复默认 W44/W45 示例数据</button>
         </div>
       </div>
     </div>
 
     <!-- 3. 抖音安全区独立双向规避设置：与第三模块一致，深蓝强调面板 -->
-    <div id="safeControlPanel" class="ui-panel bg-slate-800/70 p-3.5 rounded-2xl border border-slate-700/70 space-y-3">
-      <div class="flex items-center justify-between">
+    <div id="safeControlPanel" class="ms-card ui-panel">
+      <div class="ms-row-between">
         <div>
           <h2 class="ui-section-title">3. 抖音安全区独立规避</h2>
-          <p class="ui-control-description text-slate-400 mt-0.5">独立调节右侧交互栏与底部文案区的安全留白</p>
+          <p class="ui-control-description">独立调节右侧交互栏与底部文案区的安全留白</p>
         </div>
-        <label class="relative inline-flex items-center cursor-pointer">
-          <input type="checkbox" id="toggleSafeZone" class="sr-only peer" checked>
-          <div class="w-10 h-5 bg-slate-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-rose-500"></div>
+        <label class="ms-toggle">
+          <input type="checkbox" id="toggleSafeZone"  checked>
+          <div class="ms-toggle-track"></div>
         </label>
       </div>
 
       <!-- 右侧留白滑块 -->
       <div>
-        <div class="ui-safe-slider-label text-slate-300">
+        <div class="ui-safe-slider-label">
           <span>右侧交互栏留白宽度</span>
-          <span id="safeRightVal" class="font-bold text-rose-400">15% (推荐)</span>
+          <span id="safeRightVal" class="ms-safe-value-right">15% (推荐)</span>
         </div>
-        <input type="range" id="safeRightSlider" min="0" max="22" value="15" class="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-rose-500">
+        <input type="range" id="safeRightSlider" min="0" max="22" value="15" class="ms-range">
       </div>
 
       <!-- 下方留白滑块 -->
       <div>
-        <div class="ui-safe-slider-label text-slate-300">
+        <div class="ui-safe-slider-label">
           <span>下方文案区留白高度</span>
-          <span id="safeBottomVal" class="font-bold text-amber-400">10% (推荐)</span>
+          <span id="safeBottomVal" class="ms-safe-value-bottom">10% (推荐)</span>
         </div>
-        <input type="range" id="safeBottomSlider" min="0" max="20" value="10" class="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-amber-500">
+        <input type="range" id="safeBottomSlider" min="0" max="20" value="10" class="ms-range">
       </div>
     </div>
 
     <!-- 4. 6大精选视觉配色方案：与第三模块一致，深蓝强调面板 -->
-    <div id="paletteControlPanel" class="ui-panel bg-slate-800/70 p-3.5 rounded-2xl border border-slate-700/70 space-y-2.5">
+    <div id="paletteControlPanel" class="ms-card ui-panel">
       <h2 class="ui-section-title">4. 海报主题与配色方案</h2>
       <div class="ui-palette-grid" id="paletteGrid">
         <!-- 由 JS 动态渲染 6 套精选色卡按钮 -->
@@ -335,57 +157,57 @@
     </div>
 
     <!-- 5. 自定义标题文案 -->
-    <div class="bg-slate-800/70 p-3.5 rounded-2xl border border-slate-700/70 space-y-2.5">
+    <div class="ms-card">
       <h2 class="ui-section-title">5. 编辑战报文案</h2>
       <div>
-        <label class="text-xs text-slate-400 block mb-1">主标题</label>
-        <input type="text" id="inputTitle" value="2026 W45 国内手机市场份额周环比变化" class="ui-field w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500">
+        <label class="ms-label">主标题</label>
+        <input type="text" id="inputTitle" value="2026 W45 国内手机市场份额周环比变化" class="ui-field">
       </div>
       <div>
-        <label class="text-xs text-slate-400 block mb-1">副标题（时间与单位口径）</label>
-        <input type="text" id="inputSubtitle" value="对比 W44 (10.26–11.1) 与 W45 (11.2–11.8) | 单位：百分点" class="ui-field w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500">
+        <label class="ms-label">副标题（时间与单位口径）</label>
+        <input type="text" id="inputSubtitle" value="对比 W44 (10.26–11.1) 与 W45 (11.2–11.8) | 单位：百分点" class="ui-field">
       </div>
       <div>
-        <label class="text-xs text-slate-400 block mb-1">核心洞察标签</label>
-        <input type="text" id="inputInsight" value="本周大盘降约5% · 华为逆势涨 +1.4 突破20% · 苹果稳居榜首" class="ui-field w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500">
+        <label class="ms-label">核心洞察标签</label>
+        <input type="text" id="inputInsight" value="本周大盘降约5% · 华为逆势涨 +1.4 突破20% · 苹果稳居榜首" class="ui-field">
       </div>
-      <div class="pt-2 border-t border-slate-200 space-y-2.5">
-        <label class="block text-xs font-bold text-slate-500">顶部两周趋势卡片</label>
-        <div class="grid grid-cols-2 gap-2">
+      <div class="ms-subsection">
+        <label class="ms-subheading">顶部两周趋势卡片</label>
+        <div class="ms-grid-2">
           <div>
-            <label class="text-xs text-slate-400 block mb-1" for="inputW1Label">左卡片 · 基准周标签</label>
-            <input type="text" id="inputW1Label" value="W44 (10.26 - 11.1)" class="ui-field w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-blue-500">
+            <label class="ms-label" for="inputW1Label">左卡片 · 基准周标签</label>
+            <input type="text" id="inputW1Label" value="W44 (10.26 - 11.1)" class="ui-field">
           </div>
           <div>
-            <label class="text-xs text-slate-400 block mb-1" for="inputW2Label">右卡片 · 对比周标签</label>
-            <input type="text" id="inputW2Label" value="W45 (11.2 - 11.8)" class="ui-field w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-blue-500">
+            <label class="ms-label" for="inputW2Label">右卡片 · 对比周标签</label>
+            <input type="text" id="inputW2Label" value="W45 (11.2 - 11.8)" class="ui-field">
           </div>
         </div>
         <div>
-          <label class="text-xs text-slate-400 block mb-1" for="inputW1Market">左卡片 · 基准周趋势说明</label>
-          <input type="text" id="inputW1Market" value="大盘趋势：略微上升 ↗" class="ui-field w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-blue-500">
+          <label class="ms-label" for="inputW1Market">左卡片 · 基准周趋势说明</label>
+          <input type="text" id="inputW1Market" value="大盘趋势：略微上升 ↗" class="ui-field">
         </div>
         <div>
-          <label class="text-xs text-slate-400 block mb-1" for="inputW2Market">右卡片 · 对比周趋势说明</label>
-          <input type="text" id="inputW2Market" value="大盘趋势：环比下降约 5% ↘" class="ui-field w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-blue-500">
+          <label class="ms-label" for="inputW2Market">右卡片 · 对比周趋势说明</label>
+          <input type="text" id="inputW2Market" value="大盘趋势：环比下降约 5% ↘" class="ui-field">
         </div>
       </div>
-      <div class="pt-2 border-t border-slate-200 space-y-2.5">
-        <label class="block text-xs font-bold text-slate-500">底部水印与数据口径</label>
+      <div class="ms-subsection">
+        <label class="ms-subheading">底部水印与数据口径</label>
         <div>
-          <label class="text-xs text-slate-400 block mb-1" for="inputFooterSource">底部第一行 · 数据口径</label>
-          <input type="text" id="inputFooterSource" value="数据口径：国内手机市场 Sell-Out 销量占比（OPPO含一加/realme，vivo含iQOO）" class="ui-field w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-blue-500">
+          <label class="ms-label" for="inputFooterSource">底部第一行 · 数据口径</label>
+          <input type="text" id="inputFooterSource" value="数据口径：国内手机市场 Sell-Out 销量占比（OPPO含一加/realme，vivo含iQOO）" class="ui-field">
         </div>
         <div>
-          <label class="text-xs text-slate-400 block mb-1" for="inputFooterNote">底部第二行 · 补充说明</label>
-          <input type="text" id="inputFooterNote" value="底色高亮标注本周最大份额提升与最大回落品牌 · 适配抖音 3:4 安全区" class="ui-field w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-blue-500">
+          <label class="ms-label" for="inputFooterNote">底部第二行 · 补充说明</label>
+          <input type="text" id="inputFooterNote" value="底色高亮标注本周最大份额提升与最大回落品牌 · 适配抖音 3:4 安全区" class="ui-field">
         </div>
       </div>
     </div>
 
 
     <!-- 6. 图片水印：SVG 海报渲染与 PNG 导出同步 -->
-    <div class="wm-card ui-panel ui-watermark-card" id="watermarkControls">
+    <div class="ui-panel ui-watermark-card" id="watermarkControls">
       <h2 class="ui-section-title">6. 图片水印</h2>
       <p>两种模式互斥，默认均关闭。水印会同时显示在预览和导出的图片中。</p>
       <div class="wm-section">
@@ -408,69 +230,69 @@
     </div>
 
     <!-- 导出按钮 -->
-    <div class="mt-auto pt-2">
-      <button id="exportBtn" class="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 hover:from-blue-500 hover:to-violet-500 text-white font-extrabold text-sm shadow-lg shadow-blue-600/30 transition transform active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+    <div class="ms-export">
+      <button id="exportBtn" class="ms-export-btn">
+        <svg class="ms-icon" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
         <span>导出 3:4 高清抖音海报 (1200×1600 PNG)</span>
       </button>
-      <p class="text-xs text-center text-slate-400 mt-2">导出时将自动隐藏红色/琥珀色安全区辅助线，输出纯净原图</p>
+      <p class="ms-hint">导出时将自动隐藏红色/琥珀色安全区辅助线，输出纯净原图</p>
     </div>
   </aside>
 
   <!-- 右侧实时 3:4 画布预览舞台 -->
-  <main class="flex-1 bg-slate-950 p-4 sm:p-8 flex flex-col items-center justify-center min-h-[720px] relative">
+  <main class="ms-preview">
     <!-- 顶部状态提示条 -->
-    <div class="w-full max-w-[540px] flex items-center justify-between mb-3 px-1">
-      <div class="flex items-center gap-2 text-xs text-slate-400">
-        <span class="px-2 py-0.5 rounded bg-slate-800 text-slate-200">3:4 竖屏比例</span>
+    <div class="ms-preview-status">
+      <div class="ms-preview-details">
+        <span class="ms-ratio">3:4 竖屏比例</span>
         <span>基准 900×1200px</span>
       </div>
-      <div id="toastMsg" class="text-xs font-medium text-emerald-400 opacity-0 transition-opacity duration-300">
+      <div id="toastMsg" class="ms-toast">
         ✓ 已成功生成高清海报！
       </div>
     </div>
 
     <!-- 3:4 海报容器（核心 SVG 渲染区 + 抖音模拟叠加层） -->
-    <div id="posterContainer" class="poster-stage relative rounded-2xl overflow-hidden bg-slate-900 select-none">
+    <div id="posterContainer" class="ms-poster">
       <!-- 高精度响应式 SVG 画布 (逻辑坐标 900 x 1200) -->
-      <svg id="posterSvg" viewBox="0 0 900 1200" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" class="block w-full h-full"></svg>
+      <svg id="posterSvg" viewBox="0 0 900 1200" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" ></svg>
 
       <!-- 抖音 UI 安全区检测叠加层（导出时自动忽略，仅用于实时预览检查） -->
-      <div id="douyinOverlay" class="absolute inset-0 pointer-events-none transition-opacity duration-200">
+      <div id="douyinOverlay" class="ms-overlay">
         <!-- 右侧危险遮挡警戒带 -->
-        <div id="dyRightZone" class="absolute top-0 right-0 bottom-0 bg-rose-500/15 border-l-2 border-dashed border-rose-500/80 flex flex-col justify-between items-center py-6" style="width: 15%;">
-          <div class="bg-rose-600/90 text-white text-xs font-bold px-1.5 py-0.5 rounded shadow text-center leading-tight">
+        <div id="dyRightZone" class="ms-safe-right" style="width: 15%;">
+          <div class="ms-safe-label">
             右侧避让<br><span id="dyRightTag">15%</span>
           </div>
 
           <!-- 模拟抖音右侧悬浮按钮列 -->
-          <div class="flex flex-col items-center gap-4 mb-16 opacity-85">
-            <div class="relative">
-              <div class="w-9 h-9 rounded-full bg-slate-700 border-2 border-white flex items-center justify-center text-xs font-bold text-white shadow">数码</div>
-              <div class="w-4 h-4 rounded-full bg-rose-500 text-white text-xs font-bold flex items-center justify-center absolute -bottom-1.5 left-1/2 -translate-x-1/2">+</div>
+          <div class="ms-overlay-icons">
+            <div class="ms-avatar-wrap">
+              <div class="ms-avatar">数码</div>
+              <div class="ms-avatar-add">+</div>
             </div>
-            <div class="flex flex-col items-center">
-              <svg class="w-7 h-7 text-rose-500 drop-shadow" fill="currentColor" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
-              <span class="text-xs text-white font-semibold drop-shadow">2.4w</span>
+            <div class="ms-overlay-icon">
+              <svg class="ms-overlay-icon-svg ms-rose" fill="currentColor" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+              <span class="ms-overlay-icon-text">2.4w</span>
             </div>
-            <div class="flex flex-col items-center">
-              <svg class="w-7 h-7 text-white drop-shadow" fill="currentColor" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-              <span class="text-xs text-white font-semibold drop-shadow">1892</span>
+            <div class="ms-overlay-icon">
+              <svg class="ms-overlay-icon-svg" fill="currentColor" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              <span class="ms-overlay-icon-text">1892</span>
             </div>
-            <div class="flex flex-col items-center">
-              <svg class="w-7 h-7 text-amber-400 drop-shadow" fill="currentColor" viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
-              <span class="text-xs text-white font-semibold drop-shadow">3410</span>
+            <div class="ms-overlay-icon">
+              <svg class="ms-overlay-icon-svg ms-amber" fill="currentColor" viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+              <span class="ms-overlay-icon-text">3410</span>
             </div>
-            <div class="flex flex-col items-center">
-              <svg class="w-7 h-7 text-white drop-shadow" fill="currentColor" viewBox="0 0 24 24"><path d="M14 9V5l7 7-7 7v-4.1c-5 0-8.5 1.6-11 5.1 1-5 4-10 11-11z"/></svg>
-              <span class="text-xs text-white font-semibold drop-shadow">965</span>
+            <div class="ms-overlay-icon">
+              <svg class="ms-overlay-icon-svg" fill="currentColor" viewBox="0 0 24 24"><path d="M14 9V5l7 7-7 7v-4.1c-5 0-8.5 1.6-11 5.1 1-5 4-10 11-11z"/></svg>
+              <span class="ms-overlay-icon-text">965</span>
             </div>
           </div>
         </div>
 
         <!-- 底部抖音标题栏安全区提示（独立调节高度） -->
-        <div id="dyBottomZone" class="absolute bottom-0 left-0 right-0 bg-amber-500/15 border-t-2 border-dashed border-amber-400/70 flex items-end justify-between p-2.5" style="height: 10%;">
-          <span class="text-xs text-amber-200 bg-slate-950/80 px-2 py-0.5 rounded font-semibold">底部文案/进度条避让区 (<span id="dyBottomTag">10%</span>)</span>
+        <div id="dyBottomZone" class="ms-safe-bottom" style="height: 10%;">
+          <span class="ms-safe-label">底部文案/进度条避让区 (<span id="dyBottomTag">10%</span>)</span>
         </div>
       </div>
     </div>
@@ -1678,40 +1500,40 @@
           const diff = sumW2 - sumW1;
 
           const groupHeader = document.createElement('div');
-          groupHeader.className = 'grid grid-cols-12 items-center bg-slate-800/80 px-2 py-1 rounded-lg text-xs font-bold text-slate-200';
+          groupHeader.className = 'ms-editor-row ms-editor-group';
           groupHeader.innerHTML = `
-            <span class="col-span-4 flex items-center gap-1.5">
-              <span class="w-2 h-2 rounded-full" style="background:${b.brandColor}"></span>${b.name}
+            <span class="ms-brand-label">
+              <span class="ms-color-dot" style="background:${b.brandColor}"></span>${b.name}
             </span>
-            <span class="col-span-3 text-center font-mono text-slate-300" id="grp_w1_${b.id}">${sumW1.toFixed(1)}</span>
-            <span class="col-span-3 text-center font-mono text-slate-300" id="grp_w2_${b.id}">${sumW2.toFixed(1)}</span>
-            <span class="col-span-2 text-right font-mono ${diff > 0 ? 'text-rose-400' : (diff < 0 ? 'text-sky-400' : 'text-slate-400')}" id="grp_diff_${b.id}">${formatDiff(diff)}</span>
+            <span class="ms-num" id="grp_w1_${b.id}">${sumW1.toFixed(1)}</span>
+            <span class="ms-num" id="grp_w2_${b.id}">${sumW2.toFixed(1)}</span>
+            <span class="ms-change ${diff > 0 ? 'ms-up' : (diff < 0 ? 'ms-down' : 'ms-neutral')}" id="grp_diff_${b.id}">${formatDiff(diff)}</span>
           `;
           container.appendChild(groupHeader);
 
           b.subBrands.forEach((sub, sIdx) => {
             const sDiff = (parseFloat(sub.w2) || 0) - (parseFloat(sub.w1) || 0);
             const row = document.createElement('div');
-            row.className = 'grid grid-cols-12 items-center gap-1 pl-3 pr-1 py-0.5 text-xs';
+            row.className = 'ms-editor-row ms-editor-sub';
             row.innerHTML = `
-              <span class="col-span-4 text-slate-400 truncate">└ ${sub.name}</span>
-              <input type="number" step="0.1" min="0" max="100" value="${sub.w1}" data-bidx="${bIdx}" data-sidx="${sIdx}" data-field="w1" class="data-num-input col-span-3 bg-slate-950 border border-slate-700 rounded px-1.5 py-1 text-center font-mono text-white focus:border-blue-500 focus:outline-none">
-              <input type="number" step="0.1" min="0" max="100" value="${sub.w2}" data-bidx="${bIdx}" data-sidx="${sIdx}" data-field="w2" class="data-num-input col-span-3 bg-slate-950 border border-slate-700 rounded px-1.5 py-1 text-center font-mono text-white focus:border-blue-500 focus:outline-none">
-              <span class="col-span-2 text-right font-mono text-xs ${sDiff > 0 ? 'text-rose-400' : (sDiff < 0 ? 'text-sky-400' : 'text-slate-500')}" id="sub_diff_${bIdx}_${sIdx}">${formatDiff(sDiff)}</span>
+              <span class="ms-brand-label">└ ${sub.name}</span>
+              <input type="number" step="0.1" min="0" max="100" value="${sub.w1}" data-bidx="${bIdx}" data-sidx="${sIdx}" data-field="w1" class="data-num-input">
+              <input type="number" step="0.1" min="0" max="100" value="${sub.w2}" data-bidx="${bIdx}" data-sidx="${sIdx}" data-field="w2" class="data-num-input">
+              <span class="ms-change ${sDiff > 0 ? 'ms-up' : (sDiff < 0 ? 'ms-down' : 'ms-neutral')}" id="sub_diff_${bIdx}_${sIdx}">${formatDiff(sDiff)}</span>
             `;
             container.appendChild(row);
           });
         } else {
           const diff = (parseFloat(b.w2) || 0) - (parseFloat(b.w1) || 0);
           const row = document.createElement('div');
-          row.className = 'grid grid-cols-12 items-center gap-1 px-1.5 py-0.5 text-xs';
+          row.className = 'ms-editor-row ms-editor-brand';
           row.innerHTML = `
-            <span class="col-span-4 font-bold text-slate-200 flex items-center gap-1.5">
-              <span class="w-2 h-2 rounded-full" style="background:${b.brandColor}"></span>${b.name}
+            <span class="ms-brand-label">
+              <span class="ms-color-dot" style="background:${b.brandColor}"></span>${b.name}
             </span>
-            <input type="number" step="0.1" min="0" max="100" value="${b.w1}" data-bidx="${bIdx}" data-field="w1" class="data-num-input col-span-3 bg-slate-950 border border-slate-700 rounded px-1.5 py-1 text-center font-mono text-white focus:border-blue-500 focus:outline-none">
-            <input type="number" step="0.1" min="0" max="100" value="${b.w2}" data-bidx="${bIdx}" data-field="w2" class="data-num-input col-span-3 bg-slate-950 border border-slate-700 rounded px-1.5 py-1 text-center font-mono text-white focus:border-blue-500 focus:outline-none">
-            <span class="col-span-2 text-right font-mono font-bold ${diff > 0 ? 'text-rose-400' : (diff < 0 ? 'text-sky-400' : 'text-slate-500')}" id="brand_diff_${bIdx}">${formatDiff(diff)}</span>
+            <input type="number" step="0.1" min="0" max="100" value="${b.w1}" data-bidx="${bIdx}" data-field="w1" class="data-num-input">
+            <input type="number" step="0.1" min="0" max="100" value="${b.w2}" data-bidx="${bIdx}" data-field="w2" class="data-num-input">
+            <span class="ms-change ${diff > 0 ? 'ms-up' : (diff < 0 ? 'ms-down' : 'ms-neutral')}" id="brand_diff_${bIdx}">${formatDiff(diff)}</span>
           `;
           container.appendChild(row);
         }
@@ -1730,7 +1552,7 @@
             const sDiff = (parseFloat(sub.w2) || 0) - (parseFloat(sub.w1) || 0);
             const subDiffEl = document.getElementById(`sub_diff_${bIdx}_${sIdx}`);
             subDiffEl.textContent = formatDiff(sDiff);
-            subDiffEl.className = `col-span-2 text-right font-mono text-xs ${sDiff > 0 ? 'text-rose-400' : (sDiff < 0 ? 'text-sky-400' : 'text-slate-500')}`;
+            subDiffEl.className = `ms-change ${sDiff > 0 ? 'ms-up' : (sDiff < 0 ? 'ms-down' : 'ms-neutral')}`;
 
             const sumW1 = state.brands[bIdx].subBrands.reduce((s, x) => s + (parseFloat(x.w1) || 0), 0);
             const sumW2 = state.brands[bIdx].subBrands.reduce((s, x) => s + (parseFloat(x.w2) || 0), 0);
@@ -1739,14 +1561,14 @@
             document.getElementById(`grp_w2_${state.brands[bIdx].id}`).textContent = sumW2.toFixed(1);
             const gDiffEl = document.getElementById(`grp_diff_${state.brands[bIdx].id}`);
             gDiffEl.textContent = formatDiff(gDiff);
-            gDiffEl.className = `col-span-2 text-right font-mono ${gDiff > 0 ? 'text-rose-400' : (gDiff < 0 ? 'text-sky-400' : 'text-slate-400')}`;
+            gDiffEl.className = `ms-change ${gDiff > 0 ? 'ms-up' : (gDiff < 0 ? 'ms-down' : 'ms-neutral')}`;
           } else {
             state.brands[bIdx][field] = val;
             const b = state.brands[bIdx];
             const diff = (parseFloat(b.w2) || 0) - (parseFloat(b.w1) || 0);
             const bDiffEl = document.getElementById(`brand_diff_${bIdx}`);
             bDiffEl.textContent = formatDiff(diff);
-            bDiffEl.className = `col-span-2 text-right font-mono font-bold ${diff > 0 ? 'text-rose-400' : (diff < 0 ? 'text-sky-400' : 'text-slate-500')}`;
+            bDiffEl.className = `ms-change ${diff > 0 ? 'ms-up' : (diff < 0 ? 'ms-down' : 'ms-neutral')}`;
           }
 
           updateOtherSummaryText();
@@ -1917,11 +1739,9 @@
       document.querySelectorAll('.chart-btn').forEach(b => {
         if (b.dataset.type === state.chartType) {
           b.classList.add('tab-active');
-          b.classList.remove('bg-slate-800', 'text-slate-300');
-        } else {
+                  } else {
           b.classList.remove('tab-active');
-          b.classList.add('bg-slate-800', 'text-slate-300');
-        }
+                  }
       });
 
       document.getElementById('toggleOtherBrand').checked = !!state.showOtherBrand;
@@ -1968,11 +1788,9 @@
         btn.addEventListener('click', () => {
           document.querySelectorAll('.chart-btn').forEach(b => {
             b.classList.remove('tab-active');
-            b.classList.add('bg-slate-800', 'text-slate-300');
-          });
+                      });
           btn.classList.add('tab-active');
-          btn.classList.remove('bg-slate-800', 'text-slate-300');
-
+          
           state.chartType = btn.dataset.type;
           saveStateToLocal();
           updateControlVisibility();

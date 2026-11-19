@@ -23,7 +23,7 @@
   function status(message,isError=false){
     const el=byId('marketShareCsvStatus');
     el.textContent=message;
-    el.className='text-xs leading-relaxed '+(isError?'text-rose-500':'text-slate-500');
+    el.className='ms-csv-status'+(isError?' ms-csv-error':'');
   }
   function badge(text){
     const el=byId('currentMarketShareWeek');
@@ -141,14 +141,14 @@
   function insertControls(){
     const card=byId('toggleDataEditorBtn').parentElement.parentElement;
     card.insertAdjacentHTML('afterbegin',`
-      <div class="space-y-2.5 pb-3 mb-3 border-b border-slate-200">
+      <div class="ms-csv-controls">
         <h3 class="ui-section-title">CSV 数据源与历史周</h3>
-        <div class="flex gap-2 flex-wrap items-center">
-          <select id="marketShareWeekSelect" aria-label="选择市场份额对比周" class="ui-field ui-field--inline grow min-w-[160px] max-w-full"></select>
-          <button id="marketShareReloadCsv" type="button" class="rounded-lg bg-blue-50 px-2.5 py-2 text-xs font-semibold text-blue-700 border border-blue-200">重载仓库 CSV</button>
-          <label class="cursor-pointer rounded-lg bg-slate-100 px-2.5 py-2 text-xs font-semibold text-slate-700 border border-slate-200">导入本地 CSV<input id="marketShareUploadCsv" type="file" accept=".csv,text/csv" class="hidden" /></label>
+        <div class="ms-csv-row">
+          <select id="marketShareWeekSelect" aria-label="选择市场份额对比周" class="ui-field ui-field--inline"></select>
+          <button id="marketShareReloadCsv" type="button" class="ms-subtle-button">重载仓库 CSV</button>
+          <label class="ms-upload-btn">导入本地 CSV<input id="marketShareUploadCsv" type="file" accept=".csv,text/csv" class="hidden" /></label>
         </div>
-        <p id="marketShareCsvStatus" class="text-xs text-slate-500" aria-live="polite">准备读取仓库 CSV…</p>
+        <p id="marketShareCsvStatus" class="ms-csv-status" aria-live="polite">准备读取仓库 CSV…</p>
       </div>`);
   }
   function bindEvents(){

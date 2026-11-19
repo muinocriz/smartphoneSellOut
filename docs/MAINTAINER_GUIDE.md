@@ -113,7 +113,8 @@ brand,model,category,date,2026W34,2026W35
 - **字体与字号**：模块 2／3 的网页操作台只保留 **4 档字号**：12px（辅助说明）、14px（正文、表格及输入控件）、16px（普通章节和面板标题）、24px（重点指标、大型分区标题及页面主标题）。旧 11px 并入 12px；旧 20px 根据用途归入 16px 或 24px。没有明确的信息层级差异，不得为了装饰或微调增加新字号，优先调整字重、颜色及间距。只在**独立纯数值字段**使用 IBM Plex Mono，包括数字输入、排行、销量与比例；中文标题、列名、选项、日期及数字与中文混排的说明（例如“3:4 竖屏比例”“15%（推荐）”）使用中文无衬线正文字体，不要因其中存在数字而给整个元素添加 `font-mono`。网页操作台的字号规范不覆盖 SVG／Canvas 海报内部独立字号与排版。字体从网络加载失败时回退系统字体；Canvas 单独数字做字形左边界修正。
 - **共享操作台 CSS（单一来源）**：模块2、3均以 `<link rel="stylesheet" href="studio-ui.css">` 加载 `studio-ui.css`。它统一 4 个 `--ui-text-*` 字号变量、字体栈、颜色、间距和 `.ui-panel`／`.ui-section-title`／`.ui-field`／`.ui-palette-grid`／`.ui-palette-card`／`.ui-swatches`／`.ui-watermark-card` 等控件。添加相同功能的控件，先复用 `ui-*` 类，不在模块内部重新写同名色卡／水印 CSS；模块特有布局可保留在各自 HTML。
 - **顶部标题与选项字体**：模块2／3统一使用 `.ui-eyebrow`（英文标识及圆点）、`.ui-page-title`（24px、800 字重）、`.ui-meta-badge`（周次／状态胶囊）和 `.ui-choice`（图表类型或榜单选项，14px、700 字重）。较长标题允许在窄屏自然换行；不再分别维护模块专属顶部字体规则，保持 SVG／Canvas 海报排版独立。
-- **维护边界**：`studio-ui.css` 只控制网页操作台，不覆盖海报 SVG、Canvas、`poster-themes.js` 或第三方 ECharts。模块2的尾部操作台样式仍有 Tailwind／历史覆盖规则，修改时优先消除与共享类冲突的局部定义，不新增大范围 `!important`。模块3的主题按钮在 `syncPaletteChooser()` 中切换 `is-selected`，模块2在 `renderPaletteButtons()` 中设置该类与 `aria-pressed`。
+- **维护边界**：`studio-ui.css` 管理模块 2／3 共用的操作台组件；`market-share.css` 管理模块 2 特有的控制台布局、数据编辑表格、开关和安全区模拟层。模块 2 已移除 Tailwind CDN 和工具类，不再新增 Tailwind 或复制一套原子工具类；优先为真实控件设置简明的语义 CSS 类。两份 CSS 均不覆盖海报 SVG、Canvas、`poster-themes.js` 或第三方 ECharts。模块3主题按钮在 `syncPaletteChooser()` 中切换 `is-selected`，模块2在 `renderPaletteButtons()` 中设置该类与 `aria-pressed`。
+- **界面简化原则**：以排列整齐、数据清楚、功能正常为目标；不为简单操作界面新增渐变、复杂阴影、动画或装饰性控件。图表预览的安全区模拟层仅作辅助显示，导出 PNG 使用独立 SVG 克隆与 Canvas 序列化，不依赖 Tailwind 样式。
 - **轻量防回退检查**：修改共享样式或控件 HTML 时运行 `node --test tests/studio-ui-style.test.cjs`，同时只检查两模块主题色卡和相关水印卡片在常见桌面／窄屏下的溢出与间距。静态检查不能替代实际页面视觉验收。
 
 - **图片水印**：全屏倾斜（默认关闭，`RD·观测`，透明度 8%，字号 32px，间距 220px）与中心单个（默认关闭，同文案，透明度 12%，字号 72px）互斥。水印覆盖图卡可用内容区域，预览及 PNG 一致；模块 3 的四图 ZIP 一样会带水印。
@@ -123,7 +124,7 @@ brand,model,category,date,2026W34,2026W35
 ## 7. 技术与部署
 
 - **静态页面**：`index.html`、`market-share.html`、`sales-estimator.html`；模块2／3还需部署共享文件 `studio-ui.css`；模块1必须加载共享日期脚本 `iso-sales-week.js`（提供浏览器 `IsoSalesWeek` 全局及 Node CommonJS 导出）；模块2/3共用主题脚本 `poster-themes.js`；模块2额外加载 `market-share-data.js` 与 `market-share-import.js`，并复用 `iso-sales-week.js`。无后端或打包步骤。部署须包含这些脚本。ISO周计算禁止在新模块中复制另一套实现。使用 `node --test tests/iso-sales-week.test.cjs` 运行日期边界测试。
-- **依赖**：销量追踪使用 Apache ECharts 5.4.3（cdnjs）；市场份额编辑器使用 Tailwind CDN 和原生 SVG；图卡导出使用 Canvas；字体依赖 Google Fonts，必要时系统回退。完整离线部署请自行处理 CDN 和字体可达性。
+- **依赖**：销量追踪使用 Apache ECharts 5.4.3（cdnjs）；市场份额编辑器使用原生 HTML/CSS 与 SVG，不依赖 Tailwind；模块 3 使用 Canvas 图卡导出。字体仍使用 Google Fonts，失败时回退系统字体。完整离线部署仍需考虑 ECharts CDN 和字体资源。
 - **本地预览**：项目根目录执行 `python3 -m http.server 8000`，浏览器访问 `http://localhost:8000`；直接打开 HTML 可能触发 CSV 的本地文件访问限制。
 - **GitHub Pages**：Settings → Pages → `Deploy from a branch` → `master` → `/(root)`。
 - **直达链接**：`/` 为销量追踪，`/#market-share` 为模块 2，`/#sales-estimator` 为模块 3。

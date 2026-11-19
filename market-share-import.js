@@ -7,8 +7,7 @@
   const STORAGE='phone_market_share_viz_state_v1';
   const AUTO_FIELDS={
     title:'inputTitle',subtitle:'inputSubtitle',insight:'inputInsight',
-    w1Label:'inputW1Label',w2Label:'inputW2Label',
-    w1Market:'inputW1Market',w2Market:'inputW2Market'
+    w1Label:'inputW1Label',w2Label:'inputW2Label'
   };
   let rows=[],pairs=[],sourceName='仓库 CSV',loadVersion=0;
   const byId=id=>document.getElementById(id);
@@ -69,8 +68,12 @@
     setAutoField('subtitle',`对比 ${weekLabel(previous.week)} (${weekRange(previous)}) 与 ${weekLabel(current.week)} (${weekRange(current)}) | 份额 % · 变化 pp`);
     setAutoField('w1Label',`${previous.week.slice(4)} (${weekRange(previous)})`);
     setAutoField('w2Label',`${current.week.slice(4)} (${weekRange(current)})`);
-    setAutoField('w1Market',`大盘趋势：${previous.trend}`);
-    setAutoField('w2Market',`大盘趋势：${current.trend}`);
+    // Trend cards always reflect the selected CSV rows, even if older local
+    // state contains textOverrides from a previously edited week.
+    delete fieldOverrides().w1Market;
+    delete fieldOverrides().w2Market;
+    state.w1Market=`大盘趋势：${previous.trend}`;
+    state.w2Market=`大盘趋势：${current.trend}`;
     setAutoField('insight',buildInsight());
     byId('marketShareWeekSelect').value=current.week;
     badge(`${weekLabel(previous.week)} → ${weekLabel(current.week)}`);

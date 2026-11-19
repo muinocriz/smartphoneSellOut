@@ -79,7 +79,7 @@
       const vivoMain=round(value.vivo-value.iQOO);
       if(oppoMain< -0.005||vivoMain< -0.005)throw new Error(id+' 子品牌份额超过集团份额');
       const total=round(value['苹果']+value['华为']+value['小米']+value['OPPO']+value.vivo+value['荣耀']);
-      if(total>100.05)throw new Error(id+' 六大品牌份额合计超过 100%（'+total+'%）');
+      if(total>100)throw new Error(id+' 六大品牌份额合计超过 100%（'+total+'%）');
       const brands={
         apple:value['苹果'],huawei:value['华为'],xiaomi:value['小米'],
         oppo:value['OPPO'],oneplus:value['一加'],realme:value.realme,

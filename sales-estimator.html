@@ -644,7 +644,7 @@ function drawBrands(ctx,H,o,p){
  // 分辨率不同使用独立纵向节奏，保证3:4和9:16均能完整展示，并避让页脚。
  const rowStep=Math.min(H===1440?151:206,Math.floor((footerY-sectionTop-58)/Math.max(1,n)));
  const first=brands[0].pixels||1;
- drawDataCard(ctx,52,338,976,H-538,p);
+ drawDataCard(ctx,52,338,976,H-498,p);
  canvasText(ctx,`品牌系列榜 · ${n} 组｜上榜合计 ${o.models.length} 条`,x,367,27,p.sub,'600');
  brands.forEach((b,i)=>{
   const y=399+i*rowStep,hot=i===0;
@@ -713,7 +713,7 @@ function drawImageWatermark(ctx,W,H,right,bottom){
  const left=25,top=25,usableWidth=Math.max(1,safeRight-left-8),usableHeight=Math.max(1,safeBottom-top-8);
  const cx=left+usableWidth/2,cy=top+usableHeight/2;
  ctx.save();ctx.beginPath();ctx.rect(left,top,usableWidth,usableHeight);ctx.clip();
- ctx.fillStyle='#425772';ctx.globalAlpha=opacity;ctx.font='700 '+size+'px '+CJK_FONT;
+ ctx.fillStyle=(socialPalettes[socialState.theme]?.muted||'#425772');ctx.globalAlpha=opacity;ctx.font='700 '+size+'px '+CJK_FONT;
  ctx.textAlign='center';ctx.textBaseline='middle';
  if(diagonal){
   const gap=Math.max(110,Math.min(420,Number(wm.diagonalGap)||220));

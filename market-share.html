@@ -1866,10 +1866,58 @@
     // ==========================================
     // 6. 高清 PNG 导出引擎 (1200 x 1600 严格 3:4)
     // ==========================================
-    function exportHighResPNG() {
+    // SVG 经 Blob 转图片时不会自动携带网页字体。在线环境下将数字字体
+    // 临时内嵌至待导出的 SVG，确保 PNG 与预览一致；失败时自动回退系统字体。
+    let embeddedNumberFontPromise=null;
+    function embeddedNumberFontCss(){
+      if(embeddedNumberFontPromise)return embeddedNumberFontPromise;
+      embeddedNumberFontPromise=(async()=>{
+        try{
+          const endpoint='https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap';
+          const response=await fetch(endpoint);
+          if(!response.ok)throw new Error('Font stylesheet unavailable');
+          const css=await response.text();
+          const blocks=(css.match(/@font-face\s*\{[^}]*\}/g)||[]).filter(t=>t.includes('IBM Plex Mono'));
+          const latin=blocks.filter(t=>/U\+0000-00FF/i.test(t));
+          const selected=latin.length?latin:blocks;
+          const styles=[];
+          for(const block of selected){
+            const match=block.match(/url\(([^)]+)\)/);
+            if(!match)continue;
+            const url=match[1].trim().replace(/^['"]|['"]$/g,'');
+            const fontResponse=await fetch(url);
+            if(!fontResponse.ok)continue;
+            const buffer=await fontResponse.arrayBuffer();
+            const data=await new Promise((resolve,reject)=>{
+              const reader=new FileReader();
+              reader.onload=()=>resolve(reader.result);
+              reader.onerror=()=>reject(reader.error);
+              reader.readAsDataURL(new Blob([buffer],{type:'font/woff2'}));
+            });
+            styles.push(block.replace(/url\([^)]+\)/,'url("'+data+'")'));
+          }
+          return styles.join('\n');
+        }catch(err){return '';}
+      })();
+      return embeddedNumberFontPromise;
+    }
+
+    async function exportHighResPNG() {
+      if(document.fonts?.ready)await document.fonts.ready;
       const svg = document.getElementById('posterSvg');
+      const fontCss=await embeddedNumberFontCss();
+      const exportSvg=svg.cloneNode(true);
+      if(fontCss){
+        let defs=exportSvg.querySelector('defs');
+        if(!defs){
+          defs=document.createElementNS('http://www.w3.org/2000/svg','defs');
+          exportSvg.insertBefore(defs,exportSvg.firstChild);
+        }
+        const style=document.createElementNS('http://www.w3.org/2000/svg','style');
+        style.textContent=fontCss;defs.appendChild(style);
+      }
       const serializer = new XMLSerializer();
-      let source = serializer.serializeToString(svg);
+      let source = serializer.serializeToString(exportSvg);
 
       if (!source.match(/^<svg[^>]+xmlns="http\:\/\/www\.w3\.org\/2000\/svg"/)) {
         source = source.replace(/^<svg/, '<svg xmlns="http://www.w3.org/2000/svg"');

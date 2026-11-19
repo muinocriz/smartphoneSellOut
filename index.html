@@ -6,6 +6,7 @@
 <title>销量追踪 · 市场份额</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="studio-ui.css">
 <style>
 /* Layout: 顶部标题 + 控制条（品牌 / 机型芯片 / 周期与显示选项）+ 全宽折线图 + 数据表 */
 :root{
@@ -95,7 +96,7 @@ td.bad{color:var(--warn)}
 .load.err{color:var(--warn)}
 
 /* 首页三栏目：市场份额与销量榜单推算各用独立页面，避免样式、脚本和数据串扰。 */
-.page-tabs{display:inline-flex;align-items:center;gap:4px;padding:4px;background:var(--panel);border:1px solid var(--line);border-radius:10px}
+.page-tabs{font-family:var(--ui-font-body,var(--f-body));display:inline-flex;align-items:center;gap:4px;padding:4px;background:var(--panel);border:1px solid var(--line);border-radius:10px}
 .page-tabs button{font-size:17px;font-weight:700;white-space:nowrap;padding:6px 16px;border:0;border-radius:7px;background:transparent;color:var(--muted)}
 .page-tabs button:hover{color:var(--fg);background:var(--accent-soft)}
 .page-tabs button[aria-selected="true"]{color:var(--accent);background:var(--accent-soft)}

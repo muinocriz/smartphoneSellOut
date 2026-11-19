@@ -9,7 +9,8 @@
   --ui-text-body:14px;
   --ui-text-heading:16px;
   --ui-text-metric:24px;
-  --ui-font-body:"Source Han Sans SC","Source Han Sans CN","思源黑体","Noto Sans CJK SC","Noto Sans SC",sans-serif;
+  /* Consistent system font for UI; webfonts remain available separately for posters. */
+  --ui-font-body:system-ui,-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
   --ui-font-number:"IBM Plex Mono",ui-monospace,Menlo,monospace;
   --ui-ink:#24364e;
   --ui-muted:#71829b;
@@ -32,7 +33,7 @@
   gap:8px;max-width:100%;width:fit-content;padding:5px 10px;
   background:#edf4ff;color:#2865db;border:1px solid #d5e2f8;
   border-radius:999px;font-family:var(--ui-font-body);
-  font-size:var(--ui-text-small);font-weight:750;line-height:1.4;
+  font-size:var(--ui-text-small);font-weight:700;line-height:1.4;
   letter-spacing:.03em;text-transform:uppercase;overflow-wrap:anywhere;
 }
 .studio-ui .ui-eyebrow-dot {display:inline-block;width:8px;height:8px;flex:0 0 8px;border-radius:50%;background:#83aaf2}

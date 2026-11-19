@@ -31,6 +31,7 @@ Select the **市场份额** tab on the homepage to access:
 - **Five visualization modes**: combined 100% stacked share + diverging change chart, diverging horizontal bars, 100% stacked chart, slope chart, and dumbbell chart.
 - **Editable weekly shares**: open the data editor to change week labels, market notes, and individual brand/sub-brand percentages. The “Other” category is calculated as the remaining share. OPPO can be split into OnePlus/realme and vivo into iQOO.
 - **Six poster colour palettes**: Soft Lilac (default), Editorial Ivory, Pure White, Mist Blue Minimal, Sunset Coral, and Morandi Sage. Customize headline, subtitle, and insight text.
+- **Unified web UI**: the market-share dashboard now uses the same light grey/white card styling and blue selection accents as the ranking estimator. Safe-area and palette settings retain dark navy accent cards. The six actual poster themes, data calculations and exports are unchanged.
 - **Douyin safe-area preview**: separately adjust right-side and bottom exclusion zones; guide overlays are not included in exported images.
 - **High-resolution export**: 3:4 portrait poster saved as a 1200×1600 PNG. Edits persist in this browser's `localStorage`; sample values can be restored.
 

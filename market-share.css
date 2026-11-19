@@ -20,6 +20,7 @@ body.market-share-light{
   background:#f5f7fb;border-bottom:1px solid #e0e7f1;
 }
 .market-share-light .ms-intro{display:flex;flex-direction:column;gap:12px;padding-bottom:4px}
+.market-share-light .ms-sidebar p{margin:0}
 .market-share-light .ms-card{
   min-width:0;display:flex;flex-direction:column;gap:12px;
   padding:16px;background:#fff;border:1px solid #e0e7f1;border-radius:16px;

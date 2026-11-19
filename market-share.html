@@ -696,7 +696,7 @@
         showSafeZone: true,        // 是否显示抖音辅助线
         rightMarginPct: 15,        // 右侧留白百分比 (默认 15%)
         bottomMarginPct: 10,       // 下侧留白百分比 (默认 10%)
-        paletteId: 'lilac_cloud', // 默认柔雾丁香配色
+        paletteId: 'editorial_paper', // 与第三模块统一的默认「编辑部米白」
         title: '2026 W45 国内手机市场份额周环比变化',
         subtitle: '对比 W44 (10.26–11.1) 与 W45 (11.2–11.8) | 单位：百分点',
         insight: '本周大盘降约5% · 华为逆势涨 +1.4 突破20% · 苹果稳居榜首',
@@ -741,7 +741,7 @@
     const state = loadSavedState();
 
     function getPalette() {
-      return PALETTES[state.paletteId] || PALETTES.lilac_cloud;
+      return PALETTES[state.paletteId] || PALETTES.editorial_paper;
     }
 
     function getVisibleBrands() {

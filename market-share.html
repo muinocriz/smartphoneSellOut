@@ -213,7 +213,7 @@
           <span class="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></span>
           DATA JOURNALISM STUDIO
         </div>
-        <h1 class="text-xl font-extrabold tracking-tight text-white">手机份额战报 · 3:4 出图台</h1>
+        <h1 class="text-2xl font-extrabold tracking-tight text-white">手机份额战报 · 3:4 出图台</h1>
       </div>
       <span id="currentMarketShareWeek" class="inline-block whitespace-nowrap text-xs text-slate-400 bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-700">2026 W44→W45</span>
     </div>
@@ -249,7 +249,7 @@
         <div id="showOtherOption" class="flex items-center justify-between">
           <div>
             <div class="text-xs font-semibold text-slate-200">显示“其他”自动推算项</div>
-            <div class="text-[11px] text-slate-400">发散/组合图默认聚焦前六大主流品牌</div>
+            <div class="text-xs text-slate-400">发散/组合图默认聚焦前六大主流品牌</div>
           </div>
           <label class="relative inline-flex items-center cursor-pointer">
             <input type="checkbox" id="toggleOtherBrand" class="sr-only peer">
@@ -260,7 +260,7 @@
         <div id="subBrandOption" class="flex items-center justify-between">
           <div>
             <div class="text-xs font-semibold text-slate-200">堆叠图拆分展示子品牌</div>
-            <div class="text-[11px] text-slate-400">独立展示一加/realme 与 iQOO 份额</div>
+            <div class="text-xs text-slate-400">独立展示一加/realme 与 iQOO 份额</div>
           </div>
           <label class="relative inline-flex items-center cursor-pointer">
             <input type="checkbox" id="splitSubBrands" class="sr-only peer" checked>
@@ -274,7 +274,7 @@
     <div class="bg-slate-800/70 p-3.5 rounded-2xl border border-slate-700/70 space-y-3">
       <div class="flex items-center justify-between">
         <h2 class="ui-section-title">2. 录入 / 修改份额数据 (%)</h2>
-        <button id="toggleDataEditorBtn" class="text-[11px] bg-slate-700 hover:bg-slate-600 text-slate-200 px-2.5 py-1 rounded-lg font-semibold transition cursor-pointer">
+        <button id="toggleDataEditorBtn" class="text-xs bg-slate-700 hover:bg-slate-600 text-slate-200 px-2.5 py-1 rounded-lg font-semibold transition cursor-pointer">
           展开编辑表格 ▾
         </button>
       </div>
@@ -283,7 +283,7 @@
       <div id="dataEditorPanel" class="hidden space-y-3 pt-2 border-t border-slate-700/80">
         <!-- 品牌份额输入表 -->
         <div class="bg-slate-900/90 rounded-xl p-2 border border-slate-700/80">
-          <div class="grid grid-cols-12 text-[11px] font-bold text-slate-400 pb-1.5 mb-1.5 border-b border-slate-800 px-1">
+          <div class="grid grid-cols-12 text-xs font-bold text-slate-400 pb-1.5 mb-1.5 border-b border-slate-800 px-1">
             <span class="col-span-4">品牌</span>
             <span class="col-span-3 text-center">上周(%)</span>
             <span class="col-span-3 text-center">本周(%)</span>
@@ -292,17 +292,17 @@
           <div id="brandInputsList" class="space-y-1.5 max-h-[260px] overflow-y-auto pr-1">
             <!-- 由 JS 动态渲染品牌输入框 -->
           </div>
-          <div class="mt-2 pt-1.5 border-t border-slate-800 flex items-center justify-between text-[11px] px-1">
+          <div class="mt-2 pt-1.5 border-t border-slate-800 flex items-center justify-between text-xs px-1">
             <span class="text-slate-400">自动推算“其他”份额：</span>
             <span id="otherAutoSummary" class="font-mono font-bold text-slate-200">2.6% → 2.6%</span>
           </div>
         </div>
 
         <div class="flex items-center justify-between">
-          <span class="text-[11px] text-emerald-400/90 flex items-center gap-1">
+          <span class="text-xs text-emerald-400/90 flex items-center gap-1">
             <span>●</span> 已开启浏览器本地自动记忆（刷新不丢失）
           </span>
-          <button id="resetDataBtn" class="text-[11px] text-slate-400 hover:text-white underline cursor-pointer">恢复默认 W44/W45 示例数据</button>
+          <button id="resetDataBtn" class="text-xs text-slate-400 hover:text-white underline cursor-pointer">恢复默认 W44/W45 示例数据</button>
         </div>
       </div>
     </div>
@@ -351,46 +351,46 @@
     <div class="bg-slate-800/70 p-3.5 rounded-2xl border border-slate-700/70 space-y-2.5">
       <h2 class="ui-section-title">5. 编辑战报文案</h2>
       <div>
-        <label class="text-[11px] text-slate-400 block mb-1">主标题</label>
+        <label class="text-xs text-slate-400 block mb-1">主标题</label>
         <input type="text" id="inputTitle" value="2026 W45 国内手机市场份额周环比变化" class="ui-field w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500">
       </div>
       <div>
-        <label class="text-[11px] text-slate-400 block mb-1">副标题（时间与单位口径）</label>
+        <label class="text-xs text-slate-400 block mb-1">副标题（时间与单位口径）</label>
         <input type="text" id="inputSubtitle" value="对比 W44 (10.26–11.1) 与 W45 (11.2–11.8) | 单位：百分点" class="ui-field w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500">
       </div>
       <div>
-        <label class="text-[11px] text-slate-400 block mb-1">核心洞察标签</label>
+        <label class="text-xs text-slate-400 block mb-1">核心洞察标签</label>
         <input type="text" id="inputInsight" value="本周大盘降约5% · 华为逆势涨 +1.4 突破20% · 苹果稳居榜首" class="ui-field w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500">
       </div>
       <div class="pt-2 border-t border-slate-200 space-y-2.5">
         <label class="block text-xs font-bold text-slate-500">顶部两周趋势卡片</label>
         <div class="grid grid-cols-2 gap-2">
           <div>
-            <label class="text-[11px] text-slate-400 block mb-1" for="inputW1Label">左卡片 · 基准周标签</label>
+            <label class="text-xs text-slate-400 block mb-1" for="inputW1Label">左卡片 · 基准周标签</label>
             <input type="text" id="inputW1Label" value="W44 (10.26 - 11.1)" class="ui-field w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-blue-500">
           </div>
           <div>
-            <label class="text-[11px] text-slate-400 block mb-1" for="inputW2Label">右卡片 · 对比周标签</label>
+            <label class="text-xs text-slate-400 block mb-1" for="inputW2Label">右卡片 · 对比周标签</label>
             <input type="text" id="inputW2Label" value="W45 (11.2 - 11.8)" class="ui-field w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-blue-500">
           </div>
         </div>
         <div>
-          <label class="text-[11px] text-slate-400 block mb-1" for="inputW1Market">左卡片 · 基准周趋势说明</label>
+          <label class="text-xs text-slate-400 block mb-1" for="inputW1Market">左卡片 · 基准周趋势说明</label>
           <input type="text" id="inputW1Market" value="大盘趋势：略微上升 ↗" class="ui-field w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-blue-500">
         </div>
         <div>
-          <label class="text-[11px] text-slate-400 block mb-1" for="inputW2Market">右卡片 · 对比周趋势说明</label>
+          <label class="text-xs text-slate-400 block mb-1" for="inputW2Market">右卡片 · 对比周趋势说明</label>
           <input type="text" id="inputW2Market" value="大盘趋势：环比下降约 5% ↘" class="ui-field w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-blue-500">
         </div>
       </div>
       <div class="pt-2 border-t border-slate-200 space-y-2.5">
         <label class="block text-xs font-bold text-slate-500">底部水印与数据口径</label>
         <div>
-          <label class="text-[11px] text-slate-400 block mb-1" for="inputFooterSource">底部第一行 · 数据口径</label>
+          <label class="text-xs text-slate-400 block mb-1" for="inputFooterSource">底部第一行 · 数据口径</label>
           <input type="text" id="inputFooterSource" value="数据口径：国内手机市场 Sell-Out 销量占比（OPPO含一加/realme，vivo含iQOO）" class="ui-field w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-blue-500">
         </div>
         <div>
-          <label class="text-[11px] text-slate-400 block mb-1" for="inputFooterNote">底部第二行 · 补充说明</label>
+          <label class="text-xs text-slate-400 block mb-1" for="inputFooterNote">底部第二行 · 补充说明</label>
           <input type="text" id="inputFooterNote" value="底色高亮标注本周最大份额提升与最大回落品牌 · 适配抖音 3:4 安全区" class="ui-field w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-blue-500">
         </div>
       </div>
@@ -426,7 +426,7 @@
         <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
         <span>导出 3:4 高清抖音海报 (1200×1600 PNG)</span>
       </button>
-      <p class="text-[11px] text-center text-slate-400 mt-2">导出时将自动隐藏红色/琥珀色安全区辅助线，输出纯净原图</p>
+      <p class="text-xs text-center text-slate-400 mt-2">导出时将自动隐藏红色/琥珀色安全区辅助线，输出纯净原图</p>
     </div>
   </aside>
 
@@ -452,38 +452,38 @@
       <div id="douyinOverlay" class="absolute inset-0 pointer-events-none transition-opacity duration-200">
         <!-- 右侧危险遮挡警戒带 -->
         <div id="dyRightZone" class="absolute top-0 right-0 bottom-0 bg-rose-500/15 border-l-2 border-dashed border-rose-500/80 flex flex-col justify-between items-center py-6" style="width: 15%;">
-          <div class="bg-rose-600/90 text-white text-[11px] font-bold px-1.5 py-0.5 rounded shadow text-center leading-tight">
+          <div class="bg-rose-600/90 text-white text-xs font-bold px-1.5 py-0.5 rounded shadow text-center leading-tight">
             右侧避让<br><span id="dyRightTag">15%</span>
           </div>
 
           <!-- 模拟抖音右侧悬浮按钮列 -->
           <div class="flex flex-col items-center gap-4 mb-16 opacity-85">
             <div class="relative">
-              <div class="w-9 h-9 rounded-full bg-slate-700 border-2 border-white flex items-center justify-center text-[11px] font-bold text-white shadow">数码</div>
-              <div class="w-4 h-4 rounded-full bg-rose-500 text-white text-[11px] font-bold flex items-center justify-center absolute -bottom-1.5 left-1/2 -translate-x-1/2">+</div>
+              <div class="w-9 h-9 rounded-full bg-slate-700 border-2 border-white flex items-center justify-center text-xs font-bold text-white shadow">数码</div>
+              <div class="w-4 h-4 rounded-full bg-rose-500 text-white text-xs font-bold flex items-center justify-center absolute -bottom-1.5 left-1/2 -translate-x-1/2">+</div>
             </div>
             <div class="flex flex-col items-center">
               <svg class="w-7 h-7 text-rose-500 drop-shadow" fill="currentColor" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
-              <span class="text-[11px] text-white font-semibold drop-shadow">2.4w</span>
+              <span class="text-xs text-white font-semibold drop-shadow">2.4w</span>
             </div>
             <div class="flex flex-col items-center">
               <svg class="w-7 h-7 text-white drop-shadow" fill="currentColor" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-              <span class="text-[11px] text-white font-semibold drop-shadow">1892</span>
+              <span class="text-xs text-white font-semibold drop-shadow">1892</span>
             </div>
             <div class="flex flex-col items-center">
               <svg class="w-7 h-7 text-amber-400 drop-shadow" fill="currentColor" viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
-              <span class="text-[11px] text-white font-semibold drop-shadow">3410</span>
+              <span class="text-xs text-white font-semibold drop-shadow">3410</span>
             </div>
             <div class="flex flex-col items-center">
               <svg class="w-7 h-7 text-white drop-shadow" fill="currentColor" viewBox="0 0 24 24"><path d="M14 9V5l7 7-7 7v-4.1c-5 0-8.5 1.6-11 5.1 1-5 4-10 11-11z"/></svg>
-              <span class="text-[11px] text-white font-semibold drop-shadow">965</span>
+              <span class="text-xs text-white font-semibold drop-shadow">965</span>
             </div>
           </div>
         </div>
 
         <!-- 底部抖音标题栏安全区提示（独立调节高度） -->
         <div id="dyBottomZone" class="absolute bottom-0 left-0 right-0 bg-amber-500/15 border-t-2 border-dashed border-amber-400/70 flex items-end justify-between p-2.5" style="height: 10%;">
-          <span class="text-[11px] text-amber-200 bg-slate-950/80 px-2 py-0.5 rounded font-semibold">底部文案/进度条避让区 (<span id="dyBottomTag">10%</span>)</span>
+          <span class="text-xs text-amber-200 bg-slate-950/80 px-2 py-0.5 rounded font-semibold">底部文案/进度条避让区 (<span id="dyBottomTag">10%</span>)</span>
         </div>
       </div>
     </div>
@@ -1691,7 +1691,7 @@
           const diff = sumW2 - sumW1;
 
           const groupHeader = document.createElement('div');
-          groupHeader.className = 'grid grid-cols-12 items-center bg-slate-800/80 px-2 py-1 rounded-lg text-[11px] font-bold text-slate-200';
+          groupHeader.className = 'grid grid-cols-12 items-center bg-slate-800/80 px-2 py-1 rounded-lg text-xs font-bold text-slate-200';
           groupHeader.innerHTML = `
             <span class="col-span-4 flex items-center gap-1.5">
               <span class="w-2 h-2 rounded-full" style="background:${b.brandColor}"></span>${b.name}
@@ -1705,19 +1705,19 @@
           b.subBrands.forEach((sub, sIdx) => {
             const sDiff = (parseFloat(sub.w2) || 0) - (parseFloat(sub.w1) || 0);
             const row = document.createElement('div');
-            row.className = 'grid grid-cols-12 items-center gap-1 pl-3 pr-1 py-0.5 text-[11px]';
+            row.className = 'grid grid-cols-12 items-center gap-1 pl-3 pr-1 py-0.5 text-xs';
             row.innerHTML = `
               <span class="col-span-4 text-slate-400 truncate">└ ${sub.name}</span>
               <input type="number" step="0.1" min="0" max="100" value="${sub.w1}" data-bidx="${bIdx}" data-sidx="${sIdx}" data-field="w1" class="data-num-input col-span-3 bg-slate-950 border border-slate-700 rounded px-1.5 py-1 text-center font-mono text-white focus:border-blue-500 focus:outline-none">
               <input type="number" step="0.1" min="0" max="100" value="${sub.w2}" data-bidx="${bIdx}" data-sidx="${sIdx}" data-field="w2" class="data-num-input col-span-3 bg-slate-950 border border-slate-700 rounded px-1.5 py-1 text-center font-mono text-white focus:border-blue-500 focus:outline-none">
-              <span class="col-span-2 text-right font-mono text-[11px] ${sDiff > 0 ? 'text-rose-400' : (sDiff < 0 ? 'text-sky-400' : 'text-slate-500')}" id="sub_diff_${bIdx}_${sIdx}">${formatDiff(sDiff)}</span>
+              <span class="col-span-2 text-right font-mono text-xs ${sDiff > 0 ? 'text-rose-400' : (sDiff < 0 ? 'text-sky-400' : 'text-slate-500')}" id="sub_diff_${bIdx}_${sIdx}">${formatDiff(sDiff)}</span>
             `;
             container.appendChild(row);
           });
         } else {
           const diff = (parseFloat(b.w2) || 0) - (parseFloat(b.w1) || 0);
           const row = document.createElement('div');
-          row.className = 'grid grid-cols-12 items-center gap-1 px-1.5 py-0.5 text-[11px]';
+          row.className = 'grid grid-cols-12 items-center gap-1 px-1.5 py-0.5 text-xs';
           row.innerHTML = `
             <span class="col-span-4 font-bold text-slate-200 flex items-center gap-1.5">
               <span class="w-2 h-2 rounded-full" style="background:${b.brandColor}"></span>${b.name}
@@ -1743,7 +1743,7 @@
             const sDiff = (parseFloat(sub.w2) || 0) - (parseFloat(sub.w1) || 0);
             const subDiffEl = document.getElementById(`sub_diff_${bIdx}_${sIdx}`);
             subDiffEl.textContent = formatDiff(sDiff);
-            subDiffEl.className = `col-span-2 text-right font-mono text-[11px] ${sDiff > 0 ? 'text-rose-400' : (sDiff < 0 ? 'text-sky-400' : 'text-slate-500')}`;
+            subDiffEl.className = `col-span-2 text-right font-mono text-xs ${sDiff > 0 ? 'text-rose-400' : (sDiff < 0 ? 'text-sky-400' : 'text-slate-500')}`;
 
             const sumW1 = state.brands[bIdx].subBrands.reduce((s, x) => s + (parseFloat(x.w1) || 0), 0);
             const sumW2 = state.brands[bIdx].subBrands.reduce((s, x) => s + (parseFloat(x.w2) || 0), 0);

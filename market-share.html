@@ -217,6 +217,7 @@
 
     /* 数值用 IBM Plex Mono；汉字和普通英文仍使用原来的正文字体。 */
     body.market-share-light .numeric-glyph,body.market-share-light .font-mono,body.market-share-light input[type="number"],body.market-share-light .data-num-input {font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace!important;font-variant-numeric:tabular-nums}
+    body.market-share-light input[type="text"],body.market-share-light textarea,body.market-share-light select{font-family:"IBM Plex Mono","Source Han Sans SC","Noto Sans SC",sans-serif;font-variant-numeric:tabular-nums}
   </style>
 </head>
 <body class="market-share-light min-h-screen flex flex-col lg:flex-row overflow-x-hidden">
@@ -1874,7 +1875,10 @@
       embeddedNumberFontPromise=(async()=>{
         try{
           const endpoint='https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap';
-          const response=await fetch(endpoint);
+          const controller=new AbortController();
+          const timeout=setTimeout(()=>controller.abort(),5000);
+          let response;
+          try{response=await fetch(endpoint,{signal:controller.signal});}finally{clearTimeout(timeout)}
           if(!response.ok)throw new Error('Font stylesheet unavailable');
           const css=await response.text();
           const blocks=(css.match(/@font-face\s*\{[^}]*\}/g)||[]).filter(t=>t.includes('IBM Plex Mono'));
@@ -1885,7 +1889,10 @@
             const match=block.match(/url\(([^)]+)\)/);
             if(!match)continue;
             const url=match[1].trim().replace(/^['"]|['"]$/g,'');
-            const fontResponse=await fetch(url);
+            const fontController=new AbortController();
+            const fontTimeout=setTimeout(()=>fontController.abort(),5000);
+            let fontResponse;
+            try{fontResponse=await fetch(url,{signal:fontController.signal});}finally{clearTimeout(fontTimeout)}
             if(!fontResponse.ok)continue;
             const buffer=await fontResponse.arrayBuffer();
             const data=await new Promise((resolve,reject)=>{

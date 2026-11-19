@@ -144,7 +144,7 @@
       <div class="space-y-2.5 pb-3 mb-3 border-b border-slate-200">
         <h3 class="ui-section-title">CSV 数据源与历史周</h3>
         <div class="flex gap-2 flex-wrap items-center">
-          <select id="marketShareWeekSelect" aria-label="选择市场份额对比周" class="ui-field grow min-w-[160px] max-w-full"></select>
+          <select id="marketShareWeekSelect" aria-label="选择市场份额对比周" class="ui-field ui-field--inline grow min-w-[160px] max-w-full"></select>
           <button id="marketShareReloadCsv" type="button" class="rounded-lg bg-blue-50 px-2.5 py-2 text-xs font-semibold text-blue-700 border border-blue-200">重载仓库 CSV</button>
           <label class="cursor-pointer rounded-lg bg-slate-100 px-2.5 py-2 text-xs font-semibold text-slate-700 border border-slate-200">导入本地 CSV<input id="marketShareUploadCsv" type="file" accept=".csv,text/csv" class="hidden" /></label>
         </div>

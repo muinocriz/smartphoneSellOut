@@ -1,6 +1,9 @@
 <!DOCTYPE html>
 <html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>手机销量推算与小红书抖音图文工作台</title>
+<link rel='preconnect' href='https://fonts.googleapis.com'>
+<link rel='preconnect' href='https://fonts.gstatic.com' crossorigin>
+<link href='https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap' rel='stylesheet'>
 <style>
 :root{color-scheme:light;--ink:#202a3d;--sub:#63728a;--border:#e2e9f2;--bg:#f6f8fc;--blue:#2563eb;--pale:#edf3ff;--red:#c03232;--orange:#9a5906;--green:#257048}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);font-family:"Source Han Sans SC","Source Han Sans CN","思源黑体","Noto Sans CJK SC","Noto Sans SC",sans-serif;color:var(--ink)}button,input,select,textarea{font:inherit}button{cursor:pointer}.shell{max-width:1460px;margin:auto;padding:28px 24px 65px}.topline{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.eyebrow{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--blue);font-weight:750}h1{font-size:29px;line-height:1.26;letter-spacing:-.03em;margin:8px 0 9px}.subtitle{font-size:14px;color:var(--sub);margin:0;line-height:1.8}.source{padding:7px 11px;border:1px solid #d9e4f8;border-radius:100px;color:#3d6596;font-size:12px;background:#f0f5ff;white-space:nowrap}.tabs{display:flex;flex-wrap:wrap;gap:9px;margin-top:25px}.tab{border:1px solid var(--border);background:white;color:#56647a;border-radius:11px;padding:10px 16px;font-weight:700;font-size:13px}.tab.active{color:#1558dc;background:#eaf1ff;border-color:#bcd0ff}.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:16px 0 21px}.metric{background:#fff;border:1px solid var(--border);border-radius:15px;padding:17px 18px;min-height:84px}.metric .k{color:var(--sub);font-size:12px}.metric .v{margin-top:6px;font-size:23px;font-weight:750;font-variant-numeric:tabular-nums}.metric .v.small{font-size:18px}.layout{display:grid;grid-template-columns:minmax(320px,395px) minmax(0,1fr);gap:18px;align-items:start}.panel{background:#fff;border:1px solid var(--border);border-radius:17px;padding:20px;box-shadow:0 1px 2px #152b4a09}.sidebar{display:grid;gap:17px}.panel-title{font-weight:800;font-size:16px;margin:0 0 6px}.panel-desc{font-size:12px;color:var(--sub);line-height:1.75;margin:0 0 17px}.seg{display:flex;padding:4px;gap:4px;background:#eef2f7;border-radius:10px;margin-bottom:17px}.seg button{flex:1;border:0;border-radius:8px;background:transparent;padding:10px;color:#647089;font-size:13px;font-weight:700}.seg button.on{background:white;color:var(--blue);box-shadow:0 1px 6px #13336f15}.lbl{display:block;font-size:12px;color:#53647c;margin:13px 0 7px;font-weight:650}.field{background:white;border:1px solid #cfdae8;border-radius:9px;height:39px;padding:7px 10px;color:#23334b;outline:none;width:100%;min-width:0}.field:focus{border-color:#5e8bee;box-shadow:0 0 0 3px #dce9ff}.amount-row{display:grid;grid-template-columns:minmax(0,1fr) 103px;gap:8px}.primary{background:var(--blue);color:white;border:none;padding:12px 18px;border-radius:9px;font-weight:750}.primary:hover{background:#1b4dbd}.primary:disabled{background:#b1bad1;cursor:not-allowed}.add{width:100%;margin-top:17px}.secondary{background:white;color:#45617f;border:1px solid #d9e2ef;padding:9px 13px;border-radius:9px;font-weight:650;font-size:12px}.danger{color:#b43333}.msg{border-radius:10px;padding:11px 12px;font-size:12px;line-height:1.7;background:#f6f8fc;color:#5c6d84;margin-top:11px}.msg.warn{background:#fff7e8;color:#985f14;border:1px solid #f4ddb1}.msg.good{background:#edf8f2;color:#266943;border:1px solid #c6e8d1}.msg.bad{background:#fff2f1;color:#ab3d33;border:1px solid #f7d1cc}.list-pool{max-height:220px;overflow-y:auto;border:1px solid var(--border);border-radius:11px;padding:5px 7px}.option{display:flex;align-items:center;gap:9px;padding:7px 5px;font-size:12px;border-bottom:1px solid #f0f3f8;line-height:1.35}.option:last-child{border-bottom:0}.option input{accent-color:#2563eb;flex:0 0 auto;width:15px;height:15px}.option .rank{font-weight:700;color:#7d8ca0;width:26px;flex:0 0 26px}.option .name{flex:1;min-width:0}.option .len{color:#8a98ae;font-variant-numeric:tabular-nums}.picked{font-size:12px;font-weight:700;color:#476fa8;margin:9px 0 3px}.cal{border-bottom:1px solid #eef1f6;padding:12px 0}.cal:last-child{border-bottom:0}.calhead{display:flex;align-items:flex-start;gap:9px}.calname{flex:1;font-size:12px;line-height:1.65;font-weight:700}.calval{font-size:12px;white-space:nowrap;font-weight:750}.smallline{font-size:11px;line-height:1.75;color:#7b8b9e;margin-top:3px}.flag{font-size:11px;color:#a43724;font-weight:700;margin-top:5px}.xbtn{border:0;background:#f5f6fa;color:#8e9aad;border-radius:6px;padding:2px 7px;font-size:18px;line-height:1.2}.empty{padding:28px 14px;color:#93a0b0;text-align:center;font-size:13px}.table-actions{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin:16px 0 13px}.actions-right{display:flex;gap:8px;align-items:center}.search{width:218px}.tablewrap{overflow:auto;border:1px solid #edf0f5;border-radius:11px}.ranktable{border-collapse:collapse;width:100%;min-width:655px;font-size:13px}.ranktable th{color:#718099;font-size:11px;text-align:left;background:#f6f8fb;font-weight:700;position:sticky;top:0}.ranktable th,.ranktable td{padding:12px 12px;border-bottom:1px solid #edf1f6}.ranktable tr:last-child td{border-bottom:0}.ranktable tbody tr:hover{background:#f9fbff}.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}.namecol{min-width:185px}.rankcell{color:#7c8ba1;font-weight:750}.sale{font-weight:800;color:#1858ca}.barline{min-width:110px;width:100%;height:7px;background:#eef3fc;border-radius:10px;overflow:hidden}.barline span{display:block;background:linear-gradient(90deg,#6196ff,#285ad4);height:100%;border-radius:10px}.relative{font-size:11px;color:#8c9cb2}.stepnote{font-size:12px;line-height:1.75;color:#6b7f9a;margin:0 0 13px}.btnlink{border:none;background:transparent;color:#2767d1;padding:4px 2px;font-size:12px;font-weight:650}.preview{width:100%;max-height:380px;object-fit:contain;border-radius:7px;background:white;border:1px solid #edf1f8}.details{margin-top:18px}.details summary{font-size:13px;font-weight:700;color:#50627d;cursor:pointer}.details .inside{padding-top:11px}.method{font-size:12px;line-height:1.85;color:#73829b}.mini{font-size:11px;color:#8d9cae}.uploadbox{background:#f8faff;border:1px dashed #aac0e7;border-radius:11px;padding:15px;margin-bottom:14px}.uploadbox input{display:block;width:100%;font-size:12px}.textarea{min-height:108px;height:auto;resize:vertical;line-height:1.5}.state{font-size:12px;color:#557496}.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);padding:10px 18px;background:#233754;color:white;border-radius:10px;font-size:13px;box-shadow:0 6px 18px #0002;opacity:0;pointer-events:none;transition:opacity .15s;z-index:10}.toast.show{opacity:1}.caption{font-size:12px;line-height:1.7;color:#8292a7}.labelchip{background:#edf4fe;border-radius:7px;color:#3470c1;padding:3px 7px;display:inline-block;font-size:10px;margin-left:5px}.righttop{display:flex;justify-content:space-between;gap:12px;align-items:center}.explain{border-top:1px solid #e9eef7;margin-top:16px;padding-top:12px}@media(max-width:990px){.layout{grid-template-columns:1fr}.sidebar{grid-template-columns:repeat(2,minmax(0,1fr))}.sidebar>.panel:last-child{grid-column:1 / -1}}@media(max-width:690px){.shell{padding:17px 12px 42px}h1{font-size:23px}.topline{display:block}.source{display:inline-block;margin-top:10px}.metrics{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.metric{padding:13px}.metric .v{font-size:19px}.sidebar{display:block}.sidebar>.panel{margin-bottom:12px}.panel{padding:15px}.search{width:160px}.ranktable{min-width:580px}}
@@ -11,6 +14,8 @@
 
 .copy-mini{font-size:11px;color:#6b7d95}.copy-grid{display:grid;gap:12px;margin:14px 0 12px}.copy-box{background:#f8fbff;border:1px solid #dfe8f5;border-radius:16px;padding:14px 14px 12px}.copy-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}.copy-head b{font-size:14px;color:#21334d}.copy-desc{font-size:12px;color:#7285a0;line-height:1.7;margin:0 0 12px}.copy-two{display:grid;grid-template-columns:1fr 1fr;gap:12px}.copy-field{display:grid;gap:8px}.copy-field label{font-size:12px;font-weight:700;color:#476282}.copy-field input,.copy-field textarea{width:100%;border:1px solid #d7e3f2;border-radius:12px;padding:10px 12px;background:#fff;color:#22344f;line-height:1.6;font-size:13px;outline:none}.copy-field textarea{resize:vertical;min-height:96px}.copy-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:12px}.copy-actions button{border:none;border-radius:10px;background:#edf4ff;color:#2c5fb1;padding:9px 12px;font-weight:700}.copy-actions button:hover{filter:brightness(.98)}@media(max-width:760px){.copy-two{grid-template-columns:1fr}}
 .safe-editor{display:grid;gap:14px;margin-top:12px}.safe-box{background:linear-gradient(180deg,#101a2a 0%,#152238 100%);border:1px solid #223454;border-radius:18px;padding:16px 16px 14px;color:#f4f7ff;box-shadow:0 10px 26px #09111d18}.safe-box-head{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:6px}.safe-box-title{font-size:15px;font-weight:850;letter-spacing:.2px}.safe-note{font-size:12px;color:#6fb6ff;font-weight:800}.safe-box-desc{margin:0 0 12px;color:#b4c4db;font-size:12px;line-height:1.7}.switchline{display:flex;align-items:center;gap:10px;justify-content:flex-end;font-size:12px;color:#d8e6ff;font-weight:700}.switchline input{position:absolute;opacity:0;pointer-events:none}.switch-ui{width:54px;height:30px;border-radius:999px;background:#3a4966;position:relative;box-shadow:inset 0 0 0 1px #5d6d8d;transition:background .18s ease}.switch-ui::after{content:'';position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;box-shadow:0 2px 8px #0004;transition:left .18s ease,background .18s ease}.switchline input:checked + .switch-ui{background:linear-gradient(90deg,#ff4f72,#ff5f7d)}.switchline input:checked + .switch-ui::after{left:27px}.safe-slider{margin-top:12px}.safe-slider-label{display:flex;justify-content:space-between;gap:12px;align-items:center;font-size:13px;font-weight:700;margin-bottom:8px}.safe-slider-label span{color:#f4f8ff}.safe-slider-label b{color:#ff5a77;font-size:13px}.safe-slider.bottom .safe-slider-label b{color:#ffb01f}.range{width:100%;appearance:none;height:8px;border-radius:999px;background:#2f3e5a;outline:none}.range::-webkit-slider-thumb{appearance:none;width:26px;height:26px;border-radius:50%;background:#ff4f72;border:4px solid #7d2941;box-shadow:0 2px 10px #0004;cursor:pointer}.safe-slider.bottom .range::-webkit-slider-thumb{background:#f7a30d;border-color:#805913}.range::-moz-range-thumb{width:26px;height:26px;border-radius:50%;background:#ff4f72;border:4px solid #7d2941;box-shadow:0 2px 10px #0004;cursor:pointer}.safe-slider.bottom .range::-moz-range-thumb{background:#f7a30d;border-color:#805913}.safe-check{display:flex;align-items:center;gap:9px;margin-top:14px;padding-top:12px;border-top:1px solid #263757;font-size:12px;color:#d7e5ff}.safe-check input{width:16px;height:16px}.theme-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:12px}.palette-card{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;border-radius:18px;background:#111d31;border:1px solid #2b3e61;color:#fff;text-align:left;cursor:pointer;transition:.16s transform ease,.16s border-color ease,.16s box-shadow ease}.palette-card:hover{transform:translateY(-1px);border-color:#4e7fd8}.palette-card.active{border-color:#2b7cff;box-shadow:0 0 0 2px #2b7cff33 inset,0 8px 20px #09111d28}.palette-name{font-size:13px;font-weight:850}.swatches{display:flex;gap:10px;align-items:center}.swatches i{width:22px;height:22px;border-radius:50%;display:inline-block;border:1px solid #ffffff22;box-shadow:0 1px 3px #0003}@media(max-width:690px){.theme-grid{grid-template-columns:1fr}.safe-box-title{font-size:14px}}
+.numeric-glyph,.numeric-value,.num,.rankcell,.metric .v,.sale,.relative,.picked,.statuspill,input[inputmode="decimal"],input[type="number"]{font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace!important;font-variant-numeric:tabular-nums}
+input[type="text"],textarea,select{font-family:"IBM Plex Mono","Source Han Sans SC","Noto Sans CJK SC",sans-serif;font-variant-numeric:tabular-nums}
 </style></head><body><main class="shell">
 <div class="topline"><div><div class="eyebrow">BAR-LENGTH CALIBRATION / RD OBSERVATION</div><h1>手机销量 · 数据分析与图文工作台</h1><p class="subtitle">截图测量 → 已知累计销量差值标定 → 数据分析 → 一键导出小红书 / 抖音图卡。</p></div><div class="source">本地离线工具 · 思源黑体优先 · 不上传数据</div></div>
 <div class="tabs" id="tabs"><button type="button" class="tab active" data-ds="40">2026年9月 TOP40</button><button type="button" class="tab" data-ds="30">2026 W45 TOP30</button><button type="button" class="tab" data-ds="custom">+ 导入新榜单截图</button></div>
@@ -317,10 +322,39 @@ function generateStory(type,o){if(o.models.length<2)return '请先导入至少�
  return `【标题】\n${period}榜首表现：${top.name}领先第二名多少？\n\n【正文】\n${top.name}以约 ${displaySale(top.sale)} 位居本榜第一；第二名 ${second.name} 约 ${displaySale(second.sale)}。\n\n第一名估算销量约是第二名的 ${displayTimes(o.ratio)}，领先约 ${displaySale(lead)}。\nTOP3占这份上榜样本估算销量的 ${displayPct(o.top3)}；TOP5占 ${displayPct(top5)}。\n\n这些比例描述的是“本次榜单中的头部集中程度”，不是全市场集中度。\n${note}\n\n#手机销量 #榜首分析 #数码观察`;
 }
 const CJK_FONT='"Source Han Sans SC","Source Han Sans CN","思源黑体","Noto Sans CJK SC","Noto Sans SC",sans-serif';
-function canvasText(ctx,text,x,y,size,color,weight='600',align='left',maxWidth=null){ctx.font=`${weight} ${size}px ${CJK_FONT}`;ctx.fillStyle=color;ctx.textAlign=align;ctx.textBaseline='alphabetic';if(maxWidth!==null)ctx.fillText(String(text),x,y,maxWidth);else ctx.fillText(String(text),x,y)}
+const NUM_FONT='"IBM Plex Mono",ui-monospace,Menlo,monospace';
+const NUMERIC_TOKEN=/[+\-−]?\d+(?:[.,:/–-]\d+)*(?:[%％×])?/g;
+function numericTextRuns(value){
+ const raw=String(value??''),runs=[];let last=0;
+ for(const m of raw.matchAll(NUMERIC_TOKEN)){
+  if(m.index>last)runs.push({text:raw.slice(last,m.index),number:false});
+  runs.push({text:m[0],number:true});last=m.index+m[0].length;
+ }
+ if(last<raw.length)runs.push({text:raw.slice(last),number:false});
+ return runs.length?runs:[{text:raw,number:false}];
+}
+function measureMixedCanvas(ctx,text,size,weight='600'){
+ const runs=numericTextRuns(text);let width=0;
+ const measured=runs.map(run=>{ctx.font=weight+' '+size+'px '+(run.number?NUM_FONT:CJK_FONT);const w=ctx.measureText(run.text).width;width+=w;return {...run,width:w}});
+ return {runs:measured,width};
+}
+function canvasText(ctx,text,x,y,size,color,weight='600',align='left',maxWidth=null){
+ const original=String(text??'');ctx.save();ctx.fillStyle=color;ctx.textBaseline='alphabetic';
+ const measured=measureMixedCanvas(ctx,original,size,weight);
+ const scale=maxWidth!==null&&measured.width>maxWidth?maxWidth/measured.width:1;
+ let start=x-(align==='right'?measured.width*scale:align==='center'?measured.width*scale/2:0);
+ // 独立数字行使用字形左边界做光学补偿（特别是数字 1）。
+ if(align==='left'&&/^[+\-−]?\d[\d.,:%％×\s+\-−]*$/.test(original)){
+  ctx.font=weight+' '+size+'px '+NUM_FONT;
+  start-=Math.max(0,ctx.measureText(original).actualBoundingBoxLeft||0)*scale;
+ }
+ ctx.translate(start,y);ctx.scale(scale,1);ctx.textAlign='left';let offset=0;
+ for(const run of measured.runs){ctx.font=weight+' '+size+'px '+(run.number?NUM_FONT:CJK_FONT);ctx.fillText(run.text,offset,0);offset+=run.width}
+ ctx.restore();
+}
 function rounded(ctx,x,y,w,h,r,color){if(w<=0||h<=0)return;ctx.beginPath();const rad=Math.min(r,w/2,h/2);ctx.roundRect(x,y,w,h,rad);ctx.fillStyle=color;ctx.fill()}
 function horizontalRule(ctx,y,p){ctx.strokeStyle=p.hair;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(70,y);ctx.lineTo(1010,y);ctx.stroke()}
-function wrapCanvas(ctx,str,x,y,maxWidth,size,lineHeight,color,weight='650',maxLines=3){ctx.font=`${weight} ${size}px ${CJK_FONT}`;let row='',lines=[];for(const c of Array.from(String(str))){if(ctx.measureText(row+c).width>maxWidth&&row){lines.push(row);row=c}else row+=c}if(row)lines.push(row);lines=lines.slice(0,maxLines);lines.forEach((v,i)=>canvasText(ctx,v,x,y+i*lineHeight,size,color,weight));return y+lines.length*lineHeight}
+function wrapCanvas(ctx,str,x,y,maxWidth,size,lineHeight,color,weight='650',maxLines=3){let row='',lines=[];for(const c of Array.from(String(str))){if(measureMixedCanvas(ctx,row+c,size,weight).width>maxWidth&&row){lines.push(row);row=c}else row+=c}if(row)lines.push(row);lines=lines.slice(0,maxLines);lines.forEach((v,i)=>canvasText(ctx,v,x,y+i*lineHeight,size,color,weight));return y+lines.length*lineHeight}
 function posterHeading(type,o,p){const titles={top:'热销机型 TOP10',versus:'同榜机型 销量 PK',brands:'品牌上榜实力',leader:'榜首究竟有多强？'};const subs={top:'入榜机型 · 估算销量排名',versus:'相同统计周期 · 像素标定对比',brands:'仅限当前榜单的入榜样本',leader:'头部差距与集中度分析'};return {title:titles[type],sub:subs[type]}}
 function posterFrame(ctx,W,H,type,o,p){ctx.fillStyle=p.bg;ctx.fillRect(0,0,W,H);ctx.globalAlpha=.07;ctx.fillStyle=p.bar;ctx.beginPath();ctx.arc(1120,-50,370,0,2*Math.PI);ctx.fill();ctx.globalAlpha=1;const copy=getPosterCopy(type,o);rounded(ctx,70,55,162,42,13,p.panel);canvasText(ctx,copy.markLeft,87,84,25,p.accent,'800');canvasText(ctx,copy.markRight,1010,84,22,p.sub,'600','right');canvasText(ctx,copy.title,70,189,72,p.ink,'850','left',940);canvasText(ctx,copy.subtitle,72,239,29,p.sub,'550','left',940);rounded(ctx,70,258,Math.min(900,Math.max(250,18*Array.from(o.d.label).length+48)),48,15,p.panel);canvasText(ctx,o.d.label,91,291,26,p.accent,'760');horizontalRule(ctx,321,p);
  const yy=H-133;horizontalRule(ctx,yy,p);const lines=String(copy.disclaimer||'').split(/\r?\n/).filter(Boolean);lines.slice(0,4).forEach((line,i)=>canvasText(ctx,line,70,yy+35+i*32,i===2?21:23,p.sub,i===2?'500':'560'));
@@ -331,7 +365,7 @@ function chooseDuelModelLabel(ctx,original,maxWidth,baseSize=43){
  // 机型名称严格单行：完整名优先；超宽时删除品牌前缀；仍超宽则逐步缩小字体。
  const full=String(original||'').trim().replace(/\s+/g,' ');
  const short=full.replace(/^(?:华为|荣耀|小米|REDMI|OPPO|vivo|iQOO|一加|苹果|Apple)\s*(?:[·・:：—-]\s*)?/i,'').trim();
- const measure=(t,size)=>{ctx.font=`800 ${size}px ${CJK_FONT}`;return ctx.measureText(t).width};
+ const measure=(t,size)=>{return measureMixedCanvas(ctx,t,size,'800').width};
  const label=measure(full,baseSize)<=maxWidth?full:(short&&short!==full?short:full);
  let size=baseSize;
  while(size>20&&measure(label,size)>maxWidth)size--;
@@ -407,7 +441,7 @@ function brandRows(o=derivedData()){const r=[['榜单','品牌系列','上榜条
 function slugName(s){return String(s).replace(/[\\/:*?"<>|\s]+/g,'_').slice(0,75)}
 function downloadBlob(blob,name){const u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),4000)}
 function exportCSVBlob(rows,name){downloadBlob(new Blob([toCSV(rows)],{type:'text/csv;charset=utf-8'}),name)}
-async function posterBlob(type,o){const c=document.createElement('canvas');drawPoster(type,c,o,false);return await new Promise((res,rej)=>c.toBlob(b=>b?res(b):rej(new Error('图像导出失败')),'image/png'))}
+async function posterBlob(type,o){if(document.fonts?.ready)await document.fonts.ready;const c=document.createElement('canvas');drawPoster(type,c,o,false);return await new Promise((res,rej)=>c.toBlob(b=>b?res(b):rej(new Error('图像导出失败')),'image/png'))}
 function safeExport(type=socialState.template){const o=derivedData();if(!canDownloadSocial(o,type)){notify('请先完成可靠标定，并补全对应图卡所需的机型名称/品牌信息');return null}return o}
 async function saveCard(){const o=safeExport();if(!o)return;try{const blob=await posterBlob(socialState.template,o);downloadBlob(blob,slugName(o.d.label)+'_'+{top:'TOP10',versus:'双机PK',brands:'品牌上榜分析',leader:'榜首领先'}[socialState.template]+'_'+socialState.ratio.replace(':','x')+'.png');notify('高清 PNG 已导出')}catch(err){notify('PNG导出失败：'+err.message)}}
 function storyName(type){return {top:'01_TOP10榜单',versus:'02_双机对比',brands:'03_品牌样本',leader:'04_榜首领先'}[type]}
@@ -455,6 +489,32 @@ ${$('dyTitle').value}
 ${$('carouselText').value}`],{type:'text/plain;charset=utf-8'}),slugName(ds().label)+'_'+storyName(socialState.template)+'_标题与轮播.txt');
  updateSafeLabels();syncPaletteChooser();resetPosterCopy(true);updateSocial(true);if(document.fonts?.ready)document.fonts.ready.then(()=>updateSocial(false));
 }
+
+// 用 IBM Plex Mono 单独包装网页中的数字，不影响旁边中文和英文的字体。
+function applyDigitTypography(root=document.body){
+ if(!root||!document.createTreeWalker)return;
+ const accept=node=>{
+  if(!/\d/.test(node.nodeValue||''))return NodeFilter.FILTER_REJECT;
+  const parent=node.parentElement;
+  if(!parent||parent.closest('script,style,svg,textarea,select,option,pre,code,.numeric-glyph,[contenteditable="true"]'))return NodeFilter.FILTER_REJECT;
+  return NodeFilter.FILTER_ACCEPT;
+ };
+ const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,{acceptNode:accept});const found=[];let node;
+ while((node=walker.nextNode()))found.push(node);
+ for(const part of found){if(!part.parentNode)continue;const runs=numericTextRuns(part.nodeValue);if(!runs.some(r=>r.number))continue;
+  const frag=document.createDocumentFragment();
+  for(const run of runs){if(!run.text)continue;if(!run.number){frag.appendChild(document.createTextNode(run.text));continue}
+   const digit=document.createElement('span');digit.className='numeric-glyph';digit.textContent=run.text;frag.appendChild(digit)}
+  part.parentNode.replaceChild(frag,part);
+ }
+}
+function initDigitTypography(){
+ applyDigitTypography();if(typeof MutationObserver==='undefined')return;
+ let scheduled=false;new MutationObserver(()=>{if(scheduled)return;scheduled=true;requestAnimationFrame(()=>{scheduled=false;applyDigitTypography()})})
+ .observe(document.body,{subtree:true,childList:true,characterData:true});
+}
+
 initSocial();
+initDigitTypography();
 
 </script></body></html>

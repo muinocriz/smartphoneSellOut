@@ -625,7 +625,7 @@ function renderNote(sel){
   if(empty.length)msgs.push(`${empty.join("、")} 暂无数据`);
   if(CUR&&CUR.skipped&&!CUR.o.mobile)msgs.push(`另有 ${CUR.skipped} 条线因空间不足，名字以淡色显示在线尾（越靠后越淡），悬停该线可看清`);
   if(S.axis==="launch"){const nod=sel.filter(r=>hasData(r)&&r.offs.every(o=>o==null)).map(label);
-    if(nod.length)msgs.push(`<b>${nod.join("、")}</b> 未填写或无法识别发布日期，未在此视图显示`)}
+    if(nod.length)msgs.push(`<b>${nod.join("、")}</b> 日期缺失、无法识别或暂无完整销售周数据，未在此视图显示`)}
   $("note").innerHTML=(S.axis==="launch"?"「完整销售第 N 周」以所填日期起首个完整7天ISO自然周为W1；不足7天的上市当周P0不纳入本视图。若填的是发布日期而非开售日，需核实日期口径。":"拖动图下方滑块或修改周期选择可调整显示范围。")+(msgs.length?" "+msgs.join("；")+"。":"");
 }
 function renderTable(sel){ // 列与图表横轴一致，但倒序：最新的周放在最左（紧跟发布日期列）

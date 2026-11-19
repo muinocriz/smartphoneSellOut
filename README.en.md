@@ -20,6 +20,7 @@ Open **榜单推算与出图** on the homepage or [go directly to the third tab]
 - **Bar-length measurement**: includes example September 2026 TOP40 and W45 TOP30 screenshots, and supports importing similar horizontal blue-bar ranking screenshots with manually editable model names.
 - **Calibration**: enter sales for one model or the combined sales of up to five models. You can input a cumulative-sales difference such as `782.87-689.03`. Conflicting calibration groups are flagged, and each ranking is calibrated independently.
 - **Visual publishing**: four poster types (TOP10, two-model comparison, brand-family ranking and leader gap), six themes, 3:4 or 9:16 export, separate right/bottom Douyin safe areas, customizable titles, captions, brand marks and footnotes, plus CSV/ZIP exports.
+- **Compact bottom clearance**: the disclaimer is positioned independently just above the bottom safe-area boundary instead of shrinking upward with the entire canvas, reducing excessive empty space. The bottom percentage continues to indicate the actual exclusion region.
 - **Editable poster copy**: clearing the last character from a field keeps it blank, rather than restoring a default. Defaults return only when the reset button is clicked.
 - **Independent studio scrolling**: on desktop, the publishing controls, analyses and captions scroll in the left column, while the full poster preview remains visible on the right. Narrow screens revert to a stacked layout with regular page scrolling.
 

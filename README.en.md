@@ -1,19 +1,38 @@
-# Smartphone Weekly Sell-Out Tracker · smartphoneSellOut
+# Smartphone Sales Tracking & Market Share Visualizer · smartphoneSellOut
 
 [简体中文](README.md) | English
 
-A purely static web page that plots the weekly sell-out (SO, in units of 10,000 phones, shown on the page as 万台) of newly launched smartphones in China, broken down by brand and model. All data lives in `data.csv`, which the page reads automatically when it opens. There is no backend and no build step.
+A static, no-backend, no-build smartphone market visualization project with two homepage tabs: **销量追踪** (Sales Tracking, the default), charting weekly and cumulative sell-out (SO) by smartphone model in units of 10,000 phones; and **市场份额** (Market Share), for comparing brand shares across two weeks and creating 3:4 social-media posters. The tabs use **separate data and settings**: Sales Tracking reads `data.csv`, whereas Market Share is edited inside its own page and does not derive its data from the CSV.
 
 Live site: <https://muinocriz.github.io/smartphoneSellOut/>
 
-## Data sources
+## Updates — November 19, 2026
+
+- **Two homepage tabs**: `index.html` now switches between Sales Tracking (the default) and Market Share. The latter runs from the separate `market-share.html` file and is reachable via a [direct link](https://muinocriz.github.io/smartphoneSellOut/#market-share).
+- **New market-share poster studio**: compare two weeks, edit brand/sub-brand shares, choose among five charts and six colour themes, preview TikTok/Douyin safe areas, and export a 1200×1600 PNG.
+- **Refreshed poster palettes**: retired 暗夜红蓝 (OLED Red/Blue), 深海金融 (Deep Finance), 黑金奢华 (Black-Gold Luxury), and the interim 极光科技 (Aurora Tech) theme. Added 柔雾丁香 (Soft Lilac), 雾蓝极简 (Mist Blue Minimal), and 日落珊瑚 (Sunset Coral), while keeping 编辑部米白 (Editorial Ivory), 极简纯白 (Pure White), and 莫兰迪绿野 (Morandi Sage). Soft Lilac is now the default.
+- **Existing sales features preserved**: model filters, saved lists, sell-out charts, data tables, and desktop/mobile PNG exports remain available.
+
+## Market-share poster studio
+
+Select the **市场份额** tab on the homepage to access:
+
+- **Five visualization modes**: combined 100% stacked share + diverging change chart, diverging horizontal bars, 100% stacked chart, slope chart, and dumbbell chart.
+- **Editable weekly shares**: open the data editor to change week labels, market notes, and individual brand/sub-brand percentages. The “Other” category is calculated as the remaining share. OPPO can be split into OnePlus/realme and vivo into iQOO.
+- **Six poster colour palettes**: Soft Lilac (default), Editorial Ivory, Pure White, Mist Blue Minimal, Sunset Coral, and Morandi Sage. Customize headline, subtitle, and insight text.
+- **Douyin safe-area preview**: separately adjust right-side and bottom exclusion zones; guide overlays are not included in exported images.
+- **High-resolution export**: 3:4 portrait poster saved as a 1200×1600 PNG. Edits persist in this browser's `localStorage`; sample values can be restored.
+
+> **Data disclaimer:** The market-share studio starts with editable sample W44/W45 values, **not live or verified market-share statistics**. It does not automatically sync with `data.csv` or an external data service. Verify the dates, brand grouping, figures, and sources before publishing.
+
+## Sales-tracking data sources
 
 - Primary source: Weibo blogger **RD观测** (RD Observation)
 - Secondary source: Weibo blogger **数码闲聊站** (Digital Chat Station)
 
 The author compiled and entered the figures by hand from these bloggers' public posts. They are for personal study and reference only and are not official data. All rights to the data belong to the original authors.
 
-## Features
+## Sales-tracking features
 
 - **Brand / model filter**: pick a brand, then select any number of its models. Choose 「全部」 (All) to compare across brands; it starts with each brand's model with the largest gain in the latest week.
 - **Names at line ends**: there is no legend. Each line's model name is written at its end, in the line's colour. Names avoid other lines and value labels automatically; names that don't fit are shown faded, and hovering the line reveals them.
@@ -37,9 +56,9 @@ The author compiled and entered the figures by hand from these bloggers' public 
   - You can update a list's models or delete the list (deleting takes a second click to confirm).
   - Lists are stored in this browser's localStorage. They are not available on another device or browser, or after the browser's site data is cleared. Use the Export / Import buttons (导出 / 导入) to save lists as a JSON file for backup or to move them to another browser.
 
-## Updating the data
+## Updating sales-tracking data
 
-Edit `data.csv` and commit. GitHub Pages updates within a minute or two. You don't need to change `index.html`.
+For the Sales Tracking tab, edit `data.csv` and commit. GitHub Pages updates within a minute or two. You don't need to change `index.html`.
 
 ### CSV format
 
@@ -62,9 +81,13 @@ brand,model,category,date,2026W34,2026W35,...
 
 > Note: saved lists identify each model by `brand + model`. If you rename a model in the CSV, any list that includes it will say the model is not in the current data. Select the models again and click 「用当前选择更新」 (Update with current selection).
 
+## Updating market-share data
+
+In the **市场份额** tab, open **录入 / 修改份额数据** → **展开编辑表格** to enter the weekly percentages. The chart updates immediately and your changes are saved locally in that browser. To change the built-in example data, edit `getDefaultBrands()` and `getDefaultState()` in `market-share.html`; the studio does not use `data.csv`. Switching browsers or clearing site data may erase saved edits, so back up important input separately.
+
 ## Local preview
 
-If you open `index.html` by double-clicking it, the browser blocks the page from reading the local `data.csv`. The page then shows a 「手动选择 CSV」 (Choose CSV manually) option; pick the file and the chart loads. Alternatively, run a local server in the project folder:
+If you double-click `index.html`, your browser may block the Sales Tracking tab from reading the local `data.csv`. The page then offers 「手动选择 CSV」 (Choose CSV manually). To load both tabs reliably, run a local server from the project folder:
 
 ```bash
 python3 -m http.server 8000
@@ -78,17 +101,20 @@ In the repository, go to Settings → Pages, set Source to `Deploy from a branch
 ## Files
 
 ```
-├── index.html     The page itself (styles and scripts are in this one file)
-├── data.csv       Sell-out data
-├── README.md      Chinese README
-└── README.en.md   English README
+├── index.html        Two-tab homepage and sales tracker (styles and scripts)
+├── market-share.html Market-share charts and poster exporter
+├── data.csv          Sales-tracking data (not used by Market Share)
+├── README.md         Chinese README
+└── README.en.md      English README
 ```
 
 ## Technical notes
 
-- Charts use [Apache ECharts](https://echarts.apache.org/) 5.4.3, loaded from cdnjs.
+- Sales-tracking charts use [Apache ECharts](https://echarts.apache.org/) 5.4.3, loaded from cdnjs.
+- The market-share poster is rendered in native SVG and exported through Canvas; its editor uses the Tailwind CSS CDN and runs separately from the sales tracker.
 - Fonts are Noto Sans SC and IBM Plex Mono from Google Fonts. If they fail to load, the page falls back to system fonts and still works.
-- The page follows the system's light / dark theme by default; the 🌙 / ☀️ button at the top right switches it manually, and the choice is saved in this browser. It works on phones.
+- The Sales Tracking page follows the system's light/dark preference by default; the 🌙 / ☀️ button switches it manually and saves the choice locally. The Market Share studio has six independent poster palettes.
+- Each tab has its own browser storage: Sales Tracking saved lists and Market Share editor settings do not overwrite one another.
 - The interface is in Chinese.
 
 ## Design decisions
@@ -116,7 +142,7 @@ These rules were settled after several rounds of changes. Please keep them when 
 
 ## Note
 
-Anyone can view a GitHub Pages site, even if the repository is private. Make sure the data in `data.csv` is fine to make public.
+GitHub Pages content is public. Check that both the `data.csv` figures and any market-share poster data you publish may be shared. The Sales Tracking dataset is a selected sample of models, **not a complete market-wide ranking**. The Market Share studio's built-in numbers are examples, not official or live figures.
 
 ## Special thanks
 

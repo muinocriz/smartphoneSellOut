@@ -109,15 +109,19 @@ brand,model,category,date,2026W34,2026W35
 - **共同层级**：主题渐变外底（`bgTop` → `bgBottom`）→ 白色圆角主卡片（`#fff`＋主题色边框）→ 白色图表／数据内卡（同主题边框）→ 低透明度主题色的重点行。两模块主卡留边、圆角、点阵密度统一读取 `PosterThemes.layout`。页面操作区仍使用独立的浅灰白卡片式 CSS，不随海报主题变化。
 - **主题颜色语义**：`upColor` = 主强调色／份额上升；`downColor` = 辅助强调色／份额下降；`textPrimary`、`textSecondary`、`textMuted` 构成文字层级；`cardBorder`、`gridLine` 分别负责容器边框和中性数据底轨。模块3的榜首用主题主色、其他机型用辅助色，**不应把“排名落后”解读为负增长**。
 - **品牌识别色独立**：模块2份额堆叠使用各品牌固定识别色，不能为了套用主题而改掉苹果、华为、小米等品牌的标识颜色。
-- **维护纪律**：新增主题先改 `poster-themes.js` 中该主题的语义色；模块2与3的色卡均从同一数据源生成颜色；每次修改需检查六套主题、3:4／9:16、安全区、图表卡片边框与 PNG/ZIP 导出。
+- **维护纪律**：新增海报主题先改 `poster-themes.js` 的语义色；模块2／3色卡从该脚本读取主题色。涉及 SVG／Canvas 海报渲染、主题语义或导出代码的修改才做对应主题、比例和 PNG／ZIP 的针对性验收；仅修改操作台 CSS 不要求全面导出测试。
 - **字体与字号**：模块 2／3 的网页操作台使用统一字号层级：11px（极小辅助）、12px（说明）、14px（正文与表格）、16px（小标题）、20px（章节标题）、24px（重点指标）、28px（页面标题）。只在**独立纯数值字段**使用 IBM Plex Mono，包括数字输入、排行、销量与比例；中文标题、列名、选项、日期及数字与中文混排的说明（例如“3:4 竖屏比例”“15%（推荐）”）使用中文无衬线正文字体，不要因其中存在数字而给整个元素添加 `font-mono`。网页操作台的字号规范不覆盖 SVG／Canvas 海报内部独立字号与排版。字体从网络加载失败时回退系统字体；Canvas 单独数字做字形左边界修正。
+- **共享操作台 CSS（单一来源）**：模块2、3均以 `<link rel="stylesheet" href="studio-ui.css">` 加载 `studio-ui.css`。它统一 `--ui-text-*` 字号、字体栈、颜色、间距和 `.ui-panel`／`.ui-section-title`／`.ui-field`／`.ui-palette-grid`／`.ui-palette-card`／`.ui-swatches`／`.ui-watermark-card` 等控件。添加相同功能的控件，先复用 `ui-*` 类，不在模块内部重新写同名色卡／水印 CSS；模块特有布局可保留在各自 HTML。
+- **维护边界**：`studio-ui.css` 只控制网页操作台，不覆盖海报 SVG、Canvas、`poster-themes.js` 或第三方 ECharts。模块2的尾部操作台样式仍有 Tailwind／历史覆盖规则，修改时优先消除与共享类冲突的局部定义，不新增大范围 `!important`。模块3的主题按钮在 `syncPaletteChooser()` 中切换 `is-selected`，模块2在 `renderPaletteButtons()` 中设置该类与 `aria-pressed`。
+- **轻量防回退检查**：修改共享样式或控件 HTML 时运行 `node --test tests/studio-ui-style.test.cjs`，同时只检查两模块主题色卡和相关水印卡片在常见桌面／窄屏下的溢出与间距。静态检查不能替代实际页面视觉验收。
+
 - **图片水印**：全屏倾斜（默认关闭，`RD·观测`，透明度 8%，字号 32px，间距 220px）与中心单个（默认关闭，同文案，透明度 12%，字号 72px）互斥。水印覆盖图卡可用内容区域，预览及 PNG 一致；模块 3 的四图 ZIP 一样会带水印。
 - 水印设置保存在浏览器；第二模块使用原有页面状态，第三模块使用独立键。清空自定义文案不应自动恢复默认文字。
 - 导出时不包含用于辅助定位的抖音安全线或交互区遮挡模拟层。
 
 ## 7. 技术与部署
 
-- **静态页面**：`index.html`、`market-share.html`、`sales-estimator.html`；模块1必须加载共享日期脚本 `iso-sales-week.js`（提供浏览器 `IsoSalesWeek` 全局及 Node CommonJS 导出）；模块2/3共用主题脚本 `poster-themes.js`；模块2额外加载 `market-share-data.js` 与 `market-share-import.js`，并复用 `iso-sales-week.js`。无后端或打包步骤。部署须包含这些脚本。ISO周计算禁止在新模块中复制另一套实现。使用 `node --test tests/iso-sales-week.test.cjs` 运行日期边界测试。
+- **静态页面**：`index.html`、`market-share.html`、`sales-estimator.html`；模块2／3还需部署共享文件 `studio-ui.css`；模块1必须加载共享日期脚本 `iso-sales-week.js`（提供浏览器 `IsoSalesWeek` 全局及 Node CommonJS 导出）；模块2/3共用主题脚本 `poster-themes.js`；模块2额外加载 `market-share-data.js` 与 `market-share-import.js`，并复用 `iso-sales-week.js`。无后端或打包步骤。部署须包含这些脚本。ISO周计算禁止在新模块中复制另一套实现。使用 `node --test tests/iso-sales-week.test.cjs` 运行日期边界测试。
 - **依赖**：销量追踪使用 Apache ECharts 5.4.3（cdnjs）；市场份额编辑器使用 Tailwind CDN 和原生 SVG；图卡导出使用 Canvas；字体依赖 Google Fonts，必要时系统回退。完整离线部署请自行处理 CDN 和字体可达性。
 - **本地预览**：项目根目录执行 `python3 -m http.server 8000`，浏览器访问 `http://localhost:8000`；直接打开 HTML 可能触发 CSV 的本地文件访问限制。
 - **GitHub Pages**：Settings → Pages → `Deploy from a branch` → `master` → `/(root)`。

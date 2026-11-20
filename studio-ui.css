@@ -84,7 +84,7 @@
   border-radius:10px;
   padding:8px 12px;
   font-family:var(--ui-font-body);
-  font-size:var(--ui-text-body) !important; /* Wins over legacy Tailwind text-xs. */
+  font-size:var(--ui-text-body) !important;
   line-height:1.5;
   outline:none;
 }

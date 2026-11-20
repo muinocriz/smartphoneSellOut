@@ -1,5 +1,5 @@
 /* Module 3 publishing workflow, immutable export snapshots and local preferences. */
-const socialState={template:'top',ratio:'3:4',theme:'editorial',duelA:0,duelB:1,lastDS:null,duelOptions:null,safeEnabled:true,safeRight:15,safeBottom:10,safeGuides:true};
+const socialState={template:'top',ratio:'3:4',theme:'editorial_paper',duelA:0,duelB:1,lastDS:null,duelOptions:null,safeEnabled:true,safeRight:15,safeBottom:10,safeGuides:true};
 const watermarkDefaults={diagonalEnabled:false,diagonalText:'归零return0',diagonalOpacity:8,diagonalSize:32,diagonalGap:220,centerEnabled:false,centerText:'归零return0',centerOpacity:12,centerSize:72};
 const watermarkState={...watermarkDefaults};
 const socialCopyState={title:'',subtitle:'',tagLabel:'',markLeft:'',markRight:'',disclaimer:''};
@@ -43,7 +43,7 @@ function syncPaletteChooser(){
   const theme=btn.dataset.theme;
   btn.classList.toggle('is-selected',theme===socialState.theme);
   btn.setAttribute('aria-pressed',String(theme===socialState.theme));
-  const colors=window.PosterThemes.swatches(theme);
+  const colors=socialPalettes[theme].swatches;
   btn.querySelectorAll('.ui-swatches i').forEach((dot,i)=>{dot.style.background=colors[i]||'#ffffff'});
  });
 }
@@ -119,7 +119,7 @@ function unclassifiedModels(o){return o.models.filter(m=>m.brand==='未识别品
 function unclassifiedCount(o){return unclassifiedModels(o).length}
 function formatModelRows(models){return models.map(m=>`第${m.rank}行（${m.name||'空白'}）`).join('、')}
 function canDownloadSocial(o=socialData(),type=socialState.template){if(isResearchTemplate(type))return !!socialResearchSnapshot?.ready;if(!o.canPublish)return false;const namesMissing=o.models.filter(m=>/^第\d+名$/.test(m.name));if(type==='bundle')return !namesMissing.length&&!unclassifiedCount(o);if(type==='brands')return !unclassifiedCount(o);if(type==='top')return !namesMissing.some(m=>m.rank<=10);if(type==='versus')return ![o.models[socialState.duelA],o.models[socialState.duelB]].some(m=>!m||/^第\d+名$/.test(m.name));if(type==='leader')return !namesMissing.some(m=>m.rank<=2);return true}
-function updateSocial(rewriteStory=true){if(researchStudioActive()){updateResearchStudio(rewriteStory);return;}const o=socialData();$('downloadAllCards').textContent='一键打包四张图 + 文案 + CSV';$('exportInsight').textContent='下载机型分析 CSV';$('exportBrands').hidden=false;$('contentColumn').disabled=false;updateDuelSelects(o);const safe=o.canPublish;const guard=$('qualityGuard');guard.className='msg '+(safe?'good':'warn');let flag;if(o.d.archiveRows){flag=`已使用历史榜单的存档估算结果，无需重新标定。原标定 ${calibrationCount(o)} 组，有效 ${o.d.archiveAcceptedCount} 组。${o.fit.fitMode==='single'?'仅一组标定，建议核实后发布。':o.fit.fitMode==='robust'?`原标定排除 ${rejectedCount(o)} 组，请核实后发布。`:'原拟合状态正常。'} 仅入榜样本，不代表全市场销量。`}else if(!o.models.length){flag='当前未导入新榜单。请在上方导入截图并标定，或选择历史榜单生成图文。'}else if(o.fit.fitMode==='conflict'||o.fit.fitMode==='median'){flag='标定组之间存在显著冲突：已暂停正式图卡和打包导出。请核对异常值、销量单位及统计周期。'}else if(!o.fit.k){flag='尚未输入已知销量：以下仅能预览柱长比例，不能导出带绝对销量的正式图卡。请先在上方加入至少一组标定。'}else if(o.fit.fitMode==='robust'){flag=`可以导出，但检测到 ${o.fit.statuses.filter(v=>v==='outlier').length} 组异常标定并已暂时排除。请核对数据后再发布。`}else if(o.fit.fitMode==='single'){flag='当前仅有一组标定：可导出估算图卡，但尚不能通过其他已知销量交叉校验。建议增加至少一组。'}else{flag=`当前 ${o.d.calibrations.length} 组已知销量参与检验，拟合正常。图卡均标注“像素比例估算”，不代表全市场销量。`}
+function updateSocial(rewriteStory=true){if(researchStudioActive()){updateResearchStudio(rewriteStory);return;}const o=socialData();$('downloadAllCards').textContent='一键打包四张图 + 文案 + CSV';$('exportInsight').textContent='下载机型分析 CSV';$('exportBrands').hidden=false;$('contentColumn').disabled=false;updateDuelSelects(o);const safe=o.canPublish;const guard=$('qualityGuard');let flag;if(o.d.archiveRows){flag=`已使用历史榜单的存档估算结果，无需重新标定。原标定 ${calibrationCount(o)} 组，有效 ${o.d.archiveAcceptedCount} 组。${o.fit.fitMode==='single'?'仅一组标定，建议核实后发布。':o.fit.fitMode==='robust'?`原标定排除 ${rejectedCount(o)} 组，请核实后发布。`:'原拟合状态正常。'} 仅入榜样本，不代表全市场销量。`}else if(!o.models.length){flag='当前未导入新榜单。请在上方导入截图并标定，或选择历史榜单生成图文。'}else if(o.fit.fitMode==='conflict'||o.fit.fitMode==='median'){flag='标定组之间存在显著冲突：已暂停正式图卡和打包导出。请核对异常值、销量单位及统计周期。'}else if(!o.fit.k){flag='尚未输入已知销量：以下仅能预览柱长比例，不能导出带绝对销量的正式图卡。请先在上方加入至少一组标定。'}else if(o.fit.fitMode==='robust'){flag=`可以导出，但检测到 ${o.fit.statuses.filter(v=>v==='outlier').length} 组异常标定并已暂时排除。请核对数据后再发布。`}else if(o.fit.fitMode==='single'){flag='当前仅有一组标定：可导出估算图卡，但尚不能通过其他已知销量交叉校验。建议增加至少一组。'}else{flag=`当前 ${o.d.calibrations.length} 组已知销量参与检验，拟合正常。图卡均标注“像素比例估算”，不代表全市场销量。`}
  const missingModels=missingPostModels(o),unknownModels=unclassifiedModels(o).filter(m=>!isMissingPostLabel(m)),missing=missingModels.length,unknown=unknownModels.length;
  if(missing)flag+=` 尚未补全 ${missing} 个机型名称：${formatModelRows(missingModels)}。`;
  if(unknown)flag+=` ${unknown} 个条目品牌无法识别：${formatModelRows(unknownModels)}。品牌分析及整套打包需先补全标准品牌前缀。`;
@@ -173,7 +173,7 @@ function initWatermarkControls(){
    watermarkState[key]=kind==='check'?ev.target.checked:kind==='num'?Number(ev.target.value):ev.target.value;
    if(key==='diagonalEnabled'&&watermarkState.diagonalEnabled)watermarkState.centerEnabled=false;
    if(key==='centerEnabled'&&watermarkState.centerEnabled)watermarkState.diagonalEnabled=false;
-   syncWatermarkUI();StudioPref.write('visual',getVisualPreferences());updateSocial(false);
+   syncWatermarkUI();updateSocial(false);
   });
  });
  syncWatermarkUI();
@@ -331,7 +331,7 @@ function setVisualPreferences(p){
 function publicationIdentity(){const o=socialData();return StudioPref.fingerprint(researchStudioActive()?[socialResearchSnapshot.key,socialResearchSnapshot.context,socialResearchSnapshot.csv]:[o.d.label,o.models.map(m=>[m.rank,m.name,m.pixels,m.sale]),o.fit.k]);}
 function savePublicationScheme(){
  const signature=publicationIdentity();
- const data={visual:getVisualPreferences(),template:socialState.template,signature,source:studioExportLabel(),copy:{...socialCopyState},dirty:{...socialCopyDirty},texts:StudioPref.values(publicationTextIds),duel:[socialState.duelA,socialState.duelB]};
+ const data={visual:getVisualPreferences(),template:socialState.template,signature,copy:{...socialCopyState},dirty:{...socialCopyDirty},texts:StudioPref.values(publicationTextIds),duel:[socialState.duelA,socialState.duelB]};
  if(StudioPref.write('publication',data))notify('发布方案已保存至本浏览器');else notify('本地存储不可用或空间不足，方案未保存');
 }
 async function restorePublicationScheme(){
@@ -360,7 +360,7 @@ function initPublicationPreferences(){
  for(const name of ['input','change','click'])host.addEventListener(name,ev=>{if(ev.target.closest('#posterRatio,#posterExportWidth,#contentColumn,#safeEnable,#safeGuides,#safeRight,#safeBottom,#paletteChooser,[id^="wm"]'))queueMicrotask(persist);});
 }
 
-function initSocial(){initWatermarkControls();updateDuelSelects();const previousRender=renderAll;renderAll=function(...args){previousRender(...args);if(!socialArchiveDataset&&!researchStudioActive())updateSocial(true)};
+function initSocial(){initWatermarkControls();
  $('studioUseCurrent').onclick=()=>{if(researchStudioActive())leaveResearchStudio('top');setSocialArchiveDataset(null);};
  $('templateChooser').addEventListener('click',ev=>{const b=ev.target.closest('[data-template]');if(!b)return;if(isResearchTemplate(b.dataset.template)){window.SalesEstimateArchive?.sendResearchToStudio(b.dataset.template.slice(9));return;}leaveResearchStudio(b.dataset.template);updateSocial(true)});
  updatePosterExportOptions();

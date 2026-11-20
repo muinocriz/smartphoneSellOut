@@ -190,7 +190,7 @@ function classifyHeadBrand(row){return root.BrandUtils.classify(row[col.model],r
 const VERSION='weekly-panel-v1';
 const DEFAULT_OPTIONS=Object.freeze(salesPanelOptions());
 function versionedRows(panel){return [[...panel.header,'panel_algorithm_version'],...panel.rows.map(r=>[...r,VERSION])];}
-const api=Object.freeze({HEADER:Object.freeze(HEADER),col:Object.freeze(col),allowedFit:Object.freeze([...allowedFit]),normalizeModelName,salesPanelOptions,buildSalesPanel:(rows,options)=>buildSalesPanel(rows,col,options),normalizeMeta,dateText,parseDate,groups,sorted,parseCSV,VERSION,DEFAULT_OPTIONS,versionedRows});
+const api=Object.freeze({HEADER:Object.freeze(HEADER),col:Object.freeze(col),allowedFit:Object.freeze([...allowedFit]),normalizeModelName,salesPanelOptions,buildSalesPanel:(rows,options)=>buildSalesPanel(rows,col,options),normalizeMeta,groups,sorted,parseCSV,VERSION,DEFAULT_OPTIONS,versionedRows});
 root.SalesSeries=api;
 if(typeof module==='object'&&module.exports)module.exports=api;
 })(typeof globalThis!=='undefined'?globalThis:this);

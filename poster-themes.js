@@ -165,14 +165,6 @@
         }
       };
 
-  const aliases = Object.freeze({
-    lilac:'lilac_cloud',
-    editorial:'editorial_paper',
-    pure:'pure_white',
-    mist:'mist_minimal',
-    coral:'coral_sunset',
-    olive:'morandi_sage'
-  });
   // Common visual geometry, relative to each poster's design width.
   const layout = Object.freeze({
     outerInsetRatio:0.0213,
@@ -192,9 +184,8 @@
     ])
   ));
   const estimatorPalettes = Object.freeze(Object.fromEntries(
-    Object.entries(aliases).map(([alias,id]) => {
-      const p=palettes[id];
-      return [alias,Object.freeze({
+    Object.entries(palettes).map(([id,p]) => {
+      return [id,Object.freeze({
         id:p.id, name:p.name,
         bg:p.bgTop, bgTop:p.bgTop, bgBottom:p.bgBottom,
         panel:p.cardBg, panel2:p.upRowHighlight,
@@ -210,12 +201,6 @@
     })
   ));
   root.PosterThemes = Object.freeze({
-    palettes, estimatorPalettes, aliases, layout,
-    market(id) { return palettes[id] || palettes.lilac_cloud; },
-    estimator(id) { return estimatorPalettes[id] || estimatorPalettes.editorial; },
-    swatches(id) {
-      const key=aliases[id]||id;
-      return (palettes[key]||palettes.editorial_paper).swatches;
-    }
+    palettes, estimatorPalettes, layout
   });
 })(typeof window !== 'undefined' ? window : globalThis);

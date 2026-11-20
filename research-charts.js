@@ -188,5 +188,5 @@ const ResearchCharts=(()=>{
   if(chart.kind==='scatter'||chart.kind==='bars')drawHeadStaticPoster(ctx,p,{chart,chartNote:''},box);else drawBrandComposition(ctx,chart,box,p,'');
   host.append(canvas);
  }
- return Object.freeze({lineScale,points,svgLine,canvasLine,renderComposition});
+ return Object.freeze({lineScale,svgLine,canvasLine,renderComposition});
 })();

@@ -686,11 +686,8 @@ $("selNone").onclick=()=>{S.sel.clear();renderModels();renderListState();draw(S.
 // ===== 用户自定义列表（保存在本浏览器 localStorage）=====
 const LS_KEY="phoneSales.lists.v1";
 let LISTS=[];
-// 旧版数据里部分机型名带品牌前缀（如「小米|小米 17系列」），读取时统一去掉，旧列表仍能对上
-function normKey(k){const i=k.indexOf("|");if(i<0)return k;const b=k.slice(0,i),m=k.slice(i+1);
-  return m.startsWith(b)&&m.length>b.length?b+"|"+m.slice(b.length).trim():k}
 function loadLists(){try{const v=JSON.parse(localStorage.getItem(LS_KEY)||"[]");
-  LISTS=Array.isArray(v)?v.filter(x=>x&&x.id&&Array.isArray(x.models)).map(x=>({...x,models:x.models.map(String).map(normKey)})):[]}catch(e){LISTS=[]}}
+  LISTS=Array.isArray(v)?v.filter(x=>x&&x.id&&Array.isArray(x.models)).map(x=>({...x,models:x.models.map(String)})):[]}catch(e){LISTS=[]}}
 function saveLists(){try{localStorage.setItem(LS_KEY,JSON.stringify(LISTS));return true}catch(e){$("listState").innerHTML='<span class="dirty">浏览器禁止存储，列表在关闭页面后会丢失</span>';return false}}
 const esc=t=>String(t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const curList=()=>LISTS.find(l=>l.id===S.list)||null;
@@ -777,7 +774,7 @@ $("listImport").addEventListener("change",async e=>{const f=e.target.files[0];if
   try{const arr=JSON.parse(await f.text());if(!Array.isArray(arr))throw 0;let n=0;
     arr.forEach(x=>{if(!x||!Array.isArray(x.models)||!x.models.length)return;
       let name=String(x.name||"").trim()||nextName();if(LISTS.some(l=>l.name===name))name+="（导入）";
-      LISTS.push({id:"l"+Date.now().toString(36)+(n++),name,models:x.models.map(String).map(normKey)})});
+      LISTS.push({id:"l"+Date.now().toString(36)+(n++),name,models:x.models.map(String)})});
     saveLists();renderLists();alert(`已导入 ${n} 个列表`)}catch(_){alert("文件格式不正确，请选择本页面导出的 JSON")}
   e.target.value=""});
 loadLists();renderLists();

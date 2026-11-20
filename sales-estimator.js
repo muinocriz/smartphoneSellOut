@@ -39,7 +39,14 @@ function renderRows(fit){const d=ds(),bars=d.bars,max=bars.length?bars[0].pixels
  $('mRows').textContent=bars.length+' 款';$('mMax').textContent=(max||0)+' px';$('mCal').textContent=d.calibrations.length+' 组';$('mRate').textContent=fit.k!=null?tf(fit.k)+' 台':'尚未标定';
  $('tableDesc').textContent=fit.k!=null?`${d.label} · 拟合系数 ${tf(fit.k)} 台/px · 每个机型的销量依据自身柱长推算`:`${d.label} · 已测量全部 ${bars.length} 条柱长，输入至少一组真实销量即可计算。`;
 }
-function renderAll(changeOptions=true){let d=ds();if(changeOptions)renderOptions();let fit=getFit();renderCalibration(fit);renderRows(fit);if(!d.bars.length)setInfo('导入截图后自动测量柱条。');else setInfo('确认输入的是当前榜单同一统计周期、同一口径的销量。')}
+function renderCalibrationView(changeOptions=true){let d=ds();if(changeOptions)renderOptions();let fit=getFit();renderCalibration(fit);renderRows(fit);if(!d.bars.length)setInfo('导入截图后自动测量柱条。');else setInfo('确认输入的是当前榜单同一统计周期、同一口径的销量。')}
+function renderAll(changeOptions=true,switched=false){
+ if(switched)$('outlier').value='0.15';
+ renderCalibrationView(changeOptions);
+ if(!socialArchiveDataset&&!researchStudioActive())updateSocial(true);
+ if(switched&&socialArchiveDataset)setSocialArchiveDataset(null);
+ window.SalesEstimateArchive.updateControls(switched);
+}
 function addCal(){const d=ds(),ids=mode==='single'?[Number($('singleSelect').value)]:[...picked];const parsed=parseAmount($('amount').value);const q=parsed?.value;const factor=Number($('inputUnit').value);if(!ids.length||ids.some(i=>!d.bars[i])){setInfo('先选择至少一款机型。','bad');return}if(mode==='group'&&(ids.length<2||ids.length>5)){setInfo('合计标定需选 2–5 款机型。','bad');return}if(!Number.isFinite(q)||q<=0){setInfo('请输入大于 0 的销量，可填数字或“本期累计-上期累计”，例如 782.87-689.03。','bad');$('amount').focus();return}let pixels=ids.reduce((sum,i)=>sum+d.bars[i].pixels,0);if(pixels<=0){setInfo('像素长度不可为 0，请检查榜单。','bad');return}
  if(d.calibrations.length>=50){setInfo('单张榜单最多加入 50 组标定。','bad');return}
  d.calibrations.push({ids:[...ids],pixels,value:q*factor,rawInput:parsed.normalized,unit:$('inputUnit').selectedOptions[0].textContent,isDifference:parsed.isDifference});$('amount').value='';previewAmount();if(mode==='group'){picked=[];renderPool()};renderAll(false);notify('已加入计算列表，估算结果已更新')}
@@ -53,7 +60,7 @@ function parseImage(image){const canvas=document.createElement('canvas'),w=image
 $('modeSingle').onclick=()=>{mode='single';$('singlePane').hidden=false;$('groupPane').hidden=true;$('modeSingle').classList.add('on');$('modeGroup').classList.remove('on')};
 $('modeGroup').onclick=()=>{mode='group';$('singlePane').hidden=true;$('groupPane').hidden=false;$('modeSingle').classList.remove('on');$('modeGroup').classList.add('on')};
 $('amount').addEventListener('input',previewAmount);$('inputUnit').addEventListener('change',previewAmount);$('poolSearch').addEventListener('input',renderPool);$('searchRows').addEventListener('input',()=>renderRows(getFit()));$('resetSearch').onclick=()=>{$('searchRows').value='';renderRows(getFit())};$('addCal').onclick=addCal;$('outlier').addEventListener('change',()=>renderAll(false));$('clearCal').onclick=()=>{ds().calibrations=[];renderAll(false)};$('exportCsv').onclick=exportCSV;
-$('imageUpload').onchange=async ev=>{const file=ev.target.files[0];if(!file)return;const url=URL.createObjectURL(file);const img=new Image();try{await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=reject;img.src=url});const data=parseImage(img);currentDataset={id:'custom',label:file.name,base:data.base,width:data.width,height:data.height,bars:data.bars,calibrations:[]};$('uploadResult').textContent=`已识别 ${data.bars.length} 条蓝色柱条。起点 x ≈ ${data.base}px。请核对排名及柱长；可在下方粘贴机型名称。`;$('customNames').value='';$('nameImportStatus').hidden=true;resetCalibrationInputs();renderAll();notify(`识别完成：${data.bars.length} 条柱条`)}catch(err){$('uploadResult').textContent='识别失败：'+err.message;notify('图片识别失败，请核对蓝柱样式')}finally{URL.revokeObjectURL(url)}};
+$('imageUpload').onchange=async ev=>{const file=ev.target.files[0];if(!file)return;const url=URL.createObjectURL(file);const img=new Image();try{await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=reject;img.src=url});const data=parseImage(img);currentDataset={id:'custom',label:file.name,base:data.base,width:data.width,height:data.height,bars:data.bars,calibrations:[]};$('uploadResult').textContent=`已识别 ${data.bars.length} 条蓝色柱条。起点 x ≈ ${data.base}px。请核对排名及柱长；可在下方粘贴机型名称。`;$('customNames').value='';$('nameImportStatus').hidden=true;resetCalibrationInputs();renderAll(true,true);notify(`识别完成：${data.bars.length} 条柱条`)}catch(err){$('uploadResult').textContent='识别失败：'+err.message;notify('图片识别失败，请核对蓝柱样式')}finally{URL.revokeObjectURL(url)}};
 $('applyNames').onclick=()=>{
  const names=$('customNames').value.split(/\r?\n/).map(s=>s.trim()),bars=ds().bars,status=$('nameImportStatus');
  // Ignore trailing empty lines, but preserve interior blank lines so ranks never shift.
@@ -75,7 +82,7 @@ $('applyNames').onclick=()=>{
  status.textContent=issues.length?issues.join(' '):`已更新全部 ${bars.length} 条机型名称，品牌均已识别。`;
  notify(issues.length?'机型名称已应用，请检查下方详细提示':'机型名称已更新');
 };
-renderAll();previewAmount();
+renderCalibrationView();previewAmount();
 
 // --------------------------------------------
 // 图文工作台：当前标定或已校验的历史快照，独立于上方标定编辑器。

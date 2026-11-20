@@ -103,7 +103,7 @@ brand,model,category,date,2026W34,2026W35
 dataset_id,source,series,period_type,period,period_start,period_end,top_n,actual_count,rank,model,brand_group,pixels,estimated_units,estimated_wan,fit_k,fit_mode,calibration_count,accepted_count,outlier_threshold,algorithm_version,saved_at
 ```
 
-- `period_type` 支持 `weekly`（ISO 周）、`monthly`（自然月）、`custom`（起止日期）。同周期若存在来源相同但口径不同的榜单，应填写不同的 `series`。品牌系列沿用 `safeBrand()` 的合并口径，机型字段保留榜单原始名称；合并行不可拆分。
+- `period_type` 支持 `weekly`（ISO 周）、`monthly`（自然月）、`custom`（起止日期）。同周期若存在来源相同但口径不同的榜单，应填写不同的 `series`。品牌系列沿用 `BrandUtils.classify()` 的合并口径，机型字段保留榜单原始名称；合并行不可拆分。
 - `estimated_units` 为四舍五入后的整数台数，`estimated_wan` 为该整数换算的四位小数，`fit_k` 保留计算精度；`fit_mode`、标定组数、有效组数、异常阈值、算法版本、保存时间随结果归档。仅 `single`、`fit`、`robust` 且补全机型名称的有效估算可进入正式 CSV；单组及剔除异常组的结果仍须人工核验。
 - **读取与导出校验**：标准 CSV 使用 UTF-8（导出含 BOM）；表头、列数、合法周期、ID、排名唯一性、实际条目数与组内元数据必须一致。台数须等于 `Math.round(fit_k * pixels)`，万台值须在数值上等于台数除以 10000。允许起止日期为 `YYYY/M/D` 或 ISO 日期，以及万台小数省略末尾零；读取后规范化为 `YYYY-MM-DD` 和四位小数。不能为了容忍表格软件格式变化而放松实际数值和周期校验。一条非法记录会阻止整份新历史载入，提示异常记录或榜单；不会静默丢弃行。
 - 页面加载仓库 CSV，刷新按钮以时间戳和 `no-store` 请求重新读取；读取失败时须成功重试或确认导入完整历史文件后才能合并导出，不能将失败当作空数据库。已加载的记录在刷新失败时可继续显示，但不得视为最新仓库数据。合并导出会保留其他周期，遇同 ID 数据变化须用户确认整期替换（旧版由 Git 提交历史保留）。同一会话的多次合并保留在内存，刷新前请下载备份；点击“刷新仓库历史”时若有未提交记录，必须先确认替换当前会话数据；如仓库被其他设备更新，应重新加载最新历史并导入未提交文件，再合并导出。浏览器不写回仓库，由维护者提交下载的完整 `sales-estimates.csv`。

@@ -8,7 +8,6 @@
   const Series=window.SalesSeries;
   const HEADER=Series.HEADER,col=Series.col,allowedFit=new Set(Series.allowedFit);
   const metaByDataset = new WeakMap();
-  let activeDataset = null;
   let history = [];
   let loaded = false;
   let loading = true;
@@ -17,7 +16,6 @@
 
   const {normalizeModelName,salesPanelOptions}=Series;
   function fail(message){throw new Error(message);}
-  const buildSalesPanel=(rows,_col,options)=>Series.buildSalesPanel(rows,options);
   function defaults() {
     return {source:'RD观测', series:'手机销量榜', type:'weekly', period:'', start:'', end:'', top:''};
   }
@@ -43,7 +41,7 @@
       return [m.id,m.source,m.series,m.type,m.period,m.start,m.end,m.top,
         String(o.models.length),String(b.rank),String(b.name).trim(),b.brand,String(b.pixels),
         String(units),(units / 10000).toFixed(4),String(f.k),f.fitMode,
-        String(d.calibrations.length),String(f.accepted.length),String(d.archiveOutlier ?? $('outlier').value),'1',at];
+        String(d.calibrations.length),String(f.accepted.length),String($('outlier').value),'1',at];
     });
   }
   function labelOf(r) {
@@ -160,7 +158,7 @@
   function applyTrackerParams(resetSelection=false){
     const p=readTrackerParams();$('trackerCoverage').value=p.coverage;$('trackerMaxGap').value=p.maxGap;updateParamControls();
     if(!p.scopeId||!p.start||!p.end||p.start>p.end){trackerData={header:[],rows:[],scopes:[]};$('trackerParameterStatus').textContent=p.start>p.end?'起始周不能晚于结束周。':'暂无可选周榜。';trackerOptions();renderTracker();syncResearchEditors();renderResearch();return;}
-    trackerData=buildSalesPanel(history,col,p);const scope=currentScope();
+    trackerData=Series.buildSalesPanel(history,p);const scope=currentScope();
     if(scope){if(resetSelection){if(selectedByScope.has(scope.id))trackerSelected=new Set(selectedByScope.get(scope.id));else defaultTrackerSelection(scope);}if(!selectedByScope.has(scope.id))selectedByScope.set(scope.id,new Set(trackerSelected));researchPeriods(scope);updateParameterStatus();}
     trackerOptions();renderTracker();syncResearchEditors();renderResearch();
   }
@@ -211,7 +209,7 @@
   function refreshTracker(){
     const previous=$('trackerScope').value||storedResearch.scopeId;
     try{
-      catalog=buildSalesPanel(history,col,{coverage:100,dataMode:'raw'}).scopes;
+      catalog=Series.buildSalesPanel(history,{coverage:100,dataMode:'raw'}).scopes;
       const sel=$('trackerScope');sel.replaceChildren();for(const s of catalog){const option=document.createElement('option');option.value=s.id;option.textContent=s.source+' / '+s.series;sel.append(option);}
       if(catalog.some(s=>s.id===previous))sel.value=previous;
       const scope=catalog.find(s=>s.id===sel.value),changed=activeScopeId!==sel.value;
@@ -586,7 +584,7 @@
     }
     const metricLabel=headViews[mode]+(mode==='trend'?' · '+$('headBrand').value+' · '+($('headTrendMetric').value==='index'?'指数':'份额'):mode==='concentration'?' · '+$('headConcentration').value.toUpperCase():'');
     const note=mode==='concentration'?'其他品牌合为一组，CR3/HHI为共同七组口径，不是逐品牌精确市场集中度。':mode==='matrix'?'横轴：头部富集指数；纵轴：单品强度；1 为基准，象限不直接判断品牌策略。':mode==='enrichment'?'头部富集 = 榜单销量占比 ÷ 全市场份额；1 为基准。':mode==='strength'?'单品强度 = 榜单销量占比 ÷ 上榜条目占比；1 为基准。':'仅共同有效周；榜单样本份额不等于全市场份额。';
-    headPublicationInfo={range,effectivePeriods:common,metricLabel,note,detail:info.textContent+'；'+note+'；全市场数据沿用模块2母品牌口径。',sampleMode,validCount:valid.length};
+    headPublicationInfo={range,effectivePeriods:common,metricLabel,note,detail:info.textContent+'；'+note+'；全市场数据沿用模块2母品牌口径。'};
     $('researchDesc').textContent+=' '+note+' 其他品牌为合并组；指数分母为零时留空，四象限不显示无有效双指标的品牌。';
   }
   for(const id of ['headView','headBrand','headTrendMetric','headConcentration'])$(id).onchange=renderResearch;
@@ -786,7 +784,7 @@
     const csv=baseCsv.map((r,i)=>i===0?[...r,'发布所选区间','发布图表区间','发布有效周次']: [...r,selectedRange,chartRange,effectivePeriods.join(' / ')]);
     const sampleLabel=top===null?(usesTopK(key)?'原始全量':'所选样本'):'固定 TOP'+top;
     const footer=[key==='head'?'来源：'+scope.source+' / '+scope.series+' + 模块2市场份额':'来源：'+scope.source+' / '+scope.series+' · 历史榜单估算样本',key==='head'?'榜单样本占比非市场份额；跨数据源比较，不推断榜外销量。':'仅所选榜单样本，不代表全市场销量或品牌市场份额；缺失不等于零。',sampleLabel+' · '+(chart?.imputed?'含插补':rawView||p.dataMode==='raw'?'仅原始观测':'未出现插补值')+' · '+(key==='head'?'共同有效':'有效观测')+' '+effectiveText].join('\n');
-    const snapshot={ready:true,key,title:researchViews[key],subtitle:key==='brand'?(brandPublicationInfo?.metricLabel||researchSubtitles[key]):key==='head'?(headPublicationInfo?.metricLabel||researchSubtitles[key]):researchSubtitles[key],range,selectedRange,chartRange,effectivePeriods,footer,source:scope.source+' / '+scope.series+(key==='head'?' + 模块2 市场份额':''),context:scope.source+' / '+scope.series+' · 图表 '+chartRange+' · 所选 '+selectedRange+' · '+(key==='head'?'共同有效':'有效观测')+' '+effectiveText+' · '+modeLabel+(top===null?'':' · 固定 TOP'+top),modeLabel,displayMetric,chart,table,summary,description,detail,note,chartNote,csv};
+    const snapshot={ready:true,key,title:researchViews[key],subtitle:key==='brand'?(brandPublicationInfo?.metricLabel||researchSubtitles[key]):key==='head'?(headPublicationInfo?.metricLabel||researchSubtitles[key]):researchSubtitles[key],range,effectivePeriods,footer,source:scope.source+' / '+scope.series+(key==='head'?' + 模块2 市场份额':''),context:scope.source+' / '+scope.series+' · 图表 '+chartRange+' · 所选 '+selectedRange+' · '+(key==='head'?'共同有效':'有效观测')+' '+effectiveText+' · '+modeLabel+(top===null?'':' · 固定 TOP'+top),modeLabel,displayMetric,chart,table,summary,description,detail,note,chartNote,csv};
     return JSON.parse(JSON.stringify(snapshot));
   }
   async function sendResearchToStudio(key=researchView){
@@ -937,22 +935,7 @@
     } catch (err) { notify('导出失败：' + err.message); }
   };
 
-  // Each board owns its threshold and metadata; a new custom screenshot starts fresh.
-  const previousRender = renderAll;
-  renderAll = function (...args) {
-    const d = ds(), switched = d !== activeDataset;
-    if (switched) {
-      activeDataset = d;
-      $('outlier').value = d.archiveOutlier || '0.15';
-      d.archiveOutlier = $('outlier').value;
-    } else d.archiveOutlier = $('outlier').value;
-    previousRender(...args);
-    if (switched && socialArchiveDataset) setSocialArchiveDataset(null);
-    updateControls(switched);
-  };
-  activeDataset = ds();
-  activeDataset.archiveOutlier = $('outlier').value;
-  window.SalesEstimateArchive = Object.freeze({buildRows, sendResearchToStudio, normalizeModelName, buildSalesPanel: (rows,options) => buildSalesPanel(rows,col,options), header:HEADER.slice()});
+  window.SalesEstimateArchive = Object.freeze({buildRows,sendResearchToStudio,updateControls,header:HEADER.slice()});
   updateControls(true);
   async function loadRepository() {
     loading = true;

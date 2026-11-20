@@ -8,7 +8,7 @@
 | --- | --- | --- | --- |
 | 销量追踪 | `index.html` | 根目录 `data.csv` | 桌面、手机 PNG；列表 JSON |
 | 市场份额 | `market-share.html` | 根目录 `market-share.csv` 自动读取或本地 CSV 导入；可手动修改，浏览器本地保存 | 3:4 PNG |
-| 榜单推算与出图 | `sales-estimator.html` | 导入榜单截图，读取柱长并按已知销量标定；各榜单分开处理 | 3:4 / 9:16 PNG、CSV、ZIP |
+| 榜单推算与出图 | `sales-estimator.html` | 导入榜单截图，读取柱长并按已知销量标定；各榜单独立计算，历史结果统一使用 `sales-estimates.csv` | 3:4 / 9:16 PNG、CSV、ZIP |
 
 三个模块使用独立页面，**市场份额仅读取 `market-share.csv`，与销量追踪的 `data.csv` 不混用；榜单推算独立运行**。浏览器清理网站数据、换设备后，本地编辑与自定义列表可能丢失。
 
@@ -93,6 +93,17 @@ brand,model,category,date,2026W34,2026W35
 
 ## 5. 榜单推算模块
 
+### 历史销量 CSV
+
+- `sales-estimates.csv` 为唯一正式历史明细，固定英文表头，一行一个榜单条目。`dataset_id` 由来源、榜单系列、周期类型、规范化周期组成（各部分 URL 编码后用 `|` 连接），排名在榜单内唯一。TOP 数不参与 ID；`top_n` 是可选标称规模，`actual_count` 为真实条目数。25 条可记 TOP25，也可在原榜 TOP30 时记实际 25 条；未知规模留空，不补零。
+- `period_type` 支持 `weekly`（ISO 周）、`monthly`（自然月）、`custom`（起止日期）。同周期若存在来源相同但口径不同的榜单，应填写不同的 `series`。品牌系列沿用 `safeBrand()` 的合并口径，机型字段保留榜单原始名称；合并行不可拆分。
+- `estimated_units` 为四舍五入后的整数台数，`estimated_wan` 为该整数换算的四位小数，`fit_k` 保留计算精度；`fit_mode`、标定组数、有效组数、异常阈值、算法版本、保存时间随结果归档。仅 `single`、`fit`、`robust` 且补全机型名称的有效估算可进入正式 CSV；单组及剔除异常组的结果仍须人工核验。
+- 页面加载仓库 CSV；读取失败时必须先导入完整历史文件，不能将失败当作空数据库。合并导出会保留其他周期，遇同 ID 数据变化须用户确认整期替换（旧版由 Git 提交历史保留）。同一会话的多次合并保留在内存，刷新前请下载备份；如仓库被其他设备更新，应重新加载最新历史并导入未提交文件，再合并导出。GitHub Pages 不写回仓库，由维护者提交下载的完整 `sales-estimates.csv`。
+- 本期标准销量 CSV 与历史文件表头相同，可导入合并；原标定报告、机型派生分析和品牌分析 CSV 保留作人工参考，不作为历史明细导入。发布 ZIP 增加本期标准销量 CSV。历史列表只读，不恢复截图、标定组原始输入或未完成草稿。
+- 实现在 `sales-estimate-archive.js`，周期计算复用 `iso-sales-week.js`。不要在前端保存仓库写入 Token，不要把缺榜条目当作零销量或把周榜与月榜累加。
+
+### 标定与出图
+
 - 示例包括 2026 年 9 月 TOP40、W45 TOP30；用户也可导入近似横条榜截图并补全机型名称。
 - 由柱长像素确定相对比例；必须输入**同统计期、同口径**的销量才能推算绝对量。
 - 支持单机已知销量及最多五机合计标定，接受累计销量差值表达式，如 `782.87-689.03`。多组标定不一致时提示异常，避免给出不可信的绝对量。
@@ -123,7 +134,7 @@ brand,model,category,date,2026W34,2026W35
 
 ## 7. 技术与部署
 
-- **静态页面**：`index.html`、`market-share.html`、`sales-estimator.html`；模块2／3还需部署共享文件 `studio-ui.css`；模块1必须加载共享日期脚本 `iso-sales-week.js`（提供浏览器 `IsoSalesWeek` 全局及 Node CommonJS 导出）；模块2/3共用主题脚本 `poster-themes.js`；模块2额外加载 `market-share-data.js` 与 `market-share-import.js`，并复用 `iso-sales-week.js`。无后端或打包步骤。部署须包含这些脚本。ISO周计算禁止在新模块中复制另一套实现。使用 `node --test tests/iso-sales-week.test.cjs` 运行日期边界测试。
+- **静态页面**：`index.html`、`market-share.html`、`sales-estimator.html`；模块2／3还需部署共享文件 `studio-ui.css`；模块1／3必须加载共享日期脚本 `iso-sales-week.js`（提供浏览器 `IsoSalesWeek` 全局及 Node CommonJS 导出）；模块2/3共用主题脚本 `poster-themes.js`；模块2额外加载 `market-share-data.js` 与 `market-share-import.js`，并复用 `iso-sales-week.js`。无后端或打包步骤。模块3额外加载 `sales-estimate-archive.js` 并读取 `sales-estimates.csv`。部署须包含这些脚本和数据文件。ISO周计算禁止在新模块中复制另一套实现。使用 `node --test tests/iso-sales-week.test.cjs` 运行日期边界测试。
 - **依赖**：销量追踪使用 Apache ECharts 5.4.3（cdnjs）；市场份额编辑器使用原生 HTML/CSS 与 SVG，不依赖 Tailwind；模块 3 使用 Canvas 图卡导出。字体仍使用 Google Fonts，失败时回退系统字体。完整离线部署仍需考虑 ECharts CDN 和字体资源。
 - **本地预览**：项目根目录执行 `python3 -m http.server 8000`，浏览器访问 `http://localhost:8000`；直接打开 HTML 可能触发 CSV 的本地文件访问限制。
 - **GitHub Pages**：Settings → Pages → `Deploy from a branch` → `master` → `/(root)`。

@@ -667,19 +667,14 @@
       const kpiGap = 12;
       const kpiW = (contentWidth - kpiGap) / 2;
 
-      svg.appendChild(svgEl('rect', {
-        x: leftPad, y: kpiY, width: kpiW, height: 52, rx: 10,
-        fill: P.cardBg, stroke: P.cardBorder, 'stroke-width': '1.5'
-      }));
-      svg.appendChild(svgEl('text', { x: leftPad + 14, y: kpiY + 20, fill: P.textSecondary, 'font-size': '13', 'font-weight': '600' }, `${state.w1Label} 基准周`));
-      svg.appendChild(svgEl('text', { x: leftPad + 14, y: kpiY + 41, fill: P.textPrimary, 'font-size': '16', 'font-weight': '800' }, state.w1Market));
-
-      svg.appendChild(svgEl('rect', {
-        x: leftPad + kpiW + kpiGap, y: kpiY, width: kpiW, height: 52, rx: 10,
-        fill: P.cardBg, stroke: P.cardBorder, 'stroke-width': '1.5'
-      }));
-      svg.appendChild(svgEl('text', { x: leftPad + kpiW + kpiGap + 14, y: kpiY + 20, fill: P.textSecondary, 'font-size': '13', 'font-weight': '600' }, `${state.w2Label} 对比周`));
-      svg.appendChild(svgEl('text', { x: leftPad + kpiW + kpiGap + 14, y: kpiY + 41, fill: P.textPrimary, 'font-size': '16', 'font-weight': '800' }, state.w2Market));
+      for(const [i,label,market,role] of [
+        [0,state.w1Label,state.w1Market,'基准周'],[1,state.w2Label,state.w2Market,'对比周']
+      ]){
+        const x = leftPad + i * (kpiW + kpiGap);
+        chartCard(svg, P, x, kpiY, kpiW, 52, 10);
+        chartText(svg, `${label} ${role}`, x + 14, kpiY + 20, P.textSecondary, 13, 600);
+        chartText(svg, market, x + 14, kpiY + 41, P.textPrimary, 16, 800);
+      }
 
       // 3. 动态计算主图表区域（随下方安全区实时自适应压缩/舒展）
       const footerHeight = 42;
@@ -692,14 +687,7 @@
       if (state.chartType === 'combo') {
         renderComboChart(svg, P, leftPad, chartTop, contentWidth, chartHeight);
       } else {
-        svg.appendChild(svgEl('rect', {
-          x: leftPad, y: chartTop,
-          width: contentWidth, height: chartHeight,
-          rx: 18,
-          fill: P.cardBg,
-          stroke: P.cardBorder,
-          'stroke-width': '1.5'
-        }));
+        chartCard(svg, P, leftPad, chartTop, contentWidth, chartHeight, 18);
 
         if (state.chartType === 'diverging') {
           renderDivergingBarChart(svg, P, leftPad, chartTop, contentWidth, chartHeight, false);
@@ -772,6 +760,66 @@
 
     // 双图组合模式（上：横向规模比例堆叠 + 下：发散涨跌条形图）
     // ==========================================
+    function chartText(svg, text, x, y, fill, size, weight, attrs = {}) {
+      svg.appendChild(svgEl('text', {
+        x, y, fill, 'font-size': size, 'font-weight': weight, ...attrs
+      }, text));
+    }
+    function chartCard(svg, P, x, y, width, height, rx) {
+      svg.appendChild(svgEl('rect', {
+        x, y, width, height, rx, fill: P.cardBg, stroke: P.cardBorder, 'stroke-width': '1.5'
+      }));
+    }
+    function chartTitle(svg, P, x, y, title) {
+      chartText(svg, title, x + 26, y + 38, P.textPrimary, 20, 800);
+    }
+    function dotLegend(svg, text, x, y, radius, color, offset, textOffset, fill, size, weight, attrs = {}) {
+      svg.appendChild(svgEl('circle', { cx: x, cy: y, r: radius, fill: color, ...attrs }));
+      chartText(svg, text, x + offset, y + textOffset, fill, size, weight);
+    }
+    function changeStyle(P, diff) {
+      const isUp = diff > 0, isDown = diff < 0;
+      return {
+        isUp, isDown,
+        color: isUp ? P.upColor : isDown ? P.downColor : P.flatColor,
+        badgeBg: isUp ? P.upBg : isDown ? P.downBg : P.flatBg
+      };
+    }
+    function extremeRow(P, item, extremes) {
+      const gain = item.id === extremes.maxGainId && item.diff > 0;
+      const drop = item.id === extremes.maxDropId && item.diff < 0;
+      return gain || drop ? {gain, fill: gain ? P.upRowHighlight : P.downRowHighlight,
+        border: gain ? P.upColor : P.downColor} : null;
+    }
+    function changeBadge(svg, item, style, x, y, height, radius, textY) {
+      svg.appendChild(svgEl('rect', {x, y, width:74, height, rx:radius, fill:style.badgeBg}));
+      chartText(svg, formatDiffPP(item.diff), x + 37, textY, style.color, 15, 800,
+        {'text-anchor':'middle'});
+    }
+    // The two-week stacks share sizes and cumulative offsets, but keep their own orientation and labels.
+    function stackSegments(items, scale, length, start, direction) {
+      const baseTotal = items.reduce((sum, seg) => sum + seg.baseShare, 0) || 100;
+      const compareTotal = items.reduce((sum, seg) => sum + seg.compareShare, 0) || 100;
+      let base = start, compare = start;
+      return items.map(seg => {
+        const baseSize = (seg.baseShare / baseTotal) * length * scale.baseScale;
+        const compareSize = (seg.compareShare / compareTotal) * length * scale.compareScale;
+        const part = {seg, base, compare, baseSize, compareSize,
+          baseEnd:base + direction * baseSize, compareEnd:compare + direction * compareSize};
+        base = part.baseEnd;
+        compare = part.compareEnd;
+        return part;
+      });
+    }
+    function stackBar(svg, color, x, y, size, thickness, vertical, radius) {
+      if(size <= 0)return;
+      const insetSize = Math.max(0, size - Math.min(1.5, size * 0.15));
+      svg.appendChild(svgEl('rect', {
+        x, y, width:vertical ? thickness : insetSize, height:vertical ? insetSize : thickness,
+        rx:radius, fill:color
+      }));
+    }
+
     function renderComboChart(svg, P, boxX, boxY, boxW, boxH) {
       const innerRadius=Math.round(900*window.PosterThemes.layout.innerRadiusRatio);
       const gap = 14;
@@ -780,10 +828,7 @@
       const botY = boxY + topH + gap;
 
       // --- 上半卡片：横向规模比例堆叠格局对比 ---
-      svg.appendChild(svgEl('rect', {
-        x: boxX, y: boxY, width: boxW, height: topH, rx: innerRadius,
-        fill: P.cardBg, stroke: P.cardBorder, 'stroke-width': '1.5'
-      }));
+      chartCard(svg, P, boxX, boxY, boxW, topH, innerRadius);
 
       svg.appendChild(svgEl('text', {
         x: boxX + 20, y: boxY + 28,
@@ -791,9 +836,7 @@
       }, `① 份额格局（大盘指数 100 → ${getStackMarketScale().compareIndex}，估算）`));
 
       const stackSegs = getOrderedStackItems();
-      const { baseScale, compareScale } = getStackMarketScale();
-      const sumW1 = stackSegs.reduce((sum, seg) => sum + seg.baseShare, 0) || 100;
-      const sumW2 = stackSegs.reduce((sum, seg) => sum + seg.compareShare, 0) || 100;
+      const scale = getStackMarketScale();
 
       const barLeft = boxX + 78;
       const barRight = boxX + boxW - 22;
@@ -812,13 +855,8 @@
         fill: P.textPrimary, 'font-size': '15', 'font-weight': '800'
       }, '对比周'));
 
-      let x1Acc = barLeft;
-      let x2Acc = barLeft;
-
-      stackSegs.forEach((seg) => {
-        const w1Px = (seg.baseShare / sumW1) * barTotalW * baseScale;
-        const w2Px = (seg.compareShare / sumW2) * barTotalW * compareScale;
-
+      stackSegments(stackSegs, scale, barTotalW, barLeft, 1).forEach(part => {
+        const {seg,base:x1Acc,compare:x2Acc,baseSize:w1Px,compareSize:w2Px} = part;
         if (w1Px > 0.5 || w2Px > 0.5) {
           const polyPts = `${x1Acc},${row1Y + barThick} ${x1Acc + w1Px},${row1Y + barThick} ${x2Acc + w2Px},${row2Y} ${x2Acc},${row2Y}`;
           svg.appendChild(svgEl('polygon', {
@@ -828,34 +866,13 @@
           }));
         }
 
-        if (w1Px > 0) {
-          svg.appendChild(svgEl('rect', {
-            x: x1Acc, y: row1Y, width: Math.max(0, w1Px - Math.min(1.5, w1Px * 0.15)), height: barThick,
-            rx: 3, fill: seg.color
-          }));
-          if (w1Px >= 42) {
-            svg.appendChild(svgEl('text', {
-              x: x1Acc + w1Px / 2, y: row1Y + barThick / 2 + 4.5,
-              'text-anchor': 'middle', fill: '#ffffff', 'font-size': '12.5', 'font-weight': '800'
-            }, `${seg.baseShare.toFixed(1)}%`));
-          }
+        for(const [x,y,size,share] of [
+          [x1Acc,row1Y,w1Px,seg.baseShare],[x2Acc,row2Y,w2Px,seg.compareShare]
+        ]){
+          stackBar(svg, seg.color, x, y, size, barThick, false, 3);
+          if(size >= 42)chartText(svg, `${share.toFixed(1)}%`, x + size / 2,
+            y + barThick / 2 + 4.5, '#ffffff', 12.5, 800, {'text-anchor':'middle'});
         }
-
-        if (w2Px > 0) {
-          svg.appendChild(svgEl('rect', {
-            x: x2Acc, y: row2Y, width: Math.max(0, w2Px - Math.min(1.5, w2Px * 0.15)), height: barThick,
-            rx: 3, fill: seg.color
-          }));
-          if (w2Px >= 42) {
-            svg.appendChild(svgEl('text', {
-              x: x2Acc + w2Px / 2, y: row2Y + barThick / 2 + 4.5,
-              'text-anchor': 'middle', fill: '#ffffff', 'font-size': '12.5', 'font-weight': '800'
-            }, `${seg.compareShare.toFixed(1)}%`));
-          }
-        }
-
-        x1Acc += w1Px;
-        x2Acc += w2Px;
       });
 
       const legendBrands = stackSegs.map(seg => ({
@@ -876,10 +893,7 @@
       });
 
       // --- 下半卡片：横向发散条形图（含最大提升/最大回落底色高亮） ---
-      svg.appendChild(svgEl('rect', {
-        x: boxX, y: botY, width: boxW, height: botH, rx: innerRadius,
-        fill: P.cardBg, stroke: P.cardBorder, 'stroke-width': '1.5'
-      }));
+      chartCard(svg, P, boxX, botY, boxW, botH, innerRadius);
 
       svg.appendChild(svgEl('text', {
         x: boxX + 20, y: botY + 28,
@@ -894,7 +908,7 @@
     // ==========================================
     function renderDivergingBarChart(svg, P, boxX, boxY, boxW, boxH, isCompact = false) {
       const dataList = getVisibleBrands();
-      const { maxGainId, maxDropId } = getExtremeIds(dataList);
+      const extremes = getExtremeIds(dataList);
 
       const labelColW = isCompact ? 152 : 168;
       const plotLeft = boxX + labelColW;
@@ -927,13 +941,9 @@
         }));
 
         const tickLabel = t > 0 ? `+${t}` : `${t}`;
-        svg.appendChild(svgEl('text', {
-          x: tx, y: plotBottom + (isCompact ? 22 : 28),
-          'text-anchor': 'middle',
-          fill: isZero ? P.textPrimary : P.textSecondary,
-          'font-size': isCompact ? '14.5' : '17',
-          'font-weight': isZero ? '800' : '600'
-        }, tickLabel));
+        chartText(svg,tickLabel,tx,plotBottom + (isCompact ? 22 : 28),
+          isZero ? P.textPrimary : P.textSecondary,isCompact ? 14.5 : 17,isZero ? 800 : 600,
+          {'text-anchor':'middle'});
       });
       const rowH = plotH / dataList.length;
       const barH = Math.min(isCompact ? 26 : 36, rowH * 0.46);
@@ -941,16 +951,11 @@
       dataList.forEach((item, idx) => {
         const rowTop = plotTop + idx * rowH;
         const cy = rowTop + rowH * 0.5;
-        const isUp = item.diff > 0;
-        const isDown = item.diff < 0;
-        const barColor = isUp ? P.upColor : (isDown ? P.downColor : P.flatColor);
+        const {isUp,color:barColor} = changeStyle(P,item.diff);
+        const extreme = extremeRow(P,item,extremes);
 
-        const isMaxGain = item.id === maxGainId && item.diff > 0;
-        const isMaxDrop = item.id === maxDropId && item.diff < 0;
-
-        if (isMaxGain || isMaxDrop) {
-          const hlColor = isMaxGain ? P.upRowHighlight : P.downRowHighlight;
-          const borderColor = isMaxGain ? P.upColor : P.downColor;
+        if (extreme) {
+          const {gain:isMaxGain,fill:hlColor,border:borderColor} = extreme;
           const rowPadY = Math.max(2, rowH * 0.06);
 
           svg.appendChild(svgEl('rect', {
@@ -1031,17 +1036,10 @@
       const legendY = boxY + boxH - (isCompact ? 12 : 22);
       const centerLegendX = plotLeft + plotW * 0.5;
 
-      svg.appendChild(svgEl('circle', { cx: centerLegendX - 145, cy: legendY - 5, r: 6.5, fill: P.upColor }));
-      svg.appendChild(svgEl('text', {
-        x: centerLegendX - 132, y: legendY,
-        fill: P.textPrimary, 'font-size': isCompact ? '14' : '17', 'font-weight': '700'
-      }, '份额上升'));
-
-      svg.appendChild(svgEl('circle', { cx: centerLegendX - 25, cy: legendY - 5, r: 6.5, fill: P.downColor }));
-      svg.appendChild(svgEl('text', {
-        x: centerLegendX - 12, y: legendY,
-        fill: P.textPrimary, 'font-size': isCompact ? '14' : '17', 'font-weight': '700'
-      }, '份额下降'));
+      for(const [offset,color,label] of [[-145,P.upColor,'份额上升'],[-25,P.downColor,'份额下降']]){
+        dotLegend(svg,label,centerLegendX + offset,legendY - 5,6.5,color,13,5,
+          P.textPrimary,isCompact ? 14 : 17,700);
+      }
 
       svg.appendChild(svgEl('rect', {
         x: centerLegendX + 85, y: legendY - 12, width: 14, height: 14, rx: 3,
@@ -1058,16 +1056,11 @@
     // ==========================================
     function renderSlopeChart(svg, P, boxX, boxY, boxW, boxH) {
       const dataList = getVisibleBrands();
-      svg.appendChild(svgEl('text', {
-        x: boxX + 26, y: boxY + 38,
-        fill: P.textPrimary, 'font-size': '20', 'font-weight': '800'
-      }, '品牌份额坡度变化 (Slope Chart)'));
+      chartTitle(svg, P, boxX, boxY, '品牌份额坡度变化 (Slope Chart)');
 
       const legendX = boxX + boxW - 220;
-      svg.appendChild(svgEl('circle', { cx: legendX, cy: boxY + 32, r: 6, fill: P.upColor }));
-      svg.appendChild(svgEl('text', { x: legendX + 12, y: boxY + 37, fill: P.textSecondary, 'font-size': '15', 'font-weight': '600' }, '份额上升'));
-      svg.appendChild(svgEl('circle', { cx: legendX + 95, cy: boxY + 32, r: 6, fill: P.downColor }));
-      svg.appendChild(svgEl('text', { x: legendX + 107, y: boxY + 37, fill: P.textSecondary, 'font-size': '15', 'font-weight': '600' }, '份额下滑'));
+      dotLegend(svg,'份额上升',legendX,boxY + 32,6,P.upColor,12,5,P.textSecondary,15,600);
+      dotLegend(svg,'份额下滑',legendX + 95,boxY + 32,6,P.downColor,12,5,P.textSecondary,15,600);
 
       const leftLabelMargin = 165;
       const rightLabelMargin = 195;
@@ -1117,9 +1110,8 @@
       relaxLabels('y2', 42);
 
       items.forEach(item => {
-        const isUp = item.diff > 0;
-        const isDown = item.diff < 0;
-        const strokeColor = isUp ? P.upColor : (isDown ? P.downColor : P.flatColor);
+        const style = changeStyle(P,item.diff);
+        const {isUp,isDown,color:strokeColor} = style;
         const strokeWidth = Math.abs(item.diff) >= 1.0 ? 4.5 : (isUp || isDown ? 3.2 : 2);
         const opacity = item.id === 'other' ? 0.55 : 0.95;
 
@@ -1173,20 +1165,7 @@
           'font-weight': '800'
         }, `${item.compareShare.toFixed(1)}%`));
 
-        const badgeX = rightTextX + 66;
-        const badgeBg = isUp ? P.upBg : (isDown ? P.downBg : P.flatBg);
-        svg.appendChild(svgEl('rect', {
-          x: badgeX, y: item.y2 - 13,
-          width: 74, height: 25, rx: 6,
-          fill: badgeBg
-        }));
-        svg.appendChild(svgEl('text', {
-          x: badgeX + 37, y: item.y2 + 5,
-          'text-anchor': 'middle',
-          fill: strokeColor,
-          'font-size': '15',
-          'font-weight': '800'
-        }, formatDiffPP(item.diff)));
+        changeBadge(svg,item,style,rightTextX + 66,item.y2 - 13,25,6,item.y2 + 5);
       });
     }
 
@@ -1195,22 +1174,15 @@
     // ==========================================
     function renderDumbbellChart(svg, P, boxX, boxY, boxW, boxH) {
       const dataList = getVisibleBrands();
-      const { maxGainId, maxDropId } = getExtremeIds(dataList);
+      const extremes = getExtremeIds(dataList);
 
-      svg.appendChild(svgEl('text', {
-        x: boxX + 26, y: boxY + 38,
-        fill: P.textPrimary, 'font-size': '20', 'font-weight': '800'
-      }, '市场份额增减跨度 (Dumbbell Plot)'));
+      chartTitle(svg, P, boxX, boxY, '市场份额增减跨度 (Dumbbell Plot)');
 
       const legY = boxY + 70;
-      svg.appendChild(svgEl('circle', { cx: boxX + 34, cy: legY, r: 6.5, fill: P.cardBg, stroke: P.textSecondary, 'stroke-width': '2.5' }));
-      svg.appendChild(svgEl('text', { x: boxX + 48, y: legY + 5, fill: P.textSecondary, 'font-size': '15', 'font-weight': '600' }, '基准份额'));
-
-      svg.appendChild(svgEl('circle', { cx: boxX + 145, cy: legY, r: 7, fill: P.upColor }));
-      svg.appendChild(svgEl('text', { x: boxX + 159, y: legY + 5, fill: P.textSecondary, 'font-size': '15', 'font-weight': '600' }, '份额上升'));
-
-      svg.appendChild(svgEl('circle', { cx: boxX + 255, cy: legY, r: 7, fill: P.downColor }));
-      svg.appendChild(svgEl('text', { x: boxX + 269, y: legY + 5, fill: P.textSecondary, 'font-size': '15', 'font-weight': '600' }, '份额下降'));
+      dotLegend(svg,'基准份额',boxX + 34,legY,6.5,P.cardBg,14,5,P.textSecondary,15,600,
+        {stroke:P.textSecondary,'stroke-width':'2.5'});
+      dotLegend(svg,'份额上升',boxX + 145,legY,7,P.upColor,14,5,P.textSecondary,15,600);
+      dotLegend(svg,'份额下降',boxX + 255,legY,7,P.downColor,14,5,P.textSecondary,15,600);
 
       const labelColW = 128;
       const rightBadgeColW = 96;
@@ -1231,35 +1203,19 @@
           x1: tx, y1: plotTop - 10, x2: tx, y2: plotBottom,
           stroke: P.gridLine, 'stroke-width': '1', 'stroke-dasharray': t === 0 ? 'none' : '4 4'
         }));
-        svg.appendChild(svgEl('text', {
-          x: tx, y: plotBottom + 24,
-          'text-anchor': 'middle',
-          fill: P.textMuted, 'font-size': '14', 'font-weight': '600'
-        }, `${t}%`));
+        chartText(svg,`${t}%`,tx,plotBottom + 24,P.textMuted,14,600,{'text-anchor':'middle'});
       });
 
       dataList.forEach((item, idx) => {
         const cy = plotTop + idx * rowH + rowH * 0.5;
-        const isUp = item.diff > 0;
-        const isDown = item.diff < 0;
-        const color = isUp ? P.upColor : (isDown ? P.downColor : P.flatColor);
-
-        const isMaxGain = item.id === maxGainId && item.diff > 0;
-        const isMaxDrop = item.id === maxDropId && item.diff < 0;
-
-        if (isMaxGain || isMaxDrop) {
+        const style = changeStyle(P,item.diff);
+        const {isUp,color} = style;
+        const extreme = extremeRow(P,item,extremes);
+        if (extreme || idx % 2 === 0) {
           svg.appendChild(svgEl('rect', {
             x: boxX + 16, y: plotTop + idx * rowH + 4,
-            width: boxW - 32, height: rowH - 8,
-            rx: 10,
-            fill: isMaxGain ? P.upRowHighlight : P.downRowHighlight
-          }));
-        } else if (idx % 2 === 0) {
-          svg.appendChild(svgEl('rect', {
-            x: boxX + 16, y: plotTop + idx * rowH + 4,
-            width: boxW - 32, height: rowH - 8,
-            rx: 10,
-            fill: P.isDark ? 'rgba(255,255,255,0.025)' : 'rgba(15,23,42,0.025)'
+            width: boxW - 32, height: rowH - 8, rx:10,
+            fill: extreme ? extreme.fill : P.isDark ? 'rgba(255,255,255,0.025)' : 'rgba(15,23,42,0.025)'
           }));
         }
 
@@ -1315,17 +1271,7 @@
           }, `${item.compareShare.toFixed(1)}%`));
         }
 
-        const badgeBg = isUp ? P.upBg : (isDown ? P.downBg : P.flatBg);
-        svg.appendChild(svgEl('rect', {
-          x: plotRight + 10, y: cy - 14,
-          width: 74, height: 28, rx: 7,
-          fill: badgeBg
-        }));
-        svg.appendChild(svgEl('text', {
-          x: plotRight + 47, y: cy + 5,
-          'text-anchor': 'middle',
-          fill: color, 'font-size': '15', 'font-weight': '800'
-        }, formatDiffPP(item.diff)));
+        changeBadge(svg,item,style,plotRight + 10,cy - 14,28,7,cy + 5);
       });
     }
 
@@ -1333,10 +1279,7 @@
     // 图表 3：按大盘规模比例缩放的堆叠流动柱形图
     // ==========================================
     function renderStackedFlowChart(svg, P, boxX, boxY, boxW, boxH) {
-      svg.appendChild(svgEl('text', {
-        x: boxX + 26, y: boxY + 38,
-        fill: P.textPrimary, 'font-size': '20', 'font-weight': '800'
-      }, '大盘规模与品牌份额变化'));
+      chartTitle(svg, P, boxX, boxY, '大盘规模与品牌份额变化');
 
       svg.appendChild(svgEl('text', {
         x: boxX + 26, y: boxY + 62,
@@ -1344,9 +1287,8 @@
       }, '柱高按大盘环比趋势估算，色块标签为当周份额，流动带连接同一品牌'));
 
       const stackItems = getOrderedStackItems();
-      const { baseScale, compareScale, compareIndex } = getStackMarketScale();
-      const baseTotal = stackItems.reduce((sum, seg) => sum + seg.baseShare, 0) || 100;
-      const compareTotal = stackItems.reduce((sum, seg) => sum + seg.compareShare, 0) || 100;
+      const scale = getStackMarketScale();
+      const {compareIndex} = scale;
 
       const barW = 128;
       const leftBarX = boxX + 125;
@@ -1365,18 +1307,9 @@
         'text-anchor': 'middle', fill: P.textPrimary, 'font-size': '18', 'font-weight': '800'
       }, `对比周（指数 ${compareIndex}）`));
 
-      let baseAccY = plotBottom;
-      let compareAccY = plotBottom;
-
-      stackItems.forEach((seg) => {
-        const baseH = (seg.baseShare / baseTotal) * totalH * baseScale;
-        const compareH = (seg.compareShare / compareTotal) * totalH * compareScale;
-
-        const y44Bot = baseAccY;
-        const baseTopY = baseAccY - baseH;
-        const y45Bot = compareAccY;
-        const compareTopY = compareAccY - compareH;
-
+      stackSegments(stackItems, scale, totalH, plotBottom, -1).forEach(part => {
+        const {seg,base:y44Bot,compare:y45Bot,baseEnd:baseTopY,compareEnd:compareTopY,
+          baseSize:baseH,compareSize:compareH} = part;
         const c1x = leftBarX + barW + (rightBarX - (leftBarX + barW)) * 0.45;
         const c2x = leftBarX + barW + (rightBarX - (leftBarX + barW)) * 0.55;
         const pathD = `
@@ -1392,28 +1325,13 @@
           opacity: P.isDark ? '0.24' : '0.20'
         }));
 
-        if (baseH > 0) svg.appendChild(svgEl('rect', {
-          x: leftBarX, y: baseTopY, width: barW, height: Math.max(0, baseH - Math.min(1.5, baseH * 0.15)),
-          rx: 4, fill: seg.color
-        }));
-
-        if (compareH > 0) svg.appendChild(svgEl('rect', {
-          x: rightBarX, y: compareTopY, width: barW, height: Math.max(0, compareH - Math.min(1.5, compareH * 0.15)),
-          rx: 4, fill: seg.color
-        }));
-
-        if (baseH >= 22) {
-          svg.appendChild(svgEl('text', {
-            x: leftBarX + barW / 2, y: baseTopY + baseH / 2 + 5,
-            'text-anchor': 'middle', fill: '#ffffff', 'font-size': baseH >= 34 ? '16' : '13', 'font-weight': '800'
-          }, `${seg.baseShare.toFixed(1)}%`));
-        }
-
-        if (compareH >= 22) {
-          svg.appendChild(svgEl('text', {
-            x: rightBarX + barW / 2, y: compareTopY + compareH / 2 + 5,
-            'text-anchor': 'middle', fill: '#ffffff', 'font-size': compareH >= 34 ? '16' : '13', 'font-weight': '800'
-          }, `${seg.compareShare.toFixed(1)}%`));
+        const sides = [
+          [leftBarX,baseTopY,baseH,seg.baseShare],[rightBarX,compareTopY,compareH,seg.compareShare]
+        ];
+        for(const [x,y,size] of sides)stackBar(svg, seg.color, x, y, size, barW, true, 4);
+        for(const [x,y,size,share] of sides){
+          if(size >= 22)chartText(svg, `${share.toFixed(1)}%`, x + barW / 2,
+            y + size / 2 + 5, '#ffffff', size >= 34 ? 16 : 13, 800, {'text-anchor':'middle'});
         }
 
         const baseMidY = baseTopY + baseH / 2;
@@ -1439,8 +1357,6 @@
           }, labelStr));
         }
 
-        baseAccY = baseTopY;
-        compareAccY = compareTopY;
       });
     }
 

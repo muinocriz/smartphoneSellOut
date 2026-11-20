@@ -14,9 +14,9 @@ A static, **no-backend and no-build** smartphone data dashboard and social-poste
 
 | Module | What it does | Open |
 | --- | --- | --- |
-| **01 · Sales Tracking** | Explore selected models' cumulative sales, weekly changes, charts and data tables; filter and save lists, export desktop/mobile PNGs. | [Sales Tracking](https://muinocriz.github.io/smartphoneSellOut/) |
-| **02 · Market Share** | Auto-load weekly brand shares from `market-share.csv`; compare adjacent ISO weeks, import a local CSV, manually edit values, and export five themed charts as 3:4 PNGs. | [Market Share](https://muinocriz.github.io/smartphoneSellOut/#market-share) |
-| **03 · Ranking Estimator & Poster Studio** | Calibrate screenshots of variable-sized rankings against known sales, merge historical estimates, and export posters, CSV and ZIP. | [Ranking Estimator](https://muinocriz.github.io/smartphoneSellOut/#sales-estimator) |
+| **01 · Sales Tracking** | Explore cumulative sales, weekly changes and full ISO sales-week trends; default to recent 12-week launches, filter models, save custom lists and export desktop/mobile PNGs. | [Sales Tracking](https://muinocriz.github.io/smartphoneSellOut/) |
+| **02 · Market Share** | Auto-load weekly brand shares from `market-share.csv`; compare adjacent ISO weeks, import a local CSV, manually edit values, and export five chart types (including market-scale stacked charts) in six themes as high-resolution 3:4 PNGs. | [Market Share](https://muinocriz.github.io/smartphoneSellOut/#market-share) |
+| **03 · Ranking Estimator & Poster Studio** | Calibrate ranking screenshots against known sales or create four poster types directly from archived rankings; merge CSV history and export high-resolution 3:4/9:16 PNGs and ZIP bundles. | [Ranking Estimator](https://muinocriz.github.io/smartphoneSellOut/#sales-estimator) |
 
 ## Getting started
 
@@ -31,15 +31,19 @@ Opening `index.html` directly as a local file may block reading `data.csv`; a lo
 
 ## Updating data
 
-- **Module 1:** Edit `data.csv` in the repository root. Figures are **cumulative sales in units of 10,000 phones**; weekly sales are derived from adjacent cumulative values. Add a week by appending a column.
-- **Module 2:** Add one row per ISO week to `market-share.csv` in the repository root. Required headers: `ISO 周,趋势,苹果,华为,小米,OPPO,一加,realme,vivo,iQOO,荣耀` (lowercase `vivo`). `OPPO` already includes OnePlus and realme, while `vivo` already includes iQOO: subbrands must not be counted twice. The site auto-loads the CSV, supports local file import, adjacent-week selection and manual overrides. This file is independent of `data.csv`.
-- **Module 3:** Import a ranking screenshot and calibrate using known sales for the **same period and definition**. Enter the source, ranking series, and period; nominal TOP size is optional and actual count is detected. The page reads `sales-estimates.csv`. Export the merged full history and commit the downloaded file to the repository root. Replacing the same source, series and period requires confirmation. Download uncommitted history before refreshing; local CSV import can restore it. The archive stores final estimates, not the original image or full calibration workspace, and does not read `data.csv`.
+Each module uses a separate CSV with a distinct statistical definition. Commit the corresponding CSV to the repository root to publish permanent data updates.
 
-For the full CSV schema, poster specifications, design principles, deployment details and implementation notes, see the [Maintenance & Design Guide (Chinese)](docs/MAINTAINER_GUIDE.md).
+- **Module 1:** Edit `data.csv` in the repository root. Figures are **cumulative sales in units of 10,000 phones**; weekly sales are derived from adjacent cumulative values. Add a week by appending a column.
+- **Module 2:** Append one row of shares and market trend per ISO week to `market-share.csv`. OPPO includes OnePlus and realme; vivo includes iQOO. Do not double-count subbrands. The page auto-loads the CSV and supports local import, historical weeks and manual edits.
+- **Module 3:** Import a ranking screenshot from the left panel, enter model names and the period, and calibrate with known sales for the **same period and definition**. Export the merged full history and commit the downloaded `sales-estimates.csv`. Rankings of different sizes need no zero padding; back up uncommitted data before refreshing. Select an archived ranking to create posters without recalibration. Only final estimates are archived, not the original screenshot or full calibration workspace.
+
+Both poster studios offer four PNG export resolutions, defaulting to 2160px wide. Module 3 presents estimated sales to one decimal place in units of 10,000 phones, retaining CSV precision.
+
+For the full CSV schema, full-sales-week definitions, poster specifications, design principles, deployment details and implementation notes, see the [Maintenance & Design Guide (Chinese)](docs/MAINTAINER_GUIDE.md).
 
 ## Sources and data limitations
 
-Sales-tracking data is manually compiled mainly from public posts by **RD观测** and **数码闲聊站**. It is for reference and personal study, not official reporting. **Module 1 contains a selected model sample, not a market-wide ranking; Module 2 auto-loads an editable market-share CSV (non-official estimates) and retains sample data as an offline fallback; Module 3 describes only models present in the supplied screenshot, not total brand market share.** Verify dates, definitions and underlying data before publication.
+Sales-tracking data is manually compiled mainly from public posts by **RD观测** and **数码闲聊站**. It is for reference and personal study, not official reporting. **Module 1 contains a selected model sample, not a market-wide ranking; Module 2 auto-loads an editable market-share CSV (non-official estimates) and retains sample data as an offline fallback; Module 3 describes only the listed models in the corresponding ranking period, not total brand market share.** Verify dates, definitions and underlying data before publication.
 
 ## Documentation
 

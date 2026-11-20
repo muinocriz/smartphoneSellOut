@@ -5,9 +5,8 @@
 (function () {
   'use strict';
   const FILE = 'sales-estimates.csv';
-  const HEADER = 'dataset_id,source,series,period_type,period,period_start,period_end,top_n,actual_count,rank,model,brand_group,pixels,estimated_units,estimated_wan,fit_k,fit_mode,calibration_count,accepted_count,outlier_threshold,algorithm_version,saved_at'.split(',');
-  const col = Object.fromEntries(HEADER.map((name, index) => [name, index]));
-  const allowedFit = new Set(['single', 'fit', 'robust']);
+  const Series=window.SalesSeries;
+  const HEADER=Series.HEADER,col=Series.col,allowedFit=new Set(Series.allowedFit);
   const metaByDataset = new WeakMap();
   let activeDataset = null;
   let history = [];
@@ -16,83 +15,9 @@
   let origin = '';
   let pending = false;
 
-  function fail(message) { throw new Error(message); }
-  function normalizeModelName(name) {
-  return window.BrandUtils.normalize(name);
-}
-  function cutoffOf(list,col) {
-  const n=Number(list[0]?.[col.top_n]);
-  if(!Number.isSafeInteger(n)||n<1||list.length!==n||!list.every(r=>Number(r[col.top_n])===n&&Number(r[col.actual_count])===n&&Number(r[col.rank])>=1&&Number(r[col.rank])<=n)||new Set(list.map(r=>Number(r[col.rank]))).size!==n)return null;
-  const last=list.find(r=>Number(r[col.rank])===n);
-  return Number(last[col.estimated_wan]);
-}
-  function salesPanelOptions(p={}){
-  const num=(v,d,min,max)=>v==null||v===''||!Number.isFinite(Number(v))?d:Math.min(max,Math.max(min,Math.round(Number(v))));
-  return {scopeId:p.scopeId||'',start:p.start||'',end:p.end||'',coverage:num(p.coverage,80,0,100),coverageBase:p.coverageBase==='all'?'all':'first',maxGap:num(p.maxGap,3,0,12),method:p.method==='linear'?'linear':'bounded',dataMode:p.dataMode==='raw'?'raw':'filled',missingBoard:p.missingBoard!==false,trailing:p.trailing!==false};
-}
-  function buildSalesPanel(rows,col,options={}){
-  const p=salesPanelOptions(options);
-  const header=['source','series','period','period_start','period_end','model_key','model','raw_model','brand_group','rank','observed_wan','imputed_wan','weekly_wan','cumulative_wan','cutoff_wan','is_imputed','impute_method','observed_weeks','total_weeks','coverage_rate','coverage_base_weeks','first_observed_period','range_start','range_end','coverage_base','min_coverage_pct','max_gap_weeks','impute_rule','data_mode','allow_missing_board','allow_trailing'];
-  const scopes=new Map(),all=[],byScope=[],fmt=v=>v==null?'':v.toFixed(4),weekMs=604800000;
-  for(const r of rows){
-    if(r[col.period_type]!=='weekly')continue;
-    const id=JSON.stringify([r[col.source],r[col.series]]);
-    if(p.scopeId&&id!==p.scopeId)continue;
-    if(!scopes.has(id))scopes.set(id,[]);scopes.get(id).push(r);
-  }
-  for(const [id,records] of scopes){
-    const [source,series]=JSON.parse(id),boards=new Map(),firstSeen=new Map();
-    for(const r of records){const t=Date.parse(r[col.period_start]+'T00:00:00Z');if(!boards.has(t))boards.set(t,[]);boards.get(t).push(r);}
-    const dates=[...boards.keys()].sort((a,b)=>a-b),fullWeeks=[];
-    for(let t=dates[0];t<=dates[dates.length-1];t+=weekMs){
-      const list=boards.get(t)||[],start=new Date(t).toISOString().slice(0,10),end=new Date(t+6*86400000).toISOString().slice(0,10);
-      const y=new Date(t+3*86400000).getUTCFullYear(),jan4=Date.UTC(y,0,4),first=jan4-((new Date(jan4).getUTCDay()+6)%7)*86400000;
-      const period=y+'-W'+String(1+Math.round((t-first)/weekMs)).padStart(2,'0'),map=new Map();
-      for(const r of list){const key=normalizeModelName(r[col.model]);if(!key||map.has(key))throw Error('同一期榜单存在空白或重复机型标识：'+period+' / '+key);map.set(key,r);if(!firstSeen.has(key))firstSeen.set(key,period);}
-      fullWeeks.push({period,start,end,cutoff:cutoffOf(list,col),map,hasBoard:list.length>0,top:list[0]?.[col.top_n]||'',count:list.length});
-    }
-    const weeks=fullWeeks.filter(w=>(!p.start||w.period>=p.start)&&(!p.end||w.period<=p.end));
-    if(!weeks.length)continue;
-    const models=new Map();
-    for(const w of weeks)for(const [key,r] of w.map){if(!models.has(key))models.set(key,{key,count:0,first:firstSeen.get(key)});const m=models.get(key);m.count++;m.name=r[col.model];m.brand=classifyHeadBrand(r)||'未识别品牌';}
-    for(const m of models.values()){m.baseWeeks=p.coverageBase==='first'?weeks.filter(w=>w.period>=m.first).length:weeks.length;m.coverage=m.count/m.baseWeeks;}
-    const selected=[...models.values()].filter(m=>m.count*100>=p.coverage*m.baseWeeks).sort((a,b)=>a.name.localeCompare(b.name,'zh-CN')),panelRows=[];
-    for(const m of selected){
-      const observed=weeks.map(w=>w.map.has(m.key)?Number(w.map.get(m.key)[col.estimated_wan]):null),firstIndex=weeks.findIndex(w=>w.period>=m.first);
-      let total=0,unknown=false;
-      for(let i=0;i<weeks.length;i++){
-        const w=weeks[i],original=w.map.get(m.key),value=observed[i];let estimate=null,method='missing';
-        if(value!==null)method='observed';
-        else if(i<firstIndex)method='before_first_observation';
-        else if(p.dataMode==='raw'||p.maxGap===0)method=w.hasBoard?'missing_unfilled':'missing_board';
-        else{
-          if(!w.hasBoard)method='missing_board';
-          let left=i-1,right=i+1;while(left>=0&&observed[left]===null)left--;while(right<weeks.length&&observed[right]===null)right++;
-          if(left>=0&&right<weeks.length&&right-left-1<=p.maxGap&&(p.missingBoard||weeks.slice(left+1,right).every(q=>q.hasBoard))){
-            estimate=observed[left]+(observed[right]-observed[left])*(i-left)/(right-left);method=w.hasBoard?'linear_interpolation':'linear_interpolation_missing_board';
-          }else if(p.trailing&&p.method==='bounded'&&left===i-1&&i===weeks.length-1&&w.cutoff!==null&&w.period===fullWeeks[fullWeeks.length-1].period){estimate=observed[left];method='previous_week';}
-          if(estimate!==null&&p.method==='bounded'&&w.cutoff!==null){estimate=Math.min(estimate,w.cutoff);method+='_cutoff';}
-          if(estimate!==null)estimate=Math.round(estimate*10000)/10000;
-        }
-        const weekly=value??estimate;
-        if(i>=firstIndex&&weekly===null)unknown=true;if(weekly!==null)total+=weekly;
-        const cumulative=i<firstIndex||unknown?null:total;
-        panelRows.push([source,series,w.period,w.start,w.end,m.key,m.name,original?original[col.model]:'',m.brand,original?original[col.rank]:'',fmt(value),fmt(estimate),fmt(weekly),fmt(cumulative),fmt(w.cutoff),estimate!==null?'1':'0',method,String(m.count),String(weeks.length),m.coverage.toFixed(4),String(m.baseWeeks),m.first,weeks[0].period,weeks[weeks.length-1].period,p.coverageBase,String(p.coverage),String(p.maxGap),p.method,p.dataMode,p.missingBoard?'1':'0',p.trailing?'1':'0']);
-      }
-    }
-    all.push(...panelRows);byScope.push({id,source,series,weeks,fullWeeks,models:selected,rows:panelRows,options:p});
-  }
-  return {header,rows:all,scopes:byScope};
-}
-  function dateText(t) { return new Date(t).toISOString().slice(0, 10); }
-  function parseDate(s) {
-    // Spreadsheet editors may save date cells as YYYY/M/D instead of ISO YYYY-MM-DD.
-    const p = String(s ?? '').trim().match(/^([1-9]\d{3})([-/])(\d{1,2})\2(\d{1,2})$/);
-    if (!p) return null;
-    const iso = p[1] + '-' + p[3].padStart(2,'0') + '-' + p[4].padStart(2,'0');
-    const t = Date.parse(iso + 'T00:00:00Z');
-    return Number.isFinite(t) && dateText(t) === iso ? t : null;
-  }
+  const {normalizeModelName,salesPanelOptions,dateText,parseDate}=Series;
+  function fail(message){throw new Error(message);}
+  const buildSalesPanel=(rows,_col,options)=>Series.buildSalesPanel(rows,options);
   function defaults() {
     return {source:'RD观测', series:'手机销量榜', type:'weekly', period:'', start:'', end:'', top:''};
   }
@@ -100,36 +25,7 @@
     if (!metaByDataset.has(d)) metaByDataset.set(d, defaults());
     return metaByDataset.get(d);
   }
-  function normalizeMeta(m, count) {
-    const source = String(m.source || '').trim();
-    const series = String(m.series || '').trim();
-    if (!source || !series) fail('请填写数据来源和榜单系列。');
-    let period, start, end;
-    if (m.type === 'weekly') {
-      const p = String(m.period).trim().toUpperCase().match(/^([1-9]\d{3})-?W(\d{1,2})$/);
-      if (!p) fail('请填写 ISO 周，例如 2026-W46。');
-      const t = window.IsoSalesWeek.isoWeekMonday(Number(p[1]), Number(p[2]));
-      if (t === null) fail('该年份不存在此 ISO 周。');
-      period = p[1] + '-W' + p[2].padStart(2,'0');
-      start = dateText(t); end = dateText(t + 6 * 86400000);
-    } else if (m.type === 'monthly') {
-      const p = String(m.period).trim().toUpperCase().match(/^([1-9]\d{3})-?M?(\d{1,2})$/);
-      if (!p || Number(p[2]) < 1 || Number(p[2]) > 12) fail('请填写月份，例如 2026-M09。');
-      const month = Number(p[2]);
-      period = p[1] + '-M' + String(month).padStart(2,'0');
-      start = p[1] + '-' + String(month).padStart(2,'0') + '-01';
-      end = dateText(Date.UTC(Number(p[1]), month, 0));
-    } else if (m.type === 'custom') {
-      const a = parseDate(m.start), b = parseDate(m.end);
-      if (a === null || b === null || a > b) fail('请填写有效的起止日期。');
-      start = dateText(a); end = dateText(b); period = start + '~' + end;
-    } else fail('未知统计周期类型。');
-    const top = String(m.top ?? '').trim();
-    if (top && (!/^\d+$/.test(top) || !Number.isSafeInteger(Number(top)) || Number(top) < count || Number(top) < 1)) fail('标称 TOP 数量必须为正整数，且不少于实际条目数；未知时留空。');
-    // Keep natural-language labels readable; escape only the separator and escape marker.
-    const id = [source, series, m.type, period].map(s => s.replace(/%/g, '%25').replace(/\|/g, '%7C')).join('|');
-    return {id, source, series, type:m.type, period, start, end, top:top ? String(Number(top)) : ''};
-  }
+  const normalizeMeta=Series.normalizeMeta;
   function buildRows(o = derivedData()) {
     const d = o.d, f = o.fit;
     // A historical studio export must reuse the original normalized archive rows and metadata.
@@ -171,80 +67,7 @@
         archiveBrand:row[col.brand_group],archiveSale:Number(row[col.estimated_units])}))
     };
   }
-  function groups(rows) {
-    const map = new Map();
-    for (const r of rows) {
-      const id = r[col.dataset_id];
-      if (!map.has(id)) map.set(id, []);
-      map.get(id).push(r);
-    }
-    for (const list of map.values()) list.sort((a,b) => Number(a[col.rank]) - Number(b[col.rank]));
-    return map;
-  }
-  function sorted(rows) {
-    return [...rows].sort((a,b) => a[col.period_end].localeCompare(b[col.period_end]) ||
-      a[col.dataset_id].localeCompare(b[col.dataset_id]) || Number(a[col.rank]) - Number(b[col.rank]));
-  }
-  function parseCSV(raw) {
-    const s = String(raw).replace(/^\uFEFF/, '');
-    const rows = []; let row = [], cell = '', quoted = false, closed = false;
-    function field() { row.push(cell); cell = ''; closed = false; }
-    function line() { field(); if (row.some(v => v !== '')) rows.push(row); row = []; }
-    for (let i = 0; i < s.length; i++) {
-      const c = s[i];
-      if (quoted) {
-        if (c === '"') {
-          if (s[i+1] === '"') { cell += '"'; i++; }
-          else { quoted = false; closed = true; }
-        } else cell += c;
-      } else if (c === ',') field();
-      else if (c === '\r' || c === '\n') {
-        line(); if (c === '\r' && s[i+1] === '\n') i++;
-      } else if (c === '"' && cell === '' && !closed) quoted = true;
-      else if (c === '"' || closed) fail('CSV 引号格式不正确。');
-      else cell += c;
-    }
-    if (quoted) fail('CSV 引号未闭合。');
-    if (row.length || cell !== '' || closed) line();
-    const head = rows.shift();
-    if (!head || head.length !== HEADER.length || head.some((v,i) => v !== HEADER[i])) fail('CSV 表头与模块 3 历史数据库不匹配。请使用 sales-estimates.csv 或新版标准销量 CSV。');
-    for (const [i,r] of rows.entries()) {
-      const context = 'CSV 第 ' + (i + 2) + ' 条记录（含表头计数；' + (r[col.period] || '未知周期') + ' / 排名 ' + (r[col.rank] || '未知') + '）';
-      if (r.length !== HEADER.length) fail(context + '：列数不正确。');
-      const count = Number(r[col.actual_count]), rank = Number(r[col.rank]);
-      const k = Number(r[col.fit_k]), pixels = Number(r[col.pixels]), units = Number(r[col.estimated_units]);
-      const n = Number(r[col.calibration_count]), accepted = Number(r[col.accepted_count]);
-      const threshold = Number(r[col.outlier_threshold]);
-      if (!r[col.model].trim() || !r[col.brand_group].trim() ||
-          !Number.isSafeInteger(count) || count < 2 || !Number.isSafeInteger(rank) || rank < 1 ||
-          !Number.isSafeInteger(pixels) || pixels < 1 || !Number.isFinite(k) || k <= 0 ||
-          !/^\d+$/.test(r[col.estimated_units]) || !Number.isSafeInteger(units) || units !== Math.round(k*pixels) ||
-          !allowedFit.has(r[col.fit_mode]) || !Number.isSafeInteger(n) || n < 1 ||
-          !Number.isSafeInteger(accepted) || accepted < 1 || accepted > n ||
-          !Number.isFinite(threshold) || threshold <= 0 || !r[col.algorithm_version] ||
-          !Number.isFinite(Date.parse(r[col.saved_at]))) fail(context + '：存在无效估算记录，请检查销量、柱长及标定参数。');
-      // Compare numeric values, not display strings; keep one canonical export format.
-      const wan = r[col.estimated_wan].trim();
-      if (!/^\d+(?:\.\d+)?$/.test(wan) || Number(wan) !== units/10000) fail(context + '：台数和万台数不一致。');
-      const start = parseDate(r[col.period_start]), end = parseDate(r[col.period_end]);
-      if (start === null || end === null) fail(context + '：统计日期无效。');
-      const m = normalizeMeta({source:r[col.source],series:r[col.series],type:r[col.period_type],period:r[col.period],
-        start:r[col.period_start],end:r[col.period_end],top:r[col.top_n]}, count);
-      if (m.id !== r[col.dataset_id] || m.period !== r[col.period] || m.start !== dateText(start) || m.end !== dateText(end)) fail(context + '：榜单标识或统计周期不一致。');
-      r[col.period_start] = m.start;
-      r[col.period_end] = m.end;
-      r[col.estimated_wan] = (units/10000).toFixed(4);
-    }
-    const shared = ['source','series','period_type','period','period_start','period_end','top_n','actual_count',
-      'fit_k','fit_mode','calibration_count','accepted_count','outlier_threshold','algorithm_version','saved_at'];
-    for (const [id,list] of groups(rows)) {
-      const keys = list.map(r => normalizeModelName(r[col.model]));
-      if (keys.some(k => !k) || new Set(keys).size !== keys.length) fail('同一期榜单存在空白或重复机型标识：' + id);
-      if (list.length !== Number(list[0][col.actual_count]) || new Set(list.map(r => Number(r[col.rank]))).size !== list.length ||
-          list.some(r => shared.some(key => r[col[key]] !== list[0][col[key]]))) fail('CSV 中存在重复、不完整或参数不一致的榜单：' + id);
-    }
-    return sorted(rows);
-  }
+  const {groups,sorted,parseCSV}=Series;
   function equalGroup(a,b) {
     return a.length === b.length && a.every((r,i) => r.every((value,j) => j === col.saved_at || value === b[i][j]));
   }
@@ -360,8 +183,26 @@
     '<div style="display:flex;gap:12px;flex-wrap:wrap;margin:12px 0"><label><input type="checkbox" id="trackerMissingBoard" checked> 允许整周榜单缺失的内部插补</label><label><input type="checkbox" id="trackerTrailing" checked> 最新历史末周允许门槛约束估算</label><button type="button" class="secondary" id="trackerResetParams">恢复默认参数</button></div>'+
     '<p class="mini" id="trackerInterpolationHint">覆盖率只计真实观测。首次观测口径排除历史首次观测前的周；0%仍要求区间内至少一次观测。插值仅使用区间内前后观测，不向首次观测前外推。末周估算仅限历史最新周、前一周有观测且完整 TOP N 门槛存在；门槛只是假设。</p><div id="trackerParameterStatus" class="msg" aria-live="polite"></div>';
   $('trackerScope').parentElement.parentElement.after(parameterPanel);
-  let catalog=[],activeScopeId='';
-  const selectedByScope=new Map();
+  const Pref=window.StudioPreferences,storedResearch=Pref.read('research');
+  const researchControlIds=['trackerCoverage','trackerCoverageBase','trackerDataMode','trackerImputeRule','trackerMaxGap','trackerMissingBoard','trackerTrailing','trackerMode','researchStreak','headView','headBrand','headTrendMetric','headConcentration','brandView','brandMetric','brandCon'];
+  const safeEntries=value=>Array.isArray(value)?value.filter(v=>Array.isArray(v)&&v.length===2&&typeof v[0]==='string'):[];
+  let catalog=[],activeScopeId='',restoringScope=false;
+  const scopeSettings=new Map(safeEntries(storedResearch.scopes));
+  const selectedByScope=new Map(safeEntries(storedResearch.selected).filter(([,v])=>Array.isArray(v)&&v.every(x=>typeof x==='string')).map(([k,v])=>[k,new Set(v)]));
+  function restoreScopeSettings(scope){
+    if(!scope)return;
+    const saved=scopeSettings.get(scope.id);if(!saved)return;
+    Pref.setControl($('trackerStart'),saved.start);
+    if(!saved.followLatest)Pref.setControl($('trackerEnd'),saved.end);
+  }
+  function saveResearchPreferences(){
+    if(!loaded||!currentScope()||restoringScope)return;
+    const scope=currentScope(),end=$('trackerEnd'),p=readTrackerParams();
+    const existing=scopeSettings.get(scope.id)||{};
+    scopeSettings.set(scope.id,{...existing,start:p.start,end:p.end,followLatest:end.value===end.options[end.options.length-1]?.value,eventStart:$('researchStart').value,eventEnd:$('researchEnd').value,...(researchView==='brand'?{brandBase:$('brandBase').value,brandCompare:$('brandCompare').value}:{})});
+    const activeTop={mode:$('researchTopMode').value,custom:$('researchTopK').value};
+    Pref.write('research',{scopeId:scope.id,view:researchView,controls:Pref.values(researchControlIds),scopes:[...scopeSettings],selected:[...selectedByScope].map(([k,v])=>[k,[...v]]),groups:[...groupStates],pairs:[...pairStates],pairFocus:[...pairFocusStates],headTop:researchView==='head'?activeTop:headTopState,otherTop:researchView==='head'?otherTopState:activeTop});
+  }
   function readTrackerParams(){return salesPanelOptions({scopeId:$('trackerScope').value,start:$('trackerStart').value,end:$('trackerEnd').value,coverage:$('trackerCoverage').value,coverageBase:$('trackerCoverageBase').value,maxGap:$('trackerMaxGap').value,method:$('trackerImputeRule').value,dataMode:$('trackerDataMode').value,missingBoard:$('trackerMissingBoard').checked,trailing:$('trackerTrailing').checked});}
   function updateParamControls(){
     const rawTopic=isRawResearch(researchView),rawMode=$('trackerDataMode').value==='raw',noGap=Number($('trackerMaxGap').value)===0;
@@ -414,7 +255,8 @@
     }
   }
   let trackerPublicationChart=null;
-  function renderTracker(){
+  function renderTracker(){try{renderTrackerContent();}finally{if(researchView==='model')saveResearchPreferences();}}
+  function renderTrackerContent(){
     trackerPublicationChart=null;
     const scope=currentScope(), chart=$('trackerChart'), legend=$('trackerLegend'), table=$('trackerRows');
     chart.replaceChildren();legend.replaceChildren();table.replaceChildren();
@@ -428,50 +270,30 @@
     if(!curves.length){$('trackerStatus').textContent+=' · 请勾选符合当前参数的机型；必要时降低覆盖率。';return;}
     const val=r=>r[c[metric]]===''?null:Number(r[c[metric]]);
     trackerPublicationChart={periods:scope.weeks.map(w=>w.period),unit:'万台',lines:curves.map(o=>{let prior=false;return {name:o.m.name,color:o.color,values:o.rows.map(val),imputed:o.rows.map(r=>{const now=r[c.is_imputed]==='1';prior=prior||now;return metric==='cumulative_wan'?prior:now;})};})};
-    const max=Math.max(1,...curves.flatMap(o=>o.rows.map(val).filter(v=>v!==null)));
-    const step=Math.pow(10,Math.floor(Math.log10(max)))/2;
-    const top=Math.ceil(max/step)*step;
-    const W=Math.max(680,scope.weeks.length*48+80), H=310, L=55, R=55, T=20, B=45;
-    const x=i=>L+i*(W-L-R)/Math.max(1,scope.weeks.length-1), y=v=>H-B-v/top*(H-B-T);
-    const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
-    svg.setAttribute('viewBox','0 0 '+W+' '+H);svg.style.width='100%';svg.style.minWidth='560px';
-    svg.setAttribute('role','img');svg.setAttribute('aria-label','热销机型销量折线图');
-    let content='';
-    for(let i=0;i<=4;i++){const v=top*i/4;content+='<line x1="'+L+'" x2="'+(W-R)+'" y1="'+y(v)+'" y2="'+y(v)+'" stroke="currentColor" opacity=".14"/><text x="'+(L-8)+'" y="'+(y(v)+4)+'" text-anchor="end" fill="currentColor" font-size="11">'+e(Number(v.toFixed(2)))+'</text>';}
-    scope.weeks.forEach((w,i)=>{if(i%Math.max(1,Math.ceil(scope.weeks.length/16))===0||i===scope.weeks.length-1)content+='<text x="'+x(i)+'" y="'+(H-B+20)+'" text-anchor="middle" fill="currentColor" font-size="10">'+e(w.period)+'</text>';});
+    ResearchCharts.svgLine(chart,legend,trackerPublicationChart,'热销机型销量折线图',4);
     for(const o of curves){
-      let cumulativeImputed=false;
-      const dashed=o.rows.map(r=>{if(r[c.is_imputed]==='1')cumulativeImputed=true;return metric==='cumulative_wan'?cumulativeImputed:r[c.is_imputed]==='1';});
-      o.rows.forEach((r,i)=>{
-        const v=val(r);
-        if(v===null)return;
-        if(i&&val(o.rows[i-1])!==null)content+='<line x1="'+x(i-1)+'" y1="'+y(val(o.rows[i-1]))+'" x2="'+x(i)+'" y2="'+y(v)+'" stroke="'+o.color+'" stroke-width="2.5" '+(dashed[i]||dashed[i-1]?'stroke-dasharray="6 4"':'')+'/>';
-        content+='<circle cx="'+x(i)+'" cy="'+y(v)+'" r="3.5" stroke="'+o.color+'" stroke-width="2" fill="'+(dashed[i]?'white':o.color)+'"><title>'+e(o.m.name+' · '+r[c.period]+' · '+v.toFixed(4)+' 万台'+(dashed[i]?'（含插补）':''))+'</title></circle>';
-      });
-      const lab=document.createElement('span');lab.style.color=o.color;lab.textContent='● '+o.m.name;legend.append(lab);
       const last=o.rows[o.rows.length-1], n=o.rows.filter(r=>r[c.is_imputed]==='1').length;
       const show=v=>v===''?'—':Number(v).toFixed(2);
       const tr=document.createElement('tr');tr.innerHTML='<td>'+e(o.m.name)+'</td><td>'+e((100*Number(last[c.coverage_rate])).toFixed(1))+'%</td><td>'+n+'</td><td class="num">'+e(show(last[c.weekly_wan]))+'</td><td class="num">'+e(show(last[c.cumulative_wan]))+'</td>';table.append(tr);
     }
-    svg.innerHTML=content;chart.append(svg);
   }
 
   function refreshTracker(){
-    const previous=$('trackerScope').value;
+    const previous=$('trackerScope').value||storedResearch.scopeId;
     try{
       catalog=buildSalesPanel(history,col,{coverage:100,dataMode:'raw'}).scopes;
       const sel=$('trackerScope');sel.replaceChildren();for(const s of catalog){const option=document.createElement('option');option.value=s.id;option.textContent=s.source+' / '+s.series;sel.append(option);}
       if(catalog.some(s=>s.id===previous))sel.value=previous;
       const scope=catalog.find(s=>s.id===sel.value),changed=activeScopeId!==sel.value;
-      fillRangeControls(scope,!changed);activeScopeId=sel.value;applyTrackerParams(changed||!selectedByScope.has(sel.value));
+      fillRangeControls(scope,!changed);restoringScope=changed;if(changed)restoreScopeSettings(scope);activeScopeId=sel.value;try{applyTrackerParams(changed||!selectedByScope.has(sel.value));}finally{restoringScope=false;}saveResearchPreferences();
     }catch(err){trackerData={header:[],rows:[],scopes:[]};$('trackerScope').replaceChildren();fillRangeControls(null);trackerOptions();renderTracker();renderResearch();$('trackerParameterStatus').textContent=err.message;}
   }
-  $('trackerScope').onchange=()=>{const s=catalog.find(q=>q.id===$('trackerScope').value);activeScopeId=$('trackerScope').value;fillRangeControls(s);applyTrackerParams(true);};
+  $('trackerScope').onchange=()=>{const s=catalog.find(q=>q.id===$('trackerScope').value);activeScopeId=$('trackerScope').value;restoringScope=true;fillRangeControls(s);restoreScopeSettings(s);try{applyTrackerParams(true);}finally{restoringScope=false;}saveResearchPreferences();};
   for(const id of ['trackerStart','trackerEnd','trackerCoverage','trackerCoverageBase','trackerDataMode','trackerImputeRule','trackerMaxGap','trackerMissingBoard','trackerTrailing'])$(id).addEventListener('change',()=>applyTrackerParams());
   $('trackerResetParams').onclick=()=>{fillRangeControls(catalog.find(s=>s.id===$('trackerScope').value));if(isRawResearch(researchView)){applyTrackerParams();return;}$('trackerCoverage').value='80';$('trackerCoverageBase').value='first';$('trackerDataMode').value='filled';$('trackerImputeRule').value='bounded';$('trackerMaxGap').value='3';$('trackerMissingBoard').checked=true;$('trackerTrailing').checked=true;applyTrackerParams();};
   $('trackerFilter').oninput=trackerOptions;
   $('trackerMode').onchange=()=>{renderTracker();renderResearch();};
-  $('trackerExport').onclick=()=>exportCSVBlob([trackerData.header,...trackerData.rows],'weekly-sales-panel-'+$('trackerStart').value+'_'+$('trackerEnd').value+'.csv');
+  $('trackerExport').onclick=()=>exportCSVBlob(Series.versionedRows(trackerData),'weekly-sales-panel-'+$('trackerStart').value+'_'+$('trackerEnd').value+'.csv');
 
   // Research views share the selected source/series and never combine different observation scopes.
   const researchNav=document.createElement('div');
@@ -565,7 +387,7 @@
   let researchExportRows=[],researchPublicationChart=null,researchPublicationTable=null;
   function researchTable(headers,rows){
     researchPublicationTable={headers:[...headers],rows:rows.map(r=>[...r])};
-    const p=readTrackerParams();const rawView=isRawResearch(researchView);const meta=['榜单口径','统计起始周','统计结束周','最低覆盖率%','覆盖率分母','数据模式','插补方法','最大缺失周','允许整周插补','允许末周估算'];const values=[p.scopeId,p.start,p.end,rawView?'不适用':p.coverage,rawView?'不适用':p.coverageBase,rawView?'raw':p.dataMode,rawView||p.dataMode==='raw'?'不适用':p.method,rawView||p.dataMode==='raw'?'不适用':p.maxGap,rawView||p.dataMode==='raw'?'不适用':String(p.missingBoard),rawView||p.dataMode==='raw'?'不适用':String(p.trailing)];const scope=currentScope(),isTop=usesTopK(researchView),isGroup=['series','generation','structure'].includes(researchView);meta.push('榜单样本模式','固定TOP K','机型分组定义');values.push(isTop?(topKValue()===null?'all':'fixed'):'不适用',isTop&&topKValue()!==null?String(topKValue()):'',isGroup&&scope?JSON.stringify(activeGroups(scope)):'');if(researchView==='brand'){meta.push('品牌研究视图','品牌统计维度','基准周','对比周','集中度指标');const view=$('brandView').value;values.push(view,view==='concentration'?'sales':$('brandMetric').value,view==='ribbon'?$('brandBase').value:'',view==='ribbon'?$('brandCompare').value:'',view==='concentration'?$('brandCon').value:'');}researchExportRows=[[...meta,...headers],...rows.map(r=>[...values,...r])];
+    const p=readTrackerParams();const rawView=isRawResearch(researchView);const meta=['榜单口径','统计起始周','统计结束周','最低覆盖率%','覆盖率分母','数据模式','插补方法','最大缺失周','允许整周插补','允许末周估算'];const values=[p.scopeId,p.start,p.end,rawView?'不适用':p.coverage,rawView?'不适用':p.coverageBase,rawView?'raw':p.dataMode,rawView||p.dataMode==='raw'?'不适用':p.method,rawView||p.dataMode==='raw'?'不适用':p.maxGap,rawView||p.dataMode==='raw'?'不适用':String(p.missingBoard),rawView||p.dataMode==='raw'?'不适用':String(p.trailing)];const scope=currentScope(),isTop=usesTopK(researchView),isGroup=['series','generation','structure'].includes(researchView);meta.push('时间序列算法版本','榜单样本模式','固定TOP K','机型分组定义');values.push(Series.VERSION,isTop?(topKValue()===null?'all':'fixed'):'不适用',isTop&&topKValue()!==null?String(topKValue()):'',isGroup&&scope?JSON.stringify(activeGroups(scope)):'');if(researchView==='brand'){meta.push('品牌研究视图','品牌统计维度','基准周','对比周','集中度指标');const view=$('brandView').value;values.push(view,view==='concentration'?'sales':$('brandMetric').value,view==='ribbon'?$('brandBase').value:'',view==='ribbon'?$('brandCompare').value:'',view==='concentration'?$('brandCon').value:'');}researchExportRows=[[...meta,...headers],...rows.map(r=>[...values,...r])];
     $('researchHead').innerHTML='<tr>'+headers.map(h=>'<th>'+e(h)+'</th>').join('')+'</tr>';
     $('researchRows').innerHTML=rows.length?rows.map(r=>'<tr>'+r.map(v=>'<td>'+e(v)+'</td>').join('')+'</tr>').join(''):'<tr><td colspan="'+headers.length+'">暂无符合条件的数据</td></tr>';
     $('researchExport').disabled=!rows.length;
@@ -574,34 +396,20 @@
   // Chart points are explicit nullable observations; no missing value is replaced with zero.
   function researchPlot(weeks,lines,unit,limit){
     researchPublicationChart={periods:weeks.map(w=>w.period),lines:lines.map((l,i)=>({name:l.name,color:l.color||trackerPalette[i%trackerPalette.length],values:[...l.values],imputed:l.imputed?[...l.imputed]:[]})),unit,limit};
-    const chart=$('researchChart'),legend=$('researchLegend');
-    if(!lines.length||!weeks.length)return;
-    const max=Math.max(1,...lines.flatMap(l=>l.values.filter(v=>v!==null)));
-    const top=limit||Math.ceil(max/(Math.pow(10,Math.floor(Math.log10(max)))/2))*(Math.pow(10,Math.floor(Math.log10(max)))/2);
-    const W=Math.max(720,weeks.length*45+110),H=310,L=56,R=55,T=25,B=45;
-    const x=i=>L+i*(W-L-R)/Math.max(weeks.length-1,1),y=v=>H-B-v/top*(H-B-T);
-    let content='<text x="'+L+'" y="13" font-size="11" fill="currentColor">'+e(unit)+'</text>';
-    for(let i=0;i<=4;i++){const v=top*i/4;content+='<line x1="'+L+'" x2="'+(W-R)+'" y1="'+y(v)+'" y2="'+y(v)+'" stroke="currentColor" opacity=".14"/><text x="'+(L-8)+'" y="'+(y(v)+4)+'" text-anchor="end" font-size="11" fill="currentColor">'+e(Number(v.toFixed(2)))+'</text>';}
-    weeks.forEach((w,i)=>{if(i%Math.max(1,Math.ceil(weeks.length/15))===0||i===weeks.length-1)content+='<text x="'+x(i)+'" y="'+(H-B+20)+'" text-anchor="middle" font-size="10" fill="currentColor">'+e(w.period)+'</text>';});
-    lines.forEach((l,j)=>{
-      const color=l.color||trackerPalette[j%trackerPalette.length];
-      l.values.forEach((v,i)=>{if(v===null)return;const est=!!l.imputed?.[i],last=i?l.values[i-1]:null;
-        if(last!==null)content+='<line x1="'+x(i-1)+'" y1="'+y(last)+'" x2="'+x(i)+'" y2="'+y(v)+'" stroke="'+color+'" stroke-width="2.5" '+(est||l.imputed?.[i-1]?'stroke-dasharray="6 4"':'')+'/>';
-        content+='<circle cx="'+x(i)+'" cy="'+y(v)+'" r="3.3" stroke="'+color+'" stroke-width="1.8" fill="'+(est?'white':color)+'"><title>'+e(l.name+' · '+weeks[i].period+' · '+numberText(v)+(est?'（含插补）':''))+'</title></circle>';
-      });
-      const span=document.createElement('span');span.style.color=color;span.textContent='● '+l.name;legend.append(span);
-    });
-    const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox','0 0 '+W+' '+H);svg.setAttribute('role','img');svg.setAttribute('aria-label',researchViews[researchView]);svg.style.cssText='width:100%;min-width:560px';svg.innerHTML=content;chart.append(svg);
+    ResearchCharts.svgLine($('researchChart'),$('researchLegend'),researchPublicationChart,researchViews[researchView]);
   }
   function researchPeriods(scope){
     const a=$('researchStart'),b=$('researchEnd'),A=a.value,B=b.value;
     for(const sel of [a,b]){sel.replaceChildren();for(const w of scope.weeks){const o=document.createElement('option');o.value=w.period;o.textContent=w.period;sel.append(o);}}
     if(scope.weeks.some(w=>w.period===A))a.value=A;else a.selectedIndex=Math.max(0,scope.weeks.length-2);
     if(scope.weeks.some(w=>w.period===B))b.value=B;else b.selectedIndex=scope.weeks.length-1;
+    if(restoringScope){const saved=scopeSettings.get(scope.id);Pref.setControl(a,saved?.eventStart);Pref.setControl(b,saved?.eventEnd);}
   }
 
   // Session-local, per-source/series editors. No model registry or extra CSV input.
-  const groupStates=new Map(),pairStates=new Map(),pairFocusStates=new Map();
+  const groupStates=new Map(safeEntries(storedResearch.groups).filter(([,v])=>Array.isArray(v)&&v.every(g=>g&&typeof g.name==='string'&&Array.isArray(g.keys)&&g.keys.every(k=>typeof k==='string'))));
+  const pairStates=new Map(safeEntries(storedResearch.pairs).filter(([,v])=>Array.isArray(v)&&v.every(p=>p&&typeof p.name==='string'&&typeof p.old==='string'&&typeof p.next==='string')));
+  const pairFocusStates=new Map(safeEntries(storedResearch.pairFocus).filter(([,v])=>Number.isInteger(v)&&v>=0));
   function appleSeriesPreset(){return [{name:'iPhone 17',keys:['IPHONE17','IPHONE17PRO','IPHONE17PROMAX']},{name:'iPhone 18',keys:['IPHONE18PRO','IPHONE18PROMAX']}];}
   function appleTierPreset(scope){
     const known=knownModels(scope);
@@ -806,26 +614,8 @@
   // Structured chart data is also used by the existing Canvas poster studio.
   function drawHeadStatic(kind,categories,lines,unit,baseline){
     researchPublicationChart={kind,periods:categories,unit,baseline,lines:lines.map((l,i)=>({name:l.name,color:l.color||trackerPalette[i%trackerPalette.length],values:[...l.values],imputed:[]}))};
-    const host=$('researchChart'),legend=$('researchLegend');
-    const W=780,H=kind==='scatter'?475:Math.max(300,categories.length*54+80);
-    let content='';
-    if(kind==='scatter'){
-      const L=70,R=730,T=36,B=H-55,xx=lines[0].values,yy=lines[1].values;
-      const mx=Math.max(1.25,...xx.filter(Number.isFinite))*1.1,my=Math.max(1.25,...yy.filter(Number.isFinite))*1.1;
-      const x=v=>L+v/mx*(R-L),y=v=>B-v/my*(B-T);
-      for(let i=0;i<=4;i++){const a=mx*i/4,b=my*i/4;content+='<line x1="'+x(a)+'" x2="'+x(a)+'" y1="'+T+'" y2="'+B+'" stroke="currentColor" opacity=".12"/><line x1="'+L+'" x2="'+R+'" y1="'+y(b)+'" y2="'+y(b)+'" stroke="currentColor" opacity=".12"/><text x="'+x(a)+'" y="'+(B+18)+'" text-anchor="middle" font-size="11" fill="currentColor">'+numberText(a)+'</text><text x="'+(L-7)+'" y="'+(y(b)+4)+'" text-anchor="end" font-size="11" fill="currentColor">'+numberText(b)+'</text>';}
-      content+='<path d="M'+x(1)+' '+T+' V'+B+' M'+L+' '+y(1)+' H'+R+'" stroke="currentColor" opacity=".6" stroke-dasharray="6 5"/><text x="'+((L+R)/2)+'" y="'+(H-8)+'" text-anchor="middle" font-size="13" fill="currentColor">头部销量富集指数（1 = 基准）</text><text x="16" y="17" font-size="13" fill="currentColor">单品销量强度指数</text>';
-      categories.forEach((name,i)=>{if(!Number.isFinite(xx[i])||!Number.isFinite(yy[i]))return;const c=window.BrandUtils.color(name)||trackerPalette[i%trackerPalette.length],px=x(xx[i]),py=y(yy[i]);content+='<circle cx="'+px+'" cy="'+py+'" r="5" fill="'+c+'"><title>'+e(name+' · '+numberText(xx[i])+' / '+numberText(yy[i]))+'</title></circle>';});
-      categories.forEach((name,i)=>{const span=document.createElement('span');span.style.color=window.BrandUtils.color(name)||trackerPalette[i%trackerPalette.length];span.textContent=name+'：'+(Number.isFinite(xx[i])&&Number.isFinite(yy[i])?numberText(xx[i])+' / '+numberText(yy[i]):'不可计算');legend.append(span);});
-    }else{
-      const L=82,R=685,T=25,B=H-32,max=Math.max(1,...lines.flatMap(l=>l.values.filter(Number.isFinite)),baseline||0),top=max*1.1;
-      const x=v=>L+v/top*(R-L),row=(B-T)/categories.length;
-      if(baseline)content+='<line x1="'+x(baseline)+'" x2="'+x(baseline)+'" y1="'+T+'" y2="'+B+'" stroke="currentColor" stroke-dasharray="5 5" opacity=".65"/>';
-      categories.forEach((name,i)=>{const cy=T+(i+.5)*row;content+='<text x="'+(L-8)+'" y="'+(cy+4)+'" text-anchor="end" font-size="12" fill="currentColor">'+e(name)+'</text>';lines.forEach((l,j)=>{const v=l.values[i],bh=Math.min(15,36/lines.length),yy=cy+(j-(lines.length-1)/2)*(bh+4)-bh/2,color=l.color||trackerPalette[j%trackerPalette.length];if(Number.isFinite(v))content+='<rect x="'+L+'" y="'+yy+'" width="'+Math.max(0,x(v)-L)+'" height="'+bh+'" rx="2" fill="'+color+'"/><text x="'+(x(v)+6)+'" y="'+(yy+bh*.8)+'" font-size="11" fill="currentColor">'+numberText(v)+(unit==='%'?'%':'')+'</text>';else content+='<text x="'+(L+5)+'" y="'+(yy+bh*.8)+'" font-size="11" fill="currentColor">—</text>';});});
-      lines.forEach((l,i)=>{const span=document.createElement('span');span.style.color=l.color||trackerPalette[i%trackerPalette.length];span.textContent='● '+l.name;legend.append(span);});
-      if(baseline)content+='<text x="'+x(baseline)+'" y="'+(H-10)+'" text-anchor="middle" font-size="11" fill="currentColor">1.00 基准</text>';
-    }
-    const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox','0 0 '+W+' '+H);svg.setAttribute('role','img');svg.setAttribute('aria-label',headViews[$('headView').value]);svg.style.cssText='width:100%;min-width:560px';svg.innerHTML=content;host.append(svg);
+    ResearchCharts.renderComposition($('researchChart'),researchPublicationChart,headViews[$('headView').value]);
+    if(kind==='scatter')categories.forEach((name,i)=>{const span=document.createElement('span');span.style.color=window.BrandUtils.color(name)||trackerPalette[i%trackerPalette.length];const x=lines[0].values[i],y=lines[1].values[i];span.textContent=name+'：'+(Number.isFinite(x)&&Number.isFinite(y)?numberText(x)+' / '+numberText(y):'不可计算');$('researchLegend').append(span);});
   }
   function renderHeadMarket(scope,weeks){
     headPublicationInfo=null;
@@ -890,19 +680,12 @@
     const valid=weeks.filter(w=>w.valid);
     a.value=sameScope&&weeks.some(w=>w.period===oldA)?oldA:(valid[valid.length-2]?.period||weeks[0]?.period||'');
     b.value=sameScope&&weeks.some(w=>w.period===oldB)?oldB:(valid[valid.length-1]?.period||weeks[weeks.length-1]?.period||'');
+    if(!sameScope){const saved=scopeSettings.get(scopeId);Pref.setControl(a,saved?.brandBase);Pref.setControl(b,saved?.brandCompare);}
   }
   function boardBrandData(weeks){return aggregateBoardBrands(weeks);}
   function plotBrandComposition(chart){
     researchPublicationChart=chart;
-    const host=$('researchChart'),canvas=document.createElement('canvas');
-    const W=chart.kind==='brandStack'?Math.max(780,chart.periods.length*78+120):850,H=510;
-    const density=Math.min(2,window.devicePixelRatio||1);
-    canvas.width=Math.round(W*density);canvas.height=Math.round(H*density);
-    canvas.style.cssText='display:block;width:100%;min-width:'+Math.min(W,chart.kind==='brandStack'?Math.max(620,chart.periods.length*48):620)+'px;background:#fff;border-radius:10px';
-    canvas.setAttribute('role','img');canvas.setAttribute('aria-label',chart.kind==='brandStack'?'多周品牌堆叠图，完整数值见下方数据表':'双周品牌堆叠流向图，完整数值见下方数据表');
-    const ctx=canvas.getContext('2d');ctx.setTransform(density,0,0,density,0,0);ctx.fillStyle='#fff';ctx.fillRect(0,0,W,H);
-    drawBrandComposition(ctx,chart,{left:16,right:W-16,top:16,bottom:H-16,width:W-32,height:H-32},{ink:'#17263c',sub:'#64748b',hair:'#e4e9f0',accent:'#c93630',bar:'#265a87'},'');
-    host.append(canvas);
+    ResearchCharts.renderComposition($('researchChart'),chart,'品牌结构图');
   }
   function renderBoardBrand(scope,weeks){
     const view=$('brandView').value,metric=$('brandMetric').value,con=$('brandCon').value;
@@ -945,7 +728,8 @@
   }
   for(const id of ['brandView','brandMetric','brandBase','brandCompare','brandCon'])$(id).onchange=renderResearch;
 
-  function renderResearch(){
+  function renderResearch(){try{renderResearchContent();}finally{saveResearchPreferences();}}
+  function renderResearchContent(){
     if(researchView==='model')return;
     researchPublicationChart=null;researchPublicationTable=null;headPublicationInfo=null;brandPublicationInfo=null;
     const scope=currentScope(),notice=$('researchNotice');
@@ -1069,7 +853,7 @@
     const chartNote=key==='head'?(headPublicationInfo?.note||'仅共同有效周'):key==='brand'?(brandPublicationInfo?.note||'仅榜单样本'):key==='flow'?'相邻可比较周 · 进入/退出不代表上市/停销':key==='tail'?'连续上榜只计原始观测 · 未入榜不等于零销量':key==='event'?detail:key==='generation'||key==='structure'?'仅分组样本占比 · 不代表市场份额':'估算销量 · 仅所选样本，非上市以来累计';
     const summary=key==='model'?$('trackerStatus').textContent:$('researchNotice').textContent;
     const description=key==='model'?'选中机型在当前统计区间的销量趋势。':$('researchDesc').textContent;
-    const baseCsv=key==='model'?[trackerData.header,...scope.rows.filter(r=>trackerSelected.has(r[trackerData.header.indexOf('model_key')]))]:researchExportRows;
+    const baseCsv=key==='model'?Series.versionedRows({header:trackerData.header,rows:scope.rows.filter(r=>trackerSelected.has(r[trackerData.header.indexOf('model_key')]))}):researchExportRows;
     const effectiveText=effectivePeriods.length+' 周'+(effectivePeriods.length?'（'+effectivePeriods[0]+'—'+effectivePeriods[effectivePeriods.length-1]+'）':'');
     const csv=baseCsv.map((r,i)=>i===0?[...r,'发布所选区间','发布图表区间','发布有效周次']: [...r,selectedRange,chartRange,effectivePeriods.join(' / ')]);
     const sampleLabel=top===null?(usesTopK(key)?'原始全量':'所选样本'):'固定 TOP'+top;
@@ -1094,10 +878,14 @@
       b.innerHTML='<span><b>'+e(researchViews[key])+'</b><small>'+e(researchSubtitles[key])+'</small></span>';grid.append(b);
     }
   }
+  const prefReset=document.createElement('button');prefReset.type='button';prefReset.className='secondary';prefReset.textContent='清除本地研究配置';prefReset.onclick=()=>{if(confirm('清除本浏览器的研究参数、机型选择与分组配置？不会改变任何 CSV。')){Pref.remove('research');location.reload();}};parameterPanel.append(prefReset);
   const importCurrent=document.createElement('button');importCurrent.type='button';importCurrent.className='secondary';importCurrent.textContent='导入当前研究专题';importCurrent.style.margin='8px 0';
   importCurrent.onclick=()=>sendResearchToStudio(researchView);chooser.after(importCurrent);
 
-  setResearchView('model');
+  Pref.apply(storedResearch.controls,researchControlIds);
+  for(const [target,saved] of [[headTopState,storedResearch.headTop],[otherTopState,storedResearch.otherTop]]){if(['all','10','20','30','custom'].includes(saved?.mode))target.mode=saved.mode;if(Number(saved?.custom)>=1&&Number(saved.custom)<=10000)target.custom=String(saved.custom);}
+  Pref.setControl($('researchTopMode'),otherTopState.mode);Pref.setControl($('researchTopK'),otherTopState.custom);
+  setResearchView(Object.prototype.hasOwnProperty.call(researchViews,storedResearch.view)?storedResearch.view:'model');
 
 
   $('exportCsv').textContent = '导出本期销量 CSV';

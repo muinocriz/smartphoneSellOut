@@ -3,7 +3,8 @@
   "private": true,
   "scripts": {
     "build": "node scripts/build-cloudflare.mjs",
-    "deploy": "wrangler deploy"
+    "deploy": "wrangler deploy",
+    "generate:panel": "node scripts/generate-sales-panel.mjs"
   },
   "dependencies": {
     "jose": "^6.0.0"

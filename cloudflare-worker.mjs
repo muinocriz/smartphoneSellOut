@@ -1,14 +1,8 @@
 import { createRemoteJWKSet, jwtVerify } from 'jose';
+import { publicPaths, studioPaths } from './studio-assets.mjs';
 
 // Access 策略决定邮箱白名单。Worker 额外验证 Access 签名、签发方、AUD 和过期时间。
 // 不信任客户端的邮箱/登录标记；未配置或校验失败时关闭整个受保护目录。
-const publicPaths = new Set(['/index.html', '/data.csv', '/studio-ui.css', '/iso-sales-week.js']);
-const studioPaths = new Set([
-  '/studio/market-share.html', '/studio/market-share.csv', '/studio/market-share-data.js',
-  '/studio/market-share-import.js', '/studio/market-share.css', '/studio/sales-estimator.html',
-  '/studio/sales-estimates.csv', '/studio/sales-estimate-archive.js', '/studio/poster-themes.js',
-  '/studio/studio-ui.css', '/studio/iso-sales-week.js', '/studio/brand-utils.js'
-]);
 let cachedIssuer, cachedKeys;
 const privateHeaders = {'Cache-Control':'private, no-store', 'CDN-Cache-Control':'no-store', 'Cloudflare-CDN-Cache-Control':'no-store'};
 function reply(body, status, extra = {}) {

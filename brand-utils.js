@@ -38,4 +38,4 @@
   const byId=Object.freeze(Object.fromEntries(groups.map(g=>[g.id,g])));
   const colors=Object.freeze(Object.fromEntries(groups.map(g=>[g.key,g.color])));
   root.BrandUtils=Object.freeze({groups,colors,normalize,classify,label:key=>byKey[key]?.label||key,color:key=>byKey[key]?.color||byId[key]?.color||null});
-})(window);
+})(typeof globalThis!=='undefined'?globalThis:this);

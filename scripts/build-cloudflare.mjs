@@ -1,16 +1,12 @@
 import { mkdir, rm, copyFile, readFile, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
+import { publicFiles, protectedFiles } from '../studio-assets.mjs';
+import { generateSalesPanel } from './generate-sales-panel.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const dist = join(root, 'dist');
 // 只按白名单复制站点资源，绝不递归复制仓库根目录。
-const publicFiles = ['data.csv', 'studio-ui.css', 'iso-sales-week.js'];
-const protectedFiles = [
-  'market-share.html', 'market-share.csv', 'market-share-data.js', 'market-share-import.js',
-  'market-share.css', 'sales-estimator.html', 'sales-estimates.csv', 'sales-estimate-archive.js',
-  'poster-themes.js', 'studio-ui.css', 'iso-sales-week.js', 'brand-utils.js'
-];
 await rm(dist, {recursive:true, force:true});
 await mkdir(join(dist, 'studio'), {recursive:true});
 let home = await readFile(join(root, 'index.html'), 'utf8');
@@ -25,4 +21,5 @@ for (const [from, to] of [
 await writeFile(join(dist, 'index.html'), home);
 for (const file of publicFiles) await copyFile(join(root, file), join(dist, file));
 for (const file of protectedFiles) await copyFile(join(root, file), join(dist, 'studio', file));
+await generateSalesPanel(join(root,'sales-estimates.csv'),join(dist,'studio'));
 console.log('Cloudflare assets: public module 1 + /studio/ (Access required)');

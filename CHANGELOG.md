@@ -10,7 +10,8 @@
 
 - 新增 Cloudflare Workers 资产白名单构建、独立 /studio/ 受保护路径及服务端 Access JWT 校验；模块 1 保持公开，模块 2／3 页面及 CSV 只在授权路径提供。缺少配置时私有路径默认拒绝。
 - 首页保留原标签并增加授权状态检查和顶层登录入口；本地开发操作不受影响。保留三个 CSV 原始维护路径，部署不包含开发文档和测试。
-- 新增 Cloudflare 部署指南；实际 Access 应用、邮箱策略、环境变量及旧公开部署关闭须由维护者配置。未运行测试。
+- 新增 Cloudflare 部署指南；部署代码提交时尚未执行线上验收。
+- **部署迁移完成（维护者确认）**：生产入口更新为 [Cloudflare Workers](https://smartphonesellout.zirconium.workers.dev/)；GitHub 仓库已确认转为 Private，旧 GitHub Pages 由维护者关闭。维护者确认公开首页正常、两个 `/studio/` 私有 CSV 在无痕未登录状态下要求认证，并确认指定邮箱 Access 验证成功。同步更新中英文 README、维护指南及部署指南。此次文档更新未独立取得线上 HTTP 响应，也未执行完整的历史部署／会话过期验收。
 
 ### 榜单估算历史数据库与图文复用（模块 3）
 

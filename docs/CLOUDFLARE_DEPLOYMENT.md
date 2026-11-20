@@ -2,6 +2,20 @@
 
 目标：模块 1 公开，模块 2／3 仅指定邮箱可以使用。仓库仍保留三份 CSV 及原有根目录源码；不要从仓库删除数据，不要将整个仓库作为静态资产目录。
 
+## 当前生产状态（2026-11-20）
+
+- 生产入口：[https://smartphonesellout.zirconium.workers.dev/](https://smartphonesellout.zirconium.workers.dev/)；部署类型为 Cloudflare Workers（非 Cloudflare Pages），GitHub 私有仓库 `master` 为部署来源。
+- GitHub 仓库可见性 Private 已通过 GitHub 仓库元数据确认；维护者报告旧 GitHub Pages 已关闭。
+- 维护者确认 Access 指定邮箱一次性验证码认证成功，且以下三个线上入口符合预期：
+
+| 入口 | 维护者确认结果 |
+| --- | --- |
+| `/` | 未登录可正常打开模块 1 |
+| `/studio/market-share.csv` | 无痕、未登录访问要求认证 |
+| `/studio/sales-estimates.csv` | 无痕、未登录访问要求认证 |
+
+以上三项为维护者实际确认；文档更新方未独立取得线上 HTTP 响应。旧 GitHub Pages 的 HTTP 状态、其他旧部署／别名、旧根路径、全部私有资产、会话过期以及完整自动构建流程未在此次文档更新中独立验证，后续按第 3 节验收。不得将此记录视为全面安全审计。
+
 ## 1. 安全边界
 
 - `dist/` 由 `npm run build` 重新生成。根目录仅发布 index.html、data.csv、studio-ui.css、iso-sales-week.js；市场份额／榜单推算的页面、两个数据 CSV 与依赖全部复制到 /studio/。
@@ -10,7 +24,7 @@
 - 首页保留原来的两个 hash 导航；hash 本身不是安全边界。公开首页检查 /studio/session.json 后才载入同源 iframe；未授权时显示顶层登录链接，到 /studio/login 完成身份验证后返回相应标签。
 - 原根目录的本地开发预览仍可直接访问三模块，不应用 Access；只能在信任的本地网络运行。任何公开站点必须用本部署流程。模块 1 的 data.csv 是公开数据，授权用户仍可保存模块 2／3 的数据。
 
-## 2. 首次配置（现有 smartphonesellout Worker）
+## 2. 配置基线与重新部署（现有 smartphonesellout Worker）
 
 1. 首先将 GitHub 源仓库设为 Private，并确认旧 GitHub Pages 已关闭、任何旧公开站点及可访问的历史部署都不再提供私有 CSV。此前公开过的数据可能已被下载，无法追回。
 2. Cloudflare Zero Trust → Access → Applications → Add an application → Self-hosted。添加你实际的生产 workers.dev 主机名，路径 /studio/*（如需保护目录本身也可添加 /studio）。不要对整个 Worker 启用 All traffic 身份验证，否则模块 1 也需登录。应用名可设 Smartphone Studio。创建 Allow 策略，Include 选择 Emails，仅填入你和获准人员的完整邮箱；登录方式 One-time PIN 或已有身份提供程序。允许会话时长按需设定（例如 24 小时）。不要配置 Everyone、邮箱域名通配、Bypass。记录应用的 Application Audience (AUD) 和 Zero Trust team domain。
@@ -18,7 +32,7 @@
 4. 在该 Worker 的 Builds 设置中保持生产分支 master、根目录为仓库根；使用 npm 安装依赖（Workers Builds 默认安装，必要时构建命令填 npm install --no-audit --no-fund）；部署命令须为 npx wrangler deploy。wrangler 的自定义 build.command 会执行 npm run build。不要附加 --assets=. 或 --assets=dist；使用仓库配置确保请求经过 Worker 校验。首次部署需使控制台变量随部署生效。项目名 smartphonesellout 与 Worker 名一致。
 5. 保持 workers.dev 生产 URL 启用；关闭 Preview URLs（配置已设 preview_urls:false），不要启用其他可绕过访问控制的域名／路由；不要恢复旧的未保护 Worker 版本。确认旧部署、根目录 market-share.csv/sales-estimates.csv、旧 GitHub Pages、其他公开别名均已关闭或不可访问。
 
-## 3. 用户验收（维护者自行完成）
+## 3. 完整验收清单（维护者自行完成）
 
 - 无痕窗口访问根网址：模块 1 正常且 /data.csv 公开；模块 2／3 显示授权入口。直接访问 /studio/market-share.csv、/studio/sales-estimates.csv、两张 HTML 及对应 JS 不得返回内容；旧根路径 /market-share.csv、/sales-estimates.csv 不得返回数据。
 - 通过授权邮箱顶层登录：返回所选标签，允许加载 iframe 及完整数据；切换两个授权模块不重复要求登录（会话有效期内）。未授权邮箱不得通过。检查会话过期后再次切换标签是否需要登录。

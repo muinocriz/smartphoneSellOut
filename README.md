@@ -2,9 +2,9 @@
 
 [简体中文](README.md) · [English](README.en.md)
 
-一个基于 GitHub Pages 的静态手机销量分析与图文制作项目。**无需后端、无需构建**，包含销量追踪、市场份额和榜单推算三个独立模块。
+一个部署于 Cloudflare Workers 的手机销量分析与图文制作项目，包含销量追踪、市场份额和榜单推算三个独立模块。业务前端保持原生静态 HTML/CSS/JS，本地预览无需构建；线上部署通过 Worker 实施访问控制。
 
-**[在线打开项目](https://muinocriz.github.io/smartphoneSellOut/)**
+**[在线打开项目](https://smartphonesellout.zirconium.workers.dev/)**
 
 <p align="center">
   <img src="screenshots/新机周销量-26折叠-发布后-总销量-桌面.png" alt="销量追踪桌面预览" width="760">
@@ -14,13 +14,13 @@
 
 | 模块 | 用途 | 进入 |
 | --- | --- | --- |
-| **01 · 销量追踪** | 查看累计销量、周增量及完整销售周趋势；默认选择近12周新机，支持机型筛选、自建列表及桌面／手机 PNG 导出。 | [打开销量追踪](https://muinocriz.github.io/smartphoneSellOut/) |
-| **02 · 市场份额** | 自动读取 `market-share.csv`，选择连续两周品牌份额，支持本地 CSV 导入与手动编辑；五种图表（含规模比例堆叠图）、六套主题和 3:4 高清 PNG 导出。 | [打开市场份额](https://muinocriz.github.io/smartphoneSellOut/#market-share) |
-| **03 · 榜单推算与出图** | 导入截图并标定估算入榜销量，或直接选择历史榜单制作四类图卡；支持 CSV 存档、3:4／9:16 高清 PNG 和 ZIP 导出。 | [打开榜单推算](https://muinocriz.github.io/smartphoneSellOut/#sales-estimator) |
+| **01 · 销量追踪** | 查看累计销量、周增量及完整销售周趋势；默认选择近12周新机，支持机型筛选、自建列表及桌面／手机 PNG 导出。 | [打开销量追踪](https://smartphonesellout.zirconium.workers.dev/) |
+| **02 · 市场份额** | 自动读取 `market-share.csv`，选择连续两周品牌份额，支持本地 CSV 导入与手动编辑；五种图表（含规模比例堆叠图）、六套主题和 3:4 高清 PNG 导出。 | [打开市场份额](https://smartphonesellout.zirconium.workers.dev/#market-share) |
+| **03 · 榜单推算与出图** | 导入截图并标定估算入榜销量，或直接选择历史榜单制作四类图卡；支持 CSV 存档、3:4／9:16 高清 PNG 和 ZIP 导出。 | [打开榜单推算](https://smartphonesellout.zirconium.workers.dev/#sales-estimator) |
 
 ## 快速使用
 
-访问上方在线入口即可使用。若需在本地运行，克隆或下载仓库后，在项目根目录执行：
+访问上方在线入口即可使用；模块 2／3 需要授权。拥有私有仓库访问权限的维护者可克隆或下载仓库，在项目根目录执行：
 
 ```bash
 python3 -m http.server 8000
@@ -47,7 +47,7 @@ CSV 字段、完整销售周口径、设计约定、部署和维护方法见 [�
 
 ## Cloudflare 分模块部署
 
-仓库提供 Cloudflare Workers 部署配置：模块 1 公开，模块 2／3 位于 `/studio/` 并需要 Cloudflare Access 邮箱授权。部署仅发布白名单资产，须在控制台完成 Access 与 JWT 参数配置，并关闭旧公开部署；详见[部署指南](docs/CLOUDFLARE_DEPLOYMENT.md)。本地开发入口不应用访问控制。
+生产站点已迁移至 Cloudflare Workers；GitHub 源仓库为 Private，原 GitHub Pages 已由维护者关闭。模块 1 公开，模块 2／3 须使用获准邮箱通过 Cloudflare Access 一次性验证码认证；其页面和独立 CSV 位于 `/studio/`，由 Worker 服务端校验 Access JWT。部署仅发布白名单资产，私有仓库的 `master` 分支继续作为部署来源。本地开发入口不应用访问控制。验收范围和维护事项详见[部署指南](docs/CLOUDFLARE_DEPLOYMENT.md)。
 
 ## 更多文档
 

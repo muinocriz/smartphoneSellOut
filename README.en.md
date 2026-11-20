@@ -2,9 +2,9 @@
 
 [简体中文](README.md) · [English](README.en.md)
 
-A static, **no-backend and no-build** smartphone data dashboard and social-poster toolkit, published on GitHub Pages. It has three independent modules.
+A smartphone data dashboard and social-poster toolkit deployed on Cloudflare Workers, with three independent modules. The frontend uses static HTML/CSS/JS and requires no local build; the production Worker enforces access control.
 
-**[Open the live project](https://muinocriz.github.io/smartphoneSellOut/)**
+**[Open the live project](https://smartphonesellout.zirconium.workers.dev/)**
 
 <p align="center">
   <img src="screenshots/新机周销量-26折叠-发布后-总销量-桌面.png" alt="Desktop sales-tracking preview" width="760">
@@ -14,13 +14,13 @@ A static, **no-backend and no-build** smartphone data dashboard and social-poste
 
 | Module | What it does | Open |
 | --- | --- | --- |
-| **01 · Sales Tracking** | Explore cumulative sales, weekly changes and full ISO sales-week trends; default to recent 12-week launches, filter models, save custom lists and export desktop/mobile PNGs. | [Sales Tracking](https://muinocriz.github.io/smartphoneSellOut/) |
-| **02 · Market Share** | Auto-load weekly brand shares from `market-share.csv`; compare adjacent ISO weeks, import a local CSV, manually edit values, and export five chart types (including market-scale stacked charts) in six themes as high-resolution 3:4 PNGs. | [Market Share](https://muinocriz.github.io/smartphoneSellOut/#market-share) |
-| **03 · Ranking Estimator & Poster Studio** | Calibrate ranking screenshots against known sales or create four poster types directly from archived rankings; merge CSV history and export high-resolution 3:4/9:16 PNGs and ZIP bundles. | [Ranking Estimator](https://muinocriz.github.io/smartphoneSellOut/#sales-estimator) |
+| **01 · Sales Tracking** | Explore cumulative sales, weekly changes and full ISO sales-week trends; default to recent 12-week launches, filter models, save custom lists and export desktop/mobile PNGs. | [Sales Tracking](https://smartphonesellout.zirconium.workers.dev/) |
+| **02 · Market Share** | Auto-load weekly brand shares from `market-share.csv`; compare adjacent ISO weeks, import a local CSV, manually edit values, and export five chart types (including market-scale stacked charts) in six themes as high-resolution 3:4 PNGs. | [Market Share](https://smartphonesellout.zirconium.workers.dev/#market-share) |
+| **03 · Ranking Estimator & Poster Studio** | Calibrate ranking screenshots against known sales or create four poster types directly from archived rankings; merge CSV history and export high-resolution 3:4/9:16 PNGs and ZIP bundles. | [Ranking Estimator](https://smartphonesellout.zirconium.workers.dev/#sales-estimator) |
 
 ## Getting started
 
-Use the live site above, or download/clone this repository and serve it locally:
+Use the live site above (modules 2 and 3 require authorization). Maintainers with private repository access can download or clone it and serve it locally:
 
 ```bash
 python3 -m http.server 8000
@@ -47,7 +47,7 @@ Sales-tracking data is manually compiled mainly from public posts by **RD观测*
 
 ## Cloudflare deployment
 
-The repository includes a Cloudflare Workers configuration: module 1 is public, while modules 2 and 3 under `/studio/` require Cloudflare Access email authorization. Only allowlisted assets are deployed. Configure Access and JWT parameters and retire older public deployments before relying on this protection. See the [deployment guide (Chinese)](docs/CLOUDFLARE_DEPLOYMENT.md). Local development does not enforce Access.
+Production hosting has migrated to Cloudflare Workers. The source repository is private, and the maintainer has disabled the former GitHub Pages site. Module 1 is public; modules 2 and 3 require Cloudflare Access authorization via an approved email and one-time PIN. Their pages and separate CSV files live under `/studio/`, with server-side Access JWT verification by the Worker. Only allowlisted assets are deployed; the private repository's `master` branch remains the deployment source. See the [deployment guide (Chinese)](docs/CLOUDFLARE_DEPLOYMENT.md) for validation scope and maintenance requirements. Local development does not enforce Access.
 
 ## Documentation
 

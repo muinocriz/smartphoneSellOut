@@ -8,11 +8,11 @@
 
 ### 榜单估算历史数据库与图文复用（模块 3）
 
-- [908cebc](https://github.com/muinocriz/smartphoneSellOut/commit/908cebc86dafc975e8e325ff7e1c115ec1c570ac) **正式历史存档**：新增 `sales-estimates.csv` 与 `sales-estimate-archive.js`；支持周榜、月榜、自定义日期范围及任意实际榜单规模，区分标称 TOP 数和实收条数。按来源、榜单系列、周期类型和周期标识整期数据，不补零；同一期修订须确认整期替换。
+- [908cebc](https://github.com/muinocriz/smartphoneSellOut/commit/908cebc86dafc975e8e325ff7e1c115ec1c570ac) **正式历史存档**：新增 `sales-estimates.csv` 与 `sales-estimate-archive.js`；支持周榜、月榜、自定义日期范围及非固定 TOP 规模（截图识别支持 2–100 条柱条），区分标称 TOP 数和实收条数。按来源、榜单系列、周期类型和周期标识整期数据，不补零；同一期修订须确认整期替换。
 - 自动读取仓库历史、导入本地标准 CSV、合并并导出完整历史文件；维护者提交同名 CSV 后实现跨设备读取。仓库读取失败时不视为空数据库，防止覆盖历史。本期明细、原标定报告、派生分析继续独立导出，发布 ZIP 新增标准销量 CSV。
 - [de18b80](https://github.com/muinocriz/smartphoneSellOut/commit/de18b80362d0b0942d3b5cfca476bebf65879e6f) / [3545ca4](https://github.com/muinocriz/smartphoneSellOut/commit/3545ca4a3b616136f08f3be0d871162873c0a0fd) **可读榜单 ID**：保留中文名称，仅转义分隔符与转义字符；开发阶段不再兼容旧 URL 编码 ID。
 - [84e4ded](https://github.com/muinocriz/smartphoneSellOut/commit/84e4ded0ce8a983ec5f060db063d4be5abbe63cc) **修复历史加载失败**：按实际日期和数值校验，接受表格软件保存的斜线日期及省略末尾零的万台数，重新规范化导出；增加异常行提示、刷新仓库历史按钮、缓存规避与下拉框加载状态。
-- [ddae03a](https://github.com/muinocriz/smartphoneSellOut/commit/ddae03a2e3ada61899c2aad5d949378dcc00c8e9) / [e5b6487](https://github.com/muinocriz/smartphoneSellOut/commit/e5b648759af95946f362c30811d4891bd353f560) **历史榜单直接出图**：选择历史记录即可使用已存档销量、柱长、品牌系列及标定状态生成四类图卡、文案、派生 CSV 和 ZIP，无需再次上传截图或标定。历史 ZIP 保留存档字段与保存时间；当前截图标定编辑器保持独立，可切回当前榜单。
+- [ddae03a](https://github.com/muinocriz/smartphoneSellOut/commit/ddae03a2e3ada61899c2aad5d949378dcc00c8e9) / [e5b6487](https://github.com/muinocriz/smartphoneSellOut/commit/e5b648759af95946f362c30811d4891bd353f560) **历史榜单直接出图**：选择历史记录即可使用已存档销量、柱长、品牌系列及标定状态生成四类图卡、文案、派生 CSV 和 ZIP，无需再次上传截图或标定。历史 ZIP 保留载入并规范化后的存档字段与原保存时间；当前截图标定编辑器保持独立，可切回当前榜单。
 
 ### 榜单导入与图卡体验（模块 3）
 
@@ -30,8 +30,9 @@
 
 ### 数据及文档
 
-- `market-share.csv` 更新至 2026W46；`sales-estimates.csv` 首次录入 2026-W44、W45 榜单，后补充 W43，当前共 3 期 TOP30、90 条记录。
+- `market-share.csv` 更新至 2026W46；`sales-estimates.csv` 首次录入 2026-W44、W45 榜单，后补充 W43，截至该日共 3 期 TOP30、90 条记录。
 - 中英文 README 与维护指南同步补充历史 CSV、图文复用、展示精度和新截图导入流程。
+- [4db512b](https://github.com/muinocriz/smartphoneSellOut/commit/4db512beed9c0fa45387d985676b03a2491435f7) / [8373a8e](https://github.com/muinocriz/smartphoneSellOut/commit/8373a8e7d71753fb50589a84d7a2876ecc8ed9b8) / [8b1c741](https://github.com/muinocriz/smartphoneSellOut/commit/8b1c741fa56957108566a77a6bfe6d3881b7b1d7) **文档集中校准**：按当前源码更新中英文 README 的功能与操作入口、维护指南的数据契约和长期设计规则，纠正旧堆叠图、固定导出尺寸及水印说明等过时描述；历史变更仍归本文件记录。
 
 ## 2026-11-19
 

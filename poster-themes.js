@@ -173,6 +173,26 @@
     dotStepRatio:0.027,
     dotOpacity:0.038
   });
+  function geometry(W,H){
+    const inset=Math.round(W*layout.outerInsetRatio);
+    return {
+      card:{x:inset,y:inset,width:W-2*inset,height:H-2*inset,rx:Math.round(W*layout.mainRadiusRatio)},
+      dotStep:Math.round(W*layout.dotStepRatio),dotOpacity:layout.dotOpacity
+    };
+  }
+  // Keep numeric-only eligibility format-specific; share the actual token splitting.
+  const NUMERIC_TOKEN=/[+\-−]?\d+(?:[.,:/–-]\d+)*(?:[%％×])?/g;
+  function numericTextRuns(value, numericPattern){
+    const raw=String(value??'');
+    if(!numericPattern.test(raw.trim()))return [{text:raw,number:false}];
+    const runs=[];let last=0;
+    for(const m of raw.matchAll(NUMERIC_TOKEN)){
+      if(m.index>last)runs.push({text:raw.slice(last,m.index),number:false});
+      runs.push({text:m[0],number:true});last=m.index+m[0].length;
+    }
+    if(last<raw.length)runs.push({text:raw.slice(last),number:false});
+    return runs.length?runs:[{text:raw,number:false}];
+  }
   const palettes = Object.freeze(Object.fromEntries(
     Object.entries(RAW_PALETTES).map(([id, base]) => [
       id, Object.freeze({
@@ -201,6 +221,6 @@
     })
   ));
   root.PosterThemes = Object.freeze({
-    palettes, estimatorPalettes, layout
+    palettes, estimatorPalettes, layout, geometry, numericTextRuns
   });
 })(typeof window !== 'undefined' ? window : globalThis);

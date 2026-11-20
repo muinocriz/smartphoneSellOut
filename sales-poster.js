@@ -3,13 +3,11 @@ function posterHeading(type){const titles={top:'热销机型 TOP10',versus:'同�
 // 与市场份额模块统一为浅灰蓝画布 + 白色圆角海报卡片。
 // Theme-colored exterior + white editorial content card.
 function drawPosterBackdrop(ctx,W,H,p){
- const L=window.PosterThemes.layout;
+ const {card:{x,y,width:w,height:h,rx:r},dotStep:step,dotOpacity}=PosterThemes.geometry(W,H);
  ctx.save();
  const gradient=ctx.createLinearGradient(0,0,0,H);
  gradient.addColorStop(0,p.bgTop);gradient.addColorStop(1,p.bgBottom);
  ctx.fillStyle=gradient;ctx.fillRect(0,0,W,H);
- const inset=Math.round(W*L.outerInsetRatio);
- const r=Math.round(W*L.mainRadiusRatio),x=inset,y=inset,w=W-2*inset,h=H-2*inset;
  ctx.shadowColor='rgba(34,60,96,0.11)';
  // Canvas 阴影参数不随坐标矩阵缩放，单独补偿像素倍率。
  const pixelRatio=ctx.getTransform().a;
@@ -19,8 +17,7 @@ function drawPosterBackdrop(ctx,W,H,p){
  ctx.strokeStyle=p.hair;ctx.lineWidth=1.6;
  ctx.beginPath();ctx.roundRect(x+.8,y+.8,w-1.6,h-1.6,r);ctx.stroke();
  ctx.save();ctx.beginPath();ctx.roundRect(x,y,w,h,r);ctx.clip();
- const step=Math.round(W*L.dotStepRatio);
- ctx.fillStyle=p.ink;ctx.globalAlpha=L.dotOpacity;
+ ctx.fillStyle=p.ink;ctx.globalAlpha=dotOpacity;
  for(let gy=y+2;gy<y+h;gy+=step){
   for(let gx=x+2;gx<x+w;gx+=step)ctx.fillRect(gx,gy,2,2);
  }

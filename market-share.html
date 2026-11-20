@@ -495,24 +495,13 @@
     }
 
 
-    const NUMERIC_TOKEN=/[+\-−]?\d+(?:[.,:/–-]\d+)*(?:[%％×])?/g;
-    function numericTextRuns(value){
-      const raw=String(value??''),runs=[];let last=0;
-      for(const m of raw.matchAll(NUMERIC_TOKEN)){
-        if(m.index>last)runs.push({text:raw.slice(last,m.index),number:false});
-        runs.push({text:m[0],number:true});last=m.index+m[0].length;
-      }
-      if(last<raw.length)runs.push({text:raw.slice(last),number:false});
-      return runs.length?runs:[{text:raw,number:false}];
-    }
     function svgEl(tag, attrs = {}, textContent = null) {
       const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
       for (const [k, v] of Object.entries(attrs)) {
         el.setAttribute(k, v);
       }
       if (textContent !== null) {
-        const numericOnly=tag==='text'&&/^[+\-−]?\d[\d.,:/–-]*(?:\s*(?:%|％|pp|倍|万台))?$/.test(String(textContent).trim());
-        const runs=numericOnly?numericTextRuns(textContent):[{text:String(textContent),number:false}];
+        const runs=tag==='text'?PosterThemes.numericTextRuns(textContent,/^[+\-−]?\d[\d.,:/–-]*(?:\s*(?:%|％|pp|倍|万台))?$/):[];
         if(tag==='text'&&runs.some(r=>r.number)){
           el.setAttribute('xml:space','preserve');
           for(const run of runs){
@@ -599,13 +588,10 @@
 
       // Shared background geometry with the Canvas studio: themed exterior,
       // white rounded main card, thin themed border and subtle dot texture.
-      const L=window.PosterThemes.layout;
-      const inset=Math.round(W*L.outerInsetRatio);
-      const corner=Math.round(W*L.mainRadiusRatio);
-      const dotStep=Math.round(W*L.dotStepRatio);
+      const {card,dotStep,dotOpacity}=PosterThemes.geometry(W,H);
       const dotPattern = svgEl('pattern', { id:'dotGrid', width:dotStep, height:dotStep, patternUnits:'userSpaceOnUse' });
       dotPattern.appendChild(svgEl('circle', {
-        cx:2, cy:2, r:1, fill:P.textPrimary, opacity:String(L.dotOpacity)
+        cx:2, cy:2, r:1, fill:P.textPrimary, opacity:String(dotOpacity)
       }));
       defs.appendChild(dotPattern);
       const shadow=svgEl('filter',{id:'posterMainCardShadow',x:'-10%',y:'-10%',width:'120%',height:'120%'});
@@ -614,7 +600,6 @@
       svg.appendChild(defs);
 
       svg.appendChild(svgEl('rect', {x:0,y:0,width:W,height:H,fill:'url(#posterBgGrad)'}));
-      const card={x:inset,y:inset,width:W-2*inset,height:H-2*inset,rx:corner};
       svg.appendChild(svgEl('rect',{...card,fill:'#ffffff',filter:'url(#posterMainCardShadow)'}));
       svg.appendChild(svgEl('rect',{...card,fill:'url(#dotGrid)'}));
       svg.appendChild(svgEl('rect',{...card,fill:'none',stroke:P.cardBorder,'stroke-width':'1.5'}));

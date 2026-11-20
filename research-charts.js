@@ -1,23 +1,10 @@
 /* Shared chart rendering and typography. SVG line previews retain point tooltips; Canvas exports use identical point geometry. */
 const CJK_FONT='"Source Han Sans SC","Source Han Sans CN","思源黑体","Noto Sans CJK SC","Noto Sans SC",sans-serif';
 const NUM_FONT='"IBM Plex Mono",ui-monospace,Menlo,monospace';
-const NUMERIC_TOKEN=/[+\-−]?\d+(?:[.,:/–-]\d+)*(?:[%％×])?/g;
-function numericTextRuns(value){
- const raw=String(value??'');
- // 仅独立的销量、排名、百分比、倍数使用数字字体；
- // 日期、机型名称和包含说明文字的内容保留完整正文字体。
- if(!/^[+\-−]?\d[\d.,:/–-]*(?:\s*(?:%|％|pp|倍|万台|台|px))?$/.test(raw.trim()))
-  return [{text:raw,number:false}];
- const runs=[];let last=0;
- for(const m of raw.matchAll(NUMERIC_TOKEN)){
-  if(m.index>last)runs.push({text:raw.slice(last,m.index),number:false});
-  runs.push({text:m[0],number:true});last=m.index+m[0].length;
- }
- if(last<raw.length)runs.push({text:raw.slice(last),number:false});
- return runs.length?runs:[{text:raw,number:false}];
-}
+// Only standalone numeric values use the numeric font; prose retains the body font.
+const CANVAS_NUMERIC_PATTERN=/^[+\-−]?\d[\d.,:/–-]*(?:\s*(?:%|％|pp|倍|万台|台|px))?$/;
 function measureMixedCanvas(ctx,text,size,weight='600'){
- const runs=numericTextRuns(text);let width=0;
+ const runs=PosterThemes.numericTextRuns(text,CANVAS_NUMERIC_PATTERN);let width=0;
  const measured=runs.map(run=>{ctx.font=weight+' '+size+'px '+(run.number?NUM_FONT:CJK_FONT);const w=ctx.measureText(run.text).width;width+=w;return {...run,width:w}});
  return {runs:measured,width};
 }

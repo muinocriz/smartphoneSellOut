@@ -165,8 +165,16 @@
         <div class="copy-actions"><button type="button" id="resetPosterCopy">恢复当前模板默认文案</button></div>
       </section>
       <div class="studio-steps">第三步 · 图卡设定</div>
-      <label class="lbl" for="posterRatio">图卡尺寸</label>
-      <select id="posterRatio" class="field ui-field"><option value="3:4">1080 × 1440 · 3:4 小红书 / 抖音图文</option><option value="9:16">1080 × 1920 · 9:16 竖屏</option></select>
+      <label class="lbl" for="posterRatio">图卡比例</label>
+      <select id="posterRatio" class="field ui-field"><option value="3:4">3:4 · 小红书 / 抖音图文</option><option value="9:16">9:16 · 竖屏</option></select>
+      <label class="lbl" for="posterExportWidth">PNG 导出分辨率</label>
+      <select id="posterExportWidth" class="field ui-field">
+        <option value="1080">标准 · 1080 × 1440</option>
+        <option value="1620">高清 · 1620 × 2160</option>
+        <option value="2160" selected>超清 · 2160 × 2880（推荐）</option>
+        <option value="3240">极清 · 3240 × 4320</option>
+      </select>
+      <p class="caption">仅改变单张 PNG 和 ZIP 图卡的导出像素尺寸，不改变实时预览或排版；极清档占用更多内存。</p>
       <div class="safe-editor">
         <section class="safe-box ui-panel">
           <div class="safe-box-head"><span class="safe-box-title ui-section-title">3. 抖音安全区独立规避</span><label class="switchline"><span>启用</span><input id="safeEnable" type="checkbox" checked><span class="switch-ui" aria-hidden="true"></span></label></div>
@@ -505,7 +513,9 @@ function drawPosterBackdrop(ctx,W,H,p){
  const inset=Math.round(W*L.outerInsetRatio);
  const r=Math.round(W*L.mainRadiusRatio),x=inset,y=inset,w=W-2*inset,h=H-2*inset;
  ctx.shadowColor='rgba(34,60,96,0.11)';
- ctx.shadowBlur=21;ctx.shadowOffsetY=7;
+ // Canvas 阴影参数不随坐标矩阵缩放，单独补偿像素倍率。
+ const pixelRatio=ctx.getTransform().a;
+ ctx.shadowBlur=21*pixelRatio;ctx.shadowOffsetY=7*pixelRatio;
  rounded(ctx,x,y,w,h,r,'#ffffff');
  ctx.shadowColor='transparent';ctx.shadowBlur=0;ctx.shadowOffsetY=0;
  ctx.strokeStyle=p.hair;ctx.lineWidth=1.6;
@@ -521,7 +531,8 @@ function drawPosterBackdrop(ctx,W,H,p){
 // Inner cards use the same white surface and themed border as module 2.
 function drawDataCard(ctx,x,y,w,h,p,r=Math.round(1080*window.PosterThemes.layout.innerRadiusRatio)){
  ctx.save();
- ctx.shadowColor='rgba(34,60,96,0.065)';ctx.shadowBlur=13;ctx.shadowOffsetY=5;
+ const pixelRatio=ctx.getTransform().a;
+ ctx.shadowColor='rgba(34,60,96,0.065)';ctx.shadowBlur=13*pixelRatio;ctx.shadowOffsetY=5*pixelRatio;
  rounded(ctx,x,y,w,h,r,'#ffffff');
  ctx.restore();
  ctx.strokeStyle=p.hair;ctx.lineWidth=1.6;
@@ -690,9 +701,9 @@ function drawImageWatermark(ctx,W,H,right,bottom){
  ctx.restore();
 }
 
-function drawPoster(type,canvas,o=derivedData(),showGuides=false){const H=socialState.ratio==='9:16'?1920:1440,W=1080;canvas.width=W;canvas.height=H;const ctx=canvas.getContext('2d',{alpha:false});const p=socialPalettes[socialState.theme];const right=socialState.safeEnabled?Math.max(0,Math.min(.35,socialState.safeRight/100)):0;const bottom=socialState.safeEnabled?Math.max(0,Math.min(.35,socialState.safeBottom/100)):0;const drawCore=(targetCtx,includeFooter=true)=>{posterFrame(targetCtx,W,H,type,o,p,includeFooter);if(type==='top')drawTop(targetCtx,H,o,p);else if(type==='versus')drawDuel(targetCtx,H,o,p);else if(type==='brands')drawBrands(targetCtx,H,o,p);else drawLeader(targetCtx,H,o,p);if(!canDownloadSocial(o,type)){targetCtx.save();targetCtx.translate(W/2,H/2);targetCtx.rotate(-.18);rounded(targetCtx,-452,-58,904,120,15,'#dfe7ef');targetCtx.globalAlpha=.96;canvasText(targetCtx,o.canPublish?'名称待补全 · 暂勿发布':o.fit.k?'标定冲突 · 请核对':'待标定 · 不可发布',0,19,59,p.warn,'900','center',850);targetCtx.restore()}};
+function drawPoster(type,canvas,o=derivedData(),showGuides=false,pixelRatio=1){const H=socialState.ratio==='9:16'?1920:1440,W=1080;canvas.width=Math.round(W*pixelRatio);canvas.height=Math.round(H*pixelRatio);const ctx=canvas.getContext('2d',{alpha:false});ctx.setTransform(pixelRatio,0,0,pixelRatio,0,0);const p=socialPalettes[socialState.theme];const right=socialState.safeEnabled?Math.max(0,Math.min(.35,socialState.safeRight/100)):0;const bottom=socialState.safeEnabled?Math.max(0,Math.min(.35,socialState.safeBottom/100)):0;const drawCore=(targetCtx,includeFooter=true)=>{posterFrame(targetCtx,W,H,type,o,p,includeFooter);if(type==='top')drawTop(targetCtx,H,o,p);else if(type==='versus')drawDuel(targetCtx,H,o,p);else if(type==='brands')drawBrands(targetCtx,H,o,p);else drawLeader(targetCtx,H,o,p);if(!canDownloadSocial(o,type)){targetCtx.save();targetCtx.translate(W/2,H/2);targetCtx.rotate(-.18);rounded(targetCtx,-452,-58,904,120,15,'#dfe7ef');targetCtx.globalAlpha=.96;canvasText(targetCtx,o.canPublish?'名称待补全 · 暂勿发布':o.fit.k?'标定冲突 · 请核对':'待标定 · 不可发布',0,19,59,p.warn,'900','center',850);targetCtx.restore()}};
  drawPosterBackdrop(ctx,W,H,p);
- if(socialState.safeEnabled&&(right>0||bottom>0)){const temp=document.createElement('canvas');temp.width=W;temp.height=H;const tctx=temp.getContext('2d',{alpha:true});drawCore(tctx,false);const pad=socialState.ratio==='9:16'?26:20;const availW=W-W*right-pad*2,availH=H-H*bottom-pad*2,scale=Math.min(availW/W,availH/H,1);ctx.drawImage(temp,pad,pad,W*scale,H*scale);drawPosterFooter(ctx,H,type,o,p,bottom,right);}else{drawCore(ctx)}
+ if(socialState.safeEnabled&&(right>0||bottom>0)){const temp=document.createElement('canvas');temp.width=Math.round(W*pixelRatio);temp.height=Math.round(H*pixelRatio);const tctx=temp.getContext('2d',{alpha:true});tctx.setTransform(pixelRatio,0,0,pixelRatio,0,0);drawCore(tctx,false);const pad=socialState.ratio==='9:16'?26:20;const availW=W-W*right-pad*2,availH=H-H*bottom-pad*2,scale=Math.min(availW/W,availH/H,1);ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';ctx.drawImage(temp,pad,pad,W*scale,H*scale);temp.width=0;temp.height=0;drawPosterFooter(ctx,H,type,o,p,bottom,right);}else{drawCore(ctx)}
  drawImageWatermark(ctx,W,H,right,bottom);
  if(showGuides)drawSafeGuides(ctx,W,H,p)
 }
@@ -703,17 +714,31 @@ function brandRows(o=derivedData()){const r=[['榜单','品牌系列','上榜条
 function slugName(s){return String(s).replace(/[\\/:*?"<>|\s]+/g,'_').slice(0,75)}
 function downloadBlob(blob,name){const u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),4000)}
 function exportCSVBlob(rows,name){downloadBlob(new Blob([toCSV(rows)],{type:'text/csv;charset=utf-8'}),name)}
-async function posterBlob(type,o){if(document.fonts?.ready)await document.fonts.ready;const c=document.createElement('canvas');drawPoster(type,c,o,false);return await new Promise((res,rej)=>c.toBlob(b=>b?res(b):rej(new Error('图像导出失败')),'image/png'))}
+function getPosterExportWidth(){return Number($('posterExportWidth').value)||2160}
+function getPosterExportHeight(width,ratio=socialState.ratio){return Math.round(width*(ratio==='9:16'?16/9:4/3))}
+function updatePosterExportOptions(){
+ const labels={1080:'标准',1620:'高清',2160:'超清',3240:'极清'};
+ for(const opt of $('posterExportWidth').options){const w=Number(opt.value);opt.textContent=labels[w]+' · '+w+' × '+getPosterExportHeight(w)+(w===2160?'（推荐）':'')}
+}
+async function posterBlob(type,o,width=getPosterExportWidth()){
+ if(document.fonts?.ready)await document.fonts.ready;
+ const c=document.createElement('canvas');
+ try{
+  drawPoster(type,c,o,false,width/1080);
+  return await new Promise((res,rej)=>c.toBlob(b=>b?res(b):rej(new Error('图像导出失败，请尝试降低导出分辨率')),'image/png'));
+ }finally{c.width=0;c.height=0}
+}
 function safeExport(type=socialState.template){const o=derivedData();if(!canDownloadSocial(o,type)){notify('请先完成可靠标定，并补全对应图卡所需的机型名称/品牌信息');return null}return o}
 async function saveCard(){const o=safeExport();if(!o)return;try{const blob=await posterBlob(socialState.template,o);downloadBlob(blob,slugName(o.d.label)+'_'+{top:'TOP10',versus:'双机PK',brands:'品牌上榜分析',leader:'榜首领先'}[socialState.template]+'_'+socialState.ratio.replace(':','x')+'.png');notify('高清 PNG 已导出')}catch(err){notify('PNG导出失败：'+err.message)}}
 function storyName(type){return {top:'01_TOP10榜单',versus:'02_双机对比',brands:'03_品牌样本',leader:'04_榜首领先'}[type]}
 // 离线 ZIP（Store 模式，无外部依赖；含 UTF-8 文件名和 CRC32）。
 let crcTable=null;function crc32(u8){if(!crcTable){crcTable=Array.from({length:256},(_,i)=>{let c=i;for(let j=0;j<8;j++)c=(c&1)?0xedb88320^(c>>>1):(c>>>1);return c>>>0})}let c=0xffffffff;for(const b of u8)c=crcTable[(c^b)&255]^(c>>>8);return(c^0xffffffff)>>>0}
 function zipArchive(files){const enc=new TextEncoder(),chunks=[],directory=[];let pos=0;const le=(bytes,...vals)=>{const out=new Uint8Array(bytes),dv=new DataView(out.buffer);for(const [offset,size,val] of vals){if(size===2)dv.setUint16(offset,val,true);else dv.setUint32(offset,val>>>0,true)}return out};for(const f of files){const n=enc.encode(f.name),data=f.bytes,crc=crc32(data),local=le(30,[0,4,0x04034b50],[4,2,20],[6,2,0x800],[8,2,0],[10,2,0],[12,2,0],[14,4,crc],[18,4,data.length],[22,4,data.length],[26,2,n.length],[28,2,0]);chunks.push(local,n,data);directory.push({name:n,crc,size:data.length,start:pos});pos+=30+n.length+data.length}const centralStart=pos;for(const f of directory){const c=le(46,[0,4,0x02014b50],[4,2,20],[6,2,20],[8,2,0x800],[10,2,0],[12,2,0],[14,2,0],[16,4,f.crc],[20,4,f.size],[24,4,f.size],[28,2,f.name.length],[30,2,0],[32,2,0],[34,2,0],[36,2,0],[38,4,0],[42,4,f.start]);chunks.push(c,f.name);pos+=46+f.name.length}const end=le(22,[0,4,0x06054b50],[4,2,0],[6,2,0],[8,2,directory.length],[10,2,directory.length],[12,4,pos-centralStart],[16,4,centralStart],[20,2,0]);chunks.push(end);return new Blob(chunks,{type:'application/zip'})}
-async function saveBundle(){const o=safeExport('bundle');if(!o)return;const btn=$('downloadAllCards'),before=btn.textContent;btn.disabled=true;btn.textContent='正在打包四张 PNG…';try{const files=[],types=['top','versus','brands','leader'],folder=slugName(o.d.label);for(const type of types){const png=await posterBlob(type,o);files.push({name:`${folder}/图卡/${storyName(type)}_${socialState.ratio.replace(':','x')}.png`,bytes:new Uint8Array(await png.arrayBuffer())});const t=type===socialState.template?$('storyText').value:generateStory(type,o);files.push({name:`${folder}/文案/${storyName(type)}.txt`,bytes:new TextEncoder().encode(t)})}files.push({name:`${folder}/数据/机型派生分析.csv`,bytes:new TextEncoder().encode(toCSV(insightRows(o)))});files.push({name:`${folder}/数据/品牌入榜样本分析.csv`,bytes:new TextEncoder().encode(toCSV(brandRows(o)))});const readme=`本压缩包由手机销量柱长像素标定器生成\n榜单：${o.d.label}\n图卡尺寸：${socialState.ratio}\n已知销量标定：${o.d.calibrations.length}组\n拟合系数：${o.fit.k} 台/像素\n状态：${o.fit.fitMode}\n\n【重要限制】\n1. 所有绝对销量均根据RD观测截图与用户已知数据按像素比例估算，并非官方或全市场销量。\n2. 品牌上榜样本占比只统计本图中有柱条的条目，不得解释为市场份额。\n3. 合并行按一条记录处理，不能拆分机型销量。\n4. 数值显示的小数精度不代表测算具有同等精度。\n5. 如输入标定来自累计销量差值，应确保时间窗口与当前榜单一致。\n`;files.push({name:`${folder}/使用说明.txt`,bytes:new TextEncoder().encode(readme)});downloadBlob(zipArchive(files),folder+'_图文发布包.zip');notify('四张图卡、文案及CSV已打包')}catch(err){notify('打包失败：'+err.message)}finally{btn.disabled=false;btn.textContent=before;updateSocial(false)}}
+async function saveBundle(){const o=safeExport('bundle');if(!o)return;const btn=$('downloadAllCards'),before=btn.textContent;btn.disabled=true;btn.textContent='正在打包四张 PNG…';try{const files=[],types=['top','versus','brands','leader'],folder=slugName(o.d.label),exportWidth=getPosterExportWidth();for(const type of types){const png=await posterBlob(type,o,exportWidth);files.push({name:`${folder}/图卡/${storyName(type)}_${socialState.ratio.replace(':','x')}.png`,bytes:new Uint8Array(await png.arrayBuffer())});const t=type===socialState.template?$('storyText').value:generateStory(type,o);files.push({name:`${folder}/文案/${storyName(type)}.txt`,bytes:new TextEncoder().encode(t)})}files.push({name:`${folder}/数据/机型派生分析.csv`,bytes:new TextEncoder().encode(toCSV(insightRows(o)))});files.push({name:`${folder}/数据/品牌入榜样本分析.csv`,bytes:new TextEncoder().encode(toCSV(brandRows(o)))});const readme=`本压缩包由手机销量柱长像素标定器生成\n榜单：${o.d.label}\n图卡比例：${socialState.ratio}\nPNG 分辨率：${exportWidth} × ${getPosterExportHeight(exportWidth)} px\n已知销量标定：${o.d.calibrations.length}组\n拟合系数：${o.fit.k} 台/像素\n状态：${o.fit.fitMode}\n\n【重要限制】\n1. 所有绝对销量均根据RD观测截图与用户已知数据按像素比例估算，并非官方或全市场销量。\n2. 品牌上榜样本占比只统计本图中有柱条的条目，不得解释为市场份额。\n3. 合并行按一条记录处理，不能拆分机型销量。\n4. 数值显示的小数精度不代表测算具有同等精度。\n5. 如输入标定来自累计销量差值，应确保时间窗口与当前榜单一致。\n`;files.push({name:`${folder}/使用说明.txt`,bytes:new TextEncoder().encode(readme)});downloadBlob(zipArchive(files),folder+'_图文发布包.zip');notify('四张图卡、文案及CSV已打包')}catch(err){notify('打包失败：'+err.message)}finally{btn.disabled=false;btn.textContent=before;updateSocial(false)}}
 function initSocial(){initWatermarkControls();updateDuelSelects();const previousRender=renderAll;renderAll=function(...args){previousRender(...args);updateSocial(true)};
  $('templateChooser').addEventListener('click',ev=>{const b=ev.target.closest('[data-template]');if(!b)return;socialState.template=b.dataset.template;document.querySelectorAll('#templateChooser [data-template]').forEach(x=>x.classList.toggle('active',x===b));updateSocial(true)});
- $('posterRatio').onchange=ev=>{socialState.ratio=ev.target.value;updateSocial(false)};
+ updatePosterExportOptions();
+ $('posterRatio').onchange=ev=>{socialState.ratio=ev.target.value;updatePosterExportOptions();updateSocial(false)};
  $('posterTheme').onchange=ev=>{socialState.theme=ev.target.value;syncPaletteChooser();updateSocial(false)};
  $('paletteChooser')?.addEventListener('click',ev=>{const b=ev.target.closest('[data-theme]');if(!b)return;socialState.theme=b.dataset.theme;$('posterTheme').value=socialState.theme;syncPaletteChooser();updateSocial(false)});
  $('safeEnable').onchange=ev=>{socialState.safeEnabled=ev.target.checked;updateSocial(false)};

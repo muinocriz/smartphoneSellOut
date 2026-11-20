@@ -231,9 +231,17 @@
 
     <!-- 导出按钮 -->
     <div class="ms-export">
+      <label for="msExportWidth" class="ui-section-title">PNG 导出分辨率</label>
+      <select id="msExportWidth" class="ui-field" style="width:100%;margin:8px 0 12px;">
+        <option value="1080">标准 · 1080 × 1440</option>
+        <option value="1620">高清 · 1620 × 2160</option>
+        <option value="2160" selected>超清 · 2160 × 2880（推荐）</option>
+        <option value="3240">极清 · 3240 × 4320</option>
+      </select>
+      <p class="ms-hint">仅调整导出像素尺寸，不改变预览或排版；极清档占用更多内存。</p>
       <button id="exportBtn" class="ms-export-btn">
         <svg class="ms-icon" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-        <span>导出 3:4 高清抖音海报 (1200×1600 PNG)</span>
+        <span id="msExportLabel">导出 3:4 海报 (2160×2880 PNG)</span>
       </button>
       <p class="ms-hint">导出时将自动隐藏红色/琥珀色安全区辅助线，输出纯净原图</p>
     </div>
@@ -1590,7 +1598,7 @@
     }
 
     // ==========================================
-    // 6. 高清 PNG 导出引擎 (1200 x 1600 严格 3:4)
+    // 6. 高清 PNG 导出引擎（独立输出尺寸，严格 3:4）
     // ==========================================
     // SVG 经 Blob 转图片时不会自动携带网页字体。在线环境下将数字字体
     // 临时内嵌至待导出的 SVG，确保 PNG 与预览一致；失败时自动回退系统字体。
@@ -1634,11 +1642,23 @@
       return embeddedNumberFontPromise;
     }
 
+    function getMarketExportSize() {
+      const width = Number(document.getElementById('msExportWidth').value) || 2160;
+      return {width, height: Math.round(width * 4 / 3)};
+    }
+    function updateMarketExportLabel() {
+      const {width, height} = getMarketExportSize();
+      document.getElementById('msExportLabel').textContent = `导出 3:4 海报 (${width}×${height} PNG)`;
+    }
     async function exportHighResPNG() {
+      const {width, height} = getMarketExportSize();
       if(document.fonts?.ready)await document.fonts.ready;
       const svg = document.getElementById('posterSvg');
       const fontCss=await embeddedNumberFontCss();
       const exportSvg=svg.cloneNode(true);
+      // 保留 900×1200 viewBox，直接以目标像素尺寸栅格化。
+      exportSvg.setAttribute('width', String(width));
+      exportSvg.setAttribute('height', String(height));
       if(fontCss){
         let defs=exportSvg.querySelector('defs');
         if(!defs){
@@ -1661,16 +1681,17 @@
       const img = new Image();
       img.onload = function () {
         const canvas = document.createElement('canvas');
-        canvas.width = 1200;
-        canvas.height = 1600;
+        canvas.width = width;
+        canvas.height = height;
         const ctx = canvas.getContext('2d');
 
         ctx.imageSmoothingEnabled = true;
         ctx.imageSmoothingQuality = 'high';
-        ctx.drawImage(img, 0, 0, 1200, 1600);
+        ctx.drawImage(img, 0, 0, width, height);
         URL.revokeObjectURL(url);
 
         canvas.toBlob(function (blob) {
+          if (!blob) { alert('PNG 导出失败，请尝试降低导出分辨率。'); return; }
           const link = document.createElement('a');
           const chartNames = {
             combo: '双图组合模式',
@@ -1680,15 +1701,21 @@
             stacked: '堆叠流动图'
           };
           link.download = `${state.selectedWeek || '2026W45'}_手机份额战报_${chartNames[state.chartType]}_3比4抖音版.png`;
-          link.href = URL.createObjectURL(blob);
+          const downloadUrl = URL.createObjectURL(blob);
+          link.href = downloadUrl;
           document.body.appendChild(link);
           link.click();
           document.body.removeChild(link);
+          setTimeout(() => URL.revokeObjectURL(downloadUrl), 4000);
 
           const toast = document.getElementById('toastMsg');
           toast.style.opacity = '1';
           setTimeout(() => { toast.style.opacity = '0'; }, 3000);
         }, 'image/png', 1.0);
+      };
+      img.onerror = function () {
+        URL.revokeObjectURL(url);
+        alert('海报渲染失败，请尝试降低导出分辨率。');
       };
       img.src = url;
     }
@@ -1901,6 +1928,8 @@
         renderPoster();
       });
 
+      document.getElementById('msExportWidth').addEventListener('change', updateMarketExportLabel);
+      updateMarketExportLabel();
       document.getElementById('exportBtn').addEventListener('click', exportHighResPNG);
     }
 

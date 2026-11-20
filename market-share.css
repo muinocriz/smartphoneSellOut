@@ -47,7 +47,10 @@ body.market-share-light{
 .market-share-light .ms-option-row{display:flex;align-items:center;justify-content:space-between;gap:12px;min-width:0}
 .market-share-light .ms-option-row > div{min-width:0}
 .market-share-light .ms-option-title{font-size:var(--ui-text-body);font-weight:700;color:#2b3c58}
-.market-share-light .ms-option-note,.market-share-light .ms-muted{font-size:var(--ui-text-small);color:#72829a;line-height:1.6}
+.market-share-light .ms-option-note,.market-share-light .ms-muted,
+.market-share-light .ms-hint,.market-share-light .ms-csv-status{
+  font-size:var(--ui-text-small);color:#72829a;line-height:1.6
+}
 .market-share-light .ms-toggle{position:relative;display:inline-flex;align-items:center;flex-shrink:0;cursor:pointer}
 .market-share-light .ms-toggle input{position:absolute;width:1px;height:1px;opacity:0}
 .market-share-light .ms-toggle-track{
@@ -123,7 +126,7 @@ body.market-share-light{
 }
 .market-share-light .ms-export-btn:hover{background:#1e57c6}
 .market-share-light .ms-export-btn .ms-icon{width:20px;height:20px}
-.market-share-light .ms-hint{text-align:center;font-size:var(--ui-text-small);color:#72829a;margin:8px 0 0;line-height:1.6}
+.market-share-light .ms-hint{text-align:center;margin:8px 0 0}
 .market-share-light .ms-preview{
   flex:1;min-width:0;min-height:600px;padding:26px 16px 36px;
   display:flex;flex-direction:column;align-items:center;justify-content:flex-start;
@@ -185,9 +188,7 @@ body.market-share-light{
   font-size:var(--ui-text-small);font-weight:700;color:#344866;cursor:pointer
 }
 .market-share-light .ms-upload-btn:hover{background:#e8eef6}
-.market-share-light .ms-csv-status{
-  margin:0;color:#72829a;font-size:var(--ui-text-small);line-height:1.6
-}
+.market-share-light .ms-csv-status{margin:0}
 .market-share-light .ms-csv-error{color:#b43c50}
 
 @media(min-width:1024px){

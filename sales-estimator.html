@@ -136,7 +136,7 @@
 <section class="panel" id="uploadPanel" hidden><h2 class="panel-title">导入其他 TOP 榜截图</h2><div class="uploadbox"><label class="lbl" for="imageUpload">图片文件（PNG / JPG / WebP）</label><input type="file" id="imageUpload" accept="image/png,image/jpeg,image/webp"></div><p id="uploadResult" class="stepnote">自动测量图中的蓝色水平柱长。需使用与示例相近的白底、蓝柱样式。</p><label class="lbl" for="customNames">机型名称（按榜单排名，一行一个）</label><textarea id="customNames" class="field ui-field textarea" placeholder="可粘贴每一名的机型名称；留空时显示第N名"></textarea><button id="applyNames" type="button" class="secondary" style="margin-top:10px">应用机型名称</button><div id="nameImportStatus" class="msg" role="status" hidden></div><div class="msg">文字识别不包含在离线工具内。导入图片后会自动给出“第N名”，你可以粘贴机型名称批量替换。</div></section>
 </aside><div>
 <section class="panel"><div class="righttop"><div><h2 class="panel-title">销量估算结果</h2><p class="panel-desc" id="tableDesc">所有机型的柱条像素长度已测量；标定后自动填写销量。</p></div><button id="exportCsv" class="secondary" type="button">导出 CSV</button></div>
-<div class="table-actions"><input id="searchRows" class="field ui-field search" placeholder="搜索品牌 / 机型"><div class="actions-right"><span class="caption" id="visibleCount"></span><button class="secondary" id="resetSearch" type="button">全部</button></div></div><div class="tablewrap"><table class="ranktable"><thead><tr><th>排名</th><th>机型</th><th class="num">柱长 / px</th><th>相对柱长</th><th class="num">估算销量 / 万台</th></tr></thead><tbody id="rows"></tbody></table></div><div class="explain method">销量保留适当小数仅为方便比较，并非真实销量的精度保证。条纹和 JPEG 边缘可能引入约 ±1–2 像素的测量误差；较短柱条的不确定性相对更高。</div></section>
+<div class="table-actions"><input id="searchRows" class="field ui-field search" placeholder="搜索品牌 / 机型"><div class="actions-right"><span class="caption" id="visibleCount"></span><button class="secondary" id="resetSearch" type="button">全部</button></div></div><div class="tablewrap"><table class="ranktable"><thead><tr><th>排名</th><th>机型</th><th class="num">柱长 / px</th><th>相对柱长</th><th class="num">估算销量 / 万台</th></tr></thead><tbody id="rows"></tbody></table></div><div class="explain method">估算销量统一以万台为单位展示一位小数，仅为方便比较，并非真实销量的精度保证；计算及 CSV 存储精度不变。条纹和 JPEG 边缘可能引入约 ±1–2 像素的测量误差；较短柱条的不确定性相对更高。</div></section>
 <details class="panel details"><summary>查看原始榜单截图与像素测量方法</summary><div class="inside"><img class="preview" id="preview" alt="原始排行榜截图"><p id="previewInfo" class="caption"></p><div class="method">方法：识别蓝色柱条的垂直排列，取每条的中心横截面，测定从统一柱条起始位置到最右端的水平像素跨度。单机型标定 k = 销量 ÷ 柱长；多机型合计标定 k = 总销量 ÷ 所选柱长之和；多组标定使用通过原点的最小二乘拟合，并对明显偏离多数的标定自动进行异常提示和适度剔除。两张榜单按各自独立的像素比例拟合。</div></div></details>
 </div></div><section class="studio panel" id="socialStudio">
   <div class="studiohead"><div><div class="eyebrow">SOCIAL CONTENT STUDIO / 新增功能</div><h2 class="studio-title">图文内容工作台</h2><p class="panel-desc">从同一张榜单生成四种选题，导出 3:4 / 9:16 高清图卡、标题正文和派生指标。不同榜单独立标定。桌面端左侧独立滚动，右侧预览始终可见。</p></div><span class="statuspill" id="publishStatus">待输入标定</span></div>
@@ -326,7 +326,7 @@ function renderCalibration(fit){const cs=ds().calibrations||[],b=ds().bars;
  let msg;if(fit.warn.length){msg=fit.warn.join(' ');$('fitInfo').className='msg warn'}else if(cs.length===1){msg='只有 1 组标定，已按比例推算；添加更多已知销量可以交叉校验。';$('fitInfo').className='msg'}else{msg=`${cs.length} 组标定比例在允许偏差内，当前拟合结果可供比较。`;$('fitInfo').className='msg good'}$('fitInfo').textContent=msg;
 }
 function renderRows(fit){const d=ds(),bars=d.bars,max=bars.length?bars[0].pixels:1,term=$('searchRows').value.trim().toLowerCase(),matched=bars.filter(m=>!term||m.name.toLowerCase().includes(term)||String(m.rank)===term);$('visibleCount').textContent=`显示 ${matched.length} / ${bars.length} 款`;
- $('rows').innerHTML=matched.map(m=>{const sale=fit.k!=null?fmt(fit.k*m.pixels/10000,2):'待标定',rel=m.pixels/max*100;return `<tr><td class="rankcell">${m.rank}</td><td class="namecol">${e(m.name)}</td><td class="num">${m.pixels.toLocaleString('zh-CN')}</td><td><div class="barline"><span style="width:${rel.toFixed(2)}%"></span></div><div class="relative">${fmt(rel,1)}%</div></td><td class="num ${fit.k!=null?'sale':'pending-sale'}">${sale}</td></tr>`}).join('')||'<tr><td colspan="5" class="empty">没有匹配的机型</td></tr>';
+ $('rows').innerHTML=matched.map(m=>{const sale=fit.k!=null?displayWan(fit.k*m.pixels):'待标定',rel=m.pixels/max*100;return `<tr><td class="rankcell">${m.rank}</td><td class="namecol">${e(m.name)}</td><td class="num">${m.pixels.toLocaleString('zh-CN')}</td><td><div class="barline"><span style="width:${rel.toFixed(2)}%"></span></div><div class="relative">${fmt(rel,1)}%</div></td><td class="num ${fit.k!=null?'sale':'pending-sale'}">${sale}</td></tr>`}).join('')||'<tr><td colspan="5" class="empty">没有匹配的机型</td></tr>';
  $('mRows').textContent=bars.length+' 款';$('mMax').textContent=(max||0)+' px';$('mCal').textContent=d.calibrations.length+' 组';$('mRate').textContent=fit.k!=null?tf(fit.k)+' 台':'尚未标定';
  $('tableDesc').textContent=fit.k!=null?`${d.label} · 拟合系数 ${tf(fit.k)} 台/px · 每个机型的销量依据自身柱长推算`:`${d.label} · 已测量全部 ${bars.length} 条柱长，输入至少一组真实销量即可计算。`;
 }
@@ -393,10 +393,11 @@ function derivedData(){const d=ds(),fit=getFit(),bars=d.bars||[],total=bars.redu
  const top3=models.slice(0,3).reduce((x,b)=>x+b.pixels,0),top5=models.slice(0,5).reduce((x,b)=>x+b.pixels,0);
  return {d,fit,models,brands,total,top3:total?top3/total:0,top5:total?top5/total:0,ratio:models.length>1?models[0].pixels/models[1].pixels:null,canPublish:fit.k!==null&&!['conflict','median'].includes(fit.fitMode)&&models.length>1}
 }
-function displayWan(value){if(value===null||value===undefined)return '待标定';const n=value/10000;return fmt(n,n>=1?2:n>=.1?3:4)}
+// Presentation only: all estimated volumes are shown in wan units with one decimal.
+function displayWan(value){return value===null||value===undefined||!Number.isFinite(value)?'待标定':fmt(value/10000,1)}
 function displayTimes(v){return v===null||!Number.isFinite(v)?'—':fmt(v,2)+' 倍'}
 function displayPct(v){return Number.isFinite(v)?fmt(v*100,1)+'%':'—'}
-function displaySale(value){return value===null?'待标定':displayWan(value)+' 万台'}
+function displaySale(value){return value===null||value===undefined||!Number.isFinite(value)?'待标定':displayWan(value)+' 万台'}
 function updateSafeLabels(){const r=Math.round(socialState.safeRight),b=Math.round(socialState.safeBottom);if($('safeRightVal'))$('safeRightVal').textContent=r+'%'+(r===15?'（推荐）':'');if($('safeBottomVal'))$('safeBottomVal').textContent=b+'%'+(b===10?'（推荐）':'');if($('safeEnable'))$('safeEnable').checked=!!socialState.safeEnabled;if($('safeGuides'))$('safeGuides').checked=!!socialState.safeGuides;if($('safeRight'))$('safeRight').value=String(r);if($('safeBottom'))$('safeBottom').value=String(b)}
 function syncPaletteChooser(){
  const holder=$('paletteChooser');if(!holder)return;
@@ -667,7 +668,7 @@ function drawBrands(ctx,H,o,p){
  brands.forEach((b,i)=>{
   const y=399+i*rowStep,hot=i===0;
   const nameLabel=`${i+1}. ${b.brand}（上榜 ${b.count} 款）`;
-  const sales=o.fit.k===null?'待标定':`${fmt(b.sale/10000,1)}万台`;
+  const sales=displaySale(b.sale);
   const share=`${fmt(b.share*100,1)}%`;
   const headInk=hot?p.bar2:p.ink;
   canvasText(ctx,nameLabel,x,y+9,34,p.ink,'760','left',560);

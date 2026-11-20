@@ -129,14 +129,7 @@ body.market-share-light{
   display:flex;flex-direction:column;align-items:center;justify-content:flex-start;
   background:#f0f4fb;border-left:1px solid #e1e8f2;color:#526780
 }
-.market-share-light .ms-preview-status{
-  display:flex;align-items:center;justify-content:space-between;gap:8px;
-  width:100%;max-width:540px;margin-bottom:12px;padding:0 4px;
-  color:#607591;font-size:var(--ui-text-small)
-}
-.market-share-light .ms-preview-details{display:flex;align-items:center;flex-wrap:wrap;gap:8px}
-.market-share-light .ms-ratio{padding:4px 8px;border-radius:6px;background:#e7eef9;color:#49617d}
-.market-share-light .ms-toast{color:#278361;opacity:0}
+.market-share-light .ms-toast{position:fixed;right:20px;bottom:20px;z-index:30;padding:10px 14px;border:1px solid #c4e3d1;border-radius:10px;background:#f0faf4;color:#278361;font-size:var(--ui-text-small);opacity:0;pointer-events:none}
 .market-share-light .ms-poster{
   position:relative;width:100%;max-width:540px;aspect-ratio:3/4;
   overflow:hidden;border:1px solid #dbe4f1;border-radius:16px;

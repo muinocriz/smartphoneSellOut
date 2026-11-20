@@ -28,26 +28,10 @@
 }
 
 /* Unified first-screen identity and choice typography in modules 2/3. */
-.studio-ui .ui-eyebrow {
-  display:inline-flex;align-items:center;flex-wrap:wrap;vertical-align:top;
-  gap:8px;max-width:100%;width:fit-content;padding:5px 10px;
-  background:#edf4ff;color:#2865db;border:1px solid #d5e2f8;
-  border-radius:999px;font-family:var(--ui-font-body);
-  font-size:var(--ui-text-small);font-weight:700;line-height:1.4;
-  letter-spacing:.03em;text-transform:uppercase;overflow-wrap:anywhere;
-}
-.studio-ui .ui-eyebrow-dot {display:inline-block;width:8px;height:8px;flex:0 0 8px;border-radius:50%;background:#83aaf2}
 .studio-ui .ui-page-title {
   margin:10px 0 0;color:#202a3d;font-family:var(--ui-font-body);
   font-size:var(--ui-text-metric);font-weight:800;line-height:1.35;
   letter-spacing:-.025em;overflow-wrap:break-word;
-}
-.studio-ui .ui-meta-badge {
-  display:inline-flex;align-items:center;max-width:100%;width:fit-content;
-  padding:6px 10px;color:#52739b;background:#edf4ff;
-  border:1px solid #d5e2f8;border-radius:999px;
-  font-family:var(--ui-font-body);font-size:var(--ui-text-small);
-  font-weight:500;line-height:1.5;white-space:normal;
 }
 .studio-ui .ui-choice {font-family:var(--ui-font-body);font-size:var(--ui-text-body);font-weight:700;line-height:1.45}
 

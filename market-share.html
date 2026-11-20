@@ -19,13 +19,8 @@
 
   <!-- 左侧控制台 -->
   <aside class="ms-sidebar">
-    <!-- 顶部品牌标题：自然纵向排列，避免周次标签挤压主标题 -->
     <div class="ms-intro">
-      <div>
-        <div class="ui-eyebrow"><span class="ui-eyebrow-dot" aria-hidden="true"></span>DATA JOURNALISM STUDIO</div>
-        <h1 class="ui-page-title">手机份额战报出图台</h1>
-      </div>
-      <span id="currentMarketShareWeek" class="ui-meta-badge">等待数据</span>
+      <h1 class="ui-page-title">手机份额战报出图台</h1>
     </div>
 
     <!-- 1. 图表类型切换 -->
@@ -250,16 +245,7 @@
 
   <!-- 右侧实时 3:4 画布预览舞台 -->
   <main class="ms-preview">
-    <!-- 顶部状态提示条 -->
-    <div class="ms-preview-status">
-      <div class="ms-preview-details">
-        <span class="ms-ratio">3:4 竖屏比例</span>
-        <span>基准 900×1200px</span>
-      </div>
-      <div id="toastMsg" class="ms-toast">
-        ✓ 已成功生成高清海报！
-      </div>
-    </div>
+    <div id="toastMsg" class="ms-toast" role="status" aria-live="polite">✓ 已成功生成高清海报！</div>
 
     <!-- 3:4 海报容器（核心 SVG 渲染区 + 抖音模拟叠加层） -->
     <div id="posterContainer" class="ms-poster">
@@ -1899,7 +1885,6 @@
       document.getElementById('resetDataBtn').addEventListener('click', () => {
         localStorage.removeItem(STORAGE_KEY);
         Object.assign(state, getDefaultState());
-        document.getElementById('currentMarketShareWeek').textContent='等待数据';
         syncUIWithState();
         renderPaletteButtons();
         renderDataInputs();
@@ -1987,7 +1972,6 @@
 
     window.addEventListener('DOMContentLoaded', () => {
       initEvents();
-      if(state.dataMode==='manual')document.getElementById('currentMarketShareWeek').textContent='手动编辑数据';
       renderPoster();
     });
   </script>

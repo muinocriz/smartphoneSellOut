@@ -24,10 +24,6 @@
     el.textContent=message;
     el.className='ms-csv-status'+(isError?' ms-csv-error':'');
   }
-  function badge(text){
-    const el=byId('currentMarketShareWeek');
-    if(el)el.textContent=text;
-  }
   function setAutoField(key,value){
     if(!fieldOverrides()[key])state[key]=value;
   }
@@ -59,7 +55,6 @@
     state.w2Market=`大盘趋势：${current.trend}`;
     setAutoField('insight',buildInsight());
     byId('marketShareWeekSelect').value=current.week;
-    badge(`${weekLabel(previous.week)} → ${weekLabel(current.week)}`);
     byId('resetDataBtn').textContent='恢复所选周 CSV 原始数据';
     syncUIWithState();
     renderDataInputs();
@@ -98,7 +93,6 @@
     if(preferSaved&&state.dataMode==='manual'){
       const selectedIndex=pairs.find(i=>rows[i].week===selected);
       byId('marketShareWeekSelect').value=selectedIndex===undefined?rows[pairs[pairs.length-1]].week:selected;
-      badge('手动编辑数据');
       status(`已读取 ${source}（${rows.length} 周）；当前显示浏览器保存的手动数据，选择周次可应用 CSV`);
       return;
     }
@@ -159,7 +153,6 @@
     // The existing input rows have their own listeners; capture input before they save.
     byId('brandInputsList').addEventListener('input',()=>{
       state.dataMode='manual';
-      badge('手动编辑数据');
       status('正在使用手动调整后的份额（仅保存在本浏览器）；重新选择周次可恢复 CSV');
     },true);
     byId('resetDataBtn').addEventListener('click',event=>{

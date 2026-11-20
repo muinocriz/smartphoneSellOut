@@ -3,6 +3,7 @@
 <title>手机销量推算与小红书抖音图文工作台</title>
 <script src="poster-themes.js"></script>
 <script src="iso-sales-week.js"></script>
+<script src="market-share-data.js"></script>
 <link rel='preconnect' href='https://fonts.googleapis.com'>
 <link rel='preconnect' href='https://fonts.gstatic.com' crossorigin>
 <link href='https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap' rel='stylesheet'>
@@ -811,12 +812,37 @@ function updateResearchStudio(rewriteStory){
  if(rewriteStory){$('storyText').value=generateStory(socialState.template,o);$('xhsTitle').value=pack.xhs;$('dyTitle').value=pack.dy;$('carouselText').value=pack.carousel;}
 }
 function researchContentBottom(H,o){return Math.min(H-185,posterFooterGeometry(H,0,0,posterFooterLines(socialState.template,o).length).start-24);}
+
+function drawHeadStaticPoster(ctx,bottom,p,s){
+ const {kind,periods,lines,unit,baseline}=s.chart;
+ const colors=['#2563eb','#ea580c','#059669','#9333ea','#db2777','#0891b2','#92400e','#64748b'];
+ if(kind==='scatter'){
+  const xx=lines[0].values,yy=lines[1].values,L=144,R=981,T=491,B=bottom-245;
+  const mx=Math.max(1.25,...xx.filter(Number.isFinite))*1.1,my=Math.max(1.25,...yy.filter(Number.isFinite))*1.1;
+  const x=v=>L+v/mx*(R-L),y=v=>B-v/my*(B-T);
+  canvasText(ctx,'纵轴：单品销量强度指数',78,469,22,p.sub,'600');
+  for(let i=0;i<=4;i++){const a=mx*i/4,b=my*i/4;ctx.strokeStyle=p.hair;ctx.lineWidth=1.4;ctx.beginPath();ctx.moveTo(x(a),T);ctx.lineTo(x(a),B);ctx.moveTo(L,y(b));ctx.lineTo(R,y(b));ctx.stroke();canvasText(ctx,a.toFixed(2),x(a),B+30,19,p.sub,'550','center');canvasText(ctx,b.toFixed(2),L-12,y(b)+6,19,p.sub,'550','right');}
+  ctx.save();ctx.setLineDash([9,7]);ctx.strokeStyle=p.sub;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x(1),T);ctx.lineTo(x(1),B);ctx.moveTo(L,y(1));ctx.lineTo(R,y(1));ctx.stroke();ctx.restore();
+  periods.forEach((name,i)=>{if(!Number.isFinite(xx[i])||!Number.isFinite(yy[i]))return;ctx.fillStyle=colors[i%colors.length];ctx.beginPath();ctx.arc(x(xx[i]),y(yy[i]),6,0,Math.PI*2);ctx.fill();});
+  canvasText(ctx,'横轴：头部销量富集指数',R,B+61,21,p.sub,'600','right');
+  periods.forEach((name,i)=>{const x=82+(i%2)*465,y=B+99+Math.floor(i/2)*29;ctx.fillStyle=colors[i%colors.length];ctx.fillRect(x,y-15,17,8);canvasText(ctx,name+'  '+(Number.isFinite(xx[i])&&Number.isFinite(yy[i])?xx[i].toFixed(2)+' / '+yy[i].toFixed(2):'—'),x+25,y-5,20,p.ink,'600','left',436);});
+ }else{
+  const L=194,R=900,T=492,B=bottom-88;
+  const row=(B-T)/periods.length,max=Math.max(1,...lines.flatMap(l=>l.values.filter(Number.isFinite)),baseline||0),top=max*1.1,x=v=>L+v/top*(R-L);
+  lines.forEach((l,i)=>{const lx=78+i*460;ctx.fillStyle=l.color||colors[i];ctx.fillRect(lx,446,23,9);canvasText(ctx,l.name,lx+30,457,22,p.ink,'600','left',420);});
+  if(baseline){ctx.save();ctx.strokeStyle=p.sub;ctx.setLineDash([8,6]);ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x(baseline),T);ctx.lineTo(x(baseline),B);ctx.stroke();ctx.restore();canvasText(ctx,'1.00',x(baseline),T-8,18,p.sub,'550','center');}
+  periods.forEach((name,i)=>{const cy=T+(i+.5)*row;canvasText(ctx,name,L-16,cy+7,27,p.ink,'700','right',105);lines.forEach((l,j)=>{const v=l.values[i],bh=Math.min(22,(row-12)/lines.length),yy=cy+(j-(lines.length-1)/2)*(bh+5)-bh/2;if(Number.isFinite(v)){ctx.fillStyle=l.color||colors[j%colors.length];ctx.fillRect(L,yy,Math.max(0,x(v)-L),bh);canvasText(ctx,v.toFixed(2)+(unit==='%'?'%':''),x(v)+8,yy+bh*.86,22,p.ink,'600','left',100);}else canvasText(ctx,'—',L+8,yy+bh*.86,22,p.sub,'600');});});
+ }
+ canvasText(ctx,s.chartNote,78,bottom-30,21,p.sub,'550','left',920);
+}
+
 function drawResearchPosterContent(ctx,H,p,s){
  if(!s)return;
  const bottom=researchContentBottom(H,socialData()),cardY=338;
  drawDataCard(ctx,52,cardY,976,bottom-cardY,p);
  canvasText(ctx,s.range+' · '+s.source,78,380,26,p.sub,'650','left',924);
  canvasText(ctx,s.displayMetric+' · '+s.modeLabel,78,421,27,p.ink,'700','left',924);
+ if(s.chart?.kind==='bars'||s.chart?.kind==='scatter'){drawHeadStaticPoster(ctx,bottom,p,s);return;}
  if(s.chart){
   const {periods,lines,unit,limit}=s.chart,n=periods.length;
   const count=lines.length,cols=count<=3?1:count<=10?2:3,legendRows=Math.ceil(count/cols),legendStep=count>15?32:38;
@@ -829,7 +855,7 @@ function drawResearchPosterContent(ctx,H,p,s){
   for(let i=0;i<=4;i++){const v=top*i/4;ctx.strokeStyle=p.hair;ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(L,y(v));ctx.lineTo(R,y(v));ctx.stroke();canvasText(ctx,Number(v.toFixed(2)),L-12,y(v)+7,20,p.sub,'550','right',70);}
   periods.forEach((period,i)=>{if(i===0||i===n-1||(i%Math.max(1,Math.ceil(n/7))===0&&i<n-1-Math.floor(n/7)))canvasText(ctx,period,x(i),B+34,19,p.sub,'550','center',Math.min(112,(R-L)/Math.max(1,Math.min(7,n)-1)));});
   lines.forEach((l,j)=>{const color=l.color||colors[j%colors.length];l.values.forEach((v,i)=>{if(!Number.isFinite(v))return;const est=!!l.imputed?.[i];if(i&&Number.isFinite(l.values[i-1])){ctx.save();ctx.strokeStyle=color;ctx.lineWidth=4;ctx.setLineDash(est||l.imputed?.[i-1]?[11,8]:[]);ctx.beginPath();ctx.moveTo(x(i-1),y(l.values[i-1]));ctx.lineTo(x(i),y(v));ctx.stroke();ctx.restore();}ctx.beginPath();ctx.arc(x(i),y(v),n>35?3.5:5,0,Math.PI*2);ctx.fillStyle=est?'#ffffff':color;ctx.strokeStyle=color;ctx.lineWidth=2.5;ctx.fill();ctx.stroke();});});
-  canvasText(ctx,s.chart.imputed?'空心点 / 虚线：含插补；断线：缺少可用数据':'实线：观测数据；断线：缺少可比数据',78,B+72,22,p.sub,'560','left',920);
+  canvasText(ctx,s.key==='head'?'仅共同有效周；断线表示缺少可比较数据':s.chart.imputed?'空心点 / 虚线：含插补；断线：缺少可用数据':'实线：观测数据；断线：缺少可比数据',78,B+72,22,p.sub,'560','left',920);
   canvasText(ctx,s.chartNote,78,bottom-32,22,p.sub,'550','left',920);
  }else{
   const rows=s.table.rows,indices=[0,1,2,3,7],labels=['机型','观测周','最长连续','末周连续','上榜合计/万台'];

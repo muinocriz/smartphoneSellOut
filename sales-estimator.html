@@ -152,10 +152,11 @@
       <div class="studio-steps">第二步 · 图卡文案编辑</div>
       <section class="copy-box">
         <div class="copy-head"><b>主视觉文案编辑</b><span class="copy-mini">默认自动带入当前模板文案，修改后即时渲染到预览与导出</span></div>
-        <p class="copy-desc">可直接编辑主标题、副标题、账号水印（左上角 / 右上角）以及左下角免责附注。免责附注支持换行；恢复默认后会重新跟随当前模板与标定状态更新。</p>
+        <p class="copy-desc">可直接编辑主标题、副标题、榜单标签、账号水印（左上角 / 右上角）以及左下角免责附注。免责附注支持换行；恢复默认后会重新跟随当前模板与标定状态更新。</p>
         <div class="copy-grid">
           <div class="copy-field"><label for="copyTitle">主标题</label><input id="copyTitle" type="text" spellcheck="false"></div>
           <div class="copy-field"><label for="copySubtitle">副标题</label><input id="copySubtitle" type="text" spellcheck="false"></div>
+          <div class="copy-field"><label for="copyTagLabel">榜单标签（副标题下方）</label><input id="copyTagLabel" type="text" spellcheck="false" placeholder="例如 2026-W45 · TOP30"></div>
           <div class="copy-two">
             <div class="copy-field"><label for="copyMarkLeft">账号水印（左上角）</label><input id="copyMarkLeft" type="text" spellcheck="false"></div>
             <div class="copy-field"><label for="copyMarkRight">账号水印（右上角）</label><input id="copyMarkRight" type="text" spellcheck="false"></div>
@@ -374,8 +375,8 @@ const socialState={template:'top',ratio:'3:4',theme:'editorial',duelA:0,duelB:1,
 const ESTIMATOR_WATERMARK_KEY='smartphoneSellOut_estimator_watermark_v1';
 const watermarkDefaults={diagonalEnabled:false,diagonalText:'归零return0',diagonalOpacity:8,diagonalSize:32,diagonalGap:220,centerEnabled:false,centerText:'归零return0',centerOpacity:12,centerSize:72};
 const watermarkState=(()=>{try{const prev=JSON.parse(localStorage.getItem(ESTIMATOR_WATERMARK_KEY)||'null');return {...watermarkDefaults,...(prev&&typeof prev==='object'?prev:{})}}catch(_){return {...watermarkDefaults}}})();
-const socialCopyState={title:'',subtitle:'',markLeft:'',markRight:'',disclaimer:''};
-const socialCopyDirty={title:false,subtitle:false,markLeft:false,markRight:false,disclaimer:false};
+const socialCopyState={title:'',subtitle:'',tagLabel:'',markLeft:'',markRight:'',disclaimer:''};
+const socialCopyDirty={title:false,subtitle:false,tagLabel:false,markLeft:false,markRight:false,disclaimer:false};
 // Shared theme system: market-share SVG and estimator Canvas use identical tokens.
 const socialPalettes=window.PosterThemes.estimatorPalettes;
 const paletteLabels=Object.fromEntries(Object.entries(socialPalettes).map(([id,p])=>[id,p.name]));
@@ -418,11 +419,12 @@ function syncPaletteChooser(){
  });
  if($('posterTheme'))$('posterTheme').value=socialState.theme;
 }
-function posterCopyDefaults(type,o){const hd=posterHeading(type,o);let warning=o.fit.fitMode==='robust'?' · 部分异常标定已排除':o.fit.fitMode==='single'?' · 仅1组标定':'';return {title:hd.title,subtitle:hd.sub,markLeft:'归零return0',markRight:'数码销量观察 / DATA REPORT',disclaimer:`${socialSourceName(o)}榜单截图 · 柱长像素拟合 | 销量为估算值
+function defaultPosterTag(o){if(o.d.archiveRows)return o.d.label;if(!o.models.length)return '';return String(o.d.label||'').replace(/\.(?:png|jpe?g|webp)$/i,'').trim()}
+function posterCopyDefaults(type,o){const hd=posterHeading(type,o);let warning=o.fit.fitMode==='robust'?' · 部分异常标定已排除':o.fit.fitMode==='single'?' · 仅1组标定':'';return {title:hd.title,subtitle:hd.sub,tagLabel:defaultPosterTag(o),markLeft:'归零return0',markRight:'数码销量观察 / DATA REPORT',disclaimer:`${socialSourceName(o)}榜单截图 · 柱长像素拟合 | 销量为估算值
 仅本次入榜样本，不代表全市场销量 / 品牌市场份额
 标定 ${calibrationCount(o)} 组${warning} · 合并行按一条记录统计`}}
-function syncPosterCopyUI(type,o,force=false){const defs=posterCopyDefaults(type,o);const bind={title:'copyTitle',subtitle:'copySubtitle',markLeft:'copyMarkLeft',markRight:'copyMarkRight',disclaimer:'copyDisclaimer'};for(const [key,id] of Object.entries(bind)){if(force||!socialCopyDirty[key])socialCopyState[key]=defs[key];if($(id) && $(id).value!==socialCopyState[key])$(id).value=socialCopyState[key];}}
-function getPosterCopy(type,o){const defs=posterCopyDefaults(type,o);return {title:socialCopyDirty.title?socialCopyState.title:defs.title,subtitle:socialCopyDirty.subtitle?socialCopyState.subtitle:defs.subtitle,markLeft:socialCopyDirty.markLeft?socialCopyState.markLeft:defs.markLeft,markRight:socialCopyDirty.markRight?socialCopyState.markRight:defs.markRight,disclaimer:socialCopyDirty.disclaimer?socialCopyState.disclaimer:defs.disclaimer}}
+function syncPosterCopyUI(type,o,force=false){const defs=posterCopyDefaults(type,o);const bind={title:'copyTitle',subtitle:'copySubtitle',tagLabel:'copyTagLabel',markLeft:'copyMarkLeft',markRight:'copyMarkRight',disclaimer:'copyDisclaimer'};for(const [key,id] of Object.entries(bind)){if(force||!socialCopyDirty[key])socialCopyState[key]=defs[key];if($(id) && $(id).value!==socialCopyState[key])$(id).value=socialCopyState[key];}}
+function getPosterCopy(type,o){const defs=posterCopyDefaults(type,o);return {title:socialCopyDirty.title?socialCopyState.title:defs.title,subtitle:socialCopyDirty.subtitle?socialCopyState.subtitle:defs.subtitle,tagLabel:socialCopyDirty.tagLabel?socialCopyState.tagLabel:defs.tagLabel,markLeft:socialCopyDirty.markLeft?socialCopyState.markLeft:defs.markLeft,markRight:socialCopyDirty.markRight?socialCopyState.markRight:defs.markRight,disclaimer:socialCopyDirty.disclaimer?socialCopyState.disclaimer:defs.disclaimer}}
 function resetPosterCopy(force=false){for(const k of Object.keys(socialCopyDirty))socialCopyDirty[k]=false;const o=socialData();syncPosterCopyUI(socialState.template,o,true);if(!force)updateSocial(false)}
 function activeColumnMode(){const chosen=$('contentColumn')?.value||'auto';if(chosen!=='auto')return chosen;return({top:'weekly',versus:'duel',brands:'brands',leader:'leader'})[socialState.template]||'weekly'}
 function columnModeLabel(mode=activeColumnMode()){return({weekly:'每周 TOP10 栏目',duel:'双机销量 PK 栏目',brands:'品牌上榜实力栏目',leader:'榜首断层分析栏目'})[mode]||'自动栏目'}
@@ -460,6 +462,7 @@ P6 结尾：说明这是当前榜单的头部集中度，不是全市场集中�
  return {summary,xhs,dy,carousel};}
 function normalizeDuelSelection(data){
  if(socialState.lastDS!==data.d){
+  socialCopyDirty.tagLabel=false;
   socialState.lastDS=data.d;socialState.duelA=0;
   const target=data.models.find(m=>m.brand==='华为');
   socialState.duelB=target?target.index:1;
@@ -594,7 +597,7 @@ function drawDataCard(ctx,x,y,w,h,p,r=Math.round(1080*window.PosterThemes.layout
  ctx.strokeStyle=p.hair;ctx.lineWidth=1.6;
  ctx.beginPath();ctx.roundRect(x+.8,y+.8,w-1.6,h-1.6,r);ctx.stroke();
 }
-function posterFrame(ctx,W,H,type,o,p,includeFooter=true){const copy=getPosterCopy(type,o);rounded(ctx,70,55,162,42,13,p.panel2);canvasText(ctx,copy.markLeft,87,84,25,p.accent,'800');canvasText(ctx,copy.markRight,1010,84,22,p.sub,'600','right');canvasText(ctx,copy.title,70,189,72,p.ink,'850','left',940);canvasText(ctx,copy.subtitle,72,239,29,p.sub,'550','left',940);rounded(ctx,70,258,Math.min(900,Math.max(250,18*Array.from(o.d.label).length+48)),48,15,p.panel2);canvasText(ctx,o.d.label,91,291,26,p.accent,'760');horizontalRule(ctx,321,p);
+function posterFrame(ctx,W,H,type,o,p,includeFooter=true){const copy=getPosterCopy(type,o);rounded(ctx,70,55,162,42,13,p.panel2);canvasText(ctx,copy.markLeft,87,84,25,p.accent,'800');canvasText(ctx,copy.markRight,1010,84,22,p.sub,'600','right');canvasText(ctx,copy.title,70,189,72,p.ink,'850','left',940);canvasText(ctx,copy.subtitle,72,239,29,p.sub,'550','left',940);const tag=copy.tagLabel.trim();if(tag){const tagWidth=Math.min(900,Math.max(250,Math.ceil(measureMixedCanvas(ctx,tag,26,'760').width+42)));rounded(ctx,70,258,tagWidth,48,15,p.panel2);canvasText(ctx,tag,91,291,26,p.accent,'760','left',tagWidth-42)}horizontalRule(ctx,321,p);
  if(includeFooter)drawPosterFooter(ctx,H,type,o,p,0,0);
 }
 // 页脚单独定位：右侧/底部安全区是“内容不能越过”的边界，
@@ -803,7 +806,7 @@ function initSocial(){initWatermarkControls();updateDuelSelects();const previous
  $('safeRight').oninput=ev=>{socialState.safeRight=Number(ev.target.value);updateSafeLabels();updateSocial(false)};
  $('safeBottom').oninput=ev=>{socialState.safeBottom=Number(ev.target.value);updateSafeLabels();updateSocial(false)};
  for(const key of ['A','B'])$('duel'+key).onchange=ev=>{socialState['duel'+key]=Number(ev.target.value);if(socialState.duelA===socialState.duelB){notify('请选择两个不同的机型');socialState['duel'+key]=(socialState['duel'+key]+1)%Math.max(2,socialData().models.length);$('duel'+key).value=String(socialState['duel'+key])}updateSocial(true)};
- [['copyTitle','title'],['copySubtitle','subtitle'],['copyMarkLeft','markLeft'],['copyMarkRight','markRight'],['copyDisclaimer','disclaimer']].forEach(([id,key])=>{$(id).addEventListener('input',ev=>{socialCopyState[key]=ev.target.value;socialCopyDirty[key]=true;updateSocial(false)})});
+ [['copyTitle','title'],['copySubtitle','subtitle'],['copyTagLabel','tagLabel'],['copyMarkLeft','markLeft'],['copyMarkRight','markRight'],['copyDisclaimer','disclaimer']].forEach(([id,key])=>{$(id).addEventListener('input',ev=>{socialCopyState[key]=ev.target.value;socialCopyDirty[key]=true;updateSocial(false)})});
  $('resetPosterCopy').onclick=()=>{resetPosterCopy();notify('已恢复当前模板默认文案')};
  $('downloadCard').onclick=saveCard;$('downloadAllCards').onclick=saveBundle;
  $('exportInsight').onclick=()=>{const o=socialData();exportCSVBlob(insightRows(o),slugName(o.d.label)+'_机型派生分析.csv')};$('exportBrands').onclick=()=>{const o=socialData();exportCSVBlob(brandRows(o),slugName(o.d.label)+'_品牌上榜样本分析.csv')};

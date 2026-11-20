@@ -24,7 +24,8 @@
   const header = ['source','series','period','period_start','period_end','model_key','model','raw_model','brand_group','rank','observed_wan','imputed_wan','weekly_wan','cumulative_wan','cutoff_wan','is_imputed','impute_method','observed_weeks','total_weeks','coverage_rate'];
   const scopes = new Map(), all = [], byScope = [];
   for (const r of rows) {
-    if (r[col.period_type] !== 'weekly' || Number(r[col.top_n]) !== 30) continue;
+    // 同来源、同系列的周榜统一追踪；TOP 数量不是机型时间序列的过滤条件。
+    if (r[col.period_type] !== 'weekly') continue;
     const id = JSON.stringify([r[col.source],r[col.series]]);
     if (!scopes.has(id)) scopes.set(id,[]);
     scopes.get(id).push(r);
@@ -47,7 +48,8 @@
       const thu=new Date(t+3*86400000),y=thu.getUTCFullYear(),jan4=Date.UTC(y,0,4);
       const first=jan4-((new Date(jan4).getUTCDay()+6)%7)*86400000;
       const period=y+'-W'+String(1+Math.round((t-first)/weekMs)).padStart(2,'0');
-      const full=list.length===30 && list.every(r=>Number(r[col.rank])>=1&&Number(r[col.rank])<=30);
+      // 只有明确标称 TOP30 且 1–30 名齐全，才采用原先的 TOP30 门槛约束。
+      const full=list.length===30 && list.every(r=>Number(r[col.top_n])===30&&Number(r[col.actual_count])===30&&Number(r[col.rank])>=1&&Number(r[col.rank])<=30) && new Set(list.map(r=>Number(r[col.rank]))).size===30;
       const cutoff=full?Math.min(...list.map(r=>Number(r[col.estimated_wan]))):null;
       const map=new Map();
       for (const r of list) {
@@ -70,15 +72,15 @@
         const w=weeks[i], original=w.map.get(m.key), value=observed[i];
         let estimate=null, method='missing';
         if (value!==null) method='observed';
-        else if (!w.hasBoard) method='missing_board';
         else if(i<firstIndex) method='before_first_observation';
         else {
+          if (!w.hasBoard) method='missing_board';
           let left=i-1,right=i+1;
           while(left>=0&&observed[left]===null) left--;
           while(right<weeks.length&&observed[right]===null) right++;
           if(left>=0&&right<weeks.length&&right-left-1<=3) {
             estimate=observed[left]+(observed[right]-observed[left])*(i-left)/(right-left);
-            method='linear_interpolation';
+            method=w.hasBoard?'linear_interpolation':'linear_interpolation_missing_board';
           } else if(left===i-1&&i===weeks.length-1&&w.cutoff!==null) {
             estimate=observed[left]; method='previous_week';
           }
@@ -307,7 +309,7 @@
   const tracker = document.createElement('section');
   tracker.className = 'panel';
   tracker.innerHTML = '<h2 class="panel-title">热销机型追踪</h2>' +
-    '<p class="panel-desc">基于同来源、同系列的周 TOP30 榜单构建连续机型销量序列。默认追踪全区间上榜率至少 80% 的机型；仅对短期缺失进行估算。</p>' +
+    '<p class="panel-desc">基于同来源、同系列的周销量榜单构建连续机型销量序列，兼容不同榜单规模。默认追踪全区间上榜率至少 80% 的机型；仅对短期缺失进行估算。</p>' +
     '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px">' +
     '<div><label class="lbl" for="trackerScope">榜单口径</label><select id="trackerScope" class="field ui-field"></select></div>' +
     '<div><label class="lbl" for="trackerMode">统计方式</label><select id="trackerMode" class="field ui-field"><option value="weekly_wan">周销量增量</option><option value="cumulative_wan">区间累计增量</option></select></div></div>' +
@@ -316,7 +318,7 @@
     '<button class="secondary" type="button" id="trackerExport" disabled>导出完整整理后 CSV</button>' +
     '<div id="trackerStatus" class="msg" aria-live="polite"></div>' +
     '<div id="trackerChart" style="overflow:auto"></div><div id="trackerLegend" style="display:flex;flex-wrap:wrap;gap:8px 16px"></div>' +
-    '<p class="mini">单位：万台。空心点标识插补周，相关线段用虚线；缺失不等于零。完整榜单的末位销量仅作为落榜假设下的插补上限；不完整榜单无此约束。累计值从首次观测开始，未解决的缺失导致后续累计留空，并非上市以来累计销量。</p>' +
+    '<p class="mini">单位：万台。原始观测值使用实心点和实线，插补值使用空心点及相关虚线；累计曲线从首次含插补的周起使用虚线。不同榜单规模的原始数据均保留。仅当 TOP30 榜单完整时，末位销量作为落榜假设下的插补上限。整周无榜单时，只有前后均有观测且连续缺失不超过3周才进行插补，不设榜单门槛；其他缺失留空。累计值从首次观测开始，未解决的缺失导致后续累计留空，并非上市以来累计销量。</p>' +
     '<div class="tablewrap"><table class="ranktable"><thead><tr><th>机型</th><th>上榜率</th><th>插补周数</th><th class="num">最新周销量 / 万台</th><th class="num">累计增量 / 万台</th></tr></thead><tbody id="trackerRows"></tbody></table></div>';
   panel.after(tracker);
   let trackerData = {header:[],rows:[],scopes:[]};
@@ -342,18 +344,18 @@
     const scope=currentScope(), chart=$('trackerChart'), legend=$('trackerLegend'), table=$('trackerRows');
     chart.replaceChildren();legend.replaceChildren();table.replaceChildren();
     $('trackerExport').disabled=!trackerData.rows.length;
-    if(!scope){$('trackerStatus').textContent='暂无符合口径的周 TOP30 数据。';return;}
+    if(!scope){$('trackerStatus').textContent='暂无符合口径的周销量榜单数据。';return;}
     const c=Object.fromEntries(trackerData.header.map((h,i)=>[h,i]));
     const models=scope.models.filter(m=>trackerSelected.has(m.key));
     const metric=$('trackerMode').value;
     const curves=models.map((m,i)=>({m,color:trackerPalette[i%trackerPalette.length],rows:scope.rows.filter(r=>r[c.model_key]===m.key)}));
-    $('trackerStatus').textContent=scope.weeks.length+' 周 / '+scope.models.length+' 款长期追踪机型 · 已选 '+models.length+' 款';
+    $('trackerStatus').textContent=scope.weeks.length+' 周 / '+scope.models.length+' 款长期追踪机型 · 已选 '+models.length+' 款 · 插补 '+curves.reduce((n,o)=>n+o.rows.filter(r=>r[c.is_imputed]==='1').length,0)+' 条';
     if(!curves.length)return;
     const val=r=>r[c[metric]]===''?null:Number(r[c[metric]]);
     const max=Math.max(1,...curves.flatMap(o=>o.rows.map(val).filter(v=>v!==null)));
     const step=Math.pow(10,Math.floor(Math.log10(max)))/2;
     const top=Math.ceil(max/step)*step;
-    const W=Math.max(680,scope.weeks.length*48+80), H=310, L=55, R=20, T=20, B=45;
+    const W=Math.max(680,scope.weeks.length*48+80), H=310, L=55, R=55, T=20, B=45;
     const x=i=>L+i*(W-L-R)/Math.max(1,scope.weeks.length-1), y=v=>H-B-v/top*(H-B-T);
     const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
     svg.setAttribute('viewBox','0 0 '+W+' '+H);svg.style.width='100%';svg.style.minWidth='560px';

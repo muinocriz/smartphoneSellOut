@@ -59,7 +59,8 @@
     } else fail('未知统计周期类型。');
     const top = String(m.top ?? '').trim();
     if (top && (!/^\d+$/.test(top) || !Number.isSafeInteger(Number(top)) || Number(top) < count || Number(top) < 1)) fail('标称 TOP 数量必须为正整数，且不少于实际条目数；未知时留空。');
-    const id = [source, series, m.type, period].map(encodeURIComponent).join('|');
+    // Keep natural-language labels readable; escape only the separator and escape marker.
+    const id = [source, series, m.type, period].map(s => s.replace(/%/g, '%25').replace(/\|/g, '%7C')).join('|');
     return {id, source, series, type:m.type, period, start, end, top:top ? String(Number(top)) : ''};
   }
   function buildRows(o = derivedData()) {
@@ -136,7 +137,10 @@
           !Number.isFinite(Date.parse(r[col.saved_at]))) fail('CSV 存在无效估算记录：' + r[col.dataset_id]);
       const m = normalizeMeta({source:r[col.source],series:r[col.series],type:r[col.period_type],period:r[col.period],
         start:r[col.period_start],end:r[col.period_end],top:r[col.top_n]}, count);
-      if (m.id !== r[col.dataset_id] || m.period !== r[col.period] || m.start !== r[col.period_start] || m.end !== r[col.period_end]) fail('CSV 榜单标识或统计周期不一致。');
+      // Accept the original URL-encoded ID as well, then normalize before grouping/merging.
+      const legacyId = [m.source, m.series, m.type, m.period].map(encodeURIComponent).join('|');
+      if ((m.id !== r[col.dataset_id] && legacyId !== r[col.dataset_id]) || m.period !== r[col.period] || m.start !== r[col.period_start] || m.end !== r[col.period_end]) fail('CSV 榜单标识或统计周期不一致。');
+      r[col.dataset_id] = m.id;
     }
     const shared = ['source','series','period_type','period','period_start','period_end','top_n','actual_count',
       'fit_k','fit_mode','calibration_count','accepted_count','outlier_threshold','algorithm_version','saved_at'];

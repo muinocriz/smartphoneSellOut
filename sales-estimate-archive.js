@@ -26,14 +26,11 @@
     const t = Date.parse(iso + 'T00:00:00Z');
     return Number.isFinite(t) && dateText(t) === iso ? t : null;
   }
-  function defaults(d) {
-    const common = {source:'RD观测', series:'手机销量榜', type:'weekly', period:'', start:'', end:'', top:''};
-    if (d.id === '30') return {...common, period:'2026-W45', top:'30'};
-    if (d.id === '40') return {...common, type:'monthly', period:'2026-M09', top:'40'};
-    return common;
+  function defaults() {
+    return {source:'RD观测', series:'手机销量榜', type:'weekly', period:'', start:'', end:'', top:''};
   }
   function datasetMeta(d) {
-    if (!metaByDataset.has(d)) metaByDataset.set(d, defaults(d));
+    if (!metaByDataset.has(d)) metaByDataset.set(d, defaults());
     return metaByDataset.get(d);
   }
   function normalizeMeta(m, count) {

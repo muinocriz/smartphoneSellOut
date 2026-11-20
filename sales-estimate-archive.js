@@ -396,7 +396,9 @@
       label.append(cb,document.createTextNode(' '+m.name));target.append(label);
     }
   }
+  let trackerPublicationChart=null;
   function renderTracker(){
+    trackerPublicationChart=null;
     const scope=currentScope(), chart=$('trackerChart'), legend=$('trackerLegend'), table=$('trackerRows');
     chart.replaceChildren();legend.replaceChildren();table.replaceChildren();
     $('trackerExport').disabled=!trackerData.rows.length;
@@ -408,6 +410,7 @@
     $('trackerStatus').textContent=scope.weeks.length+' 周 / '+scope.models.length+' 款长期追踪机型 · 已选 '+models.length+' 款 · 插补 '+curves.reduce((n,o)=>n+o.rows.filter(r=>r[c.is_imputed]==='1').length,0)+' 条';
     if(!curves.length){$('trackerStatus').textContent+=' · 请勾选符合当前参数的机型；必要时降低覆盖率。';return;}
     const val=r=>r[c[metric]]===''?null:Number(r[c[metric]]);
+    trackerPublicationChart={periods:scope.weeks.map(w=>w.period),unit:'万台',lines:curves.map(o=>{let prior=false;return {name:o.m.name,color:o.color,values:o.rows.map(val),imputed:o.rows.map(r=>{const now=r[c.is_imputed]==='1';prior=prior||now;return metric==='cumulative_wan'?prior:now;})};})};
     const max=Math.max(1,...curves.flatMap(o=>o.rows.map(val).filter(v=>v!==null)));
     const step=Math.pow(10,Math.floor(Math.log10(max)))/2;
     const top=Math.ceil(max/step)*step;
@@ -503,8 +506,9 @@
   for(const [id,label] of Object.entries(researchViews)){
     const b=document.createElement('button');b.type='button';b.textContent=label;b.className='secondary';b.setAttribute('aria-pressed','false');b.onclick=()=>setResearchView(id);researchButtons[id]=b;researchNav.append(b);
   }
-  let researchExportRows=[];
+  let researchExportRows=[],researchPublicationChart=null,researchPublicationTable=null;
   function researchTable(headers,rows){
+    researchPublicationTable={headers:[...headers],rows:rows.map(r=>[...r])};
     const p=readTrackerParams();const rawView=['tail','flow','brand'].includes(researchView);const meta=['榜单口径','统计起始周','统计结束周','最低覆盖率%','覆盖率分母','数据模式','插补方法','最大缺失周','允许整周插补','允许末周估算'];const values=[p.scopeId,p.start,p.end,rawView?'不适用':p.coverage,rawView?'不适用':p.coverageBase,rawView?'raw':p.dataMode,rawView||p.dataMode==='raw'?'不适用':p.method,rawView||p.dataMode==='raw'?'不适用':p.maxGap,rawView||p.dataMode==='raw'?'不适用':String(p.missingBoard),rawView||p.dataMode==='raw'?'不适用':String(p.trailing)];const scope=currentScope(),isTop=['flow','brand'].includes(researchView),isGroup=['series','generation','structure'].includes(researchView);meta.push('榜单样本模式','固定TOP K','机型分组定义');values.push(isTop?(topKValue()===null?'all':'fixed'):'不适用',isTop&&topKValue()!==null?String(topKValue()):'',isGroup&&scope?JSON.stringify(activeGroups(scope)):'');researchExportRows=[[...meta,...headers],...rows.map(r=>[...values,...r])];
     $('researchHead').innerHTML='<tr>'+headers.map(h=>'<th>'+e(h)+'</th>').join('')+'</tr>';
     $('researchRows').innerHTML=rows.length?rows.map(r=>'<tr>'+r.map(v=>'<td>'+e(v)+'</td>').join('')+'</tr>').join(''):'<tr><td colspan="'+headers.length+'">暂无符合条件的数据</td></tr>';
@@ -513,6 +517,7 @@
   const numberText=(v,d=2)=>v==null?'':Number(v).toFixed(d);
   // Chart points are explicit nullable observations; no missing value is replaced with zero.
   function researchPlot(weeks,lines,unit,limit){
+    researchPublicationChart={periods:weeks.map(w=>w.period),lines:lines.map((l,i)=>({name:l.name,color:trackerPalette[i%trackerPalette.length],values:[...l.values],imputed:l.imputed?[...l.imputed]:[]})),unit,limit};
     const chart=$('researchChart'),legend=$('researchLegend');
     if(!lines.length||!weeks.length)return;
     const max=Math.max(1,...lines.flatMap(l=>l.values.filter(v=>v!==null)));
@@ -675,6 +680,7 @@
   }
   function renderResearch(){
     if(researchView==='model')return;
+    researchPublicationChart=null;researchPublicationTable=null;
     const scope=currentScope(),notice=$('researchNotice');
     $('researchTitle').textContent=researchViews[researchView];$('researchDesc').textContent='';
     $('researchChart').replaceChildren();$('researchLegend').replaceChildren();researchTable([],[]);notice.textContent='';
@@ -764,6 +770,57 @@
   $('researchTopMode').onchange=renderResearch;$('researchTopK').onchange=renderResearch;
   $('researchStreak').oninput=renderResearch;$('researchStart').onchange=renderResearch;$('researchEnd').onchange=renderResearch;
   $('researchExport').onclick=()=>exportCSVBlob(researchExportRows,'sales-research-'+researchView+'.csv');
+
+  const researchSubtitles={model:'重点机型的周销量与累计增量变化',series:'系列样本机型的销量合计与变化',generation:'新旧两代样本机型的销量占比变化',structure:'不同产品分组的样本销量贡献',tier:'相同产品档位的新旧机型销量对比',tail:'连续上榜纪录与销量长尾表现',flow:'新进入、退出及留榜机型的变化',event:'活动期与等长对照期的销量差异',brand:'榜单样本的品牌销量占比与集中度'};
+  const researchSend=document.createElement('button');researchSend.type='button';researchSend.className='primary';researchSend.textContent='用当前专题生成图卡';
+  researchSend.style.margin='8px 0';researchNav.after(researchSend);
+  researchSend.onclick=()=>sendResearchToStudio(researchView);
+  function researchSnapshot(key){
+    if(!Object.prototype.hasOwnProperty.call(researchViews,key))return null;
+    setResearchView(key);
+    const scope=currentScope();if(!scope)return null;
+    const p=readTrackerParams(),rawView=['tail','flow','brand'].includes(key),metric=$('trackerMode').value;
+    const range=scope.weeks[0].period+'—'+scope.weeks[scope.weeks.length-1].period;
+    let chart=key==='model'?trackerPublicationChart:researchPublicationChart,table=key==='model'?null:researchPublicationTable;
+    if(chart){
+      // Keep original line colors, precisely preserve missing points and estimate flags.
+      chart={...chart,lines:chart.lines.map(l=>({...l,values:l.values.map(v=>Number.isFinite(v)?v:null),imputed:[...(l.imputed||[])]}))};
+      chart.imputed=chart.lines.some(l=>l.values.some((v,i)=>v!==null&&l.imputed[i]));
+    }
+    const hasData=chart?chart.lines.some(l=>l.values.some(Number.isFinite)):key==='tail'&&!!table?.rows.length;
+    if(!hasData)return null;
+    if(chart&&chart.lines.length>24){notify('单张图卡最多展示24条曲线，请减少研究机型或分组。');return null;}
+    const top=['flow','brand'].includes(key)?topKValue():null;
+    const modeLabel=rawView?'仅原始观测':p.dataMode==='raw'?'仅原始观测':p.maxGap===0?'不插补':p.method==='bounded'?'门槛约束插补':'线性插值';
+    const displayMetric=key==='generation'||key==='structure'?'样本销量占比':key==='brand'?'榜单品牌销量占比':key==='flow'?'榜单流动 · '+(top===null?'原始全量':'固定 TOP'+top):key==='tail'?'连续上榜 · ≥ '+$('researchStreak').value+' 周':key==='event'?'对照期 / 活动期周销量':metric==='cumulative_wan'?'区间累计增量':'周销量增量';
+    let detail='';
+    if(['series','generation','structure'].includes(key))detail=$('researchGroupInfo').textContent;
+    if(key==='tier')detail=activePairs(scope).map(q=>q.name+'：'+q.old+' / '+q.next).join('；');
+    if(key==='event')detail=$('researchNotice').textContent;
+    if(['flow','brand'].includes(key))detail=$('researchTopInfo').textContent;
+    const note='数据为历史榜单估算样本，不代表全市场销量或份额；缺失不等于零。'+(chart?.imputed?'图中含插补值。':'');
+    const chartNote=key==='brand'?'仅榜单样本占比 · '+(top===null?'原始全量':'固定 TOP'+top):key==='flow'?'相邻可比较周 · 进入/退出不代表上市/停销':key==='tail'?'连续上榜只计原始观测 · 未入榜不等于零销量':key==='event'?detail:key==='generation'||key==='structure'?'仅分组样本占比 · 不代表市场份额':'估算销量 · 仅所选样本，非上市以来累计';
+    const summary=key==='model'?$('trackerStatus').textContent:$('researchNotice').textContent;
+    const description=key==='model'?'选中机型在当前统计区间的销量趋势。':$('researchDesc').textContent;
+    const csv=key==='model'?[trackerData.header,...scope.rows.filter(r=>trackerSelected.has(r[trackerData.header.indexOf('model_key')]))]:researchExportRows;
+    const snapshot={ready:true,key,title:researchViews[key],subtitle:researchSubtitles[key],range,source:scope.source+' / '+scope.series,context:scope.source+' / '+scope.series+' · '+range+' · '+modeLabel+(top===null?'':' · 固定 TOP'+top),modeLabel,displayMetric,chart,table,summary,description,detail,note,chartNote,csv};
+    return JSON.parse(JSON.stringify(snapshot));
+  }
+  function sendResearchToStudio(key=researchView){
+    const s=researchSnapshot(key);
+    if(!s){notify('当前专题没有可发布的研究结果；请检查区间、机型及分组。');return false;}
+    if(!applyResearchTopicToStudio(s))return false;
+    activateModuleTab('social');$('socialStudio').scrollIntoView({behavior:'smooth',block:'start'});return true;
+  }
+  // Add the nine real research topics to the existing publishing-topic chooser.
+  const chooser=$('templateChooser');
+  for(const [i,[key,label]] of Object.entries(researchViews).entries()){
+    const b=document.createElement('button');b.type='button';b.className='template-option';b.dataset.template='research:'+key;
+    b.innerHTML='<span class="template-symbol">'+String(i+5).padStart(2,'0')+'</span><span><b>'+e(label)+'</b><small>'+e(researchSubtitles[key])+'</small></span>';chooser.append(b);
+  }
+  const importCurrent=document.createElement('button');importCurrent.type='button';importCurrent.className='secondary';importCurrent.textContent='导入当前研究专题';importCurrent.style.margin='8px 0';
+  importCurrent.onclick=()=>sendResearchToStudio(researchView);chooser.after(importCurrent);
+
   setResearchView('model');
 
 
@@ -853,7 +910,7 @@
     if (!list || !list.length) return;
     if (!socialArchiveDataset || socialArchiveDataset.id !== list[0][col.dataset_id] ||
         JSON.stringify(socialArchiveDataset.archiveRows) !== JSON.stringify(list)) setSocialArchiveDataset(studioDataset(list));
-    if (scroll) { activateModuleTab('social'); $('socialStudio').scrollIntoView({behavior:'smooth',block:'start'}); }
+    if (scroll) { if(researchStudioActive()){leaveResearchStudio('top');updateSocial(true);} activateModuleTab('social'); $('socialStudio').scrollIntoView({behavior:'smooth',block:'start'}); }
   }
   $('archiveSelect').onchange = () => { showHistoryRows(); bindSelectedHistory(); };
   $('archiveUseStudio').onclick = () => bindSelectedHistory(true);
@@ -903,7 +960,7 @@
   };
   activeDataset = ds();
   activeDataset.archiveOutlier = $('outlier').value;
-  window.SalesEstimateArchive = Object.freeze({buildRows, normalizeModelName, buildSalesPanel: (rows,options) => buildSalesPanel(rows,col,options), header:HEADER.slice()});
+  window.SalesEstimateArchive = Object.freeze({buildRows, sendResearchToStudio, normalizeModelName, buildSalesPanel: (rows,options) => buildSalesPanel(rows,col,options), header:HEADER.slice()});
   updateControls(true);
   async function loadRepository() {
     loading = true;

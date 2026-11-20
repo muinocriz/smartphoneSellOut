@@ -133,7 +133,7 @@
 </section>
 <section class="panel"><div class="righttop"><h2 class="panel-title">标定计算列表</h2><button id="clearCal" type="button" class="btnlink danger">清空</button></div><p class="panel-desc">每一组都会产生一个“台 / px”的比例。偏离明显的组会自动标红。</p>
 <div id="calList"><div class="empty">还没有标定数据</div></div><div id="fitInfo" class="msg">添加一组已知销量后，即可推算全部机型。</div><label class="lbl" for="outlier">异常阈值</label><select class="field ui-field" id="outlier"><option value="0.10">±10%</option><option value="0.15" selected>±15%（默认）</option><option value="0.20">±20%</option><option value="0.30">±30%</option></select></section>
-<section class="panel" id="uploadPanel" hidden><h2 class="panel-title">导入其他 TOP 榜截图</h2><div class="uploadbox"><label class="lbl" for="imageUpload">图片文件（PNG / JPG / WebP）</label><input type="file" id="imageUpload" accept="image/png,image/jpeg,image/webp"></div><p id="uploadResult" class="stepnote">自动测量图中的蓝色水平柱长。需使用与示例相近的白底、蓝柱样式。</p><label class="lbl" for="customNames">机型名称（按榜单排名，一行一个）</label><textarea id="customNames" class="field ui-field textarea" placeholder="可粘贴每一名的机型名称；留空时显示第N名"></textarea><button id="applyNames" type="button" class="secondary" style="margin-top:10px">应用机型名称</button><div class="msg">文字识别不包含在离线工具内。导入图片后会自动给出“第N名”，你可以粘贴机型名称批量替换。</div></section>
+<section class="panel" id="uploadPanel" hidden><h2 class="panel-title">导入其他 TOP 榜截图</h2><div class="uploadbox"><label class="lbl" for="imageUpload">图片文件（PNG / JPG / WebP）</label><input type="file" id="imageUpload" accept="image/png,image/jpeg,image/webp"></div><p id="uploadResult" class="stepnote">自动测量图中的蓝色水平柱长。需使用与示例相近的白底、蓝柱样式。</p><label class="lbl" for="customNames">机型名称（按榜单排名，一行一个）</label><textarea id="customNames" class="field ui-field textarea" placeholder="可粘贴每一名的机型名称；留空时显示第N名"></textarea><button id="applyNames" type="button" class="secondary" style="margin-top:10px">应用机型名称</button><div id="nameImportStatus" class="msg" role="status" hidden></div><div class="msg">文字识别不包含在离线工具内。导入图片后会自动给出“第N名”，你可以粘贴机型名称批量替换。</div></section>
 </aside><div>
 <section class="panel"><div class="righttop"><div><h2 class="panel-title">销量估算结果</h2><p class="panel-desc" id="tableDesc">所有机型的柱条像素长度已测量；标定后自动填写销量。</p></div><button id="exportCsv" class="secondary" type="button">导出 CSV</button></div>
 <div class="table-actions"><input id="searchRows" class="field ui-field search" placeholder="搜索品牌 / 机型"><div class="actions-right"><span class="caption" id="visibleCount"></span><button class="secondary" id="resetSearch" type="button">全部</button></div></div><div class="tablewrap"><table class="ranktable"><thead><tr><th>排名</th><th>机型</th><th class="num">柱长 / px</th><th>相对柱长</th><th class="num">估算销量 / 万台</th></tr></thead><tbody id="rows"></tbody></table></div><div class="explain method">销量保留适当小数仅为方便比较，并非真实销量的精度保证。条纹和 JPEG 边缘可能引入约 ±1–2 像素的测量误差；较短柱条的不确定性相对更高。</div></section>
@@ -345,14 +345,34 @@ $('tabs').addEventListener('click',ev=>{const btn=ev.target.closest('[data-ds]')
 $('modeSingle').onclick=()=>{mode='single';$('singlePane').hidden=false;$('groupPane').hidden=true;$('modeSingle').classList.add('on');$('modeGroup').classList.remove('on')};
 $('modeGroup').onclick=()=>{mode='group';$('singlePane').hidden=true;$('groupPane').hidden=false;$('modeSingle').classList.remove('on');$('modeGroup').classList.add('on')};
 $('amount').addEventListener('input',previewAmount);$('inputUnit').addEventListener('change',previewAmount);$('poolSearch').addEventListener('input',renderPool);$('searchRows').addEventListener('input',()=>renderRows(getFit()));$('resetSearch').onclick=()=>{$('searchRows').value='';renderRows(getFit())};$('addCal').onclick=addCal;$('outlier').addEventListener('change',()=>renderAll(false));$('clearCal').onclick=()=>{ds().calibrations=[];renderAll(false)};$('exportCsv').onclick=exportCSV;
-$('imageUpload').onchange=async ev=>{const file=ev.target.files[0];if(!file)return;const url=URL.createObjectURL(file);const img=new Image();try{await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=reject;img.src=url});const data=parseImage(img);datasets.custom={id:'custom',label:file.name,image:url,base:data.base,width:data.width,height:data.height,bars:data.bars,calibrations:[]};$('uploadResult').textContent=`已识别 ${data.bars.length} 条蓝色柱条。起点 x ≈ ${data.base}px。请核对排名及柱长；可在下方粘贴机型名称。`;$('customNames').value='';picked=[];renderAll();notify(`识别完成：${data.bars.length} 条柱条`)}catch(err){$('uploadResult').textContent='识别失败：'+err.message;notify('图片识别失败，请核对蓝柱样式');URL.revokeObjectURL(url)}};
-$('applyNames').onclick=()=>{const names=$('customNames').value.split(/\r?\n/).map(s=>s.trim());const bars=ds().bars;for(let i=0;i<bars.length;i++)if(names[i])bars[i].name=names[i];renderAll();notify('机型名称已更新')};
+$('imageUpload').onchange=async ev=>{const file=ev.target.files[0];if(!file)return;const url=URL.createObjectURL(file);const img=new Image();try{await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=reject;img.src=url});const data=parseImage(img);datasets.custom={id:'custom',label:file.name,image:url,base:data.base,width:data.width,height:data.height,bars:data.bars,calibrations:[]};$('uploadResult').textContent=`已识别 ${data.bars.length} 条蓝色柱条。起点 x ≈ ${data.base}px。请核对排名及柱长；可在下方粘贴机型名称。`;$('customNames').value='';$('nameImportStatus').hidden=true;picked=[];renderAll();notify(`识别完成：${data.bars.length} 条柱条`)}catch(err){$('uploadResult').textContent='识别失败：'+err.message;notify('图片识别失败，请核对蓝柱样式');URL.revokeObjectURL(url)}};
+$('applyNames').onclick=()=>{
+ const names=$('customNames').value.split(/\r?\n/).map(s=>s.trim()),bars=ds().bars,status=$('nameImportStatus');
+ // Ignore trailing empty lines, but preserve interior blank lines so ranks never shift.
+ while(names.length&&!names.at(-1))names.pop();
+ status.hidden=false;
+ if(!bars.length){status.className='msg warn';status.textContent='请先导入榜单图片并识别柱条。';return}
+ const skipped=[],extra=[];
+ for(let i=0;i<bars.length;i++){if(names[i])bars[i].name=names[i];else skipped.push(i+1)}
+ for(let i=bars.length;i<names.length;i++)if(names[i])extra.push(i+1);
+ renderAll();
+ const o=derivedData(),missing=missingPostModels(o),unknown=unclassifiedModels(o).filter(m=>!isMissingPostLabel(m));
+ const issues=[];
+ if(names.length!==bars.length)issues.push(`输入行数 ${names.length}，识别柱条 ${bars.length} 条（按原始行号对应排名）。`);
+ if(skipped.length)issues.push(`未填写的输入行：${skipped.join('、')}（保留原名称）。`);
+ if(extra.length)issues.push(`超出榜单范围的输入行：${extra.join('、')}（未导入）。`);
+ if(missing.length)issues.push(`仍缺少机型名称：${formatModelRows(missing)}。`);
+ if(unknown.length)issues.push(`无法识别品牌：${formatModelRows(unknown)}。请核对品牌前缀。`);
+ status.className='msg '+(issues.length?'warn':'good');
+ status.textContent=issues.length?issues.join(' '):`已更新全部 ${bars.length} 条机型名称，品牌均已识别。`;
+ notify(issues.length?'机型名称已应用，请检查下方详细提示':'机型名称已更新');
+};
 datasets.custom={id:'custom',label:'自定义榜单',image:'',base:0,width:0,height:0,bars:[],calibrations:[]};renderAll();previewAmount();
 
 // --------------------------------------------
 // 图文工作台：本地离线渲染，内容仅由当前榜单和已知销量推算。
 // --------------------------------------------
-const socialState={template:'top',ratio:'3:4',theme:'editorial',duelA:0,duelB:1,lastDS:null,safeEnabled:true,safeRight:15,safeBottom:10,safeGuides:true};
+const socialState={template:'top',ratio:'3:4',theme:'editorial',duelA:0,duelB:1,lastDS:null,duelOptions:null,safeEnabled:true,safeRight:15,safeBottom:10,safeGuides:true};
 const ESTIMATOR_WATERMARK_KEY='smartphoneSellOut_estimator_watermark_v1';
 const watermarkDefaults={diagonalEnabled:false,diagonalText:'归零return0',diagonalOpacity:8,diagonalSize:32,diagonalGap:220,centerEnabled:false,centerText:'归零return0',centerOpacity:12,centerSize:72};
 const watermarkState=(()=>{try{const prev=JSON.parse(localStorage.getItem(ESTIMATOR_WATERMARK_KEY)||'null');return {...watermarkDefaults,...(prev&&typeof prev==='object'?prev:{})}}catch(_){return {...watermarkDefaults}}})();
@@ -429,15 +449,40 @@ P5 集中度：TOP3占比 ${displayPct(o.top3)}，TOP5占比 ${displayPct(o.top5
 P6 结尾：说明这是当前榜单的头部集中度，不是全市场集中度`;}
  const summary=`当前采用：${prefix}。${safeNote} 适用于 ${socialState.ratio==='9:16'?'抖音竖屏':'小红书 / 抖音图文'}。`;
  return {summary,xhs,dy,carousel};}
-function normalizeDuelSelection(){const data=derivedData();if(socialState.lastDS!==current){socialState.lastDS=current;socialState.duelA=0;const target=data.models.find(m=>m.brand==='华为');socialState.duelB=target?target.index:Math.min(1,data.models.length-1)}if(data.models.length<2)return;socialState.duelA=Math.max(0,Math.min(socialState.duelA,data.models.length-1));socialState.duelB=Math.max(0,Math.min(socialState.duelB,data.models.length-1));if(socialState.duelA===socialState.duelB)socialState.duelB=(socialState.duelA+1)%data.models.length}
-function updateDuelSelects(){normalizeDuelSelection();const data=derivedData();for(const key of ['A','B']){const node=$('duel'+key);node.innerHTML=data.models.map(m=>`<option value="${m.index}">#${m.rank} ${e(m.name)}</option>`).join('');node.value=String(socialState['duel'+key])}}
-function missingPostLabels(o){return o.models.filter(m=>/^第\d+名$/.test(m.name)||/^未命名/.test(m.name)).length}
-function unclassifiedCount(o){return o.models.filter(m=>m.brand==='未识别品牌').length}
+function normalizeDuelSelection(data){
+ if(socialState.lastDS!==data.d){
+  socialState.lastDS=data.d;socialState.duelA=0;
+  const target=data.models.find(m=>m.brand==='华为');
+  socialState.duelB=target?target.index:1;
+ }
+ if(!data.models.length){socialState.duelA=0;socialState.duelB=1;return}
+ const max=data.models.length-1;
+ socialState.duelA=Math.max(0,Math.min(socialState.duelA,max));
+ socialState.duelB=Math.max(0,Math.min(socialState.duelB,max));
+ if(max>0&&socialState.duelA===socialState.duelB)socialState.duelB=(socialState.duelA+1)%data.models.length;
+}
+function updateDuelSelects(data=derivedData()){
+ normalizeDuelSelection(data);
+ const options=data.models.map(m=>`<option value="${m.index}">#${m.rank} ${e(m.name)}</option>`).join('');
+ for(const key of ['A','B']){
+  const node=$('duel'+key);
+  if(socialState.duelOptions!==options)node.innerHTML=options;
+  node.disabled=data.models.length<2;
+  const value=data.models.length?String(socialState['duel'+key]):'';
+  if(node.value!==value)node.value=value;
+ }
+ socialState.duelOptions=options;
+}
+function isMissingPostLabel(m){const name=String(m.name).trim();return !name||/^第\d+名$|^未命名/.test(name)}
+function missingPostModels(o){return o.models.filter(isMissingPostLabel)}
+function unclassifiedModels(o){return o.models.filter(m=>m.brand==='未识别品牌')}
+function unclassifiedCount(o){return unclassifiedModels(o).length}
+function formatModelRows(models){return models.map(m=>`第${m.rank}行（${m.name||'空白'}）`).join('、')}
 function canDownloadSocial(o=derivedData(),type=socialState.template){if(!o.canPublish)return false;const namesMissing=o.models.filter(m=>/^第\d+名$/.test(m.name));if(type==='bundle')return !namesMissing.length&&!unclassifiedCount(o);if(type==='brands')return !unclassifiedCount(o);if(type==='top')return !namesMissing.some(m=>m.rank<=10);if(type==='versus')return ![o.models[socialState.duelA],o.models[socialState.duelB]].some(m=>!m||/^第\d+名$/.test(m.name));if(type==='leader')return !namesMissing.some(m=>m.rank<=2);return true}
-function updateSocial(rewriteStory=true){const o=derivedData();if(socialState.lastDS!==current)updateDuelSelects();const safe=o.canPublish;const guard=$('qualityGuard');const status=$('publishStatus');guard.className='msg '+(safe?'good':'warn');status.className='statuspill '+(safe?'ready':o.fit.k!==null?'alert':'');let flag;if(!o.models.length){flag='当前没有可用榜单，请先导入图片并识别柱条。'}else if(o.fit.fitMode==='conflict'||o.fit.fitMode==='median'){flag='标定组之间存在显著冲突：已暂停正式图卡和打包导出。请核对异常值、销量单位及统计周期。'}else if(!o.fit.k){flag='尚未输入已知销量：以下仅能预览柱长比例，不能导出带绝对销量的正式图卡。请先在上方加入至少一组标定。'}else if(o.fit.fitMode==='robust'){flag=`可以导出，但检测到 ${o.fit.statuses.filter(v=>v==='outlier').length} 组异常标定并已暂时排除。请核对数据后再发布。`}else if(o.fit.fitMode==='single'){flag='当前仅有一组标定：可导出估算图卡，但尚不能通过其他已知销量交叉校验。建议增加至少一组。'}else{flag=`当前 ${o.d.calibrations.length} 组已知销量参与检验，拟合正常。图卡均标注“像素比例估算”，不代表全市场销量。`}
- const missing=missingPostLabels(o),unknown=unclassifiedCount(o);
- if(safe&&missing)flag+=` 自定义榜单仍有 ${missing} 个“第N名”占位机型；发布图卡前应补全相应机型名称。`;
- if(safe&&unknown)flag+=` 当前有 ${unknown} 个条目品牌无法识别，品牌分析及整套打包需先补全标准品牌前缀。`;
+function updateSocial(rewriteStory=true){const o=derivedData();updateDuelSelects(o);const safe=o.canPublish;const guard=$('qualityGuard');const status=$('publishStatus');guard.className='msg '+(safe?'good':'warn');status.className='statuspill '+(safe?'ready':o.fit.k!==null?'alert':'');let flag;if(!o.models.length){flag='当前没有可用榜单，请先导入图片并识别柱条。'}else if(o.fit.fitMode==='conflict'||o.fit.fitMode==='median'){flag='标定组之间存在显著冲突：已暂停正式图卡和打包导出。请核对异常值、销量单位及统计周期。'}else if(!o.fit.k){flag='尚未输入已知销量：以下仅能预览柱长比例，不能导出带绝对销量的正式图卡。请先在上方加入至少一组标定。'}else if(o.fit.fitMode==='robust'){flag=`可以导出，但检测到 ${o.fit.statuses.filter(v=>v==='outlier').length} 组异常标定并已暂时排除。请核对数据后再发布。`}else if(o.fit.fitMode==='single'){flag='当前仅有一组标定：可导出估算图卡，但尚不能通过其他已知销量交叉校验。建议增加至少一组。'}else{flag=`当前 ${o.d.calibrations.length} 组已知销量参与检验，拟合正常。图卡均标注“像素比例估算”，不代表全市场销量。`}
+ const missingModels=missingPostModels(o),unknownModels=unclassifiedModels(o).filter(m=>!isMissingPostLabel(m)),missing=missingModels.length,unknown=unknownModels.length;
+ if(missing)flag+=` 尚未补全 ${missing} 个机型名称：${formatModelRows(missingModels)}。`;
+ if(unknown)flag+=` ${unknown} 个条目品牌无法识别：${formatModelRows(unknownModels)}。品牌分析及整套打包需先补全标准品牌前缀。`;
  guard.className='msg '+(safe&&!missing&&!unknown?'good':'warn');status.className='statuspill '+(safe?(missing||unknown?'alert':'ready'):o.fit.k!==null?'alert':'');
  guard.textContent=flag;status.textContent=safe?(unknown||missing?'部分内容待补全':'可导出估算图卡'):o.fit.k?'需核对标定':'待输入标定';$('exportWarning').textContent=safe?'PNG 包含估算口径和样本限制；ZIP 一次包含 4 张图片、4 篇文案、1 张标准销量 CSV 及 2 张 CSV 分析表。':'输出受到质量控制：先完成可靠销量标定，避免传播未经标定的绝对销量。';$('downloadCard').disabled=!canDownloadSocial(o,socialState.template);$('downloadAllCards').disabled=!canDownloadSocial(o,'bundle');
  $('duelSetup').hidden=socialState.template!=='versus';$('previewSize').textContent=socialState.ratio==='3:4'?'1080 × 1440':'1080 × 1920';
@@ -456,7 +501,7 @@ function generateStory(type,o){if(o.models.length<2)return '请先导入至少�
   return `【标题】\n${a.name} vs ${b.name}：同榜销量差距有多少？\n\n【正文】\n基于${period}排行榜截图的柱长估算：\n${a.name}：第${a.rank}名，约${displaySale(a.sale)}。\n${b.name}：第${b.rank}名，约${displaySale(b.sale)}。\n\n${larger.name} 的估算销量约是 ${smaller.name} 的 ${displayTimes(ratio)}，两者相差约 ${displaySale(diff)}。\n\n仅对比同一榜单、同一统计期的上榜记录，不代表两款产品的生命周期总销量。\n${share}\n${note}\n\n#手机PK #数码数据 #手机销量`;
  }
  if(type==='brands'){
-  if(unclassifiedCount(o))return `【品牌资料未完整】\n本榜还有 ${unclassifiedCount(o)} 个条目无法从名称识别品牌。请先补充完整机型名称，再生成品牌对比内容。\n\n${note}`;
+  if(unclassifiedCount(o))return `【品牌资料未完整】\n本榜还有 ${unclassifiedCount(o)} 个条目无法从名称识别品牌：${formatModelRows(unclassifiedModels(o))}。请先补充完整机型名称，再生成品牌对比内容。\n\n${note}`;
   const list=o.brands.slice(0,7).map((b,i)=>`${i+1}. ${b.brand}：${b.count} 条上榜记录，样本估算合计约 ${displaySale(b.sale)}，占入榜样本 ${displayPct(b.share)}`).join('\n');
   return `【标题】\n${period}品牌上榜表现：哪些品牌入榜更集中？\n\n【正文】\n这份TOP榜有 ${o.models.length} 条记录，按品牌归类后，各品牌在“本榜单入榜机型样本”中的估算表现如下：\n${list}\n\n这里的“占比”仅是当前榜单入榜记录之间的估算销量占比；未入榜型号不计入，绝对不能写成国内手机市场份额。\n${note}\n\n#手机品牌 #手机销量 #数码数据`;
  }

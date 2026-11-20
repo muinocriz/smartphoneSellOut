@@ -733,7 +733,7 @@
         fill: P.cardBg, stroke: P.cardBorder, 'stroke-width': '1.5'
       }));
       svg.appendChild(svgEl('text', { x: leftPad + kpiW + kpiGap + 14, y: kpiY + 20, fill: P.textSecondary, 'font-size': '13', 'font-weight': '600' }, `${state.w2Label} 对比周`));
-      svg.appendChild(svgEl('text', { x: leftPad + kpiW + kpiGap + 14, y: kpiY + 41, fill: P.upColor, 'font-size': '16', 'font-weight': '800' }, state.w2Market));
+      svg.appendChild(svgEl('text', { x: leftPad + kpiW + kpiGap + 14, y: kpiY + 41, fill: P.textPrimary, 'font-size': '16', 'font-weight': '800' }, state.w2Market));
 
       // 3. 动态计算主图表区域（随下方安全区实时自适应压缩/舒展）
       const footerHeight = 42;

@@ -7,7 +7,7 @@ const studioPaths = new Set([
   '/studio/market-share.html', '/studio/market-share.csv', '/studio/market-share-data.js',
   '/studio/market-share-import.js', '/studio/market-share.css', '/studio/sales-estimator.html',
   '/studio/sales-estimates.csv', '/studio/sales-estimate-archive.js', '/studio/poster-themes.js',
-  '/studio/studio-ui.css', '/studio/iso-sales-week.js'
+  '/studio/studio-ui.css', '/studio/iso-sales-week.js', '/studio/brand-utils.js'
 ]);
 let cachedIssuer, cachedKeys;
 const privateHeaders = {'Cache-Control':'private, no-store', 'CDN-Cache-Control':'no-store', 'Cloudflare-CDN-Cache-Control':'no-store'};

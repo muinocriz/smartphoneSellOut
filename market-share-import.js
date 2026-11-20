@@ -188,6 +188,20 @@
   }
   window.addEventListener('DOMContentLoaded',()=>{
     insertControls();
+    // A studio initialization failure affects both repository and local CSV.
+    // Report the actual dependency/state problem instead of suggesting another CSV.
+    if(!window.BrandUtils||typeof window.BrandUtils.color!=='function'){
+      status('工作台初始化失败：公共品牌工具 brand-utils.js 未加载。请检查部署资源及访问权限后刷新页面。',true);
+      for(const id of ['marketShareWeekSelect','marketShareReloadCsv','marketShareUploadCsv'])byId(id).disabled=true;
+      return;
+    }
+    try{
+      if(typeof state==='undefined'||!state||!Array.isArray(state.brands))throw new Error('工作台状态未初始化');
+    }catch(error){
+      status('工作台初始化失败：'+error.message+'。请刷新页面或检查浏览器控制台；更换 CSV 无法解决初始化错误。',true);
+      for(const id of ['marketShareWeekSelect','marketShareReloadCsv','marketShareUploadCsv'])byId(id).disabled=true;
+      return;
+    }
     legacyState();
     bindEvents();
     reloadRepo(false);

@@ -68,6 +68,8 @@
   }
   function buildRows(o = derivedData()) {
     const d = o.d, f = o.fit;
+    // A historical studio export must reuse the original normalized archive rows and metadata.
+    if (d.archiveRows) return d.archiveRows.map(r => r.slice());
     if (!allowedFit.has(f.fitMode) || !Number.isFinite(f.k) || f.k <= 0 || !o.canPublish) fail('请先完成有效标定；未标定、冲突或临时中位数结果不能进入正式销量 CSV。');
     if (o.models.some(m => !String(m.name).trim() || /^第\d+名$|^未命名/.test(String(m.name).trim()))) fail('请先补全所有机型名称。');
     if (o.models.some(m => !Number.isSafeInteger(m.rank) || m.rank < 1 || !Number.isSafeInteger(m.pixels) || m.pixels <= 0 || !Number.isFinite(m.sale) || !Number.isSafeInteger(Math.round(m.sale)) || m.sale < 0) || new Set(o.models.map(m => m.rank)).size !== o.models.length) fail('榜单排名、柱长或销量存在无效数据。');
@@ -85,6 +87,23 @@
   function labelOf(r) {
     return r[col.period] + ' · ' + (r[col.top_n] ? 'TOP' + r[col.top_n] : '自定义榜单') +
       ' · ' + r[col.source] + ' / ' + r[col.series] + '（' + r[col.actual_count] + '条）';
+  }
+  function studioDataset(list) {
+    const r = list[0];
+    const count = Number(r[col.calibration_count]), accepted = Number(r[col.accepted_count]);
+    return {
+      id: r[col.dataset_id],
+      label: r[col.period] + ' · ' + (r[col.top_n] ? 'TOP' + r[col.top_n] : list.length + '条榜单') +
+        (r[col.top_n] && Number(r[col.top_n]) !== list.length ? '（实收' + list.length + '条）' : ''),
+      archiveDisplayLabel: labelOf(r),
+      archiveSource: r[col.source],
+      archiveRows: list.map(row => row.slice()),
+      archiveCalibrationCount: count,
+      archiveAcceptedCount: accepted,
+      archiveFit: {k:Number(r[col.fit_k]),fitMode:r[col.fit_mode],statuses:[],accepted:[]},
+      bars: list.map(row => ({rank:Number(row[col.rank]),name:row[col.model],pixels:Number(row[col.pixels]),
+        archiveBrand:row[col.brand_group],archiveSale:Number(row[col.estimated_units])}))
+    };
   }
   function groups(rows) {
     const map = new Map();
@@ -194,7 +213,9 @@
     '</div><div class="msg" id="archiveHistoryStatus" aria-live="polite">正在读取仓库历史数据…</div>' +
     '<p class="mini">导出后请将完整 CSV 提交到 GitHub 根目录，替换同名文件；页面不会直接写入仓库。尚未提交的多期导出只在当前页面会话中保留，刷新前请下载备份。</p>' +
     '<details id="archiveHistoryDetails" open style="margin-top:12px"><summary>查看历史榜单（只读）</summary>' +
-    '<label class="lbl" for="archiveSelect">选择历史榜单</label><select id="archiveSelect" class="field ui-field"></select>' +
+    '<label class="lbl" for="archiveSelect">选择历史榜单（同步图文工作台）</label><select id="archiveSelect" class="field ui-field"></select>' +
+    '<button type="button" class="secondary" id="archiveUseStudio" style="margin-top:8px" disabled>使用所选历史榜单生成图文</button>' +
+    '<p class="mini">直接使用已归档的估算销量，无需重新导入截图或标定；上方标定编辑区不受影响。</p>' +
     '<div class="tablewrap" style="margin-top:8px"><table class="ranktable"><thead><tr><th>排名</th><th>机型</th><th>品牌系列</th><th class="num">估算销量 / 万台</th></tr></thead><tbody id="archiveRows"></tbody></table></div></details>';
   const resultPanel = $('exportCsv').closest('.panel');
   resultPanel.before(panel);
@@ -257,6 +278,7 @@
       const option = document.createElement('option'); option.value = ''; option.textContent = loading ? '正在加载历史榜单…' : loaded ? '仓库暂无历史榜单' : '历史加载失败，请查看上方提示'; select.append(option);
     }
     select.disabled = !map.size;
+    $('archiveUseStudio').disabled = !map.size;
     $('archiveReload').disabled = loading;
     $('archiveHistoryStatus').className = 'msg' + (!loaded || pending ? ' warn' : ' good');
     $('archiveHistoryStatus').textContent = message || (loaded ?
@@ -264,13 +286,28 @@
       '尚未加载历史 CSV；为防止覆盖历史，请先导入完整历史文件。');
     $('archiveImport').disabled = loading;
     showHistoryRows();
+    // Refresh an already bound snapshot if the selected historical records changed.
+    if (socialArchiveDataset && !loading) {
+      const selected = map.get(select.value);
+      if (!selected) setSocialArchiveDataset(null);
+      else if (socialArchiveDataset.id !== select.value ||
+          JSON.stringify(socialArchiveDataset.archiveRows) !== JSON.stringify(selected)) setSocialArchiveDataset(studioDataset(selected));
+    }
     updateControls();
   }
   function showHistoryRows() {
     const list = groups(history).get($('archiveSelect').value) || [];
     $('archiveRows').innerHTML = list.length ? list.map(r => '<tr><td>'+e(r[col.rank])+'</td><td>'+e(r[col.model])+'</td><td>'+e(r[col.brand_group])+'</td><td class="num">'+e(displayWan(Number(r[col.estimated_units])))+'</td></tr>').join('') : '<tr><td colspan="4" class="empty">'+(loading ? '正在加载历史销量…' : loaded ? '尚无历史销量记录' : '历史加载失败，请查看上方提示')+'</td></tr>';
   }
-  $('archiveSelect').onchange = showHistoryRows;
+  function bindSelectedHistory(scroll = false) {
+    const list = groups(history).get($('archiveSelect').value);
+    if (!list || !list.length) return;
+    if (!socialArchiveDataset || socialArchiveDataset.id !== list[0][col.dataset_id] ||
+        JSON.stringify(socialArchiveDataset.archiveRows) !== JSON.stringify(list)) setSocialArchiveDataset(studioDataset(list));
+    if (scroll) $('socialStudio').scrollIntoView({behavior:'smooth',block:'start'});
+  }
+  $('archiveSelect').onchange = () => { showHistoryRows(); bindSelectedHistory(); };
+  $('archiveUseStudio').onclick = () => bindSelectedHistory(true);
   $('archiveImport').onclick = () => $('archiveFile').click();
   $('archiveFile').onchange = async ev => {
     const file = ev.target.files[0]; ev.target.value = ''; if (!file || loading) return;
@@ -312,6 +349,7 @@
       d.archiveOutlier = $('outlier').value;
     } else d.archiveOutlier = $('outlier').value;
     previousRender(...args);
+    if (switched && socialArchiveDataset) setSocialArchiveDataset(null);
     updateControls(switched);
   };
   activeDataset = ds();

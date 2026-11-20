@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>2026 国内手机市场份额战报 · 3:4 抖音数据可视化</title>
   <script src="poster-themes.js"></script>
+  <script src="poster-watermark.js"></script>
   <script src="iso-sales-week.js"></script>
   <script src="market-share-data.js"></script>
   <script src="brand-utils.js"></script>
@@ -205,24 +206,6 @@
     <!-- 6. 图片水印：SVG 海报渲染与 PNG 导出同步 -->
     <div class="ui-panel ui-watermark-card" id="watermarkControls">
       <h2 class="ui-section-title">6. 图片水印</h2>
-      <p>两种模式互斥，默认均关闭。水印会同时显示在预览和导出的图片中。</p>
-      <div class="wm-section">
-        <div class="wm-head"><div><strong>全屏倾斜水印</strong><small>斜向重复平铺在图表区域</small></div><input id="wmDiagonalEnabled" class="wm-toggle" type="checkbox" aria-label="开启全屏倾斜水印"></div>
-        <div class="wm-field"><label for="wmDiagonalText">水印文案</label><input id="wmDiagonalText" type="text" value="归零return0" maxlength="80"></div>
-        <div class="wm-grid">
-          <div class="wm-field"><label for="wmDiagonalOpacity">透明度 <span id="wmDiagonalOpacityValue">8%</span></label><input id="wmDiagonalOpacity" type="range" min="0" max="30" step="1" value="8"></div>
-          <div class="wm-field"><label for="wmDiagonalSize">字体大小 <span id="wmDiagonalSizeValue">32px</span></label><input id="wmDiagonalSize" type="range" min="16" max="72" step="1" value="32"></div>
-        </div>
-        <div class="wm-field"><label for="wmDiagonalGap">排版间距 <span id="wmDiagonalGapValue">220px</span></label><input id="wmDiagonalGap" type="range" min="110" max="420" step="10" value="220"></div>
-      </div>
-      <div class="wm-section">
-        <div class="wm-head"><div><strong>中心水印模式</strong><small>仅在图表内容区域中心显示一个大号水印</small></div><input id="wmCenterEnabled" class="wm-toggle" type="checkbox" aria-label="开启中心水印"></div>
-        <div class="wm-field"><label for="wmCenterText">水印文案</label><input id="wmCenterText" type="text" value="归零return0" maxlength="80"></div>
-        <div class="wm-grid">
-          <div class="wm-field"><label for="wmCenterOpacity">透明度 <span id="wmCenterOpacityValue">12%</span></label><input id="wmCenterOpacity" type="range" min="0" max="30" step="1" value="12"></div>
-          <div class="wm-field"><label for="wmCenterSize">字体大小 <span id="wmCenterSizeValue">72px</span></label><input id="wmCenterSize" type="range" min="32" max="160" step="2" value="72"></div>
-        </div>
-      </div>
     </div>
 
     <!-- 导出按钮 -->
@@ -451,7 +434,7 @@
         w2Market: '',
         footerSource: '数据口径：国内手机市场 Sell-Out 销量占比（OPPO含一加/realme，vivo含iQOO）',
         footerNote: '底色高亮标注本周最大份额提升与最大回落品牌 · 适配抖音 3:4 安全区',
-        watermark: {diagonalEnabled:false,diagonalText:'归零return0',diagonalOpacity:8,diagonalSize:32,diagonalGap:220,centerEnabled:false,centerText:'归零return0',centerOpacity:12,centerSize:72},
+        watermark: {...PosterWatermark.defaults},
         dataMode: 'empty', selectedWeek: null, followLatestMarketShare: true, textOverrides: {},
         brands: getDefaultBrands()
       };
@@ -549,49 +532,11 @@
     // 4. 核心海报与五大图表渲染引擎 (900 x 1200)
     // ==========================================
 
-    const WATERMARK_FIELDS=[
-      ['wmDiagonalEnabled','diagonalEnabled','check'],['wmDiagonalText','diagonalText','text'],
-      ['wmDiagonalOpacity','diagonalOpacity','num'],['wmDiagonalSize','diagonalSize','num'],
-      ['wmDiagonalGap','diagonalGap','num'],['wmCenterEnabled','centerEnabled','check'],
-      ['wmCenterText','centerText','text'],['wmCenterOpacity','centerOpacity','num'],
-      ['wmCenterSize','centerSize','num']
-    ];
-    function syncWatermarkUI(){
-      for(const [id,key,kind] of WATERMARK_FIELDS){
-        const el=document.getElementById(id);
-        if(!el)continue;
-        if(kind==='check')el.checked=!!state.watermark[key];
-        else el.value=state.watermark[key];
-      }
-      for(const [key,unit] of [['DiagonalOpacity','%'],['DiagonalSize','px'],['DiagonalGap','px'],['CenterOpacity','%'],['CenterSize','px']]){
-        const stateKey=key[0].toLowerCase()+key.slice(1);
-        document.getElementById('wm'+key+'Value').textContent=state.watermark[stateKey]+unit;
-      }
-    }
-    function initWatermarkControls(){
-      WATERMARK_FIELDS.forEach(([id,key,kind])=>{
-        const el=document.getElementById(id);
-        el.addEventListener(kind==='check'?'change':'input',()=>{
-          const value=kind==='check'?el.checked:kind==='num'?Number(el.value):el.value;
-          state.watermark[key]=value;
-          if(key==='diagonalEnabled'&&value)state.watermark.centerEnabled=false;
-          if(key==='centerEnabled'&&value)state.watermark.diagonalEnabled=false;
-          syncWatermarkUI();saveStateToLocal();renderPoster();
-        });
-      });
-      syncWatermarkUI();
-    }
     // SVG 上层水印属于海报内容，使用同一 SVG 绘制与 PNG 导出。
     function renderImageWatermark(svg,W,H,safeRightX,safeBottomY){
-      const wm=state.watermark;
-      if(!wm?.diagonalEnabled&&!wm?.centerEnabled)return;
-      const diagonal=!!wm.diagonalEnabled;
-      const message=diagonal?wm.diagonalText:wm.centerText;
-      const content=String(message??'').slice(0,80);
-      if(!content.trim())return;
-      const opacity=Math.max(0,Math.min(.3,Number(diagonal?wm.diagonalOpacity:wm.centerOpacity)/100));
-      if(opacity<=0)return;
-      const fontSize=Math.max(12,Math.min(180,Number(diagonal?wm.diagonalSize:wm.centerSize)));
+      const params=PosterWatermark.parameters(state.watermark);
+      if(!params)return;
+      const {diagonal,text:content,opacity,size:fontSize,gap}=params;
       const defs=svg.querySelector('defs')||svgEl('defs');
       if(!defs.parentNode)svg.insertBefore(defs,svg.firstChild);
       const clipId='posterWatermarkClip';
@@ -602,7 +547,6 @@
       const common={'fill':getPalette().textMuted,'font-weight':'700','font-family':'"Source Han Sans SC","Noto Sans SC",sans-serif','font-size':String(fontSize),'text-anchor':'middle'};
       const cx=(14+safeRightX-10)/2,cy=(14+safeBottomY-11)/2;
       if(diagonal){
-        const gap=Math.max(110,Math.min(420,Number(wm.diagonalGap)||220));
         const rotated=svgEl('g',{transform:'rotate(-28 '+cx+' '+cy+')'});
         let row=0;
         for(let y=-H;y<2*H;y+=gap){
@@ -1795,7 +1739,7 @@
       document.getElementById('inputW2Market').value = state.w2Market;
       document.getElementById('inputFooterSource').value = state.footerSource ?? '';
       document.getElementById('inputFooterNote').value = state.footerNote ?? '';
-      syncWatermarkUI();
+      PosterWatermark.sync(state.watermark);
 
       const rVal = state.rightMarginPct;
       document.getElementById('safeRightSlider').value = rVal;
@@ -1815,8 +1759,8 @@
     }
 
     function initEvents() {
+      PosterWatermark.mount(()=>state.watermark,()=>{saveStateToLocal();renderPoster();});
       syncUIWithState();
-      initWatermarkControls();
       renderPaletteButtons();
       renderDataInputs();
       updateControlVisibility();

@@ -217,13 +217,9 @@ function drawLeader(ctx,L,o,p){
 function drawSafeGuides(ctx,W,H,p){if(!socialState.safeEnabled||!socialState.safeGuides)return;const right=Math.max(0,Math.min(.35,socialState.safeRight/100)),bottom=Math.max(0,Math.min(.35,socialState.safeBottom/100));const rw=W*right,bh=H*bottom;ctx.save();ctx.fillStyle='rgba(255,80,110,0.12)';if(rw>0)ctx.fillRect(W-rw,0,rw,H);ctx.fillStyle='rgba(255,179,37,0.13)';if(bh>0)ctx.fillRect(0,H-bh,W,bh);ctx.setLineDash([12,10]);ctx.lineWidth=3;if(rw>0){ctx.strokeStyle='rgba(255,88,124,0.92)';ctx.beginPath();ctx.moveTo(W-rw,0);ctx.lineTo(W-rw,H);ctx.stroke();}if(bh>0){ctx.strokeStyle='rgba(255,176,31,0.95)';ctx.beginPath();ctx.moveTo(0,H-bh);ctx.lineTo(W,H-bh);ctx.stroke();}ctx.setLineDash([]);if(rw>0){rounded(ctx,W-rw-248,32,220,42,14,'rgba(255,88,124,0.92)');canvasText(ctx,'右侧交互安全区 '+Math.round(right*100)+'%',W-rw-138,60,20,'#ffffff','800','center',200)}if(bh>0){rounded(ctx,34,H-bh-56,236,42,14,'rgba(255,176,31,0.96)');canvasText(ctx,'底部文案安全区 '+Math.round(bottom*100)+'%',152,H-bh-28,20,'#12202f','900','center',220)}ctx.restore()}
 
 function drawImageWatermark(ctx,W,H,right,bottom,wm=watermarkState,state=socialState,p=socialPalettes[state.theme]){
- if(!wm.diagonalEnabled&&!wm.centerEnabled)return;
- const diagonal=!!wm.diagonalEnabled;
- const text=String(diagonal?wm.diagonalText:wm.centerText??'').slice(0,80);
- if(!text.trim())return;
- const opacity=Math.max(0,Math.min(.3,Number(diagonal?wm.diagonalOpacity:wm.centerOpacity)/100));
- if(opacity<=0)return;
- const size=Math.max(12,Math.min(180,Number(diagonal?wm.diagonalSize:wm.centerSize)));
+ const params=PosterWatermark.parameters(wm);
+ if(!params)return;
+ const {diagonal,text,opacity,size,gap}=params;
  const safeRight=state.safeEnabled?W*(1-right):W-22;
  const safeBottom=state.safeEnabled?H*(1-bottom):H-22;
  const left=25,top=25,usableWidth=Math.max(1,safeRight-left-8),usableHeight=Math.max(1,safeBottom-top-8);
@@ -232,7 +228,6 @@ function drawImageWatermark(ctx,W,H,right,bottom,wm=watermarkState,state=socialS
  ctx.fillStyle=(p?.muted||'#425772');ctx.globalAlpha=opacity;ctx.font='700 '+size+'px '+CJK_FONT;
  ctx.textAlign='center';ctx.textBaseline='middle';
  if(diagonal){
-  const gap=Math.max(110,Math.min(420,Number(wm.diagonalGap)||220));
   ctx.translate(cx,cy);ctx.rotate(-28*Math.PI/180);
   const span=Math.hypot(W,H)+gap*2;let row=0;
   for(let y=-span/2;y<span/2;y+=gap){

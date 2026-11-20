@@ -2,6 +2,7 @@
 <html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>手机销量推算与小红书抖音图文工作台</title>
 <script src="poster-themes.js"></script>
+<script src="poster-watermark.js"></script>
 <script src="iso-sales-week.js"></script>
 <script src="market-share-data.js"></script>
 <script src="brand-utils.js"></script>
@@ -231,24 +232,6 @@
       <!-- 图片水印：Canvas 海报实时预览与 PNG/ZIP 导出同步 -->
       <div class="wm-card ui-panel ui-watermark-card" id="watermarkControls">
         <h3 class="ui-section-title">图片水印</h3>
-      <p>两种模式互斥，默认均关闭。水印会同时显示在预览和导出的图片中。</p>
-      <div class="wm-section">
-        <div class="wm-head"><div><strong>全屏倾斜水印</strong><small>斜向重复平铺在图表区域</small></div><input id="wmDiagonalEnabled" class="wm-toggle" type="checkbox" aria-label="开启全屏倾斜水印"></div>
-        <div class="wm-field"><label for="wmDiagonalText">水印文案</label><input id="wmDiagonalText" type="text" value="归零return0" maxlength="80"></div>
-        <div class="wm-grid">
-          <div class="wm-field"><label for="wmDiagonalOpacity">透明度 <span id="wmDiagonalOpacityValue">8%</span></label><input id="wmDiagonalOpacity" type="range" min="0" max="30" step="1" value="8"></div>
-          <div class="wm-field"><label for="wmDiagonalSize">字体大小 <span id="wmDiagonalSizeValue">32px</span></label><input id="wmDiagonalSize" type="range" min="16" max="72" step="1" value="32"></div>
-        </div>
-        <div class="wm-field"><label for="wmDiagonalGap">排版间距 <span id="wmDiagonalGapValue">220px</span></label><input id="wmDiagonalGap" type="range" min="110" max="420" step="10" value="220"></div>
-      </div>
-      <div class="wm-section">
-        <div class="wm-head"><div><strong>中心水印模式</strong><small>仅在图表内容区域中心显示一个大号水印</small></div><input id="wmCenterEnabled" class="wm-toggle" type="checkbox" aria-label="开启中心水印"></div>
-        <div class="wm-field"><label for="wmCenterText">水印文案</label><input id="wmCenterText" type="text" value="归零return0" maxlength="80"></div>
-        <div class="wm-grid">
-          <div class="wm-field"><label for="wmCenterOpacity">透明度 <span id="wmCenterOpacityValue">12%</span></label><input id="wmCenterOpacity" type="range" min="0" max="30" step="1" value="12"></div>
-          <div class="wm-field"><label for="wmCenterSize">字体大小 <span id="wmCenterSizeValue">72px</span></label><input id="wmCenterSize" type="range" min="32" max="160" step="2" value="72"></div>
-        </div>
-      </div>
     </div>
 
       <div class="safe-editor">

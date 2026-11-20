@@ -1,6 +1,6 @@
 /* Module 3 publishing workflow, immutable export snapshots and local preferences. */
 const socialState={template:'top',ratio:'3:4',theme:'editorial_paper',duelA:0,duelB:1,lastDS:null,duelOptions:null,safeEnabled:true,safeRight:15,safeBottom:10,safeGuides:true};
-const watermarkDefaults={diagonalEnabled:false,diagonalText:'归零return0',diagonalOpacity:8,diagonalSize:32,diagonalGap:220,centerEnabled:false,centerText:'归零return0',centerOpacity:12,centerSize:72};
+const watermarkDefaults=PosterWatermark.defaults;
 const watermarkState={...watermarkDefaults};
 const socialCopyState={title:'',subtitle:'',tagLabel:'',markLeft:'',markRight:'',disclaimer:''};
 const socialCopyDirty={title:false,subtitle:false,tagLabel:false,markLeft:false,markRight:false,disclaimer:false};
@@ -148,35 +148,6 @@ function generateStory(type,o){if(isResearchTemplate(type)&&socialResearchSnapsh
  }
  const lead=top.sale-second.sale,top5=o.top5;
  return `【标题】\n${period}榜首表现：${top.name}领先第二名多少？\n\n【正文】\n${top.name}以约 ${displaySale(top.sale)} 位居本榜第一；第二名 ${second.name} 约 ${displaySale(second.sale)}。\n\n第一名估算销量约是第二名的 ${displayTimes(o.ratio)}，领先约 ${displaySale(lead)}。\nTOP3占这份上榜样本估算销量的 ${displayPct(o.top3)}；TOP5占 ${displayPct(top5)}。\n\n这些比例描述的是“本次榜单中的头部集中程度”，不是全市场集中度。\n${note}\n\n#手机销量 #榜首分析 #数码观察`;
-}
-const WATERMARK_FIELDS=[
- ['wmDiagonalEnabled','diagonalEnabled','check'],['wmDiagonalText','diagonalText','text'],
- ['wmDiagonalOpacity','diagonalOpacity','num'],['wmDiagonalSize','diagonalSize','num'],
- ['wmDiagonalGap','diagonalGap','num'],['wmCenterEnabled','centerEnabled','check'],
- ['wmCenterText','centerText','text'],['wmCenterOpacity','centerOpacity','num'],
- ['wmCenterSize','centerSize','num']
-];
-function syncWatermarkUI(){
- for(const [id,key,kind] of WATERMARK_FIELDS){
-  const el=$(id);if(!el)continue;
-  if(kind==='check')el.checked=!!watermarkState[key];else el.value=watermarkState[key];
- }
- for(const [label,unit] of [['DiagonalOpacity','%'],['DiagonalSize','px'],['DiagonalGap','px'],['CenterOpacity','%'],['CenterSize','px']]){
-  const prop=label[0].toLowerCase()+label.slice(1);
-  $('wm'+label+'Value').textContent=watermarkState[prop]+unit;
- }
-}
-function initWatermarkControls(){
- if(watermarkState.diagonalEnabled&&watermarkState.centerEnabled)watermarkState.centerEnabled=false;
- WATERMARK_FIELDS.forEach(([id,key,kind])=>{
-  $(id).addEventListener(kind==='check'?'change':'input',ev=>{
-   watermarkState[key]=kind==='check'?ev.target.checked:kind==='num'?Number(ev.target.value):ev.target.value;
-   if(key==='diagonalEnabled'&&watermarkState.diagonalEnabled)watermarkState.centerEnabled=false;
-   if(key==='centerEnabled'&&watermarkState.centerEnabled)watermarkState.diagonalEnabled=false;
-   syncWatermarkUI();updateSocial(false);
-  });
- });
- syncWatermarkUI();
 }
 function studioExportLabel(o=socialData()){return researchStudioActive()?socialResearchSnapshot.range:o.d.label;}
 function markStudioTemplate(){document.querySelectorAll('#templateChooser [data-template]').forEach(b=>b.classList.toggle('active',b.dataset.template===socialState.template));}
@@ -326,7 +297,7 @@ function setVisualPreferences(p){
  StudioPref.apply(p?.controls,['posterExportWidth','contentColumn']);
  if(p?.watermark)for(const k of Object.keys(watermarkDefaults))if(typeof p.watermark[k]===typeof watermarkDefaults[k])watermarkState[k]=p.watermark[k];
  if(watermarkState.diagonalEnabled&&watermarkState.centerEnabled)watermarkState.centerEnabled=false;
- updatePosterExportOptions();syncWatermarkUI();updateSafeLabels();syncPaletteChooser();
+ updatePosterExportOptions();PosterWatermark.sync(watermarkState);updateSafeLabels();syncPaletteChooser();
 }
 function publicationIdentity(){const o=socialData();return StudioPref.fingerprint(researchStudioActive()?[socialResearchSnapshot.key,socialResearchSnapshot.context,socialResearchSnapshot.csv]:[o.d.label,o.models.map(m=>[m.rank,m.name,m.pixels,m.sale]),o.fit.k]);}
 function savePublicationScheme(){
@@ -360,7 +331,7 @@ function initPublicationPreferences(){
  for(const name of ['input','change','click'])host.addEventListener(name,ev=>{if(ev.target.closest('#posterRatio,#posterExportWidth,#contentColumn,#safeEnable,#safeGuides,#safeRight,#safeBottom,#paletteChooser,[id^="wm"]'))queueMicrotask(persist);});
 }
 
-function initSocial(){initWatermarkControls();
+function initSocial(){PosterWatermark.mount(()=>watermarkState,()=>updateSocial(false));
  $('studioUseCurrent').onclick=()=>{if(researchStudioActive())leaveResearchStudio('top');setSocialArchiveDataset(null);};
  $('templateChooser').addEventListener('click',ev=>{const b=ev.target.closest('[data-template]');if(!b)return;if(isResearchTemplate(b.dataset.template)){window.SalesEstimateArchive?.sendResearchToStudio(b.dataset.template.slice(9));return;}leaveResearchStudio(b.dataset.template);updateSocial(true)});
  updatePosterExportOptions();

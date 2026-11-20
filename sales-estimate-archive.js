@@ -18,7 +18,7 @@
 
   function fail(message) { throw new Error(message); }
   function normalizeModelName(name) {
-  return String(name ?? "").normalize("NFKC").toUpperCase().replace(/[\s\u200B-\u200D\u2060\uFEFF]+/g,"");
+  return window.BrandUtils.normalize(name);
 }
   function cutoffOf(list,col) {
   const n=Number(list[0]?.[col.top_n]);
@@ -54,7 +54,7 @@
     const weeks=fullWeeks.filter(w=>(!p.start||w.period>=p.start)&&(!p.end||w.period<=p.end));
     if(!weeks.length)continue;
     const models=new Map();
-    for(const w of weeks)for(const [key,r] of w.map){if(!models.has(key))models.set(key,{key,count:0,first:firstSeen.get(key)});const m=models.get(key);m.count++;m.name=r[col.model];m.brand=r[col.brand_group];}
+    for(const w of weeks)for(const [key,r] of w.map){if(!models.has(key))models.set(key,{key,count:0,first:firstSeen.get(key)});const m=models.get(key);m.count++;m.name=r[col.model];m.brand=classifyHeadBrand(r)||'未识别品牌';}
     for(const m of models.values()){m.baseWeeks=p.coverageBase==='first'?weeks.filter(w=>w.period>=m.first).length:weeks.length;m.coverage=m.count/m.baseWeeks;}
     const selected=[...models.values()].filter(m=>m.count*100>=p.coverage*m.baseWeeks).sort((a,b)=>a.name.localeCompare(b.name,'zh-CN')),panelRows=[];
     for(const m of selected){
@@ -576,9 +576,11 @@
   function knownModels(scope){
     const known=new Map();for(const w of scope.fullWeeks)for(const [k,r] of w.map)known.set(k,r[col.model]);return known;
   }
+  function groupStateKey(scope,view=researchView){return JSON.stringify([scope.id,view]);}
   function activeGroups(scope){
-    if(!groupStates.has(scope.id))groupStates.set(scope.id,appleSeriesPreset());
-    return groupStates.get(scope.id);
+    const key=groupStateKey(scope);
+    if(!groupStates.has(key))groupStates.set(key,appleSeriesPreset());
+    return groupStates.get(key);
   }
   function activePairs(scope){
     if(!pairStates.has(scope.id))pairStates.set(scope.id,applePairPreset());
@@ -701,8 +703,8 @@
   }
 
   // Cross-module analysis uses the same validated parent-brand parser as module 2.
-  const headBrands=['Apple','华为','小米系','OPPO系','vivo系','荣耀','其他'];
-  const headMarketKeys=['apple','huawei','xiaomi','oppo','vivo','honor'];
+  const headBrands=window.BrandUtils.groups.map(g=>g.key);
+  const headMarketKeys=window.BrandUtils.groups.filter(g=>g.id!=='other').map(g=>g.id);
   const headViews={distribution:'品牌销量分布对比',enrichment:'头部销量富集指数（HSCR）',strength:'单品销量强度指数',matrix:'品牌双指标四象限',trend:'头部效应历史趋势',concentration:'品牌集中度差异'};
   let marketCache=null,marketError='',marketPending=null,headPublicationInfo=null;
   function ensureMarketData(force=false){
@@ -721,14 +723,7 @@
     })();
     return marketPending;
   }
-  function classifyHeadBrand(row){
-    const key=normalizeModelName(row[col.brand_group]),model=normalizeModelName(row[col.model]);
-    const map={APPLE:'Apple',苹果:'Apple',华为:'华为',HUAWEI:'华为',小米:'小米系',小米系:'小米系',XIAOMI:'小米系',REDMI:'小米系',红米:'小米系',OPPO:'OPPO系',OPPO系:'OPPO系',一加:'OPPO系',ONEPLUS:'OPPO系',REALME:'OPPO系',真我:'OPPO系',VIVO:'vivo系',VIVO系:'vivo系',IQOO:'vivo系',荣耀:'荣耀',HONOR:'荣耀'};
-    // Module 3 historically did not classify realme. Its explicit model prefix is sufficient.
-    if(/^REALME|^真我/.test(model))return 'OPPO系';
-    if(['','未识别品牌','未知','UNKNOWN','未分类'].includes(key))return null;
-    return map[key]||'其他';
-  }
+  function classifyHeadBrand(row){return window.BrandUtils.classify(row[col.model],row[col.brand_group]);}
   const headMean=xs=>xs.length?xs.reduce((s,v)=>s+v,0)/xs.length:null;
   const headRatio=(a,b)=>Number.isFinite(a)&&Number.isFinite(b)&&b>0?a/b:null;
   const headDiff=(a,b)=>Number.isFinite(a)&&Number.isFinite(b)?a-b:null;
@@ -774,8 +769,8 @@
       const x=v=>L+v/mx*(R-L),y=v=>B-v/my*(B-T);
       for(let i=0;i<=4;i++){const a=mx*i/4,b=my*i/4;content+='<line x1="'+x(a)+'" x2="'+x(a)+'" y1="'+T+'" y2="'+B+'" stroke="currentColor" opacity=".12"/><line x1="'+L+'" x2="'+R+'" y1="'+y(b)+'" y2="'+y(b)+'" stroke="currentColor" opacity=".12"/><text x="'+x(a)+'" y="'+(B+18)+'" text-anchor="middle" font-size="11" fill="currentColor">'+numberText(a)+'</text><text x="'+(L-7)+'" y="'+(y(b)+4)+'" text-anchor="end" font-size="11" fill="currentColor">'+numberText(b)+'</text>';}
       content+='<path d="M'+x(1)+' '+T+' V'+B+' M'+L+' '+y(1)+' H'+R+'" stroke="currentColor" opacity=".6" stroke-dasharray="6 5"/><text x="'+((L+R)/2)+'" y="'+(H-8)+'" text-anchor="middle" font-size="13" fill="currentColor">头部销量富集指数（1 = 基准）</text><text x="16" y="17" font-size="13" fill="currentColor">单品销量强度指数</text>';
-      categories.forEach((name,i)=>{if(!Number.isFinite(xx[i])||!Number.isFinite(yy[i]))return;const c=trackerPalette[i%trackerPalette.length],px=x(xx[i]),py=y(yy[i]);content+='<circle cx="'+px+'" cy="'+py+'" r="5" fill="'+c+'"><title>'+e(name+' · '+numberText(xx[i])+' / '+numberText(yy[i]))+'</title></circle>';});
-      categories.forEach((name,i)=>{const span=document.createElement('span');span.style.color=trackerPalette[i%trackerPalette.length];span.textContent=name+'：'+(Number.isFinite(xx[i])&&Number.isFinite(yy[i])?numberText(xx[i])+' / '+numberText(yy[i]):'不可计算');legend.append(span);});
+      categories.forEach((name,i)=>{if(!Number.isFinite(xx[i])||!Number.isFinite(yy[i]))return;const c=window.BrandUtils.color(name)||trackerPalette[i%trackerPalette.length],px=x(xx[i]),py=y(yy[i]);content+='<circle cx="'+px+'" cy="'+py+'" r="5" fill="'+c+'"><title>'+e(name+' · '+numberText(xx[i])+' / '+numberText(yy[i]))+'</title></circle>';});
+      categories.forEach((name,i)=>{const span=document.createElement('span');span.style.color=window.BrandUtils.color(name)||trackerPalette[i%trackerPalette.length];span.textContent=name+'：'+(Number.isFinite(xx[i])&&Number.isFinite(yy[i])?numberText(xx[i])+' / '+numberText(yy[i]):'不可计算');legend.append(span);});
     }else{
       const L=82,R=685,T=25,B=H-32,max=Math.max(1,...lines.flatMap(l=>l.values.filter(Number.isFinite)),baseline||0),top=max*1.1;
       const x=v=>L+v/top*(R-L),row=(B-T)/categories.length;
@@ -825,16 +820,16 @@
     }
     const metricLabel=headViews[mode]+(mode==='trend'?' · '+$('headBrand').value+' · '+($('headTrendMetric').value==='index'?'指数':'份额'):mode==='concentration'?' · '+$('headConcentration').value.toUpperCase():'');
     const note=mode==='concentration'?'其他品牌合为一组，CR3/HHI为共同七组口径，不是逐品牌精确市场集中度。':mode==='matrix'?'横轴：头部富集指数；纵轴：单品强度；1 为基准，象限不直接判断品牌策略。':mode==='enrichment'?'头部富集 = 榜单销量占比 ÷ 全市场份额；1 为基准。':mode==='strength'?'单品强度 = 榜单销量占比 ÷ 上榜条目占比；1 为基准。':'仅共同有效周；榜单样本份额不等于全市场份额。';
-    headPublicationInfo={range,metricLabel,note,detail:info.textContent+'；'+note+'；全市场数据沿用模块2母品牌口径。',sampleMode,validCount:valid.length};
+    headPublicationInfo={range,effectivePeriods:common,metricLabel,note,detail:info.textContent+'；'+note+'；全市场数据沿用模块2母品牌口径。',sampleMode,validCount:valid.length};
     $('researchDesc').textContent+=' '+note+' 其他品牌为合并组；指数分母为零时留空，四象限不显示无有效双指标的品牌。';
   }
   for(const id of ['headView','headBrand','headTrendMetric','headConcentration'])$(id).onchange=renderResearch;
   $('headReload').onclick=()=>ensureMarketData(true);
 
 
-  const boardBrandColors={Apple:'#3b82f6','华为':'#ef4444','小米系':'#f97316','荣耀':'#06b6d4','OPPO系':'#10b981','vivo系':'#6366f1','其他':'#64748b'};
-  const boardBrandOrder=['Apple','华为','小米系','荣耀','OPPO系','vivo系','其他'];
-  const boardBrandLabel=k=>k==='Apple'?'苹果':k;
+  const boardBrandColors=window.BrandUtils.colors;
+  const boardBrandOrder=window.BrandUtils.groups.map(g=>g.key);
+  const boardBrandLabel=window.BrandUtils.label;
   const brandMetricLabels={share:'品牌榜单销量占比',count:'品牌上榜数量占比',volume:'品牌绝对销量'};
   const brandViewLabels={stack:'多周堆叠柱状图',ribbon:'双周堆叠流向图',concentration:'集中度趋势',line:'品牌折线图'};
   let brandPublicationInfo=null,brandWeekScope='';
@@ -909,6 +904,7 @@
     const note=(view==='ribbon'?'色带连接同一品牌，非用户流向；':view==='concentration'?'销量集中度；其他品牌合并为一组；':'缺失周留空；')+sample+' · 仅榜单样本，非全市场';
     brandPublicationInfo={metricLabel,range,note,detail:sample+'；'+metricLabel+'；'+range};
     const good=view==='concentration'?records.filter(r=>r.cr1!==null):records.filter(validMetric);
+    brandPublicationInfo.effectivePeriods=good.map(r=>r.period);
     notice.textContent=sample+' · '+good.length+' / '+records.length+' 周有有效数据 · '+metricLabel;
     if(view==='ribbon'&&(records.length!==2||records[0].period===records[1].period||good.length!==2)){notice.textContent='请选择两个不同且均有有效数据的自然周；不完整周不绘制流向图。';return;}
     if(!good.length)return;
@@ -997,8 +993,8 @@
     if(['series','generation','structure'].includes(researchView))renderGroupEditor(scope);
     if(researchView==='tier')renderPairEditor(scope);
   }
-  $('researchSeriesPreset').onclick=()=>{const s=currentScope();if(s){groupStates.set(s.id,appleSeriesPreset());renderGroupEditor(s);renderResearch();}};
-  $('researchTierPreset').onclick=()=>{const s=currentScope();if(s){groupStates.set(s.id,appleTierPreset(s));renderGroupEditor(s);renderResearch();}};
+  $('researchSeriesPreset').onclick=()=>{const s=currentScope();if(s){groupStates.set(groupStateKey(s),appleSeriesPreset());renderGroupEditor(s);renderResearch();}};
+  $('researchTierPreset').onclick=()=>{const s=currentScope();if(s){groupStates.set(groupStateKey(s),appleTierPreset(s));renderGroupEditor(s);renderResearch();}};
   $('researchAddGroup').onclick=()=>{const s=currentScope();if(s){activeGroups(s).push({name:'',keys:[]});renderGroupEditor(s);renderResearch();}};
   $('researchPairPreset').onclick=()=>{const s=currentScope();if(s){pairStates.set(s.id,applePairPreset());pairFocusStates.delete(s.id);renderPairEditor(s);renderResearch();}};
   $('researchAddPair').onclick=()=>{const s=currentScope();if(s){activePairs(s).push({name:'',old:'',next:''});renderPairEditor(s);renderResearch();}};
@@ -1016,7 +1012,7 @@
     setResearchView(key);
     const scope=currentScope();if(!scope)return null;
     const p=readTrackerParams(),rawView=['tail','flow','brand','head'].includes(key),metric=$('trackerMode').value;
-    const range=key==='brand'&&brandPublicationInfo?brandPublicationInfo.range:key==='head'&&headPublicationInfo?headPublicationInfo.range:scope.weeks[0].period+'—'+scope.weeks[scope.weeks.length-1].period;
+    const selectedRange=scope.weeks[0].period+'—'+scope.weeks[scope.weeks.length-1].period;
     let chart=key==='model'?trackerPublicationChart:researchPublicationChart,table=key==='model'?null:researchPublicationTable;
     if(chart){
       // Keep original line colors, precisely preserve missing points and estimate flags.
@@ -1025,6 +1021,10 @@
     }
     const hasData=chart?(chart.kind==='scatter'?chart.lines[0].values.some((v,i)=>Number.isFinite(v)&&Number.isFinite(chart.lines[1].values[i])):chart.lines.some(l=>l.values.some(Number.isFinite))):key==='tail'&&!!table?.rows.length;
     if(!hasData)return null;
+    const timeAxis=chart?.periods?.length&&chart.periods.every(v=>/^\d{4}-W\d{2}$/.test(v));
+    const chartRange=key==='brand'&&brandPublicationInfo?brandPublicationInfo.range:timeAxis?chart.periods[0]+'—'+chart.periods[chart.periods.length-1]:key==='head'&&headPublicationInfo?headPublicationInfo.range:selectedRange;
+    const effectivePeriods=key==='head'?headPublicationInfo?.effectivePeriods||[]:key==='brand'?brandPublicationInfo?.effectivePeriods||[]:timeAxis?chart.periods.filter((_,i)=>chart.lines.some(l=>Number.isFinite(l.values[i]))):scope.weeks.filter(w=>w.hasBoard).map(w=>w.period);
+    const range=chartRange;
     if(chart&&chart.lines.length>24){notify('单张图卡最多展示24条曲线，请减少研究机型或分组。');return null;}
     const top=['flow','brand','head'].includes(key)?topKValue():null;
     const modeLabel=rawView?'仅原始观测':p.dataMode==='raw'?'仅原始观测':p.maxGap===0?'不插补':p.method==='bounded'?'门槛约束插补':'线性插值';
@@ -1040,8 +1040,12 @@
     const chartNote=key==='head'?(headPublicationInfo?.note||'仅共同有效周'):key==='brand'?(brandPublicationInfo?.note||'仅榜单样本'):key==='flow'?'相邻可比较周 · 进入/退出不代表上市/停销':key==='tail'?'连续上榜只计原始观测 · 未入榜不等于零销量':key==='event'?detail:key==='generation'||key==='structure'?'仅分组样本占比 · 不代表市场份额':'估算销量 · 仅所选样本，非上市以来累计';
     const summary=key==='model'?$('trackerStatus').textContent:$('researchNotice').textContent;
     const description=key==='model'?'选中机型在当前统计区间的销量趋势。':$('researchDesc').textContent;
-    const csv=key==='model'?[trackerData.header,...scope.rows.filter(r=>trackerSelected.has(r[trackerData.header.indexOf('model_key')]))]:researchExportRows;
-    const snapshot={ready:true,key,title:researchViews[key],subtitle:key==='brand'?(brandPublicationInfo?.metricLabel||researchSubtitles[key]):key==='head'?(headPublicationInfo?.metricLabel||researchSubtitles[key]):researchSubtitles[key],range,source:scope.source+' / '+scope.series+(key==='head'?' + 模块2 市场份额':''),context:scope.source+' / '+scope.series+' · '+range+' · '+modeLabel+(top===null?'':' · 固定 TOP'+top),modeLabel,displayMetric,chart,table,summary,description,detail,note,chartNote,csv};
+    const baseCsv=key==='model'?[trackerData.header,...scope.rows.filter(r=>trackerSelected.has(r[trackerData.header.indexOf('model_key')]))]:researchExportRows;
+    const effectiveText=effectivePeriods.length+' 周'+(effectivePeriods.length?'（'+effectivePeriods[0]+'—'+effectivePeriods[effectivePeriods.length-1]+'）':'');
+    const csv=baseCsv.map((r,i)=>i===0?[...r,'发布所选区间','发布图表区间','发布有效周次']: [...r,selectedRange,chartRange,effectivePeriods.join(' / ')]);
+    const sampleLabel=top===null?(['flow','brand','head'].includes(key)?'原始全量':'所选样本'):'固定 TOP'+top;
+    const footer=[key==='head'?'来源：'+scope.source+' / '+scope.series+' + 模块2市场份额':'来源：'+scope.source+' / '+scope.series+' · 历史榜单估算样本',key==='head'?'榜单样本占比非市场份额；跨数据源比较，不推断榜外销量。':'仅所选榜单样本，不代表全市场销量或品牌市场份额；缺失不等于零。',sampleLabel+' · '+(chart?.imputed?'含插补':rawView||p.dataMode==='raw'?'仅原始观测':'未出现插补值')+' · '+(key==='head'?'共同有效':'有效观测')+' '+effectiveText].join('\n');
+    const snapshot={ready:true,key,title:researchViews[key],subtitle:key==='brand'?(brandPublicationInfo?.metricLabel||researchSubtitles[key]):key==='head'?(headPublicationInfo?.metricLabel||researchSubtitles[key]):researchSubtitles[key],range,selectedRange,chartRange,effectivePeriods,footer,source:scope.source+' / '+scope.series+(key==='head'?' + 模块2 市场份额':''),context:scope.source+' / '+scope.series+' · 图表 '+chartRange+' · 所选 '+selectedRange+' · '+(key==='head'?'共同有效':'有效观测')+' '+effectiveText+' · '+modeLabel+(top===null?'':' · 固定 TOP'+top),modeLabel,displayMetric,chart,table,summary,description,detail,note,chartNote,csv};
     return JSON.parse(JSON.stringify(snapshot));
   }
   async function sendResearchToStudio(key=researchView){
@@ -1142,7 +1146,7 @@
   }
   function showHistoryRows() {
     const list = groups(history).get($('archiveSelect').value) || [];
-    $('archiveRows').innerHTML = list.length ? list.map(r => '<tr><td>'+e(r[col.rank])+'</td><td>'+e(r[col.model])+'</td><td>'+e(r[col.brand_group])+'</td><td class="num">'+e(displayWan(Number(r[col.estimated_units])))+'</td></tr>').join('') : '<tr><td colspan="4" class="empty">'+(loading ? '正在加载历史销量…' : loaded ? '尚无历史销量记录' : '历史加载失败，请查看上方提示')+'</td></tr>';
+    $('archiveRows').innerHTML = list.length ? list.map(r => '<tr><td>'+e(r[col.rank])+'</td><td>'+e(r[col.model])+'</td><td>'+e(classifyHeadBrand(r)||'未识别品牌')+'</td><td class="num">'+e(displayWan(Number(r[col.estimated_units])))+'</td></tr>').join('') : '<tr><td colspan="4" class="empty">'+(loading ? '正在加载历史销量…' : loaded ? '尚无历史销量记录' : '历史加载失败，请查看上方提示')+'</td></tr>';
   }
   function bindSelectedHistory(scroll = false) {
     const list = groups(history).get($('archiveSelect').value);

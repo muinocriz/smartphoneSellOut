@@ -9,7 +9,7 @@ const publicFiles = ['data.csv', 'studio-ui.css', 'iso-sales-week.js'];
 const protectedFiles = [
   'market-share.html', 'market-share.csv', 'market-share-data.js', 'market-share-import.js',
   'market-share.css', 'sales-estimator.html', 'sales-estimates.csv', 'sales-estimate-archive.js',
-  'poster-themes.js', 'studio-ui.css', 'iso-sales-week.js'
+  'poster-themes.js', 'studio-ui.css', 'iso-sales-week.js', 'brand-utils.js'
 ];
 await rm(dist, {recursive:true, force:true});
 await mkdir(join(dist, 'studio'), {recursive:true});

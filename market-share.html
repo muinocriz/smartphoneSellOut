@@ -7,6 +7,7 @@
   <script src="poster-themes.js"></script>
   <script src="iso-sales-week.js"></script>
   <script src="market-share-data.js"></script>
+  <script src="brand-utils.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;700;900&display=swap" rel="stylesheet">
@@ -312,13 +313,13 @@
     // ==========================================
     function getDefaultBrands() {
       return [
-        { id: 'apple', name: '苹果', w1: 28.7, w2: 29.3, brandColor: '#3b82f6' },
-        { id: 'huawei', name: '华为', w1: 19.4, w2: 20.8, brandColor: '#ef4444' },
-        { id: 'xiaomi', name: '小米', w1: 13.4, w2: 13.0, brandColor: '#f97316' },
+        { id: 'apple', name: '苹果', w1: 28.7, w2: 29.3, brandColor: window.BrandUtils.color('apple') },
+        { id: 'huawei', name: '华为', w1: 19.4, w2: 20.8, brandColor: window.BrandUtils.color('huawei') },
+        { id: 'xiaomi', name: '小米', w1: 13.4, w2: 13.0, brandColor: window.BrandUtils.color('xiaomi') },
         {
           id: 'oppo',
           name: 'OPPO系',
-          brandColor: '#10b981',
+          brandColor: window.BrandUtils.color('oppo'),
           subBrands: [
             { name: 'OPPO主品牌', w1: 8.5, w2: 8.2, shade: '#059669' },
             { name: '一加', w1: 3.8, w2: 3.9, shade: '#34d399' },
@@ -328,13 +329,13 @@
         {
           id: 'vivo',
           name: 'vivo系',
-          brandColor: '#6366f1',
+          brandColor: window.BrandUtils.color('vivo'),
           subBrands: [
             { name: 'vivo主品牌', w1: 8.1, w2: 8.1, shade: '#4f46e5' },
             { name: 'iQOO', w1: 3.7, w2: 3.3, shade: '#818cf8' }
           ]
         },
-        { id: 'honor', name: '荣耀', w1: 11.6, w2: 10.6, brandColor: '#06b6d4' }
+        { id: 'honor', name: '荣耀', w1: 11.6, w2: 10.6, brandColor: window.BrandUtils.color('honor') }
       ];
     }
 
@@ -406,7 +407,7 @@
         w44: otherW1,
         w45: otherW2,
         diff: otherDiff,
-        brandColor: '#64748b',
+        brandColor: window.BrandUtils.color('other'),
         subNote: null,
         subBrands: null
       });

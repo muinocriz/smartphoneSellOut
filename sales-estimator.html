@@ -609,13 +609,18 @@ function posterFooterGeometry(H,bottomFraction=0,rightFraction=0,copyLines=3){
  const start=Math.min(H-133,safeBottom-lineY-28);
  return {start,safeBottom,rightLimit:1080-Math.round(1080*Math.max(0,Math.min(.35,rightFraction)))-24,count};
 }
+function posterFooterLines(type,o){return String(getPosterCopy(type,o).disclaimer||'').split(/\r?\n/).filter(Boolean).slice(0,4)}
+const BRAND_FOOTER_NOTE='系列归并：小米+REDMI｜OPPO+一加｜vivo+iQOO';
+// 品牌主体需让出页脚横线以上的系列说明及间距。
+const BRAND_FOOTER_CLEARANCE=52;
+function brandCardBottom(H,o){const g=posterFooterGeometry(H,0,0,posterFooterLines('brands',o).length);return Math.min(H-160,g.start-BRAND_FOOTER_CLEARANCE)}
 function drawPosterFooter(ctx,H,type,o,p,bottomFraction=0,rightFraction=0){
- const copy=getPosterCopy(type,o);
- const lines=String(copy.disclaimer||'').split(/\r?\n/).filter(Boolean).slice(0,4);
- if(!lines.length)return;
+ const lines=posterFooterLines(type,o),brandNote=type==='brands'&&o.brands.length>0;
+ if(!lines.length&&!brandNote)return;
  const g=posterFooterGeometry(H,bottomFraction,rightFraction,lines.length);
- const maxWidth=Math.max(90,g.rightLimit-70);
- ctx.save();ctx.beginPath();ctx.rect(69,g.start-12,maxWidth+2,g.safeBottom-g.start+12);ctx.clip();
+ const maxWidth=Math.max(90,g.rightLimit-70),clipTop=g.start-(brandNote?44:12);
+ ctx.save();ctx.beginPath();ctx.rect(69,clipTop,maxWidth+2,g.safeBottom-clipTop);ctx.clip();
+ if(brandNote)canvasText(ctx,BRAND_FOOTER_NOTE,70,g.start-14,21,p.sub,'530','left',maxWidth);
  ctx.strokeStyle=p.hair;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(70,g.start);ctx.lineTo(Math.min(1010,g.rightLimit),g.start);ctx.stroke();
  lines.forEach((line,i)=>canvasText(ctx,line,70,g.start+35+i*32,i===2?21:23,p.sub,i===2?'500':'560','left',maxWidth));
  ctx.restore();
@@ -671,11 +676,11 @@ function drawDuel(ctx,H,o,p){
 function drawBrands(ctx,H,o,p){
  const brands=o.brands.slice(0,7);if(!brands.length)return;
  const x=70, right=1010, width=940;
- const sectionTop=351, footerY=H-133, n=brands.length;
- // 分辨率不同使用独立纵向节奏，保证3:4和9:16均能完整展示，并避让页脚。
- const rowStep=Math.min(H===1440?151:206,Math.floor((footerY-sectionTop-58)/Math.max(1,n)));
+ const cardBottom=brandCardBottom(H,o), n=brands.length;
+ // 保证最后一行距离内卡底部至少16px，并为独立页脚说明预留空间。
+ const rowStep=Math.min(H===1440?151:206,Math.floor((cardBottom-399-88-16)/Math.max(1,n-1)));
  const first=brands[0].pixels||1;
- drawDataCard(ctx,52,338,976,H-498,p);
+ drawDataCard(ctx,52,338,976,cardBottom-338,p);
  canvasText(ctx,`品牌系列榜 · ${n} 组｜上榜合计 ${o.models.length} 条`,x,367,27,p.sub,'600');
  brands.forEach((b,i)=>{
   const y=399+i*rowStep,hot=i===0;
@@ -691,8 +696,6 @@ function drawBrands(ctx,H,o,p){
   rounded(ctx,x,trackY,Math.max(2,width*b.pixels/first),barH,12,hot?p.bar2:p.bar);
   canvasText(ctx,'主力爆款：'+b.hero,x,y+88,24,p.sub,'560','left',width);
  });
- // 清晰明确：合并品牌系列，仅描述入榜样本。
- canvasText(ctx,'系列归并：小米+REDMI｜OPPO+一加｜vivo+iQOO',x,footerY-14,21,p.sub,'530','left',940);
 }
 function drawLeader(ctx,H,o,p){const a=o.models[0],b=o.models[1];if(!a||!b)return;drawDataCard(ctx,70,367,940,H===1440?295:380,p);canvasText(ctx,'本榜第一名',112,426,28,p.accent,'750');wrapCanvas(ctx,a.name,111,490,850,49,59,p.ink,'850',2);canvasText(ctx,o.fit.k===null?'待标定':displayWan(a.sale)+' 万台',110,H===1440?616:700,83,p.ink,'850','left',830);
  const start=H===1440?740:858;canvasText(ctx,'第一名对比第二名',80,start,30,p.sub,'650');canvasText(ctx,'约 '+displayTimes(o.ratio),80,start+95,76,p.accent,'900');canvasText(ctx,'领先估算销量',80,start+156,28,p.sub,'650');canvasText(ctx,o.fit.k===null?'待标定':displayWan(a.sale-b.sale)+' 万台',80,start+220,51,p.ink,'780');const y=start+266;horizontalRule(ctx,y,p);canvasText(ctx,'样本内销量集中度',80,y+58,32,p.ink,'760');const items=[['TOP3占比',o.top3],['TOP5占比',o.top5]];const step=H===1440?97:145;items.forEach(([label,val],i)=>{const yy=y+108+i*step;canvasText(ctx,label,82,yy,29,p.sub,'650');canvasText(ctx,displayPct(val),997,yy,38,p.ink,'830','right');paintBar(ctx,83,yy+15,915,16,val,p,i===0)})}
@@ -762,7 +765,7 @@ function drawImageWatermark(ctx,W,H,right,bottom){
 
 function drawPoster(type,canvas,o=socialData(),showGuides=false,pixelRatio=1){const H=socialState.ratio==='9:16'?1920:1440,W=1080;canvas.width=Math.round(W*pixelRatio);canvas.height=Math.round(H*pixelRatio);const ctx=canvas.getContext('2d',{alpha:false});ctx.setTransform(pixelRatio,0,0,pixelRatio,0,0);const p=socialPalettes[socialState.theme];const right=socialState.safeEnabled?Math.max(0,Math.min(.35,socialState.safeRight/100)):0;const bottom=socialState.safeEnabled?Math.max(0,Math.min(.35,socialState.safeBottom/100)):0;const drawCore=(targetCtx,includeFooter=true)=>{posterFrame(targetCtx,W,H,type,o,p,includeFooter);if(type==='top')drawTop(targetCtx,H,o,p);else if(type==='versus')drawDuel(targetCtx,H,o,p);else if(type==='brands')drawBrands(targetCtx,H,o,p);else drawLeader(targetCtx,H,o,p);if(!canDownloadSocial(o,type)){targetCtx.save();targetCtx.translate(W/2,H/2);targetCtx.rotate(-.18);rounded(targetCtx,-452,-58,904,120,15,'#dfe7ef');targetCtx.globalAlpha=.96;canvasText(targetCtx,o.canPublish?'名称待补全 · 暂勿发布':o.fit.k?'标定冲突 · 请核对':'待标定 · 不可发布',0,19,59,p.warn,'900','center',850);targetCtx.restore()}};
  drawPosterBackdrop(ctx,W,H,p);
- if(socialState.safeEnabled&&(right>0||bottom>0)){const temp=document.createElement('canvas');temp.width=Math.round(W*pixelRatio);temp.height=Math.round(H*pixelRatio);const tctx=temp.getContext('2d',{alpha:true});tctx.setTransform(pixelRatio,0,0,pixelRatio,0,0);drawCore(tctx,false);const pad=socialState.ratio==='9:16'?26:20;const availW=W-W*right-pad*2,availH=H-H*bottom-pad*2,scale=Math.min(availW/W,availH/H,1);ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';ctx.drawImage(temp,pad,pad,W*scale,H*scale);temp.width=0;temp.height=0;drawPosterFooter(ctx,H,type,o,p,bottom,right);}else{drawCore(ctx)}
+ if(socialState.safeEnabled&&(right>0||bottom>0)){const temp=document.createElement('canvas');temp.width=Math.round(W*pixelRatio);temp.height=Math.round(H*pixelRatio);const tctx=temp.getContext('2d',{alpha:true});tctx.setTransform(pixelRatio,0,0,pixelRatio,0,0);drawCore(tctx,false);const pad=socialState.ratio==='9:16'?26:20;const availW=W-W*right-pad*2,availH=H-H*bottom-pad*2;let scale=Math.min(availW/W,availH/H,1);if(type==='brands'&&o.brands.length){const footer=posterFooterGeometry(H,bottom,right,posterFooterLines(type,o).length);scale=Math.min(scale,(footer.start-BRAND_FOOTER_CLEARANCE-pad)/brandCardBottom(H,o));}ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';ctx.drawImage(temp,pad,pad,W*scale,H*scale);temp.width=0;temp.height=0;drawPosterFooter(ctx,H,type,o,p,bottom,right);}else{drawCore(ctx)}
  drawImageWatermark(ctx,W,H,right,bottom);
  if(showGuides)drawSafeGuides(ctx,W,H,p)
 }

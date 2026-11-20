@@ -240,7 +240,7 @@
         <option value="3240">极清 · 3240 × 4320</option>
       </select>
       <p class="ms-hint">仅调整导出像素尺寸，不改变预览或排版；极清档占用更多内存。</p>
-      <button id="exportBtn" class="ms-export-btn">
+      <button id="exportBtn" class="ms-export-btn" disabled>
         <svg class="ms-icon" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
         <span id="msExportLabel">导出 3:4 海报 (2160×2880 PNG)</span>
       </button>
@@ -479,6 +479,8 @@
         return {
           ...def,
           ...parsed,
+          dataMode: parsed.dataMode,
+          textOverrides: parsed.textOverrides,
           // 已删除的旧主题自动迁移到当前默认主题，避免预览和选中色卡不同步。
           paletteId: Object.hasOwn(PALETTES, parsed.paletteId) ? parsed.paletteId : def.paletteId,
           brands: Array.isArray(parsed.brands) && parsed.brands.length > 0 ? parsed.brands : def.brands,
@@ -506,15 +508,24 @@
     function prepareMarketState(){
       // Old example data is recognized only during migration; it is never a default chart source.
       const oldExample=[[28.7,29.3],[19.4,20.8],[13.4,13],[8.5,8.2],[3.8,3.9],[0.2,0.2],[8.1,8.1],[3.7,3.3],[11.6,10.6]],oldText={"title":"2026 W45 国内手机市场份额周环比变化","subtitle":"对比 W44 (10.26–11.1) 与 W45 (11.2–11.8) | 单位：百分点","insight":"本周大盘降约5% · 华为逆势涨 +1.4 突破20% · 苹果稳居榜首","w1Label":"W44 (10.26 - 11.1)","w2Label":"W45 (11.2 - 11.8)","w1Market":"大盘趋势：略微上升 ↗","w2Market":"大盘趋势：环比下降约 5% ↘"};
-      const saved=state.brands.flatMap(b=>b.subBrands||[b]).map(b=>[b.w1,b.w2]);
-      if(!state.dataMode||state.dataMode==='empty'){
-        const example=JSON.stringify(saved)===JSON.stringify(oldExample);
-        state.dataMode=!example&&completeMarketData()?'manual':'empty';
+      const defaults=getDefaultState();
+      const legacyMode=!state.dataMode;
+      if(!state.textOverrides||typeof state.textOverrides!=='object'){
+        state.textOverrides={};
+        for(const key of ['title','subtitle','insight','w1Label','w2Label']){
+          if(typeof state[key]==='string'&&state[key]!==oldText[key]&&state[key]!==defaults[key])state.textOverrides[key]=true;
+        }
+      }
+      if(legacyMode){
+        const saved=state.brands.flatMap(b=>b.subBrands||[b]).map(b=>[b.w1,b.w2]);
+        state.dataMode=JSON.stringify(saved)!==JSON.stringify(oldExample)&&completeMarketData()?'manual':'empty';
       }
       if(state.dataMode==='csv'||state.dataMode==='empty'){
         state.brands=getDefaultBrands();
         state.dataMode='empty';
-        for(const [key,value] of Object.entries(getDefaultState()))if(typeof value==='string'&&Object.hasOwn(oldText,key)&&(!state.textOverrides?.[key]||state[key]===oldText[key]))state[key]=value;
+        for(const key of Object.keys(oldText))if(!state.textOverrides[key])state[key]=defaults[key];
+      }else if(legacyMode){
+        for(const key of Object.keys(oldText))if(state[key]===oldText[key]&&!state.textOverrides[key])state[key]=defaults[key];
       }
     }
     prepareMarketState();
@@ -1694,6 +1705,7 @@
       if(!completeMarketData())return;
       const svg = document.getElementById('posterSvg');
       const fontCss=await embeddedNumberFontCss();
+      if(!completeMarketData())return;
       const exportSvg=svg.cloneNode(true);
       // 保留 900×1200 viewBox，直接以目标像素尺寸栅格化。
       exportSvg.setAttribute('width', String(width));
@@ -1975,6 +1987,7 @@
 
     window.addEventListener('DOMContentLoaded', () => {
       initEvents();
+      if(state.dataMode==='manual')document.getElementById('currentMarketShareWeek').textContent='手动编辑数据';
       renderPoster();
     });
   </script>

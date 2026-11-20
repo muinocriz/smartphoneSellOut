@@ -36,7 +36,7 @@ function canvasText(ctx,text,x,y,size,color,weight='600',align='left',maxWidth=n
  ctx.restore();
 }
 function rounded(ctx,x,y,w,h,r,color){if(w<=0||h<=0)return;ctx.beginPath();const rad=Math.min(r,w/2,h/2);ctx.roundRect(x,y,w,h,rad);ctx.fillStyle=color;ctx.fill()}
-function drawHeadStaticPoster(ctx,L,p,s,box){
+function drawHeadStaticPoster(ctx,p,s,box){
  const {kind,periods,lines,unit,baseline}=s.chart;
  const {left,right,top,bottom,width,height}=box;
  const colors=['#2563eb','#ea580c','#059669','#9333ea','#db2777','#0891b2','#92400e','#64748b'];
@@ -44,7 +44,7 @@ function drawHeadStaticPoster(ctx,L,p,s,box){
  if(!auditPlot(ctx,width,height,'品牌分析图',360,230))return;
  if(kind==='scatter'){
   const xx=lines[0].values,yy=lines[1].values;
-  const cols=width>=680?2:2,legendRows=Math.ceil(periods.length/cols);
+  const cols=2,legendRows=Math.ceil(periods.length/cols);
   const legendStep=Math.min(29,height*.065),legendH=legendRows*legendStep;
   const x0=left+62,x1=right-22,y0=top+28,y1=bottom-legendH-86;
   if(!auditPlot(ctx,x1-x0,y1-y0,'四象限绘图区',260,160))return;
@@ -185,7 +185,7 @@ const ResearchCharts=(()=>{
   canvas.setAttribute('role','img');canvas.setAttribute('aria-label',label+'；完整数值见数据表');
   const ctx=canvas.getContext('2d');ctx.setTransform(density,0,0,density,0,0);ctx.fillStyle='#fff';ctx.fillRect(0,0,W,H);
   const box={left:16,right:W-16,top:16,bottom:H-16,width:W-32,height:H-32},p={ink:'#17263c',sub:'#64748b',hair:'#e4e9f0',accent:'#c93630',bar:'#265a87'};
-  if(chart.kind==='scatter'||chart.kind==='bars')drawHeadStaticPoster(ctx,null,p,{chart,chartNote:''},box);else drawBrandComposition(ctx,chart,box,p,'');
+  if(chart.kind==='scatter'||chart.kind==='bars')drawHeadStaticPoster(ctx,p,{chart,chartNote:''},box);else drawBrandComposition(ctx,chart,box,p,'');
   host.append(canvas);
  }
  return Object.freeze({lineScale,points,svgLine,canvasLine,renderComposition});

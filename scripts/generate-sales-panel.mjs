@@ -19,4 +19,4 @@ export async function generateSalesPanel(source,destination){
  return manifest;
 }
 const root=fileURLToPath(new URL('../',import.meta.url));
-if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url))await generateSalesPanel(join(root,'sales-estimates.csv'),process.argv[2]?resolve(process.argv[2]):root);
+if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url))await generateSalesPanel(join(root,'sales-estimates.csv'),process.argv[2]?resolve(process.argv[2]):join(root,'generated'));

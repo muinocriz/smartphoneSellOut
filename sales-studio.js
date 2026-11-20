@@ -1,15 +1,12 @@
 /* Module 3 publishing workflow, immutable export snapshots and local preferences. */
 const socialState={template:'top',ratio:'3:4',theme:'editorial',duelA:0,duelB:1,lastDS:null,duelOptions:null,safeEnabled:true,safeRight:15,safeBottom:10,safeGuides:true};
-const ESTIMATOR_WATERMARK_KEY='smartphoneSellOut_estimator_watermark_v1';
+const LEGACY_WATERMARK_KEY='smartphoneSellOut_estimator_watermark_v1';
 const watermarkDefaults={diagonalEnabled:false,diagonalText:'归零return0',diagonalOpacity:8,diagonalSize:32,diagonalGap:220,centerEnabled:false,centerText:'归零return0',centerOpacity:12,centerSize:72};
-const watermarkState=(()=>{try{const prev=JSON.parse(localStorage.getItem(ESTIMATOR_WATERMARK_KEY)||'null');return {...watermarkDefaults,...(prev&&typeof prev==='object'?prev:{})}}catch(_){return {...watermarkDefaults}}})();
+const watermarkState={...watermarkDefaults};
 const socialCopyState={title:'',subtitle:'',tagLabel:'',markLeft:'',markRight:'',disclaimer:''};
 const socialCopyDirty={title:false,subtitle:false,tagLabel:false,markLeft:false,markRight:false,disclaimer:false};
 // Shared theme system: market-share SVG and estimator Canvas use identical tokens.
 const socialPalettes=window.PosterThemes.estimatorPalettes;
-const paletteLabels=Object.fromEntries(Object.entries(socialPalettes).map(([id,p])=>[id,p.name]));
-// 同系列口径：Apple；华为；小米系(小米/REDMI)；OPPO系(OPPO/一加)；荣耀；vivo系(vivo/iQOO)。
-function safeBrand(name){return window.BrandUtils.classify(name)||'未识别品牌';}
 function derivedData(){return deriveDataset(ds(),getFit())}
 let socialArchiveDataset=null;
 let socialResearchSnapshot=null;
@@ -50,10 +47,9 @@ function syncPaletteChooser(){
   const colors=window.PosterThemes.swatches(theme);
   btn.querySelectorAll('.ui-swatches i').forEach((dot,i)=>{dot.style.background=colors[i]||'#ffffff'});
  });
- if($('posterTheme'))$('posterTheme').value=socialState.theme;
 }
 function defaultPosterTag(o){if(o.d.archiveRows)return o.d.label;if(!o.models.length)return '';return String(o.d.label||'').replace(/\.(?:png|jpe?g|webp)$/i,'').trim()}
-function posterCopyDefaults(type,o){if(isResearchTemplate(type)&&socialResearchSnapshot){const s=socialResearchSnapshot;return {title:s.title,subtitle:s.subtitle,tagLabel:'',...savedResearchFixedCopy,disclaimer:s.footer||s.note};}const hd=posterHeading(type,o);let warning=o.fit.fitMode==='robust'?' · 部分异常标定已排除':o.fit.fitMode==='single'?' · 仅1组标定':'';return {title:hd.title,subtitle:hd.sub,tagLabel:defaultPosterTag(o),markLeft:'归零return0',markRight:'数码销量观察 / DATA REPORT',disclaimer:`${socialSourceName(o)}榜单截图 · 柱长像素拟合 | 销量为估算值
+function posterCopyDefaults(type,o){if(isResearchTemplate(type)&&socialResearchSnapshot){const s=socialResearchSnapshot;return {title:s.title,subtitle:s.subtitle,tagLabel:'',...savedResearchFixedCopy,disclaimer:s.footer||s.note};}const hd=posterHeading(type);let warning=o.fit.fitMode==='robust'?' · 部分异常标定已排除':o.fit.fitMode==='single'?' · 仅1组标定':'';return {title:hd.title,subtitle:hd.sub,tagLabel:defaultPosterTag(o),markLeft:'归零return0',markRight:'数码销量观察 / DATA REPORT',disclaimer:`${socialSourceName(o)}榜单截图 · 柱长像素拟合 | 销量为估算值
 仅本次入榜样本，不代表全市场销量 / 品牌市场份额
 标定 ${calibrationCount(o)} 组${warning} · 合并行按一条记录统计`}}
 function syncPosterCopyUI(type,o,force=false){const defs=posterCopyDefaults(type,o);const bind={title:'copyTitle',subtitle:'copySubtitle',tagLabel:'copyTagLabel',markLeft:'copyMarkLeft',markRight:'copyMarkRight',disclaimer:'copyDisclaimer'};for(const [key,id] of Object.entries(bind)){if(force||!socialCopyDirty[key])socialCopyState[key]=defs[key];if($(id) && $(id).value!==socialCopyState[key])$(id).value=socialCopyState[key];}}
@@ -171,9 +167,6 @@ function syncWatermarkUI(){
   $('wm'+label+'Value').textContent=watermarkState[prop]+unit;
  }
 }
-function saveWatermarkState(){
- try{localStorage.setItem(ESTIMATOR_WATERMARK_KEY,JSON.stringify(watermarkState))}catch(_){}
-}
 function initWatermarkControls(){
  if(watermarkState.diagonalEnabled&&watermarkState.centerEnabled)watermarkState.centerEnabled=false;
  WATERMARK_FIELDS.forEach(([id,key,kind])=>{
@@ -181,7 +174,7 @@ function initWatermarkControls(){
    watermarkState[key]=kind==='check'?ev.target.checked:kind==='num'?Number(ev.target.value):ev.target.value;
    if(key==='diagonalEnabled'&&watermarkState.diagonalEnabled)watermarkState.centerEnabled=false;
    if(key==='centerEnabled'&&watermarkState.centerEnabled)watermarkState.diagonalEnabled=false;
-   syncWatermarkUI();saveWatermarkState();updateSocial(false);
+   syncWatermarkUI();StudioPref.write('visual',getVisualPreferences());updateSocial(false);
   });
  });
  syncWatermarkUI();
@@ -227,12 +220,12 @@ function freezePublication(value){
  return value;
 }
 function capturePublication(types,o){
- const state=Object.fromEntries(['template','ratio','theme','duelA','duelB','safeEnabled','safeRight','safeBottom','safeGuides'].map(k=>[k,socialState[k]]));
+ const state=Object.fromEntries(['template','ratio','theme','duelA','duelB','safeEnabled','safeRight','safeBottom'].map(k=>[k,socialState[k]]));
  const active=state.template,research=researchStudioActive()?socialResearchSnapshot:null,width=getPosterExportWidth();
  const folder=slugName(research?research.range+'_'+research.title:o.d.label);
  const cards=types.map(type=>({type,ready:canDownloadSocial(o,type),copy:getPosterCopy(type,o),name:storyName(type),story:type===active?$('storyText').value:generateStory(type,o)}));
- const original=research?null:{archiveRows:null,insight:insightRows(o),brands:brandRows(o),calibrations:calibrationCount(o),source:socialSourceName(o)};
- const snapshot={state,width,height:getPosterExportHeight(width,state.ratio),folder,active,label:studioExportLabel(o),research,original,cards,data:o,palette:socialPalettes[state.theme],watermark:{...watermarkState},headline:{column:columnModeLabel(),xhs:$('xhsTitle').value,dy:$('dyTitle').value,carousel:$('carouselText').value}};
+ const original=research?null:{insight:insightRows(o),brands:brandRows(o),calibrations:calibrationCount(o),source:socialSourceName(o)};
+ const snapshot={state,width,height:getPosterExportHeight(width,state.ratio),folder,label:studioExportLabel(o),research,original,cards,data:o,palette:socialPalettes[state.theme],watermark:{...watermarkState}};
  return freezePublication(JSON.parse(JSON.stringify(snapshot)));
 }
 let publicationBusy=false;
@@ -331,7 +324,7 @@ function setVisualPreferences(p){
  if(Object.prototype.hasOwnProperty.call(socialPalettes,state.theme))socialState.theme=state.theme;
  for(const k of ['safeEnabled','safeGuides'])if(typeof state[k]==='boolean')socialState[k]=state[k];
  for(const [k,id] of [['safeRight','safeRight'],['safeBottom','safeBottom']])if(Number.isFinite(state[k]))socialState[k]=Math.max(0,Math.min(Number($(id).max),state[k]));
- for(const [id,key] of [['posterRatio','ratio'],['posterTheme','theme'],['safeEnable','safeEnabled'],['safeGuides','safeGuides'],['safeRight','safeRight'],['safeBottom','safeBottom']])StudioPref.setControl($(id),socialState[key]);
+ for(const [id,key] of [['posterRatio','ratio'],['safeEnable','safeEnabled'],['safeGuides','safeGuides'],['safeRight','safeRight'],['safeBottom','safeBottom']])StudioPref.setControl($(id),socialState[key]);
  StudioPref.apply(p?.controls,['posterExportWidth','contentColumn']);
  if(p?.watermark)for(const k of Object.keys(watermarkDefaults))if(typeof p.watermark[k]===typeof watermarkDefaults[k])watermarkState[k]=p.watermark[k];
  if(watermarkState.diagonalEnabled&&watermarkState.centerEnabled)watermarkState.centerEnabled=false;
@@ -358,15 +351,20 @@ async function restorePublicationScheme(){
   for(const k of ['markLeft','markRight'])if(typeof saved.copy?.[k]==='string'&&saved.dirty?.[k]){socialCopyState[k]=saved.copy[k];socialCopyDirty[k]=true;}
  }
  updateSocial(!same);if(same)StudioPref.apply(saved.texts,publicationTextIds);
- saveWatermarkState();StudioPref.write('visual',getVisualPreferences());notify(same?'已恢复发布方案及文案':'当前数据与保存时不同，仅恢复样式、选题和账号水印；统计文案按当前数据生成');
+ StudioPref.write('visual',getVisualPreferences());notify(same?'已恢复发布方案及文案':'当前数据与保存时不同，仅恢复样式、选题和账号水印；统计文案按当前数据生成');
 }
 function initPublicationPreferences(){
- setVisualPreferences(StudioPref.read('visual'));
+ const visual=StudioPref.read('visual');
+ if(!visual.watermark){
+  try{const legacy=JSON.parse(localStorage.getItem(LEGACY_WATERMARK_KEY)||'null');if(legacy&&typeof legacy==='object')visual.watermark=legacy;}catch(_){}
+ }
+ setVisualPreferences(visual);
+ if(StudioPref.write('visual',getVisualPreferences())){try{localStorage.removeItem(LEGACY_WATERMARK_KEY)}catch(_){}}
  const host=$('socialStudio'),controls=document.createElement('div');controls.style.cssText='display:flex;flex-wrap:wrap;gap:8px;margin:8px 0';
  for(const [label,action] of [['保存当前发布方案',savePublicationScheme],['恢复本地发布方案',restorePublicationScheme],['清除本地发布方案',()=>{StudioPref.remove('publication');notify('已清除本地发布方案，当前编辑内容不变');}]]){const b=document.createElement('button');b.type='button';b.className='secondary';b.textContent=label;b.onclick=action;controls.append(b);}
  $('templateChooser').after(controls);
  const persist=()=>StudioPref.write('visual',getVisualPreferences());
- for(const name of ['input','change','click'])host.addEventListener(name,ev=>{if(ev.target.closest('#posterRatio,#posterTheme,#posterExportWidth,#contentColumn,#safeEnable,#safeGuides,#safeRight,#safeBottom,#paletteChooser,[id^="wm"]'))queueMicrotask(persist);});
+ for(const name of ['input','change','click'])host.addEventListener(name,ev=>{if(ev.target.closest('#posterRatio,#posterExportWidth,#contentColumn,#safeEnable,#safeGuides,#safeRight,#safeBottom,#paletteChooser,[id^="wm"]'))queueMicrotask(persist);});
 }
 
 function initSocial(){initWatermarkControls();updateDuelSelects();const previousRender=renderAll;renderAll=function(...args){previousRender(...args);if(!socialArchiveDataset&&!researchStudioActive())updateSocial(true)};
@@ -374,8 +372,7 @@ function initSocial(){initWatermarkControls();updateDuelSelects();const previous
  $('templateChooser').addEventListener('click',ev=>{const b=ev.target.closest('[data-template]');if(!b)return;if(isResearchTemplate(b.dataset.template)){window.SalesEstimateArchive?.sendResearchToStudio(b.dataset.template.slice(9));return;}leaveResearchStudio(b.dataset.template);updateSocial(true)});
  updatePosterExportOptions();
  $('posterRatio').onchange=ev=>{socialState.ratio=ev.target.value;updatePosterExportOptions();updateSocial(false)};
- $('posterTheme').onchange=ev=>{socialState.theme=ev.target.value;syncPaletteChooser();updateSocial(false)};
- $('paletteChooser')?.addEventListener('click',ev=>{const b=ev.target.closest('[data-theme]');if(!b)return;socialState.theme=b.dataset.theme;$('posterTheme').value=socialState.theme;syncPaletteChooser();updateSocial(false)});
+ $('paletteChooser')?.addEventListener('click',ev=>{const b=ev.target.closest('[data-theme]');if(!b)return;socialState.theme=b.dataset.theme;syncPaletteChooser();updateSocial(false)});
  $('safeEnable').onchange=ev=>{socialState.safeEnabled=ev.target.checked;redrawSafeAreaPreview()};
  $('safeGuides').onchange=ev=>{socialState.safeGuides=ev.target.checked;redrawSafeAreaPreview()};
  $('safeRight').oninput=ev=>{socialState.safeRight=Number(ev.target.value);redrawSafeAreaPreview()};

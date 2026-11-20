@@ -106,7 +106,7 @@ dataset_id,source,series,period_type,period,period_start,period_end,top_n,actual
 - `period_type` 支持 `weekly`（ISO 周）、`monthly`（自然月）、`custom`（起止日期）。同周期若存在来源相同但口径不同的榜单，应填写不同的 `series`。品牌系列沿用 `safeBrand()` 的合并口径，机型字段保留榜单原始名称；合并行不可拆分。
 - `estimated_units` 为四舍五入后的整数台数，`estimated_wan` 为该整数换算的四位小数，`fit_k` 保留计算精度；`fit_mode`、标定组数、有效组数、异常阈值、算法版本、保存时间随结果归档。仅 `single`、`fit`、`robust` 且补全机型名称的有效估算可进入正式 CSV；单组及剔除异常组的结果仍须人工核验。
 - **读取与导出校验**：标准 CSV 使用 UTF-8（导出含 BOM）；表头、列数、合法周期、ID、排名唯一性、实际条目数与组内元数据必须一致。台数须等于 `Math.round(fit_k * pixels)`，万台值须在数值上等于台数除以 10000。允许起止日期为 `YYYY/M/D` 或 ISO 日期，以及万台小数省略末尾零；读取后规范化为 `YYYY-MM-DD` 和四位小数。不能为了容忍表格软件格式变化而放松实际数值和周期校验。一条非法记录会阻止整份新历史载入，提示异常记录或榜单；不会静默丢弃行。
-- 页面加载仓库 CSV，刷新按钮以时间戳和 `no-store` 请求重新读取；读取失败时须成功重试或确认导入完整历史文件后才能合并导出，不能将失败当作空数据库。已加载的记录在刷新失败时可继续显示，但不得视为最新仓库数据。合并导出会保留其他周期，遇同 ID 数据变化须用户确认整期替换（旧版由 Git 提交历史保留）。同一会话的多次合并保留在内存，刷新前请下载备份；点击“刷新仓库历史”时若有未提交记录，必须先确认替换当前会话数据；如仓库被其他设备更新，应重新加载最新历史并导入未提交文件，再合并导出。GitHub Pages 不写回仓库，由维护者提交下载的完整 `sales-estimates.csv`。
+- 页面加载仓库 CSV，刷新按钮以时间戳和 `no-store` 请求重新读取；读取失败时须成功重试或确认导入完整历史文件后才能合并导出，不能将失败当作空数据库。已加载的记录在刷新失败时可继续显示，但不得视为最新仓库数据。合并导出会保留其他周期，遇同 ID 数据变化须用户确认整期替换（旧版由 Git 提交历史保留）。同一会话的多次合并保留在内存，刷新前请下载备份；点击“刷新仓库历史”时若有未提交记录，必须先确认替换当前会话数据；如仓库被其他设备更新，应重新加载最新历史并导入未提交文件，再合并导出。浏览器不写回仓库，由维护者提交下载的完整 `sales-estimates.csv`。
 - 本期标准销量 CSV 与历史文件表头相同，可导入合并；原标定报告、机型派生分析和品牌分析 CSV 保留作人工参考，不作为历史明细导入。发布 ZIP 增加本期标准销量 CSV。历史列表只读，不恢复截图、标定组原始输入或未完成草稿；选择历史榜单即同步图文工作台，也可点击“使用所选历史榜单生成图文”直接跳转。工作台沿用存档销量、品牌系列、柱长、标定状态及组数，四类图卡、文案、派生 CSV 与 ZIP 均用所选数据；历史 ZIP 的标准销量 CSV 保留已载入、规范化后的存档字段和原保存时间，不重算或补造标定组。点击“切回当前标定榜单”或成功导入新榜单截图，恢复当前标定工作流。历史数据不进入上方截图编辑器，不需要也不能在历史模式补造标定组。
 - 实现在 `sales-estimate-archive.js`，周期计算复用 `iso-sales-week.js`。不要在前端保存仓库写入 Token，不要把缺榜条目当作零销量或把周榜与月榜累加。
 
@@ -137,7 +137,7 @@ dataset_id,source,series,period_type,period,period_start,period_end,top_n,actual
 - **操作台字体统一（全控件）**：`studio-ui.css` 中 `--ui-font-body` 采用系统 UI 字体栈，模块2／3的标题、英文标识、按钮、表单、表格、说明、色卡和水印设置均使用它；首页顶部导航也引用该变量，但首页 ECharts 继续使用原有 `--f-body` 做文本测量和导出，不能改动。独立纯数值使用 `--ui-font-number`（IBM Plex Mono）。模块2加载的 Noto Sans SC 等网络字体仅用于有独立字体规则的 SVG/海报；模块3 Canvas 海报文字同样独立，不因操作台字体统一而改动。操作台 CSS 字重使用 400／500／600／700／800，避免 650／750／780／850 等额外字重。页面主标题统一为 24px、800 字重，较长标题允许窄屏换行。
 - **维护边界**：`studio-ui.css` 管理模块 2／3 共用的操作台组件；`market-share.css` 管理模块 2 特有的控制台布局、数据编辑表格、开关和安全区模拟层。模块 2 已移除 Tailwind CDN 和工具类，不再新增 Tailwind 或复制一套原子工具类；优先为真实控件设置简明的语义 CSS 类。两份 CSS 均不覆盖海报 SVG、Canvas、`poster-themes.js` 或第三方 ECharts。模块3主题按钮在 `syncPaletteChooser()` 中切换 `is-selected`，模块2在 `renderPaletteButtons()` 中设置该类与 `aria-pressed`。
 - **界面简化原则**：以排列整齐、数据清楚、功能正常为目标；不为简单操作界面新增渐变、复杂阴影、动画或装饰性控件。图表预览的安全区模拟层仅作辅助显示，导出 PNG 使用独立 SVG 克隆与 Canvas 序列化，不依赖 Tailwind 样式。
-- **轻量防回退检查**：修改共享样式或控件 HTML 时运行 `node --test tests/studio-ui-style.test.cjs`，同时只检查两模块主题色卡和相关水印卡片在常见桌面／窄屏下的溢出与间距。静态检查不能替代实际页面视觉验收。
+- **人工验收**：修改共享样式或控件 HTML 后，手动检查两模块主题色卡、水印卡片在桌面／窄屏下的溢出与间距。
 
 - **图片水印**：全屏倾斜（默认关闭，`归零return0`，透明度 8%，字号 32px，间距 220px）与中心单个（默认关闭，同文案，透明度 12%，字号 72px）互斥。模块 3 左上角账号默认同为 `归零return0`，与数据来源说明分离，不因账号名称修改而更换原始数据归属。水印覆盖图卡可用内容区域，预览及 PNG 一致；模块 3 的四图 ZIP 一样会带水印。
 - 水印设置保存在浏览器；第二模块使用原有页面状态，第三模块使用独立键。清空自定义文案不应自动恢复默认文字。
@@ -158,7 +158,7 @@ dataset_id,source,series,period_type,period,period_start,period_end,top_n,actual
 
 ## 7. 技术与部署
 
-- **静态页面**：`index.html`、`market-share.html`、`sales-estimator.html`；模块2／3还需部署共享文件 `studio-ui.css`；模块1／3必须加载共享日期脚本 `iso-sales-week.js`（提供浏览器 `IsoSalesWeek` 全局及 Node CommonJS 导出）；模块2/3共用主题脚本 `poster-themes.js`；模块2额外加载 `market-share.css`、`market-share-data.js` 与 `market-share-import.js`，并复用 `iso-sales-week.js`。本地前端无后端或打包步骤；线上通过 Cloudflare Worker 和白名单构建实施访问控制。模块3额外加载 `sales-estimate-archive.js` 并读取 `sales-estimates.csv`。部署须包含这些脚本和数据文件。ISO周计算禁止在新模块中复制另一套实现。使用 `node --test tests/iso-sales-week.test.cjs` 运行日期边界测试。
+- **静态页面**：`index.html`、`market-share.html`、`sales-estimator.html`；模块2／3还需部署共享文件 `studio-ui.css`；模块1／3必须加载共享日期脚本 `iso-sales-week.js`（提供浏览器 `IsoSalesWeek` 全局及 Node CommonJS 导出）；模块2/3共用主题脚本 `poster-themes.js`；模块2额外加载 `market-share.css`、`market-share-data.js` 与 `market-share-import.js`，并复用 `iso-sales-week.js`。本地前端无后端或打包步骤；线上通过 Cloudflare Worker 和白名单构建实施访问控制。模块3加载 `sales-series.js`、`research-charts.js`、`sales-poster.js`、`sales-estimator.js`、`sales-studio.js`、`studio-preferences.js`、`sales-estimate-archive.js` 并读取 `sales-estimates.csv`；模块2/3共用 `brand-utils.js`。部署资源以 `studio-assets.mjs` 为唯一白名单。ISO周计算禁止在新模块中复制另一套实现。日期边界由维护者手动验收。
 - **依赖**：销量追踪使用 Apache ECharts 5.4.3（cdnjs）；市场份额编辑器使用原生 HTML/CSS 与 SVG，不依赖 Tailwind；模块 3 使用 Canvas 图卡导出。字体仍使用 Google Fonts，失败时回退系统字体。完整离线部署仍需考虑 ECharts CDN 和字体资源。
 - **本地预览**：项目根目录执行 `python3 -m http.server 8000`，浏览器访问 `http://localhost:8000`；直接打开 HTML 可能触发 CSV 的本地文件访问限制。
 - **生产部署**：使用 Cloudflare Workers，正式入口为 https://smartphonesellout.zirconium.workers.dev/；GitHub 私有仓库的 `master` 为部署来源。原 GitHub Pages 已由维护者关闭，不再作为发布渠道，不得重新启用旧的公开根目录部署。

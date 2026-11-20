@@ -1,7 +1,5 @@
 /* Poster geometry, safety zones, watermark and template renderers. */
-function horizontalRule(ctx,y,p){ctx.strokeStyle=p.hair;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(70,y);ctx.lineTo(1010,y);ctx.stroke()}
-function wrapCanvas(ctx,str,x,y,maxWidth,size,lineHeight,color,weight='650',maxLines=3){let row='',lines=[];for(const c of Array.from(String(str))){if(measureMixedCanvas(ctx,row+c,size,weight).width>maxWidth&&row){lines.push(row);row=c}else row+=c}if(row)lines.push(row);lines=lines.slice(0,maxLines);lines.forEach((v,i)=>canvasText(ctx,v,x,y+i*lineHeight,size,color,weight));return y+lines.length*lineHeight}
-function posterHeading(type,o,p){const titles={top:'热销机型 TOP10',versus:'同榜机型 销量 PK',brands:'品牌上榜实力',leader:'榜首究竟有多强？'};const subs={top:'入榜机型 · 估算销量排名',versus:'相同统计周期 · 像素标定对比',brands:'仅限当前榜单的入榜样本',leader:'头部差距与集中度分析'};return {title:titles[type],sub:subs[type]}}
+function posterHeading(type){const titles={top:'热销机型 TOP10',versus:'同榜机型 销量 PK',brands:'品牌上榜实力',leader:'榜首究竟有多强？'};const subs={top:'入榜机型 · 估算销量排名',versus:'相同统计周期 · 像素标定对比',brands:'仅限当前榜单的入榜样本',leader:'头部差距与集中度分析'};return {title:titles[type],sub:subs[type]}}
 // 与市场份额模块统一为浅灰蓝画布 + 白色圆角海报卡片。
 // Theme-colored exterior + white editorial content card.
 function drawPosterBackdrop(ctx,W,H,p){
@@ -299,9 +297,9 @@ function drawResearchPosterContent(ctx,L,p,s){
  const bottom=bodyBottom-14,height=bottom-start;
  if(!auditPlot(ctx,width,height,'研究图表内容区',360,230))return;
  if(s.chart?.kind==='brandStack'||s.chart?.kind==='brandRibbon'){drawBrandComposition(ctx,s.chart,{left,right,top:start,bottom,width,height},p,s.chartNote);return;}
- if(s.chart?.kind==='bars'||s.chart?.kind==='scatter'){drawHeadStaticPoster(ctx,L,p,s,{left,right,top:start,bottom,width,height});return;}
+ if(s.chart?.kind==='bars'||s.chart?.kind==='scatter'){drawHeadStaticPoster(ctx,p,s,{left,right,top:start,bottom,width,height});return;}
  if(s.chart){
-  const {periods,lines,unit,limit}=s.chart,n=periods.length,count=lines.length;
+  const {periods,lines,unit}=s.chart,n=periods.length,count=lines.length;
   const cols=count<=2?Math.max(1,count):count<=6?2:count<=12?3:4;
   const legendRows=Math.ceil(count/cols),legendStep=Math.min(36,height*.29/Math.max(1,legendRows));
   const cellW=width/cols,colors=['#2563eb','#ea580c','#059669','#9333ea','#db2777','#0891b2','#92400e','#64748b','#be123c','#4d7c0f','#0369a1','#7c3aed'];

@@ -29,20 +29,13 @@
     const el=byId('currentMarketShareWeek');
     if(el)el.textContent=text;
   }
-  function legacyState(){
+  function migrateTextOverrides(){
     let saved=null;
     try{saved=JSON.parse(localStorage.getItem(STORAGE))}catch(_){}
-    if(!saved||typeof saved!=='object')return;
-    if(!saved.dataMode){
-      // Upgrading older browser state: keep genuinely edited figures instead of overwriting them.
-      state.dataMode=JSON.stringify(saved.brands)===JSON.stringify(getDefaultBrands())?'csv':'manual';
-    }
-    if(!saved.textOverrides){
-      const defaults=getDefaultState();
-      const overrides=fieldOverrides();
-      for(const key of Object.keys(AUTO_FIELDS)){
-        if(typeof saved[key]==='string'&&saved[key]!==defaults[key])overrides[key]=true;
-      }
+    if(!saved||saved.textOverrides)return;
+    const previous={"title":"2026 W45 国内手机市场份额周环比变化","subtitle":"对比 W44 (10.26–11.1) 与 W45 (11.2–11.8) | 单位：百分点","insight":"本周大盘降约5% · 华为逆势涨 +1.4 突破20% · 苹果稳居榜首","w1Label":"W44 (10.26 - 11.1)","w2Label":"W45 (11.2 - 11.8)","w1Market":"大盘趋势：略微上升 ↗","w2Market":"大盘趋势：环比下降约 5% ↘"},defaults=getDefaultState();
+    for(const key of Object.keys(AUTO_FIELDS)){
+      if(typeof saved[key]==='string'&&saved[key]!==previous[key]&&saved[key]!==defaults[key])fieldOverrides()[key]=true;
     }
   }
   function setAutoField(key,value){
@@ -202,7 +195,7 @@
       for(const id of ['marketShareWeekSelect','marketShareReloadCsv','marketShareUploadCsv'])byId(id).disabled=true;
       return;
     }
-    legacyState();
+    migrateTextOverrides();
     bindEvents();
     reloadRepo(false);
   });

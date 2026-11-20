@@ -8,6 +8,9 @@
 
 ## 派生 CSV
 原始事实数据为 sales-estimates.csv；页面实时计算，不依赖离线派生文件。默认口径覆盖率 80%、首次观测分母、最长 3 周、门槛约束插补。每次 Cloudflare 构建自动生成 dist/studio/weekly-sales-panel.csv 和 weekly-sales-panel.meta.json，不写回 GitHub。清单包含源文件、算法和品牌规则 SHA-256、输出哈希、版本、参数和行数。算法逻辑变更应更新 SalesSeries.VERSION。导出 CSV 附带算法版本。
-仓库内旧 weekly-sales-panel.csv 为历史快照；运行 npm run generate:panel 可显式刷新仓库副本和清单，然后按需提交。也可传入目标目录（npm run generate:panel -- <目录>）。构建不覆盖原始 CSV。生成清单不含时间戳，便于相同输入的可复现性比较。
+旧 weekly-sales-panel.csv 已从当前分支移除，可通过 Git 历史找回。运行 npm run generate:panel 在 generated/ 生成本地副本和清单（不纳入版本控制）；也可传入目标目录（npm run generate:panel -- <目录>）。构建不覆盖原始 CSV。生成清单不含时间戳，便于相同输入的可复现性比较。
 
-本次更新没有运行测试或构建；人工验收需检查模块2/3访问、研究导航及恢复、图表预览/导出、重新加载配置和部署生成物。
+本项目不再维护 tests/ 自动测试目录；人工验收需检查模块2/3访问、研究导航及恢复、图表预览/导出、重新加载配置和部署生成物。
+
+## 历史代码清理
+四个 Tab 的静态骨架直接位于 sales-estimator.html；主题状态只由 socialState.theme 管理。旧水印存储仅在新版视觉配置缺失时迁移，成功后清除旧键。模块2默认不包含历史示例份额，只有完整有效的两周数据才允许导出。

@@ -1,5 +1,5 @@
 /* Module 3: normalized historical estimates. No backend or write token is needed.
- * GitHub Pages reads the committed CSV; the maintainer uploads the merged export.
+ * The deployed studio reads the committed CSV; the maintainer uploads the merged export.
  * History contains final estimates, not the original image/calibration workspace.
  */
 (function () {
@@ -15,7 +15,7 @@
   let origin = '';
   let pending = false;
 
-  const {normalizeModelName,salesPanelOptions,dateText,parseDate}=Series;
+  const {normalizeModelName,salesPanelOptions}=Series;
   function fail(message){throw new Error(message);}
   const buildSalesPanel=(rows,_col,options)=>Series.buildSalesPanel(rows,options);
   function defaults() {
@@ -84,73 +84,10 @@
     return {rows:sorted([...map.values()].flat()),changed};
   }
 
-  const panel = document.createElement('section');
-  panel.className = 'panel';
-  panel.innerHTML = '<h2 class="panel-title">榜单信息与历史销量存档</h2>' +
-    '<p class="panel-desc">历史结果统一保存到 sales-estimates.csv。榜单规模不限；同一来源、系列和周期的重新估算需确认整期替换。</p>' +
-    '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px">' +
-    '<div><label class="lbl" for="archiveSource">数据来源</label><input id="archiveSource" class="field ui-field" maxlength="80"></div>' +
-    '<div><label class="lbl" for="archiveSeries">榜单系列（同周期不同口径时区分）</label><input id="archiveSeries" class="field ui-field" maxlength="80"></div>' +
-    '<div><label class="lbl" for="archiveType">统计周期类型</label><select id="archiveType" class="field ui-field"><option value="weekly">周榜（ISO 周）</option><option value="monthly">月榜</option><option value="custom">自定义日期范围</option></select></div>' +
-    '<div id="archivePeriodWrap"><label class="lbl" for="archivePeriod">统计周期</label><input id="archivePeriod" class="field ui-field" maxlength="12"></div>' +
-    '<div id="archiveDatesWrap" hidden><label class="lbl" for="archiveStart">开始日期</label><input id="archiveStart" type="date" class="field ui-field"><label class="lbl" for="archiveEnd">结束日期</label><input id="archiveEnd" type="date" class="field ui-field"></div>' +
-    '<div><label class="lbl" for="archiveTop">原榜标称 TOP 数（可留空）</label><input id="archiveTop" type="number" min="1" step="1" class="field ui-field" placeholder="例如 25 或 30"></div>' +
-    '</div><div class="msg" id="archiveMetaStatus" aria-live="polite"></div>' +
-    '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px">' +
-    '<button type="button" class="primary" id="archiveMerge" disabled>合并本期并导出完整历史 CSV</button>' +
-    '<button type="button" class="secondary" id="archiveReload" disabled>刷新仓库历史</button>' +
-    '<button type="button" class="secondary" id="archiveImport">导入已有历史 CSV</button>' +
-    '<input type="file" accept=".csv,text/csv" id="archiveFile" hidden>' +
-    '</div><div class="msg" id="archiveHistoryStatus" aria-live="polite">正在读取仓库历史数据…</div>' +
-    '<p class="mini">导出后请将完整 CSV 提交到 GitHub 根目录，替换同名文件；页面不会直接写入仓库。尚未提交的多期导出只在当前页面会话中保留，刷新前请下载备份。</p>' +
-    '<details id="archiveHistoryDetails" open style="margin-top:12px"><summary>查看历史榜单（只读）</summary>' +
-    '<label class="lbl" for="archiveSelect">选择历史榜单（同步图文工作台）</label><select id="archiveSelect" class="field ui-field"></select>' +
-    '<button type="button" class="secondary" id="archiveUseStudio" style="margin-top:8px" disabled>使用所选历史榜单生成图文</button>' +
-    '<p class="mini">直接使用已归档的估算销量，无需重新导入截图或标定；上方标定编辑区不受影响。</p>' +
-    '<div class="tablewrap" style="margin-top:8px"><table class="ranktable"><thead><tr><th>排名</th><th>机型</th><th>品牌系列</th><th class="num">估算销量 / 万台</th></tr></thead><tbody id="archiveRows"></tbody></table></div></details>';
-  const resultPanel = $('exportCsv').closest('.panel');
-  resultPanel.before(panel);
-
-  // The tracker derives its data from the existing archive, never from a second manually maintained input.
-  const tracker = document.createElement('section');
-  tracker.className = 'panel';
-  tracker.innerHTML = '<h2 class="panel-title">热销机型追踪</h2>' +
-    '<p class="panel-desc">基于同来源、同系列的周销量榜单构建连续机型销量序列，兼容不同榜单规模。统计区间、覆盖率与插补规则可自由配置；所有销量仍以原始周榜为基础。</p>' +
-    '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px">' +
-    '<div><label class="lbl" for="trackerScope">榜单口径</label><select id="trackerScope" class="field ui-field"></select></div>' +
-    '<div><label class="lbl" for="trackerMode">统计方式</label><select id="trackerMode" class="field ui-field"><option value="weekly_wan">周销量增量</option><option value="cumulative_wan">区间累计增量</option></select></div></div>' +
-    '<label class="lbl" for="trackerFilter">筛选机型（支持空格、大小写变体）</label><input class="field ui-field" id="trackerFilter" placeholder="例如 iPhone 18 或 Pro Max">' +
-    '<div id="trackerModels" style="display:flex;flex-wrap:wrap;gap:8px 16px;max-height:180px;overflow:auto;padding:10px 0"></div>' +
-    '<button class="secondary" type="button" id="trackerExport" disabled>导出当前口径整理后 CSV</button>' +
-    '<div id="trackerStatus" class="msg" aria-live="polite"></div>' +
-    '<div id="trackerChart" style="overflow:auto"></div><div id="trackerLegend" style="display:flex;flex-wrap:wrap;gap:8px 16px"></div>' +
-    '<p class="mini">单位：万台。实心点及实线为原始观测，空心点及虚线为插补；累计曲线首次含插补后用虚线。累计仅计算所选区间，历史首次观测前留空，之后任一无法补全的周会使后续累计留空；并非上市以来累计销量。</p>' +
-    '<div class="tablewrap"><table class="ranktable"><thead><tr><th>机型</th><th>观测覆盖率</th><th>插补周数</th><th class="num">最新周销量 / 万台</th><th class="num">累计增量 / 万台</th></tr></thead><tbody id="trackerRows"></tbody></table></div>';
-  panel.after(tracker);
-
-  // Keep the calibration and studio DOM alive; switching tabs never destroys user input.
-  const moduleMain=document.querySelector('main.shell');
-  const moduleTitle=moduleMain.querySelector('h1');
-  moduleTitle.textContent='热销机型与榜单研究';
-  moduleMain.querySelector('.subtitle').textContent='榜单销量估算 · 历史数据存档 · 热销机型追踪 · 图文内容工作台';
-  const moduleNav=document.createElement('nav');
-  moduleNav.setAttribute('aria-label','模块3功能');
-  moduleNav.setAttribute('role','tablist');
-  moduleNav.style.cssText='display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin:0 0 16px';
-  moduleMain.querySelector('.topline').after(moduleNav);
-  const estimatePane=document.createElement('div'), historyPane=document.createElement('section');
-  historyPane.className='panel';
-  historyPane.innerHTML='<h2 class="panel-title">历史榜单</h2><p class="panel-desc">读取、导入和浏览历史销量榜单；可直接切换到图文工作台。</p><div id="historyActions" style="display:flex;gap:8px;flex-wrap:wrap"></div>';
-  const metrics=moduleMain.querySelector('.metrics'), layout=moduleMain.querySelector('.layout');
-  moduleNav.after(estimatePane);
-  estimatePane.append(metrics,layout);
-  // Move the existing tracker and historical read-only controls out of the calibration column.
-  estimatePane.after(historyPane,tracker);
-  const details=$('archiveHistoryDetails');
-  $('historyActions').append($('archiveReload'),$('archiveImport'),$('archiveFile'));
-  historyPane.append($('archiveHistoryStatus'),details);
-  const modulePanes={estimate:estimatePane,history:historyPane,tracker:tracker,social:$('socialStudio')};
-  const moduleButtons={};
+  // The HTML owns the final tab layout; switching tabs preserves live input and state.
+  const tracker=$('module3-tracker');
+  const modulePanes={estimate:$('module3-estimate'),history:$('module3-history'),tracker,social:$('socialStudio')};
+  const moduleButtons=Object.fromEntries(Object.keys(modulePanes).map(id=>[id,$('module3-tab-'+id)]));
   function activateModuleTab(key){
     if(!modulePanes[key])return;
     for(const [id,pane] of Object.entries(modulePanes)){
@@ -159,15 +96,8 @@
       moduleButtons[id].className=active?'primary':'secondary';
     }
   }
-  for(const [id,label] of Object.entries({estimate:'榜单估算',history:'历史榜单',tracker:'热销机型追踪',social:'图文工作台'})){
-    const button=document.createElement('button');button.type='button';button.textContent=label;button.setAttribute('role','tab');
-    modulePanes[id].id=modulePanes[id].id||'module3-'+id;
-    button.id='module3-tab-'+id;button.setAttribute('aria-controls',modulePanes[id].id);
-    modulePanes[id].setAttribute('role','tabpanel');modulePanes[id].setAttribute('aria-labelledby',button.id);
-    button.onclick=()=>activateModuleTab(id);moduleButtons[id]=button;moduleNav.append(button);
-  }
+  for(const [id,button] of Object.entries(moduleButtons))button.onclick=()=>activateModuleTab(id);
   activateModuleTab('estimate');
-
 
   const parameterPanel=document.createElement('section');
   parameterPanel.style.cssText='border:1px solid var(--ui-border,#dbe2ea);border-radius:12px;padding:14px;margin:12px 0';
@@ -682,7 +612,6 @@
     b.value=sameScope&&weeks.some(w=>w.period===oldB)?oldB:(valid[valid.length-1]?.period||weeks[weeks.length-1]?.period||'');
     if(!sameScope){const saved=scopeSettings.get(scopeId);Pref.setControl(a,saved?.brandBase);Pref.setControl(b,saved?.brandCompare);}
   }
-  function boardBrandData(weeks){return aggregateBoardBrands(weeks);}
   function plotBrandComposition(chart){
     researchPublicationChart=chart;
     ResearchCharts.renderComposition($('researchChart'),chart,'品牌结构图');
@@ -691,7 +620,7 @@
     const view=$('brandView').value,metric=$('brandMetric').value,con=$('brandCon').value;
     visible($('brandMetricControl'),view!=='concentration');visible($('brandBaseControl'),view==='ribbon');visible($('brandCompareControl'),view==='ribbon');visible($('brandConControl'),view==='concentration');
     fillBrandWeeks(weeks,scope.id);
-    const per=boardBrandData(weeks),unit=metric==='volume'?'万台':'%',sample=topKValue()===null?'原始全量':'固定 TOP'+topKValue();
+    const per=aggregateBoardBrands(weeks),unit=metric==='volume'?'万台':'%',sample=topKValue()===null?'原始全量':'固定 TOP'+topKValue();
     const validMetric=r=>r.valid&&(metric!=='share'||r.total>0);
     const value=(r,k,i)=>!validMetric(r)?null:metric==='volume'?r.sales[k]:metric==='count'?r.countShares[i]:r.shares[i];
     const brands=boardBrandOrder.filter(k=>k!=='其他'||per.some(r=>r.valid&&r.counts[k]>0));
@@ -738,7 +667,6 @@
     if(!scope){notice.textContent='暂无周榜数据';return;}
     const c=Object.fromEntries(trackerData.header.map((h,i)=>[h,i]));
     let weeks=scope.weeks;
-    const weekRows=w=>[...w.map.values()];
     if(researchView==='tier'){renderTierComparison(scope,c);return;}
     if(usesTopK(researchView)){
       const k=topKValue();$('researchTopCustom').hidden=$('researchTopMode').value!=='custom';

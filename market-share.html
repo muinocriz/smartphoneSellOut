@@ -25,7 +25,7 @@
         <div class="ui-eyebrow"><span class="ui-eyebrow-dot" aria-hidden="true"></span>DATA JOURNALISM STUDIO</div>
         <h1 class="ui-page-title">手机份额战报出图台</h1>
       </div>
-      <span id="currentMarketShareWeek" class="ui-meta-badge">2026 W44→W45</span>
+      <span id="currentMarketShareWeek" class="ui-meta-badge">等待数据</span>
     </div>
 
     <!-- 1. 图表类型切换 -->
@@ -104,7 +104,7 @@
           </div>
           <div class="ms-other-summary">
             <span class="ms-muted">自动推算“其他”份额：</span>
-            <span id="otherAutoSummary" class="ms-number">2.6% → 2.6%</span>
+            <span id="otherAutoSummary" class="ms-number">—</span>
           </div>
         </div>
 
@@ -112,7 +112,7 @@
           <span class="ms-state-note">
             <span>●</span> 已开启浏览器本地自动记忆（刷新不丢失）
           </span>
-          <button id="resetDataBtn" class="ms-link-button">恢复默认 W44/W45 示例数据</button>
+          <button id="resetDataBtn" class="ms-link-button">清空份额数据</button>
         </div>
       </div>
     </div>
@@ -162,35 +162,35 @@
       <h2 class="ui-section-title">5. 编辑战报文案</h2>
       <div>
         <label class="ms-label">主标题</label>
-        <input type="text" id="inputTitle" value="2026 W45 国内手机市场份额周环比变化" class="ui-field">
+        <input type="text" id="inputTitle" value="国内手机市场份额周环比变化" class="ui-field">
       </div>
       <div>
         <label class="ms-label">副标题（时间与单位口径）</label>
-        <input type="text" id="inputSubtitle" value="对比 W44 (10.26–11.1) 与 W45 (11.2–11.8) | 单位：百分点" class="ui-field">
+        <input type="text" id="inputSubtitle" value="等待导入连续两周数据" class="ui-field">
       </div>
       <div>
         <label class="ms-label">核心洞察标签</label>
-        <input type="text" id="inputInsight" value="本周大盘降约5% · 华为逆势涨 +1.4 突破20% · 苹果稳居榜首" class="ui-field">
+        <input type="text" id="inputInsight" value="" class="ui-field">
       </div>
       <div class="ms-subsection">
         <label class="ms-subheading">顶部两周趋势卡片</label>
         <div class="ms-grid-2">
           <div>
             <label class="ms-label" for="inputW1Label">左卡片 · 基准周标签</label>
-            <input type="text" id="inputW1Label" value="W44 (10.26 - 11.1)" class="ui-field">
+            <input type="text" id="inputW1Label" value="基准周" class="ui-field">
           </div>
           <div>
             <label class="ms-label" for="inputW2Label">右卡片 · 对比周标签</label>
-            <input type="text" id="inputW2Label" value="W45 (11.2 - 11.8)" class="ui-field">
+            <input type="text" id="inputW2Label" value="对比周" class="ui-field">
           </div>
         </div>
         <div>
           <label class="ms-label" for="inputW1Market">左卡片 · 基准周趋势说明</label>
-          <input type="text" id="inputW1Market" value="大盘趋势：略微上升 ↗" class="ui-field">
+          <input type="text" id="inputW1Market" value="" class="ui-field">
         </div>
         <div>
           <label class="ms-label" for="inputW2Market">右卡片 · 对比周趋势说明</label>
-          <input type="text" id="inputW2Market" value="大盘趋势：环比下降约 5% ↘" class="ui-field">
+          <input type="text" id="inputW2Market" value="" class="ui-field">
         </div>
       </div>
       <div class="ms-subsection">
@@ -313,17 +313,17 @@
     // ==========================================
     function getDefaultBrands() {
       return [
-        { id: 'apple', name: '苹果', w1: 28.7, w2: 29.3, brandColor: window.BrandUtils.color('apple') },
-        { id: 'huawei', name: '华为', w1: 19.4, w2: 20.8, brandColor: window.BrandUtils.color('huawei') },
-        { id: 'xiaomi', name: '小米', w1: 13.4, w2: 13.0, brandColor: window.BrandUtils.color('xiaomi') },
+        { id: 'apple', name: '苹果', w1: null, w2: null, brandColor: window.BrandUtils.color('apple') },
+        { id: 'huawei', name: '华为', w1: null, w2: null, brandColor: window.BrandUtils.color('huawei') },
+        { id: 'xiaomi', name: '小米', w1: null, w2: null, brandColor: window.BrandUtils.color('xiaomi') },
         {
           id: 'oppo',
           name: 'OPPO系',
           brandColor: window.BrandUtils.color('oppo'),
           subBrands: [
-            { name: 'OPPO主品牌', w1: 8.5, w2: 8.2, shade: '#059669' },
-            { name: '一加', w1: 3.8, w2: 3.9, shade: '#34d399' },
-            { name: 'realme', w1: 0.2, w2: 0.2, shade: '#6ee7b7' }
+            { name: 'OPPO主品牌', w1: null, w2: null, shade: '#059669' },
+            { name: '一加', w1: null, w2: null, shade: '#34d399' },
+            { name: 'realme', w1: null, w2: null, shade: '#6ee7b7' }
           ]
         },
         {
@@ -331,11 +331,11 @@
           name: 'vivo系',
           brandColor: window.BrandUtils.color('vivo'),
           subBrands: [
-            { name: 'vivo主品牌', w1: 8.1, w2: 8.1, shade: '#4f46e5' },
-            { name: 'iQOO', w1: 3.7, w2: 3.3, shade: '#818cf8' }
+            { name: 'vivo主品牌', w1: null, w2: null, shade: '#4f46e5' },
+            { name: 'iQOO', w1: null, w2: null, shade: '#818cf8' }
           ]
         },
-        { id: 'honor', name: '荣耀', w1: 11.6, w2: 10.6, brandColor: window.BrandUtils.color('honor') }
+        { id: 'honor', name: '荣耀', w1: null, w2: null, brandColor: window.BrandUtils.color('honor') }
       ];
     }
 
@@ -356,22 +356,22 @@
             const sw2 = +(parseFloat(s.w2) || 0).toFixed(2);
             return {
               ...s,
-              w44: sw1,
-              w45: sw2,
+              baseShare: sw1,
+              compareShare: sw2,
               diff: +(sw2 - sw1).toFixed(2)
             };
           });
 
           const subNote = subs
             .filter(s => s.name !== 'OPPO主品牌' && s.name !== 'vivo主品牌')
-            .map(s => `${s.name} ${s.w45.toFixed(1)}%`)
+            .map(s => `${s.name} ${s.compareShare.toFixed(1)}%`)
             .join('/');
 
           return {
             id: b.id,
             name: b.name,
-            w44: sumW1,
-            w45: sumW2,
+            baseShare: sumW1,
+            compareShare: sumW2,
             diff,
             brandColor: b.brandColor,
             subNote,
@@ -387,8 +387,8 @@
           return {
             id: b.id,
             name: b.name,
-            w44: w1,
-            w45: w2,
+            baseShare: w1,
+            compareShare: w2,
             diff,
             brandColor: b.brandColor,
             subNote: null,
@@ -404,8 +404,8 @@
       list.push({
         id: 'other',
         name: '其他',
-        w44: otherW1,
-        w45: otherW2,
+        baseShare: otherW1,
+        compareShare: otherW2,
         diff: otherDiff,
         brandColor: window.BrandUtils.color('other'),
         subNote: null,
@@ -455,16 +455,17 @@
         rightMarginPct: 15,        // 右侧留白百分比 (默认 15%)
         bottomMarginPct: 10,       // 下侧留白百分比 (默认 10%)
         paletteId: 'editorial_paper', // 与第三模块统一的默认「编辑部米白」
-        title: '2026 W45 国内手机市场份额周环比变化',
-        subtitle: '对比 W44 (10.26–11.1) 与 W45 (11.2–11.8) | 单位：百分点',
-        insight: '本周大盘降约5% · 华为逆势涨 +1.4 突破20% · 苹果稳居榜首',
-        w1Label: 'W44 (10.26 - 11.1)',
-        w2Label: 'W45 (11.2 - 11.8)',
-        w1Market: '大盘趋势：略微上升 ↗',
-        w2Market: '大盘趋势：环比下降约 5% ↘',
+        title: '国内手机市场份额周环比变化',
+        subtitle: '等待导入连续两周数据',
+        insight: '',
+        w1Label: '基准周',
+        w2Label: '对比周',
+        w1Market: '',
+        w2Market: '',
         footerSource: '数据口径：国内手机市场 Sell-Out 销量占比（OPPO含一加/realme，vivo含iQOO）',
         footerNote: '底色高亮标注本周最大份额提升与最大回落品牌 · 适配抖音 3:4 安全区',
         watermark: {diagonalEnabled:false,diagonalText:'归零return0',diagonalOpacity:8,diagonalSize:32,diagonalGap:220,centerEnabled:false,centerText:'归零return0',centerOpacity:12,centerSize:72},
+        dataMode: 'empty', selectedWeek: null, textOverrides: {},
         brands: getDefaultBrands()
       };
     }
@@ -497,6 +498,26 @@
     }
 
     const state = loadSavedState();
+    function completeMarketData(){
+      if(!Array.isArray(state.brands)||state.brands.length!==6)return false;
+      const entries=state.brands.flatMap(b=>b.subBrands||[b]);
+      return entries.length===9&&['w1','w2'].every(k=>entries.every(b=>b[k]!=null&&String(b[k]).trim()!==''&&Number.isFinite(Number(b[k]))&&Number(b[k])>=0&&Number(b[k])<=100)&&entries.reduce((sum,b)=>sum+Number(b[k]),0)<=100.005);
+    }
+    function prepareMarketState(){
+      // Old example data is recognized only during migration; it is never a default chart source.
+      const oldExample=[[28.7,29.3],[19.4,20.8],[13.4,13],[8.5,8.2],[3.8,3.9],[0.2,0.2],[8.1,8.1],[3.7,3.3],[11.6,10.6]],oldText={"title":"2026 W45 国内手机市场份额周环比变化","subtitle":"对比 W44 (10.26–11.1) 与 W45 (11.2–11.8) | 单位：百分点","insight":"本周大盘降约5% · 华为逆势涨 +1.4 突破20% · 苹果稳居榜首","w1Label":"W44 (10.26 - 11.1)","w2Label":"W45 (11.2 - 11.8)","w1Market":"大盘趋势：略微上升 ↗","w2Market":"大盘趋势：环比下降约 5% ↘"};
+      const saved=state.brands.flatMap(b=>b.subBrands||[b]).map(b=>[b.w1,b.w2]);
+      if(!state.dataMode||state.dataMode==='empty'){
+        const example=JSON.stringify(saved)===JSON.stringify(oldExample);
+        state.dataMode=!example&&completeMarketData()?'manual':'empty';
+      }
+      if(state.dataMode==='csv'||state.dataMode==='empty'){
+        state.brands=getDefaultBrands();
+        state.dataMode='empty';
+        for(const [key,value] of Object.entries(getDefaultState()))if(typeof value==='string'&&Object.hasOwn(oldText,key)&&(!state.textOverrides?.[key]||state[key]===oldText[key]))state[key]=value;
+      }
+    }
+    prepareMarketState();
 
     function getPalette() {
       return PALETTES[state.paletteId] || PALETTES.editorial_paper;
@@ -512,12 +533,6 @@
       if (diff > 0) return `+${diff.toFixed(1)}`;
       if (diff < 0) return `${diff.toFixed(1)}`;
       return `0.0`;
-    }
-
-    function formatDiffPct(diff) {
-      if (diff > 0) return `+${diff.toFixed(1)}%`;
-      if (diff < 0) return `${diff.toFixed(1)}%`;
-      return `0.0%`;
     }
 
     function formatDiffPP(diff) {
@@ -641,6 +656,14 @@
       const svg = document.getElementById('posterSvg');
       svg.innerHTML = '';
       const P = getPalette();
+      const ready=completeMarketData();
+      document.getElementById('exportBtn').disabled=!ready;
+      if(!ready){
+        svg.appendChild(svgEl('rect',{width:900,height:1200,fill:'#ffffff'}));
+        svg.appendChild(svgEl('text',{x:450,y:580,'text-anchor':'middle','font-size':30,fill:P.textPrimary},'尚无完整市场份额数据'));
+        svg.appendChild(svgEl('text',{x:450,y:625,'text-anchor':'middle','font-size':20,fill:P.textSecondary},'请导入连续两周 CSV，或完整填写两周份额'));
+        return;
+      }
 
       // 计算安全绘制区域（严格遵循独立的右侧与下方安全留白）
       const W = 900;
@@ -819,18 +842,18 @@
       getComputedMarketData().forEach(b => {
         if (state.splitSubBrands && b.subBrands) {
           b.subBrands.forEach(sub => items.push({
-            name: sub.name, w44: sub.w44, w45: sub.w45,
+            name: sub.name, baseShare: sub.baseShare, compareShare: sub.compareShare,
             diff: sub.diff, color: sub.shade, isSub: true
           }));
         } else {
           items.push({
-            name: b.name, w44: b.w44, w45: b.w45,
+            name: b.name, baseShare: b.baseShare, compareShare: b.compareShare,
             diff: b.diff, color: b.brandColor, isSub: false
           });
         }
       });
       // 基准周份额降序等价于该周销量降序，子品牌拆分后独立排序。
-      return items.sort((a, b) => b.w44 - a.w44);
+      return items.sort((a, b) => b.baseShare - a.baseShare);
     }
 
     // 双图组合模式（上：横向规模比例堆叠 + 下：发散涨跌条形图）
@@ -855,8 +878,8 @@
 
       const stackSegs = getOrderedStackItems();
       const { baseScale, compareScale } = getStackMarketScale();
-      const sumW1 = stackSegs.reduce((sum, seg) => sum + seg.w44, 0) || 100;
-      const sumW2 = stackSegs.reduce((sum, seg) => sum + seg.w45, 0) || 100;
+      const sumW1 = stackSegs.reduce((sum, seg) => sum + seg.baseShare, 0) || 100;
+      const sumW2 = stackSegs.reduce((sum, seg) => sum + seg.compareShare, 0) || 100;
 
       const barLeft = boxX + 78;
       const barRight = boxX + boxW - 22;
@@ -879,8 +902,8 @@
       let x2Acc = barLeft;
 
       stackSegs.forEach((seg) => {
-        const w1Px = (seg.w44 / sumW1) * barTotalW * baseScale;
-        const w2Px = (seg.w45 / sumW2) * barTotalW * compareScale;
+        const w1Px = (seg.baseShare / sumW1) * barTotalW * baseScale;
+        const w2Px = (seg.compareShare / sumW2) * barTotalW * compareScale;
 
         if (w1Px > 0.5 || w2Px > 0.5) {
           const polyPts = `${x1Acc},${row1Y + barThick} ${x1Acc + w1Px},${row1Y + barThick} ${x2Acc + w2Px},${row2Y} ${x2Acc},${row2Y}`;
@@ -900,7 +923,7 @@
             svg.appendChild(svgEl('text', {
               x: x1Acc + w1Px / 2, y: row1Y + barThick / 2 + 4.5,
               'text-anchor': 'middle', fill: '#ffffff', 'font-size': '12.5', 'font-weight': '800'
-            }, `${seg.w44.toFixed(1)}%`));
+            }, `${seg.baseShare.toFixed(1)}%`));
           }
         }
 
@@ -913,7 +936,7 @@
             svg.appendChild(svgEl('text', {
               x: x2Acc + w2Px / 2, y: row2Y + barThick / 2 + 4.5,
               'text-anchor': 'middle', fill: '#ffffff', 'font-size': '12.5', 'font-weight': '800'
-            }, `${seg.w45.toFixed(1)}%`));
+            }, `${seg.compareShare.toFixed(1)}%`));
           }
         }
 
@@ -1055,7 +1078,7 @@
           fill: P.textSecondary,
           'font-size': isCompact ? '13.5' : '15.5',
           'font-weight': '600'
-        }, `${item.w44.toFixed(1)}% → ${item.w45.toFixed(1)}%`));
+        }, `${item.baseShare.toFixed(1)}% → ${item.compareShare.toFixed(1)}%`));
 
         if (Math.abs(item.diff) >= 0.01) {
           const targetX = scaleX(item.diff);
@@ -1147,7 +1170,7 @@
       svg.appendChild(svgEl('text', { x: axisLeftX, y: plotTop - 24, 'text-anchor': 'middle', fill: P.textPrimary, 'font-size': '19', 'font-weight': '800' }, '基准周份额'));
       svg.appendChild(svgEl('text', { x: axisRightX, y: plotTop - 24, 'text-anchor': 'middle', fill: P.textPrimary, 'font-size': '19', 'font-weight': '800' }, '对比周份额'));
 
-      const allVals = dataList.flatMap(d => [d.w44, d.w45]);
+      const allVals = dataList.flatMap(d => [d.baseShare, d.compareShare]);
       const maxVal = Math.max(30.5, ...allVals) + 1;
       const minVal = Math.max(0, Math.min(...allVals) - 1.5);
       const mapY = (val) => {
@@ -1157,10 +1180,10 @@
 
       const items = dataList.map(d => ({
         ...d,
-        rawY1: mapY(d.w44),
-        rawY2: mapY(d.w45),
-        y1: mapY(d.w44),
-        y2: mapY(d.w45)
+        rawY1: mapY(d.baseShare),
+        rawY2: mapY(d.compareShare),
+        y1: mapY(d.baseShare),
+        y2: mapY(d.compareShare)
       }));
 
       const relaxLabels = (key, minGap) => {
@@ -1225,7 +1248,7 @@
           fill: isUp ? strokeColor : P.textPrimary,
           'font-size': '17',
           'font-weight': isUp ? '800' : '700'
-        }, `${item.name} ${item.w44.toFixed(1)}%`));
+        }, `${item.name} ${item.baseShare.toFixed(1)}%`));
 
         const rightTextX = axisRightX + 16;
         svg.appendChild(svgEl('text', {
@@ -1234,7 +1257,7 @@
           fill: P.textPrimary,
           'font-size': '18',
           'font-weight': '800'
-        }, `${item.w45.toFixed(1)}%`));
+        }, `${item.compareShare.toFixed(1)}%`));
 
         const badgeX = rightTextX + 66;
         const badgeBg = isUp ? P.upBg : (isDown ? P.downBg : P.flatBg);
@@ -1285,7 +1308,7 @@
       const plotBottom = boxY + boxH - 48;
       const rowH = (plotBottom - plotTop) / dataList.length;
 
-      const maxScale = Math.max(32, Math.ceil(Math.max(...dataList.flatMap(d => [d.w44, d.w45])) / 5) * 5 + 2);
+      const maxScale = Math.max(32, Math.ceil(Math.max(...dataList.flatMap(d => [d.baseShare, d.compareShare])) / 5) * 5 + 2);
       const ticks = [0, 5, 10, 15, 20, 25, 30];
       ticks.forEach(t => {
         if (t > maxScale) return;
@@ -1334,48 +1357,48 @@
           fill: P.textPrimary, 'font-size': '18', 'font-weight': '800'
         }, item.name));
 
-        const x44 = plotLeft + (item.w44 / maxScale) * plotW;
-        const x45 = plotLeft + (item.w45 / maxScale) * plotW;
+        const baseX = plotLeft + (item.baseShare / maxScale) * plotW;
+        const compareX = plotLeft + (item.compareShare / maxScale) * plotW;
 
-        if (Math.abs(x45 - x44) > 1) {
+        if (Math.abs(compareX - baseX) > 1) {
           svg.appendChild(svgEl('line', {
-            x1: x44, y1: cy, x2: x45, y2: cy,
+            x1: baseX, y1: cy, x2: compareX, y2: cy,
             stroke: color, 'stroke-width': '6', 'stroke-linecap': 'round'
           }));
         }
 
         svg.appendChild(svgEl('circle', {
-          cx: x44, cy: cy, r: 7,
+          cx: baseX, cy: cy, r: 7,
           fill: P.cardBg, stroke: P.textSecondary, 'stroke-width': '2.5'
         }));
 
         svg.appendChild(svgEl('circle', {
-          cx: x45, cy: cy, r: 8.5,
+          cx: compareX, cy: cy, r: 8.5,
           fill: color, stroke: P.cardBg, 'stroke-width': '2'
         }));
 
-        const minX = Math.min(x44, x45);
-        const maxX = Math.max(x44, x45);
+        const minX = Math.min(baseX, compareX);
+        const maxX = Math.max(baseX, compareX);
 
         if (item.diff === 0) {
           svg.appendChild(svgEl('text', {
             x: maxX + 14, y: cy + 5,
             fill: P.textSecondary, 'font-size': '15', 'font-weight': '700'
-          }, `${item.w45.toFixed(1)}% (持平)`));
+          }, `${item.compareShare.toFixed(1)}% (持平)`));
         } else {
           svg.appendChild(svgEl('text', {
             x: isUp ? minX - 12 : maxX + 12,
             y: cy + 5,
             'text-anchor': isUp ? 'end' : 'start',
             fill: P.textMuted, 'font-size': '14', 'font-weight': '600'
-          }, `${item.w44.toFixed(1)}%`));
+          }, `${item.baseShare.toFixed(1)}%`));
 
           svg.appendChild(svgEl('text', {
             x: isUp ? maxX + 14 : minX - 14,
             y: cy + 6,
             'text-anchor': isUp ? 'start' : 'end',
             fill: color, 'font-size': '17', 'font-weight': '900'
-          }, `${item.w45.toFixed(1)}%`));
+          }, `${item.compareShare.toFixed(1)}%`));
         }
 
         const badgeBg = isUp ? P.upBg : (isDown ? P.downBg : P.flatBg);
@@ -1408,8 +1431,8 @@
 
       const stackItems = getOrderedStackItems();
       const { baseScale, compareScale, compareIndex } = getStackMarketScale();
-      const sumW44 = stackItems.reduce((sum, seg) => sum + seg.w44, 0) || 100;
-      const sumW45 = stackItems.reduce((sum, seg) => sum + seg.w45, 0) || 100;
+      const baseTotal = stackItems.reduce((sum, seg) => sum + seg.baseShare, 0) || 100;
+      const compareTotal = stackItems.reduce((sum, seg) => sum + seg.compareShare, 0) || 100;
 
       const barW = 128;
       const leftBarX = boxX + 125;
@@ -1428,23 +1451,23 @@
         'text-anchor': 'middle', fill: P.textPrimary, 'font-size': '18', 'font-weight': '800'
       }, `对比周（指数 ${compareIndex}）`));
 
-      let accY44 = plotBottom;
-      let accY45 = plotBottom;
+      let baseAccY = plotBottom;
+      let compareAccY = plotBottom;
 
       stackItems.forEach((seg) => {
-        const h44 = (seg.w44 / sumW44) * totalH * baseScale;
-        const h45 = (seg.w45 / sumW45) * totalH * compareScale;
+        const baseH = (seg.baseShare / baseTotal) * totalH * baseScale;
+        const compareH = (seg.compareShare / compareTotal) * totalH * compareScale;
 
-        const y44Bot = accY44;
-        const y44Top = accY44 - h44;
-        const y45Bot = accY45;
-        const y45Top = accY45 - h45;
+        const y44Bot = baseAccY;
+        const baseTopY = baseAccY - baseH;
+        const y45Bot = compareAccY;
+        const compareTopY = compareAccY - compareH;
 
         const c1x = leftBarX + barW + (rightBarX - (leftBarX + barW)) * 0.45;
         const c2x = leftBarX + barW + (rightBarX - (leftBarX + barW)) * 0.55;
         const pathD = `
-          M ${leftBarX + barW} ${y44Top}
-          C ${c1x} ${y44Top}, ${c2x} ${y45Top}, ${rightBarX} ${y45Top}
+          M ${leftBarX + barW} ${baseTopY}
+          C ${c1x} ${baseTopY}, ${c2x} ${compareTopY}, ${rightBarX} ${compareTopY}
           L ${rightBarX} ${y45Bot}
           C ${c2x} ${y45Bot}, ${c1x} ${y44Bot}, ${leftBarX + barW} ${y44Bot}
           Z
@@ -1455,55 +1478,55 @@
           opacity: P.isDark ? '0.24' : '0.20'
         }));
 
-        if (h44 > 0) svg.appendChild(svgEl('rect', {
-          x: leftBarX, y: y44Top, width: barW, height: Math.max(0, h44 - Math.min(1.5, h44 * 0.15)),
+        if (baseH > 0) svg.appendChild(svgEl('rect', {
+          x: leftBarX, y: baseTopY, width: barW, height: Math.max(0, baseH - Math.min(1.5, baseH * 0.15)),
           rx: 4, fill: seg.color
         }));
 
-        if (h45 > 0) svg.appendChild(svgEl('rect', {
-          x: rightBarX, y: y45Top, width: barW, height: Math.max(0, h45 - Math.min(1.5, h45 * 0.15)),
+        if (compareH > 0) svg.appendChild(svgEl('rect', {
+          x: rightBarX, y: compareTopY, width: barW, height: Math.max(0, compareH - Math.min(1.5, compareH * 0.15)),
           rx: 4, fill: seg.color
         }));
 
-        if (h44 >= 22) {
+        if (baseH >= 22) {
           svg.appendChild(svgEl('text', {
-            x: leftBarX + barW / 2, y: y44Top + h44 / 2 + 5,
-            'text-anchor': 'middle', fill: '#ffffff', 'font-size': h44 >= 34 ? '16' : '13', 'font-weight': '800'
-          }, `${seg.w44.toFixed(1)}%`));
+            x: leftBarX + barW / 2, y: baseTopY + baseH / 2 + 5,
+            'text-anchor': 'middle', fill: '#ffffff', 'font-size': baseH >= 34 ? '16' : '13', 'font-weight': '800'
+          }, `${seg.baseShare.toFixed(1)}%`));
         }
 
-        if (h45 >= 22) {
+        if (compareH >= 22) {
           svg.appendChild(svgEl('text', {
-            x: rightBarX + barW / 2, y: y45Top + h45 / 2 + 5,
-            'text-anchor': 'middle', fill: '#ffffff', 'font-size': h45 >= 34 ? '16' : '13', 'font-weight': '800'
-          }, `${seg.w45.toFixed(1)}%`));
+            x: rightBarX + barW / 2, y: compareTopY + compareH / 2 + 5,
+            'text-anchor': 'middle', fill: '#ffffff', 'font-size': compareH >= 34 ? '16' : '13', 'font-weight': '800'
+          }, `${seg.compareShare.toFixed(1)}%`));
         }
 
-        const midY44 = y44Top + h44 / 2;
-        if (seg.w44 >= 2.0 && h44 >= 10) {
+        const baseMidY = baseTopY + baseH / 2;
+        if (seg.baseShare >= 2.0 && baseH >= 10) {
           svg.appendChild(svgEl('text', {
-            x: leftBarX - 12, y: midY44 + 5,
+            x: leftBarX - 12, y: baseMidY + 5,
             'text-anchor': 'end', fill: P.textPrimary, 'font-size': seg.isSub ? '14' : '16', 'font-weight': '700'
           }, seg.name));
         }
 
-        const midY45 = y45Top + h45 / 2;
+        const compareMidY = compareTopY + compareH / 2;
         const isUp = seg.diff > 0;
         const isDown = seg.diff < 0;
         const diffColor = isUp ? P.upColor : (isDown ? P.downColor : P.textMuted);
 
-        if (seg.w45 >= 2.0 && h45 >= 10) {
-          const labelStr = h45 < 22
-            ? `${seg.w45.toFixed(1)}% (${formatDiffPP(seg.diff)})`
+        if (seg.compareShare >= 2.0 && compareH >= 10) {
+          const labelStr = compareH < 22
+            ? `${seg.compareShare.toFixed(1)}% (${formatDiffPP(seg.diff)})`
             : `${formatDiffPP(seg.diff)}`;
           svg.appendChild(svgEl('text', {
-            x: rightBarX + barW + 12, y: midY45 + 5,
+            x: rightBarX + barW + 12, y: compareMidY + 5,
             'text-anchor': 'start', fill: diffColor, 'font-size': '15.5', 'font-weight': '800'
           }, labelStr));
         }
 
-        accY44 = y44Top;
-        accY45 = y45Top;
+        baseAccY = baseTopY;
+        compareAccY = compareTopY;
       });
     }
 
@@ -1538,8 +1561,8 @@
             row.className = 'ms-editor-row ms-editor-sub';
             row.innerHTML = `
               <span class="ms-brand-label">└ ${sub.name}</span>
-              <input type="number" step="0.1" min="0" max="100" value="${sub.w1}" data-bidx="${bIdx}" data-sidx="${sIdx}" data-field="w1" class="data-num-input">
-              <input type="number" step="0.1" min="0" max="100" value="${sub.w2}" data-bidx="${bIdx}" data-sidx="${sIdx}" data-field="w2" class="data-num-input">
+              <input type="number" step="0.1" min="0" max="100" value="${sub.w1??''}" data-bidx="${bIdx}" data-sidx="${sIdx}" data-field="w1" class="data-num-input">
+              <input type="number" step="0.1" min="0" max="100" value="${sub.w2??''}" data-bidx="${bIdx}" data-sidx="${sIdx}" data-field="w2" class="data-num-input">
               <span class="ms-change ${sDiff > 0 ? 'ms-up' : (sDiff < 0 ? 'ms-down' : 'ms-neutral')}" id="sub_diff_${bIdx}_${sIdx}">${formatDiff(sDiff)}</span>
             `;
             container.appendChild(row);
@@ -1552,8 +1575,8 @@
             <span class="ms-brand-label">
               <span class="ms-color-dot" style="background:${b.brandColor}"></span>${b.name}
             </span>
-            <input type="number" step="0.1" min="0" max="100" value="${b.w1}" data-bidx="${bIdx}" data-field="w1" class="data-num-input">
-            <input type="number" step="0.1" min="0" max="100" value="${b.w2}" data-bidx="${bIdx}" data-field="w2" class="data-num-input">
+            <input type="number" step="0.1" min="0" max="100" value="${b.w1??''}" data-bidx="${bIdx}" data-field="w1" class="data-num-input">
+            <input type="number" step="0.1" min="0" max="100" value="${b.w2??''}" data-bidx="${bIdx}" data-field="w2" class="data-num-input">
             <span class="ms-change ${diff > 0 ? 'ms-up' : (diff < 0 ? 'ms-down' : 'ms-neutral')}" id="brand_diff_${bIdx}">${formatDiff(diff)}</span>
           `;
           container.appendChild(row);
@@ -1565,7 +1588,7 @@
           const bIdx = parseInt(e.target.dataset.bidx, 10);
           const sIdx = e.target.dataset.sidx !== undefined ? parseInt(e.target.dataset.sidx, 10) : null;
           const field = e.target.dataset.field;
-          const val = parseFloat(e.target.value) || 0;
+          const val = e.target.value.trim()===''?null:Number(e.target.value);
 
           if (sIdx !== null) {
             state.brands[bIdx].subBrands[sIdx][field] = val;
@@ -1602,11 +1625,12 @@
     }
 
     function updateOtherSummaryText() {
+      const el = document.getElementById('otherAutoSummary');
+      if(!completeMarketData()){if(el)el.textContent='—';return;}
       const computed = getComputedMarketData();
       const other = computed.find(d => d.id === 'other');
-      const el = document.getElementById('otherAutoSummary');
       if (el && other) {
-        el.textContent = `${other.w44.toFixed(1)}% → ${other.w45.toFixed(1)}%`;
+        el.textContent = `${other.baseShare.toFixed(1)}% → ${other.compareShare.toFixed(1)}%`;
       }
     }
 
@@ -1664,8 +1688,10 @@
       document.getElementById('msExportLabel').textContent = `导出 3:4 海报 (${width}×${height} PNG)`;
     }
     async function exportHighResPNG() {
+      if(!completeMarketData())return;
       const {width, height} = getMarketExportSize();
       if(document.fonts?.ready)await document.fonts.ready;
+      if(!completeMarketData())return;
       const svg = document.getElementById('posterSvg');
       const fontCss=await embeddedNumberFontCss();
       const exportSvg=svg.cloneNode(true);
@@ -1713,7 +1739,7 @@
             dumbbell: '哑铃图',
             stacked: '堆叠流动图'
           };
-          link.download = `${state.selectedWeek || '2026W45'}_手机份额战报_${chartNames[state.chartType]}_3比4抖音版.png`;
+          link.download = `${state.selectedWeek || '手动对比'}_手机份额战报_${chartNames[state.chartType]}_3比4抖音版.png`;
           const downloadUrl = URL.createObjectURL(blob);
           link.href = downloadUrl;
           document.body.appendChild(link);
@@ -1861,6 +1887,7 @@
       document.getElementById('resetDataBtn').addEventListener('click', () => {
         localStorage.removeItem(STORAGE_KEY);
         Object.assign(state, getDefaultState());
+        document.getElementById('currentMarketShareWeek').textContent='等待数据';
         syncUIWithState();
         renderPaletteButtons();
         renderDataInputs();

@@ -5,3 +5,8 @@ node_modules/
 .dev.vars.*
 .env
 .env.*
+
+# Reproducible derived data (not source records)
+/generated/
+/weekly-sales-panel.csv
+/weekly-sales-panel.meta.json

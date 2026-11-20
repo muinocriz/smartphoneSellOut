@@ -41,7 +41,7 @@
         </button>
         <button data-type="stacked" class="chart-btn ui-choice">
           <svg class="ms-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="4" width="5" height="16" rx="1"/><rect x="15" y="4" width="5" height="16" rx="1"/><path d="M9 9C12 9 12 11 15 11" stroke-dasharray="2 2"/></svg>
-          <span>100% 堆叠图</span>
+          <span>规模比例堆叠图</span>
         </button>
         <button data-type="slope" class="chart-btn ui-choice">
           <svg class="ms-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 17L20 7M4 8L20 16"/><circle cx="4" cy="17" r="2"/><circle cx="20" cy="7" r="2"/></svg>
@@ -796,7 +796,43 @@
     }
 
     // ==========================================
-    // 新增：双图组合模式 (上：横向100%堆叠份额格局 + 下：发散涨跌条形图)
+    // 两种堆叠图共用排序及规模估算。仅使用对比周的环比趋势，基准周指数固定为100。
+    function getStackMarketScale() {
+      const trend = String(state.w2Market || '').normalize('NFKC');
+      const match = trend.match(/(下降|下跌|下滑|回落|减少|降低|上升|上涨|增长|提升|增加|回升)[^\d%+\-]*(\d+(?:\.\d+)?)\s*%/);
+      let change = 0;
+      if (match) {
+        const amount = Number(match[2]);
+        const down = /下降|下跌|下滑|回落|减少|降低/.test(match[1]);
+        if (Number.isFinite(amount) && (!down || amount <= 100)) change = down ? -amount : amount;
+      }
+      // 未明确给出方向和百分比（如变化不大、略微上升、少许下降）按持平。
+      const compareIndex = 100 + change;
+      const maxIndex = Math.max(100, compareIndex);
+      return { baseScale: 100 / maxIndex, compareScale: compareIndex / maxIndex,
+        compareIndex: Number(compareIndex.toFixed(4)) };
+    }
+
+    function getOrderedStackItems() {
+      const items = [];
+      getComputedMarketData().forEach(b => {
+        if (state.splitSubBrands && b.subBrands) {
+          b.subBrands.forEach(sub => items.push({
+            name: sub.name, w44: sub.w44, w45: sub.w45,
+            diff: sub.diff, color: sub.shade, isSub: true
+          }));
+        } else {
+          items.push({
+            name: b.name, w44: b.w44, w45: b.w45,
+            diff: b.diff, color: b.brandColor, isSub: false
+          });
+        }
+      });
+      // 基准周份额降序等价于该周销量降序，子品牌拆分后独立排序。
+      return items.sort((a, b) => b.w44 - a.w44);
+    }
+
+    // 双图组合模式（上：横向规模比例堆叠 + 下：发散涨跌条形图）
     // ==========================================
     function renderComboChart(svg, P, boxX, boxY, boxW, boxH) {
       const innerRadius=Math.round(900*window.PosterThemes.layout.innerRadiusRatio);
@@ -805,7 +841,7 @@
       const botH = boxH - gap - topH;
       const botY = boxY + topH + gap;
 
-      // --- 上半卡片：横向 100% 堆叠格局对比 ---
+      // --- 上半卡片：横向规模比例堆叠格局对比 ---
       svg.appendChild(svgEl('rect', {
         x: boxX, y: boxY, width: boxW, height: topH, rx: innerRadius,
         fill: P.cardBg, stroke: P.cardBorder, 'stroke-width': '1.5'
@@ -814,19 +850,12 @@
       svg.appendChild(svgEl('text', {
         x: boxX + 20, y: boxY + 28,
         fill: P.textPrimary, 'font-size': '17', 'font-weight': '800'
-      }, '① 整体份额格局 (100% 存量切片)'));
+      }, `① 份额格局（大盘指数 100 → ${getStackMarketScale().compareIndex}，估算）`));
 
-      const allData = getComputedMarketData();
-      const stackSegs = [];
-      allData.forEach(b => {
-        if (state.splitSubBrands && b.subBrands) {
-          b.subBrands.forEach(sub => {
-            stackSegs.push({ name: sub.name, w1: sub.w44, w2: sub.w45, color: sub.shade });
-          });
-        } else {
-          stackSegs.push({ name: b.name.replace('系', ''), w1: b.w44, w2: b.w45, color: b.brandColor });
-        }
-      });
+      const stackSegs = getOrderedStackItems();
+      const { baseScale, compareScale } = getStackMarketScale();
+      const sumW1 = stackSegs.reduce((sum, seg) => sum + seg.w44, 0) || 100;
+      const sumW2 = stackSegs.reduce((sum, seg) => sum + seg.w45, 0) || 100;
 
       const barLeft = boxX + 78;
       const barRight = boxX + boxW - 22;
@@ -849,8 +878,8 @@
       let x2Acc = barLeft;
 
       stackSegs.forEach((seg) => {
-        const w1Px = (seg.w1 / 100) * barTotalW;
-        const w2Px = (seg.w2 / 100) * barTotalW;
+        const w1Px = (seg.w44 / sumW1) * barTotalW * baseScale;
+        const w2Px = (seg.w45 / sumW2) * barTotalW * compareScale;
 
         if (w1Px > 0.5 || w2Px > 0.5) {
           const polyPts = `${x1Acc},${row1Y + barThick} ${x1Acc + w1Px},${row1Y + barThick} ${x2Acc + w2Px},${row2Y} ${x2Acc},${row2Y}`;
@@ -861,29 +890,29 @@
           }));
         }
 
-        if (w1Px > 1) {
+        if (w1Px > 0) {
           svg.appendChild(svgEl('rect', {
-            x: x1Acc, y: row1Y, width: Math.max(1, w1Px - 1.5), height: barThick,
+            x: x1Acc, y: row1Y, width: Math.max(0, w1Px - Math.min(1.5, w1Px * 0.15)), height: barThick,
             rx: 3, fill: seg.color
           }));
           if (w1Px >= 42) {
             svg.appendChild(svgEl('text', {
               x: x1Acc + w1Px / 2, y: row1Y + barThick / 2 + 4.5,
               'text-anchor': 'middle', fill: '#ffffff', 'font-size': '12.5', 'font-weight': '800'
-            }, `${seg.w1.toFixed(1)}%`));
+            }, `${seg.w44.toFixed(1)}%`));
           }
         }
 
-        if (w2Px > 1) {
+        if (w2Px > 0) {
           svg.appendChild(svgEl('rect', {
-            x: x2Acc, y: row2Y, width: Math.max(1, w2Px - 1.5), height: barThick,
+            x: x2Acc, y: row2Y, width: Math.max(0, w2Px - Math.min(1.5, w2Px * 0.15)), height: barThick,
             rx: 3, fill: seg.color
           }));
           if (w2Px >= 42) {
             svg.appendChild(svgEl('text', {
               x: x2Acc + w2Px / 2, y: row2Y + barThick / 2 + 4.5,
               'text-anchor': 'middle', fill: '#ffffff', 'font-size': '12.5', 'font-weight': '800'
-            }, `${seg.w2.toFixed(1)}%`));
+            }, `${seg.w45.toFixed(1)}%`));
           }
         }
 
@@ -891,17 +920,21 @@
         x2Acc += w2Px;
       });
 
-      const legendBrands = allData.filter(d => d.id !== 'other');
+      const legendBrands = stackSegs.map(seg => ({
+        name: seg.name.replace('主品牌', '').replace('系', ''), color: seg.color
+      }));
       let legX = boxX + 20;
       const legY = boxY + topH - 14;
+      const textWidth = name => [...name].reduce((w, ch) => w + (/^[\x00-\x7f]$/.test(ch) ? 7 : 12), 0);
+      const itemsWidth = legendBrands.reduce((w, b) => w + 14 + textWidth(b.name), 0);
+      const legendGap = Math.max(2, Math.min(14, (boxW - 40 - itemsWidth) / legendBrands.length));
       legendBrands.forEach(b => {
-        svg.appendChild(svgEl('rect', { x: legX, y: legY - 9, width: 10, height: 10, rx: 2.5, fill: b.brandColor }));
-        const bName = b.name.replace('系', '');
+        svg.appendChild(svgEl('rect', { x: legX, y: legY - 9, width: 10, height: 10, rx: 2.5, fill: b.color }));
         svg.appendChild(svgEl('text', {
           x: legX + 14, y: legY,
-          fill: P.textSecondary, 'font-size': '12.5', 'font-weight': '700'
-        }, bName));
-        legX += bName.length * 13 + 30;
+          fill: P.textSecondary, 'font-size': '11.5', 'font-weight': '700'
+        }, b.name));
+        legX += 14 + textWidth(b.name) + legendGap;
       });
 
       // --- 下半卡片：横向发散条形图（含最大提升/最大回落底色高亮） ---
@@ -1359,44 +1392,23 @@
     }
 
     // ==========================================
-    // 图表 3：100% 堆叠流动柱形图 (Zero-Sum Flow)
+    // 图表 3：按大盘规模比例缩放的堆叠流动柱形图
     // ==========================================
     function renderStackedFlowChart(svg, P, boxX, boxY, boxW, boxH) {
       svg.appendChild(svgEl('text', {
         x: boxX + 26, y: boxY + 38,
         fill: P.textPrimary, 'font-size': '20', 'font-weight': '800'
-      }, '100% 存量博弈与份额流向'));
+      }, '大盘规模与品牌份额变化'));
 
       svg.appendChild(svgEl('text', {
         x: boxX + 26, y: boxY + 62,
         fill: P.textSecondary, 'font-size': '14.5', 'font-weight': '500'
-      }, '左右等高 100% 切片，通过贝塞尔流动带直观展现各品牌份额此消彼长'));
+      }, '柱高按大盘环比趋势估算，色块标签为当周份额，流动带连接同一品牌'));
 
-      const allData = getComputedMarketData();
-      const stackItems = [];
-      allData.forEach(b => {
-        if (state.splitSubBrands && b.subBrands) {
-          b.subBrands.forEach(sub => {
-            stackItems.push({
-              name: sub.name,
-              w44: sub.w44,
-              w45: sub.w45,
-              diff: sub.diff,
-              color: sub.shade,
-              isSub: true
-            });
-          });
-        } else {
-          stackItems.push({
-            name: b.name,
-            w44: b.w44,
-            w45: b.w45,
-            diff: b.diff,
-            color: b.brandColor,
-            isSub: false
-          });
-        }
-      });
+      const stackItems = getOrderedStackItems();
+      const { baseScale, compareScale, compareIndex } = getStackMarketScale();
+      const sumW44 = stackItems.reduce((sum, seg) => sum + seg.w44, 0) || 100;
+      const sumW45 = stackItems.reduce((sum, seg) => sum + seg.w45, 0) || 100;
 
       const barW = 128;
       const leftBarX = boxX + 125;
@@ -1408,24 +1420,24 @@
       svg.appendChild(svgEl('text', {
         x: leftBarX + barW / 2, y: plotTop - 14,
         'text-anchor': 'middle', fill: P.textPrimary, 'font-size': '18', 'font-weight': '800'
-      }, '基准周 (100%)'));
+      }, '基准周（指数 100）'));
 
       svg.appendChild(svgEl('text', {
         x: rightBarX + barW / 2, y: plotTop - 14,
         'text-anchor': 'middle', fill: P.textPrimary, 'font-size': '18', 'font-weight': '800'
-      }, '对比周 (100%)'));
+      }, `对比周（指数 ${compareIndex}）`));
 
-      let accY44 = plotTop;
-      let accY45 = plotTop;
+      let accY44 = plotBottom;
+      let accY45 = plotBottom;
 
       stackItems.forEach((seg) => {
-        const h44 = (seg.w44 / 100) * totalH;
-        const h45 = (seg.w45 / 100) * totalH;
+        const h44 = (seg.w44 / sumW44) * totalH * baseScale;
+        const h45 = (seg.w45 / sumW45) * totalH * compareScale;
 
-        const y44Top = accY44;
-        const y44Bot = accY44 + h44;
-        const y45Top = accY45;
-        const y45Bot = accY45 + h45;
+        const y44Bot = accY44;
+        const y44Top = accY44 - h44;
+        const y45Bot = accY45;
+        const y45Top = accY45 - h45;
 
         const c1x = leftBarX + barW + (rightBarX - (leftBarX + barW)) * 0.45;
         const c2x = leftBarX + barW + (rightBarX - (leftBarX + barW)) * 0.55;
@@ -1442,13 +1454,13 @@
           opacity: P.isDark ? '0.24' : '0.20'
         }));
 
-        svg.appendChild(svgEl('rect', {
-          x: leftBarX, y: y44Top, width: barW, height: Math.max(1, h44 - 1.5),
+        if (h44 > 0) svg.appendChild(svgEl('rect', {
+          x: leftBarX, y: y44Top, width: barW, height: Math.max(0, h44 - Math.min(1.5, h44 * 0.15)),
           rx: 4, fill: seg.color
         }));
 
-        svg.appendChild(svgEl('rect', {
-          x: rightBarX, y: y45Top, width: barW, height: Math.max(1, h45 - 1.5),
+        if (h45 > 0) svg.appendChild(svgEl('rect', {
+          x: rightBarX, y: y45Top, width: barW, height: Math.max(0, h45 - Math.min(1.5, h45 * 0.15)),
           rx: 4, fill: seg.color
         }));
 
@@ -1467,7 +1479,7 @@
         }
 
         const midY44 = y44Top + h44 / 2;
-        if (seg.w44 >= 2.0) {
+        if (seg.w44 >= 2.0 && h44 >= 10) {
           svg.appendChild(svgEl('text', {
             x: leftBarX - 12, y: midY44 + 5,
             'text-anchor': 'end', fill: P.textPrimary, 'font-size': seg.isSub ? '14' : '16', 'font-weight': '700'
@@ -1479,7 +1491,7 @@
         const isDown = seg.diff < 0;
         const diffColor = isUp ? P.upColor : (isDown ? P.downColor : P.textMuted);
 
-        if (seg.w45 >= 2.0) {
+        if (seg.w45 >= 2.0 && h45 >= 10) {
           const labelStr = h45 < 22
             ? `${seg.w45.toFixed(1)}% (${formatDiffPP(seg.diff)})`
             : `${formatDiffPP(seg.diff)}`;
@@ -1489,8 +1501,8 @@
           }, labelStr));
         }
 
-        accY44 += h44;
-        accY45 += h45;
+        accY44 = y44Top;
+        accY45 = y45Top;
       });
     }
 

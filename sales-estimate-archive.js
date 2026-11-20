@@ -19,9 +19,12 @@
   function fail(message) { throw new Error(message); }
   function dateText(t) { return new Date(t).toISOString().slice(0, 10); }
   function parseDate(s) {
-    if (!/^[1-9]\d{3}-\d{2}-\d{2}$/.test(s)) return null;
-    const t = Date.parse(s + 'T00:00:00Z');
-    return Number.isFinite(t) && dateText(t) === s ? t : null;
+    // Spreadsheet editors may save date cells as YYYY/M/D instead of ISO YYYY-MM-DD.
+    const p = String(s ?? '').trim().match(/^([1-9]\d{3})([-/])(\d{1,2})\2(\d{1,2})$/);
+    if (!p) return null;
+    const iso = p[1] + '-' + p[3].padStart(2,'0') + '-' + p[4].padStart(2,'0');
+    const t = Date.parse(iso + 'T00:00:00Z');
+    return Number.isFinite(t) && dateText(t) === iso ? t : null;
   }
   function defaults(d) {
     const common = {source:'RD观测', series:'手机销量榜', type:'weekly', period:'', start:'', end:'', top:''};
@@ -55,7 +58,7 @@
     } else if (m.type === 'custom') {
       const a = parseDate(m.start), b = parseDate(m.end);
       if (a === null || b === null || a > b) fail('请填写有效的起止日期。');
-      start = m.start; end = m.end; period = start + '~' + end;
+      start = dateText(a); end = dateText(b); period = start + '~' + end;
     } else fail('未知统计周期类型。');
     const top = String(m.top ?? '').trim();
     if (top && (!/^\d+$/.test(top) || !Number.isSafeInteger(Number(top)) || Number(top) < count || Number(top) < 1)) fail('标称 TOP 数量必须为正整数，且不少于实际条目数；未知时留空。');
@@ -120,8 +123,9 @@
     if (row.length || cell !== '' || closed) line();
     const head = rows.shift();
     if (!head || head.length !== HEADER.length || head.some((v,i) => v !== HEADER[i])) fail('CSV 表头与模块 3 历史数据库不匹配。请使用 sales-estimates.csv 或新版标准销量 CSV。');
-    for (const r of rows) {
-      if (r.length !== HEADER.length) fail('CSV 存在列数不正确的记录。');
+    for (const [i,r] of rows.entries()) {
+      const context = 'CSV 第 ' + (i + 2) + ' 条记录（含表头计数；' + (r[col.period] || '未知周期') + ' / 排名 ' + (r[col.rank] || '未知') + '）';
+      if (r.length !== HEADER.length) fail(context + '：列数不正确。');
       const count = Number(r[col.actual_count]), rank = Number(r[col.rank]);
       const k = Number(r[col.fit_k]), pixels = Number(r[col.pixels]), units = Number(r[col.estimated_units]);
       const n = Number(r[col.calibration_count]), accepted = Number(r[col.accepted_count]);
@@ -130,14 +134,21 @@
           !Number.isSafeInteger(count) || count < 2 || !Number.isSafeInteger(rank) || rank < 1 ||
           !Number.isSafeInteger(pixels) || pixels < 1 || !Number.isFinite(k) || k <= 0 ||
           !/^\d+$/.test(r[col.estimated_units]) || !Number.isSafeInteger(units) || units !== Math.round(k*pixels) ||
-          r[col.estimated_wan] !== (units/10000).toFixed(4) ||
           !allowedFit.has(r[col.fit_mode]) || !Number.isSafeInteger(n) || n < 1 ||
           !Number.isSafeInteger(accepted) || accepted < 1 || accepted > n ||
           !Number.isFinite(threshold) || threshold <= 0 || !r[col.algorithm_version] ||
-          !Number.isFinite(Date.parse(r[col.saved_at]))) fail('CSV 存在无效估算记录：' + r[col.dataset_id]);
+          !Number.isFinite(Date.parse(r[col.saved_at]))) fail(context + '：存在无效估算记录，请检查销量、柱长及标定参数。');
+      // Compare numeric values, not display strings; keep one canonical export format.
+      const wan = r[col.estimated_wan].trim();
+      if (!/^\d+(?:\.\d+)?$/.test(wan) || Number(wan) !== units/10000) fail(context + '：台数和万台数不一致。');
+      const start = parseDate(r[col.period_start]), end = parseDate(r[col.period_end]);
+      if (start === null || end === null) fail(context + '：统计日期无效。');
       const m = normalizeMeta({source:r[col.source],series:r[col.series],type:r[col.period_type],period:r[col.period],
         start:r[col.period_start],end:r[col.period_end],top:r[col.top_n]}, count);
-      if (m.id !== r[col.dataset_id] || m.period !== r[col.period] || m.start !== r[col.period_start] || m.end !== r[col.period_end]) fail('CSV 榜单标识或统计周期不一致。');
+      if (m.id !== r[col.dataset_id] || m.period !== r[col.period] || m.start !== dateText(start) || m.end !== dateText(end)) fail(context + '：榜单标识或统计周期不一致。');
+      r[col.period_start] = m.start;
+      r[col.period_end] = m.end;
+      r[col.estimated_wan] = (units/10000).toFixed(4);
     }
     const shared = ['source','series','period_type','period','period_start','period_end','top_n','actual_count',
       'fit_k','fit_mode','calibration_count','accepted_count','outlier_threshold','algorithm_version','saved_at'];
@@ -177,11 +188,12 @@
     '</div><div class="msg" id="archiveMetaStatus" aria-live="polite"></div>' +
     '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px">' +
     '<button type="button" class="primary" id="archiveMerge" disabled>合并本期并导出完整历史 CSV</button>' +
+    '<button type="button" class="secondary" id="archiveReload" disabled>刷新仓库历史</button>' +
     '<button type="button" class="secondary" id="archiveImport">导入已有历史 CSV</button>' +
     '<input type="file" accept=".csv,text/csv" id="archiveFile" hidden>' +
     '</div><div class="msg" id="archiveHistoryStatus" aria-live="polite">正在读取仓库历史数据…</div>' +
     '<p class="mini">导出后请将完整 CSV 提交到 GitHub 根目录，替换同名文件；页面不会直接写入仓库。尚未提交的多期导出只在当前页面会话中保留，刷新前请下载备份。</p>' +
-    '<details style="margin-top:12px"><summary>查看历史榜单（只读）</summary>' +
+    '<details id="archiveHistoryDetails" open style="margin-top:12px"><summary>查看历史榜单（只读）</summary>' +
     '<label class="lbl" for="archiveSelect">选择历史榜单</label><select id="archiveSelect" class="field ui-field"></select>' +
     '<div class="tablewrap" style="margin-top:8px"><table class="ranktable"><thead><tr><th>排名</th><th>机型</th><th>品牌系列</th><th class="num">估算销量 / 万台</th></tr></thead><tbody id="archiveRows"></tbody></table></div></details>';
   const resultPanel = $('exportCsv').closest('.panel');
@@ -241,6 +253,11 @@
       const option = document.createElement('option'); option.value = id; option.textContent = labelOf(list[0]); select.append(option);
     }
     if (map.has(old)) select.value = old;
+    if (!map.size) {
+      const option = document.createElement('option'); option.value = ''; option.textContent = loading ? '正在加载历史榜单…' : loaded ? '仓库暂无历史榜单' : '历史加载失败，请查看上方提示'; select.append(option);
+    }
+    select.disabled = !map.size;
+    $('archiveReload').disabled = loading;
     $('archiveHistoryStatus').className = 'msg' + (!loaded || pending ? ' warn' : ' good');
     $('archiveHistoryStatus').textContent = message || (loaded ?
       origin + ' · ' + map.size + ' 期榜单 / ' + history.length + ' 条记录' + (pending ? ' · 含本会话尚待提交的数据' : '') :
@@ -251,7 +268,7 @@
   }
   function showHistoryRows() {
     const list = groups(history).get($('archiveSelect').value) || [];
-    $('archiveRows').innerHTML = list.length ? list.map(r => '<tr><td>'+e(r[col.rank])+'</td><td>'+e(r[col.model])+'</td><td>'+e(r[col.brand_group])+'</td><td class="num">'+e(r[col.estimated_wan])+'</td></tr>').join('') : '<tr><td colspan="4" class="empty">尚无历史销量记录</td></tr>';
+    $('archiveRows').innerHTML = list.length ? list.map(r => '<tr><td>'+e(r[col.rank])+'</td><td>'+e(r[col.model])+'</td><td>'+e(r[col.brand_group])+'</td><td class="num">'+e(r[col.estimated_wan])+'</td></tr>').join('') : '<tr><td colspan="4" class="empty">'+(loading ? '正在加载历史销量…' : loaded ? '尚无历史销量记录' : '历史加载失败，请查看上方提示')+'</td></tr>';
   }
   $('archiveSelect').onchange = showHistoryRows;
   $('archiveImport').onclick = () => $('archiveFile').click();
@@ -301,17 +318,26 @@
   activeDataset.archiveOutlier = $('outlier').value;
   window.SalesEstimateArchive = Object.freeze({buildRows, header:HEADER.slice()});
   updateControls(true);
-  (async function loadRepository() {
+  async function loadRepository() {
+    loading = true;
+    showHistory('正在读取仓库历史数据…');
     try {
-      const r = await fetch(FILE, {cache:'no-store'});
+      const r = await fetch(FILE + '?t=' + Date.now(), {cache:'no-store'});
       if (!r.ok) fail('HTTP ' + r.status);
-      history = parseCSV(await r.text()); loaded = true; origin = '仓库历史数据已加载';
+      history = parseCSV(await r.text()); loaded = true; pending = false; origin = '仓库历史数据已加载';
     } catch (err) {
+      // Keep already loaded rows visible, but require a successful reload or an explicit import before merging.
       origin = ''; loaded = false;
       loading = false;
-      showHistory('读取仓库历史失败（' + err.message + '）。请导入完整历史 CSV 后再合并，避免丢失历史记录。');
+      showHistory('读取仓库历史失败（' + err.message + '）。请刷新仓库历史，或导入完整历史 CSV 后再合并，避免丢失历史记录。');
       return;
     }
     loading = false; showHistory();
-  })();
+  }
+  $('archiveReload').onclick = () => {
+    if (loading) return;
+    if (pending && !window.confirm('刷新仓库历史将替换当前会话的未提交数据。请确认已导出备份，是否继续？')) return;
+    loadRepository();
+  };
+  loadRepository();
 })();

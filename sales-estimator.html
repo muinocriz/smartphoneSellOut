@@ -345,7 +345,7 @@ datasets.custom={id:'custom',label:'自定义榜单',image:'',base:0,width:0,hei
 // --------------------------------------------
 const socialState={template:'top',ratio:'3:4',theme:'editorial',duelA:0,duelB:1,lastDS:null,safeEnabled:true,safeRight:15,safeBottom:10,safeGuides:true};
 const ESTIMATOR_WATERMARK_KEY='smartphoneSellOut_estimator_watermark_v1';
-const watermarkDefaults={diagonalEnabled:false,diagonalText:'RD·观测',diagonalOpacity:8,diagonalSize:32,diagonalGap:220,centerEnabled:false,centerText:'RD·观测',centerOpacity:12,centerSize:72};
+const watermarkDefaults={diagonalEnabled:false,diagonalText:'归零return0',diagonalOpacity:8,diagonalSize:32,diagonalGap:220,centerEnabled:false,centerText:'归零return0',centerOpacity:12,centerSize:72};
 const watermarkState=(()=>{try{const prev=JSON.parse(localStorage.getItem(ESTIMATOR_WATERMARK_KEY)||'null');return {...watermarkDefaults,...(prev&&typeof prev==='object'?prev:{})}}catch(_){return {...watermarkDefaults}}})();
 const socialCopyState={title:'',subtitle:'',markLeft:'',markRight:'',disclaimer:''};
 const socialCopyDirty={title:false,subtitle:false,markLeft:false,markRight:false,disclaimer:false};
@@ -380,7 +380,7 @@ function syncPaletteChooser(){
  });
  if($('posterTheme'))$('posterTheme').value=socialState.theme;
 }
-function posterCopyDefaults(type,o){const hd=posterHeading(type,o);let warning=o.fit.fitMode==='robust'?' · 部分异常标定已排除':o.fit.fitMode==='single'?' · 仅1组标定':'';return {title:hd.title,subtitle:hd.sub,markLeft:'RD · 观测',markRight:'数码销量观察 / DATA REPORT',disclaimer:`RD观测榜单截图 · 柱长像素拟合 | 销量为估算值
+function posterCopyDefaults(type,o){const hd=posterHeading(type,o);let warning=o.fit.fitMode==='robust'?' · 部分异常标定已排除':o.fit.fitMode==='single'?' · 仅1组标定':'';return {title:hd.title,subtitle:hd.sub,markLeft:'归零return0',markRight:'数码销量观察 / DATA REPORT',disclaimer:`RD观测榜单截图 · 柱长像素拟合 | 销量为估算值
 仅本次入榜样本，不代表全市场销量 / 品牌市场份额
 标定 ${o.d.calibrations.length} 组${warning} · 合并行按一条记录统计`}}
 function syncPosterCopyUI(type,o,force=false){const defs=posterCopyDefaults(type,o);const bind={title:'copyTitle',subtitle:'copySubtitle',markLeft:'copyMarkLeft',markRight:'copyMarkRight',disclaimer:'copyDisclaimer'};for(const [key,id] of Object.entries(bind)){if(force||!socialCopyDirty[key])socialCopyState[key]=defs[key];if($(id) && $(id).value!==socialCopyState[key])$(id).value=socialCopyState[key];}}

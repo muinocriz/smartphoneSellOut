@@ -26,82 +26,61 @@
   const last=list.find(r=>Number(r[col.rank])===n);
   return Number(last[col.estimated_wan]);
 }
-  function buildSalesPanel(rows,col) {
-  const header = ['source','series','period','period_start','period_end','model_key','model','raw_model','brand_group','rank','observed_wan','imputed_wan','weekly_wan','cumulative_wan','cutoff_wan','is_imputed','impute_method','observed_weeks','total_weeks','coverage_rate'];
-  const scopes = new Map(), all = [], byScope = [];
-  for (const r of rows) {
-    // 同来源、同系列的周榜统一追踪；TOP 数量不是机型时间序列的过滤条件。
-    if (r[col.period_type] !== 'weekly') continue;
-    const id = JSON.stringify([r[col.source],r[col.series]]);
-    if (!scopes.has(id)) scopes.set(id,[]);
-    scopes.get(id).push(r);
+  function salesPanelOptions(p={}){
+  const num=(v,d,min,max)=>v==null||v===''||!Number.isFinite(Number(v))?d:Math.min(max,Math.max(min,Math.round(Number(v))));
+  return {scopeId:p.scopeId||'',start:p.start||'',end:p.end||'',coverage:num(p.coverage,80,0,100),coverageBase:p.coverageBase==='all'?'all':'first',maxGap:num(p.maxGap,3,0,12),method:p.method==='linear'?'linear':'bounded',dataMode:p.dataMode==='raw'?'raw':'filled',missingBoard:p.missingBoard!==false,trailing:p.trailing!==false};
+}
+  function buildSalesPanel(rows,col,options={}){
+  const p=salesPanelOptions(options);
+  const header=['source','series','period','period_start','period_end','model_key','model','raw_model','brand_group','rank','observed_wan','imputed_wan','weekly_wan','cumulative_wan','cutoff_wan','is_imputed','impute_method','observed_weeks','total_weeks','coverage_rate','coverage_base_weeks','first_observed_period','range_start','range_end','coverage_base','min_coverage_pct','max_gap_weeks','impute_rule','data_mode','allow_missing_board','allow_trailing'];
+  const scopes=new Map(),all=[],byScope=[],fmt=v=>v==null?'':v.toFixed(4),weekMs=604800000;
+  for(const r of rows){
+    if(r[col.period_type]!=='weekly')continue;
+    const id=JSON.stringify([r[col.source],r[col.series]]);
+    if(p.scopeId&&id!==p.scopeId)continue;
+    if(!scopes.has(id))scopes.set(id,[]);scopes.get(id).push(r);
   }
-  const fmtWan = v => v == null ? '' : v.toFixed(4);
-  const weekMs = 7*86400000;
-  for (const [id,records] of scopes) {
-    const [source,series] = JSON.parse(id);
-    const boards = new Map(), models = new Map();
-    for (const r of records) {
-      const t = Date.parse(r[col.period_start]+'T00:00:00Z');
-      if (!boards.has(t)) boards.set(t,[]);
-      boards.get(t).push(r);
+  for(const [id,records] of scopes){
+    const [source,series]=JSON.parse(id),boards=new Map(),firstSeen=new Map();
+    for(const r of records){const t=Date.parse(r[col.period_start]+'T00:00:00Z');if(!boards.has(t))boards.set(t,[]);boards.get(t).push(r);}
+    const dates=[...boards.keys()].sort((a,b)=>a-b),fullWeeks=[];
+    for(let t=dates[0];t<=dates[dates.length-1];t+=weekMs){
+      const list=boards.get(t)||[],start=new Date(t).toISOString().slice(0,10),end=new Date(t+6*86400000).toISOString().slice(0,10);
+      const y=new Date(t+3*86400000).getUTCFullYear(),jan4=Date.UTC(y,0,4),first=jan4-((new Date(jan4).getUTCDay()+6)%7)*86400000;
+      const period=y+'-W'+String(1+Math.round((t-first)/weekMs)).padStart(2,'0'),map=new Map();
+      for(const r of list){const key=normalizeModelName(r[col.model]);if(!key||map.has(key))throw Error('同一期榜单存在空白或重复机型标识：'+period+' / '+key);map.set(key,r);if(!firstSeen.has(key))firstSeen.set(key,period);}
+      fullWeeks.push({period,start,end,cutoff:cutoffOf(list,col),map,hasBoard:list.length>0,top:list[0]?.[col.top_n]||'',count:list.length});
     }
-    const dates = [...boards.keys()].sort((a,b)=>a-b);
-    const weeks = [];
-    for (let t=dates[0]; t<=dates[dates.length-1]; t+=weekMs) {
-      const list=boards.get(t)||[];
-      const start=new Date(t).toISOString().slice(0,10), end=new Date(t+6*86400000).toISOString().slice(0,10);
-      const thu=new Date(t+3*86400000),y=thu.getUTCFullYear(),jan4=Date.UTC(y,0,4);
-      const first=jan4-((new Date(jan4).getUTCDay()+6)%7)*86400000;
-      const period=y+'-W'+String(1+Math.round((t-first)/weekMs)).padStart(2,'0');
-      const cutoff=cutoffOf(list,col);
-      const map=new Map();
-      for (const r of list) {
-        const key=normalizeModelName(r[col.model]);
-        if (!key || map.has(key)) throw new Error('同一期榜单存在空白或重复机型标识：'+period+' / '+key);
-        map.set(key,r);
-        if (!models.has(key)) models.set(key,{key, count:0});
-        Object.assign(models.get(key),{name:r[col.model],brand:r[col.brand_group]});
-        models.get(key).count++;
-      }
-      weeks.push({period,start,end,cutoff,map,hasBoard:list.length>0,top:list[0]?.[col.top_n]||'',count:list.length});
-    }
-    const selected=[...models.values()].filter(m=>m.count/weeks.length>=0.8).sort((a,b)=>a.name.localeCompare(b.name,'zh-CN'));
-    const panelRows=[];
-    for (const m of selected) {
-      const observed=weeks.map(w=>w.map.has(m.key)?Number(w.map.get(m.key)[col.estimated_wan]):null);
-      const firstIndex=observed.findIndex(v=>v!==null);
-      let total=0, unknown=false;
-      for (let i=0;i<weeks.length;i++) {
-        const w=weeks[i], original=w.map.get(m.key), value=observed[i];
-        let estimate=null, method='missing';
-        if (value!==null) method='observed';
-        else if(i<firstIndex) method='before_first_observation';
-        else {
-          if (!w.hasBoard) method='missing_board';
-          let left=i-1,right=i+1;
-          while(left>=0&&observed[left]===null) left--;
-          while(right<weeks.length&&observed[right]===null) right++;
-          if(left>=0&&right<weeks.length&&right-left-1<=3) {
-            estimate=observed[left]+(observed[right]-observed[left])*(i-left)/(right-left);
-            method=w.hasBoard?'linear_interpolation':'linear_interpolation_missing_board';
-          } else if(left===i-1&&i===weeks.length-1&&w.cutoff!==null) {
-            estimate=observed[left]; method='previous_week';
-          }
-          if(estimate!==null&&w.cutoff!==null) {
-            estimate=Math.min(estimate,w.cutoff); method+='_cutoff';
-          }
-          if(estimate!==null) estimate=Math.round(estimate*10000)/10000;
+    const weeks=fullWeeks.filter(w=>(!p.start||w.period>=p.start)&&(!p.end||w.period<=p.end));
+    if(!weeks.length)continue;
+    const models=new Map();
+    for(const w of weeks)for(const [key,r] of w.map){if(!models.has(key))models.set(key,{key,count:0,first:firstSeen.get(key)});const m=models.get(key);m.count++;m.name=r[col.model];m.brand=r[col.brand_group];}
+    for(const m of models.values()){m.baseWeeks=p.coverageBase==='first'?weeks.filter(w=>w.period>=m.first).length:weeks.length;m.coverage=m.count/m.baseWeeks;}
+    const selected=[...models.values()].filter(m=>m.count*100>=p.coverage*m.baseWeeks).sort((a,b)=>a.name.localeCompare(b.name,'zh-CN')),panelRows=[];
+    for(const m of selected){
+      const observed=weeks.map(w=>w.map.has(m.key)?Number(w.map.get(m.key)[col.estimated_wan]):null),firstIndex=weeks.findIndex(w=>w.period>=m.first);
+      let total=0,unknown=false;
+      for(let i=0;i<weeks.length;i++){
+        const w=weeks[i],original=w.map.get(m.key),value=observed[i];let estimate=null,method='missing';
+        if(value!==null)method='observed';
+        else if(i<firstIndex)method='before_first_observation';
+        else if(p.dataMode==='raw'||p.maxGap===0)method=w.hasBoard?'missing_unfilled':'missing_board';
+        else{
+          if(!w.hasBoard)method='missing_board';
+          let left=i-1,right=i+1;while(left>=0&&observed[left]===null)left--;while(right<weeks.length&&observed[right]===null)right++;
+          if(left>=0&&right<weeks.length&&right-left-1<=p.maxGap&&(p.missingBoard||weeks.slice(left+1,right).every(q=>q.hasBoard))){
+            estimate=observed[left]+(observed[right]-observed[left])*(i-left)/(right-left);method=w.hasBoard?'linear_interpolation':'linear_interpolation_missing_board';
+          }else if(p.trailing&&p.method==='bounded'&&left===i-1&&i===weeks.length-1&&w.cutoff!==null&&w.period===fullWeeks[fullWeeks.length-1].period){estimate=observed[left];method='previous_week';}
+          if(estimate!==null&&p.method==='bounded'&&w.cutoff!==null){estimate=Math.min(estimate,w.cutoff);method+='_cutoff';}
+          if(estimate!==null)estimate=Math.round(estimate*10000)/10000;
         }
         const weekly=value??estimate;
-        if(i>=firstIndex&&weekly===null) unknown=true;
-        if(weekly!==null) total+=weekly;
+        if(i>=firstIndex&&weekly===null)unknown=true;if(weekly!==null)total+=weekly;
         const cumulative=i<firstIndex||unknown?null:total;
-        panelRows.push([source,series,w.period,w.start,w.end,m.key,m.name,original?original[col.model]:'',m.brand,original?original[col.rank]:'',fmtWan(value),fmtWan(estimate),fmtWan(weekly),fmtWan(cumulative),fmtWan(w.cutoff),estimate!==null?'1':'0',method,String(m.count),String(weeks.length),(m.count/weeks.length).toFixed(4)]);
+        panelRows.push([source,series,w.period,w.start,w.end,m.key,m.name,original?original[col.model]:'',m.brand,original?original[col.rank]:'',fmt(value),fmt(estimate),fmt(weekly),fmt(cumulative),fmt(w.cutoff),estimate!==null?'1':'0',method,String(m.count),String(weeks.length),m.coverage.toFixed(4),String(m.baseWeeks),m.first,weeks[0].period,weeks[weeks.length-1].period,p.coverageBase,String(p.coverage),String(p.maxGap),p.method,p.dataMode,p.missingBoard?'1':'0',p.trailing?'1':'0']);
       }
     }
-    all.push(...panelRows);
-    byScope.push({id,source,series,weeks,models:selected,rows:panelRows});
+    all.push(...panelRows);byScope.push({id,source,series,weeks,fullWeeks,models:selected,rows:panelRows,options:p});
   }
   return {header,rows:all,scopes:byScope};
 }
@@ -313,16 +292,16 @@
   const tracker = document.createElement('section');
   tracker.className = 'panel';
   tracker.innerHTML = '<h2 class="panel-title">热销机型追踪</h2>' +
-    '<p class="panel-desc">基于同来源、同系列的周销量榜单构建连续机型销量序列，兼容不同榜单规模。默认追踪全区间观测覆盖率至少 80% 的机型；仅对短期缺失进行估算。</p>' +
+    '<p class="panel-desc">基于同来源、同系列的周销量榜单构建连续机型销量序列，兼容不同榜单规模。统计区间、覆盖率与插补规则可自由配置；所有销量仍以原始周榜为基础。</p>' +
     '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px">' +
     '<div><label class="lbl" for="trackerScope">榜单口径</label><select id="trackerScope" class="field ui-field"></select></div>' +
     '<div><label class="lbl" for="trackerMode">统计方式</label><select id="trackerMode" class="field ui-field"><option value="weekly_wan">周销量增量</option><option value="cumulative_wan">区间累计增量</option></select></div></div>' +
     '<label class="lbl" for="trackerFilter">筛选机型（支持空格、大小写变体）</label><input class="field ui-field" id="trackerFilter" placeholder="例如 iPhone 18 或 Pro Max">' +
     '<div id="trackerModels" style="display:flex;flex-wrap:wrap;gap:8px 16px;max-height:180px;overflow:auto;padding:10px 0"></div>' +
-    '<button class="secondary" type="button" id="trackerExport" disabled>导出完整整理后 CSV</button>' +
+    '<button class="secondary" type="button" id="trackerExport" disabled>导出当前口径整理后 CSV</button>' +
     '<div id="trackerStatus" class="msg" aria-live="polite"></div>' +
     '<div id="trackerChart" style="overflow:auto"></div><div id="trackerLegend" style="display:flex;flex-wrap:wrap;gap:8px 16px"></div>' +
-    '<p class="mini">单位：万台。原始观测值使用实心点和实线，插补值使用空心点及相关虚线；累计曲线从首次含插补的周起使用虚线。不同榜单规模的原始数据均保留。仅当标称 TOP N 与实收条数相同且排名 1–N 完整时，第 N 名销量作为落榜假设下的插补上限；其余情况不设门槛。整周无榜单时，只有前后均有观测且连续缺失不超过3周才进行插补，不设榜单门槛；其他缺失留空。累计值从首次观测开始，未解决的缺失导致后续累计留空，并非上市以来累计销量。</p>' +
+    '<p class="mini">单位：万台。实心点及实线为原始观测，空心点及虚线为插补；累计曲线首次含插补后用虚线。累计仅计算所选区间，历史首次观测前留空，之后任一无法补全的周会使后续累计留空；并非上市以来累计销量。</p>' +
     '<div class="tablewrap"><table class="ranktable"><thead><tr><th>机型</th><th>观测覆盖率</th><th>插补周数</th><th class="num">最新周销量 / 万台</th><th class="num">累计增量 / 万台</th></tr></thead><tbody id="trackerRows"></tbody></table></div>';
   panel.after(tracker);
 
@@ -366,6 +345,38 @@
   }
   activateModuleTab('estimate');
 
+
+  const parameterPanel=document.createElement('section');
+  parameterPanel.style.cssText='border:1px solid var(--ui-border,#dbe2ea);border-radius:12px;padding:14px;margin:12px 0';
+  parameterPanel.innerHTML='<h3 style="margin:0 0 4px">时间序列构建参数</h3><p class="mini">按自然周研究，不限制榜单规模；调整参数即时重算，不改写原始 CSV。</p>'+
+    '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px">'+
+    '<div><label class="lbl" for="trackerStart">统计起始周</label><select id="trackerStart" class="field ui-field"></select></div>'+
+    '<div><label class="lbl" for="trackerEnd">统计结束周</label><select id="trackerEnd" class="field ui-field"></select></div>'+
+    '<div><label class="lbl" for="trackerCoverage">最低观测覆盖率 (%)</label><input id="trackerCoverage" type="number" min="0" max="100" step="1" value="80" class="field ui-field"></div>'+
+    '<div><label class="lbl" for="trackerCoverageBase">覆盖率分母</label><select id="trackerCoverageBase" class="field ui-field"><option value="first">首次观测起（限所选区间）</option><option value="all">所选完整自然周区间</option></select></div>'+
+    '<div><label class="lbl" for="trackerDataMode">数据模式</label><select id="trackerDataMode" class="field ui-field"><option value="filled">原始观测 + 插补</option><option value="raw">仅原始观测</option></select></div>'+
+    '<div><label class="lbl" for="trackerImputeRule">插补方法</label><select id="trackerImputeRule" class="field ui-field"><option value="bounded">线性插值 + 动态 TOP N 门槛</option><option value="linear">无门槛线性插值</option></select></div>'+
+    '<div><label class="lbl" for="trackerMaxGap">最多连续缺失周数</label><input id="trackerMaxGap" class="field ui-field" type="number" min="0" max="12" step="1" value="3"></div></div>'+
+    '<div style="display:flex;gap:12px;flex-wrap:wrap;margin:12px 0"><label><input type="checkbox" id="trackerMissingBoard" checked> 允许整周榜单缺失的内部插补</label><label><input type="checkbox" id="trackerTrailing" checked> 最新历史末周允许门槛约束估算</label><button type="button" class="secondary" id="trackerResetParams">恢复默认参数</button></div>'+
+    '<p class="mini">覆盖率只计真实观测。首次观测口径排除历史首次观测前的周；0%仍要求区间内至少一次观测。插值仅使用区间内前后观测，不向首次观测前外推。末周估算仅限历史最新周、前一周有观测且完整 TOP N 门槛存在；门槛只是假设。</p><div id="trackerParameterStatus" class="msg" aria-live="polite"></div>';
+  $('trackerScope').parentElement.parentElement.after(parameterPanel);
+  let catalog=[],activeScopeId='';
+  const selectedByScope=new Map();
+  function readTrackerParams(){return salesPanelOptions({scopeId:$('trackerScope').value,start:$('trackerStart').value,end:$('trackerEnd').value,coverage:$('trackerCoverage').value,coverageBase:$('trackerCoverageBase').value,maxGap:$('trackerMaxGap').value,method:$('trackerImputeRule').value,dataMode:$('trackerDataMode').value,missingBoard:$('trackerMissingBoard').checked,trailing:$('trackerTrailing').checked});}
+  function updateParamControls(){const raw=$('trackerDataMode').value==='raw',noGap=Number($('trackerMaxGap').value)===0;$('trackerImputeRule').disabled=raw;$('trackerMaxGap').disabled=raw;$('trackerMissingBoard').disabled=raw||noGap;$('trackerTrailing').disabled=raw||noGap||$('trackerImputeRule').value!=='bounded';}
+  function fillRangeControls(scope,preserve=false){
+    const a=$('trackerStart'),b=$('trackerEnd'),oldA=a.value,oldB=b.value,oldLast=b.options[b.options.length-1]?.value;
+    for(const sel of [a,b]){sel.replaceChildren();for(const w of scope?.fullWeeks||[]){const o=document.createElement('option');o.value=w.period;o.textContent=w.period+(w.hasBoard?'':'（无榜单）');sel.append(o);}sel.disabled=!scope;}
+    if(scope){a.value=preserve&&scope.fullWeeks.some(w=>w.period===oldA)?oldA:scope.fullWeeks[0].period;b.value=preserve&&oldB!==oldLast&&scope.fullWeeks.some(w=>w.period===oldB)?oldB:scope.fullWeeks[scope.fullWeeks.length-1].period;}
+  }
+  function applyTrackerParams(resetSelection=false){
+    const p=readTrackerParams();$('trackerCoverage').value=p.coverage;$('trackerMaxGap').value=p.maxGap;updateParamControls();
+    if(!p.scopeId||!p.start||!p.end||p.start>p.end){trackerData={header:[],rows:[],scopes:[]};$('trackerParameterStatus').textContent=p.start>p.end?'起始周不能晚于结束周。':'暂无可选周榜。';trackerOptions();renderTracker();renderResearch();return;}
+    trackerData=buildSalesPanel(history,col,p);const scope=currentScope();
+    if(scope){if(resetSelection){if(selectedByScope.has(scope.id))trackerSelected=new Set(selectedByScope.get(scope.id));else defaultTrackerSelection(scope);}if(!selectedByScope.has(scope.id))selectedByScope.set(scope.id,new Set(trackerSelected));researchPeriods(scope);$('trackerParameterStatus').textContent=p.start+' — '+p.end+' · '+scope.weeks.length+' 自然周 / '+scope.weeks.filter(w=>w.hasBoard).length+' 期实收榜单 · 覆盖率 ≥ '+p.coverage+'% · '+(p.dataMode==='raw'?'仅原始观测':p.maxGap===0?'未启用插补':p.method==='bounded'?'约束插补':'线性插值');}
+    trackerOptions();renderTracker();renderResearch();
+  }
+
   let trackerData = {header:[],rows:[],scopes:[]};
   let trackerSelected = new Set();
   const trackerPalette = ['#2563eb','#ea580c','#059669','#9333ea','#db2777','#0891b2','#92400e','#64748b'];
@@ -381,7 +392,7 @@
     for(const m of scope.models.filter(m=>!q||m.key.includes(q))){
       const label=document.createElement('label'), cb=document.createElement('input');
       cb.type='checkbox';cb.checked=trackerSelected.has(m.key);
-      cb.onchange=()=>{if(cb.checked)trackerSelected.add(m.key);else trackerSelected.delete(m.key);renderTracker();renderResearch();};
+      cb.onchange=()=>{if(cb.checked)trackerSelected.add(m.key);else trackerSelected.delete(m.key);selectedByScope.set(scope.id,new Set(trackerSelected));renderTracker();renderResearch();};
       label.append(cb,document.createTextNode(' '+m.name));target.append(label);
     }
   }
@@ -395,7 +406,7 @@
     const metric=$('trackerMode').value;
     const curves=models.map((m,i)=>({m,color:trackerPalette[i%trackerPalette.length],rows:scope.rows.filter(r=>r[c.model_key]===m.key)}));
     $('trackerStatus').textContent=scope.weeks.length+' 周 / '+scope.models.length+' 款长期追踪机型 · 已选 '+models.length+' 款 · 插补 '+curves.reduce((n,o)=>n+o.rows.filter(r=>r[c.is_imputed]==='1').length,0)+' 条';
-    if(!curves.length)return;
+    if(!curves.length){$('trackerStatus').textContent+=' · 请勾选符合当前参数的机型；必要时降低覆盖率。';return;}
     const val=r=>r[c[metric]]===''?null:Number(r[c[metric]]);
     const max=Math.max(1,...curves.flatMap(o=>o.rows.map(val).filter(v=>v!==null)));
     const step=Math.pow(10,Math.floor(Math.log10(max)))/2;
@@ -424,23 +435,23 @@
     }
     svg.innerHTML=content;chart.append(svg);
   }
+
   function refreshTracker(){
     const previous=$('trackerScope').value;
     try{
-      trackerData=buildSalesPanel(history,col);
-      const sel=$('trackerScope');sel.replaceChildren();
-      for(const s of trackerData.scopes){const option=document.createElement('option');option.value=s.id;option.textContent=s.source+' / '+s.series;sel.append(option);}
-      if(trackerData.scopes.some(s=>s.id===previous))sel.value=previous;
-      const scope=currentScope();
-      if(scope&&(!previous||previous!==scope.id))defaultTrackerSelection(scope);
-      else if(scope)trackerSelected=new Set([...trackerSelected].filter(k=>scope.models.some(m=>m.key===k)));
-      trackerOptions();renderTracker();if(scope)researchPeriods(scope);renderResearch();
-    }catch(err){trackerData={header:[],rows:[],scopes:[]};$('trackerScope').replaceChildren();trackerOptions();renderTracker();renderResearch();$('trackerStatus').textContent=err.message;}
+      catalog=buildSalesPanel(history,col,{coverage:100,dataMode:'raw'}).scopes;
+      const sel=$('trackerScope');sel.replaceChildren();for(const s of catalog){const option=document.createElement('option');option.value=s.id;option.textContent=s.source+' / '+s.series;sel.append(option);}
+      if(catalog.some(s=>s.id===previous))sel.value=previous;
+      const scope=catalog.find(s=>s.id===sel.value),changed=activeScopeId!==sel.value;
+      fillRangeControls(scope,!changed);activeScopeId=sel.value;applyTrackerParams(changed||!selectedByScope.has(sel.value));
+    }catch(err){trackerData={header:[],rows:[],scopes:[]};$('trackerScope').replaceChildren();fillRangeControls(null);trackerOptions();renderTracker();renderResearch();$('trackerParameterStatus').textContent=err.message;}
   }
-  $('trackerScope').onchange=()=>{const s=currentScope();if(s){defaultTrackerSelection(s);researchPeriods(s);}trackerOptions();renderTracker();renderResearch();};
+  $('trackerScope').onchange=()=>{const s=catalog.find(q=>q.id===$('trackerScope').value);activeScopeId=$('trackerScope').value;fillRangeControls(s);applyTrackerParams(true);};
+  for(const id of ['trackerStart','trackerEnd','trackerCoverage','trackerCoverageBase','trackerDataMode','trackerImputeRule','trackerMaxGap','trackerMissingBoard','trackerTrailing'])$(id).addEventListener('change',()=>applyTrackerParams());
+  $('trackerResetParams').onclick=()=>{fillRangeControls(catalog.find(s=>s.id===$('trackerScope').value));$('trackerCoverage').value='80';$('trackerCoverageBase').value='first';$('trackerDataMode').value='filled';$('trackerImputeRule').value='bounded';$('trackerMaxGap').value='3';$('trackerMissingBoard').checked=true;$('trackerTrailing').checked=true;applyTrackerParams();};
   $('trackerFilter').oninput=trackerOptions;
   $('trackerMode').onchange=()=>{renderTracker();renderResearch();};
-  $('trackerExport').onclick=()=>exportCSVBlob([trackerData.header,...trackerData.rows],'weekly-sales-panel.csv');
+  $('trackerExport').onclick=()=>exportCSVBlob([trackerData.header,...trackerData.rows],'weekly-sales-panel-'+$('trackerStart').value+'_'+$('trackerEnd').value+'.csv');
 
   // Research views share the selected source/series and never combine different observation scopes.
   const researchNav=document.createElement('div');
@@ -463,7 +474,7 @@
   tracker.append(researchPanel);
   // Scope is always visible. The original chart/filter controls are retained for the model and event views.
   const commonGrid=scopeControl.parentElement.parentElement;
-  const modelNodes=Array.from(tracker.children).filter(n=>n!==researchNav&&n!==researchPanel&&n!==commonGrid&&n!==tracker.querySelector('h2')&&n!==tracker.querySelector('.panel-desc')&&n!==$('trackerExport'));
+  const modelNodes=Array.from(tracker.children).filter(n=>n!==researchNav&&n!==researchPanel&&n!==parameterPanel&&n!==commonGrid&&n!==tracker.querySelector('h2')&&n!==tracker.querySelector('.panel-desc')&&n!==$('trackerExport'));
   // Keep selection controls available in event comparison without duplicating them.
   const eventPickNodes=[$('trackerFilter').previousElementSibling,$('trackerFilter'),$('trackerModels')];
   const metricNode=$('trackerMode').parentElement;
@@ -485,7 +496,7 @@
   }
   let researchExportRows=[];
   function researchTable(headers,rows){
-    researchExportRows=[headers,...rows];
+    const p=readTrackerParams();const rawView=['tail','flow','brand'].includes(researchView);const meta=['榜单口径','统计起始周','统计结束周','最低覆盖率%','覆盖率分母','数据模式','插补方法','最大缺失周','允许整周插补','允许末周估算'];const values=[p.scopeId,p.start,p.end,rawView?'不适用':p.coverage,rawView?'不适用':p.coverageBase,rawView?'raw':p.dataMode,rawView||p.dataMode==='raw'?'不适用':p.method,rawView||p.dataMode==='raw'?'不适用':p.maxGap,rawView||p.dataMode==='raw'?'不适用':String(p.missingBoard),rawView||p.dataMode==='raw'?'不适用':String(p.trailing)];researchExportRows=[[...meta,...headers],...rows.map(r=>[...values,...r])];
     $('researchHead').innerHTML='<tr>'+headers.map(h=>'<th>'+e(h)+'</th>').join('')+'</tr>';
     $('researchRows').innerHTML=rows.length?rows.map(r=>'<tr>'+r.map(v=>'<td>'+e(v)+'</td>').join('')+'</tr>').join(''):'<tr><td colspan="'+headers.length+'">暂无符合条件的数据</td></tr>';
     $('researchExport').disabled=!rows.length;
@@ -561,7 +572,7 @@
       notice.textContent=researchView==='generation'?'两个代际的样本销量及相对占比；占比变化不证明用户实际换机。':'各组占所选样本总销量的贡献比例，并非整体市场份额。';return;
     }
     if(researchView==='tail'){
-      $('researchDesc').textContent='基于全部原始上榜机型（不限80%覆盖率）；仅真实观测计入连续上榜，整周缺失会中断连续纪录。无价格数据，不自动判断中低端。';
+      $('researchDesc').textContent='基于所选区间全部原始上榜机型（不受覆盖率和插补设置限制）；仅真实观测计入连续上榜，整周缺失会中断连续纪录。无价格数据，不自动判断中低端。';
       const all=new Map();weeks.forEach(w=>w.map.forEach((r,k)=>all.set(k,r[col.model])));
       const minimum=Math.max(1,Math.floor(Number($('researchStreak').value)||1));
       const records=[...all].map(([k,name])=>{let streak=0,best=0,count=0,first=null,last=null,total=0;
@@ -579,7 +590,7 @@
         rows.push([w.period,w.top,w.count,numberText(w.cutoff,4),stay??'',ok?add.length:'',ok?out.length:'',add.map(x=>x[1][col.model]).join('、'),out.map(x=>x[1][col.model]).join('、')]);});
       researchPlot(weeks,['留榜','新进入榜单','退出榜单'].map((name,i)=>({name,values:values[i]})),'机型数');
       researchTable(['周期','标称 TOP','实收条数','门槛/万台','留榜','新进入','退出','进入名单','退出名单'],rows);
-      notice.textContent='按原始观测识别榜单流动，不使用插补值。';return;
+      notice.textContent='按所选区间原始观测识别榜单流动，不受覆盖率与插补设置限制。';return;
     }
     if(researchView==='brand'){
       $('researchDesc').textContent='按原始 brand_group 汇总每周所有实收条目。品牌份额、CR3 与 HHI 均为榜单样本销量集中度，不是全市场品牌份额；榜单规模或完整性变化会影响可比性。';
@@ -587,7 +598,7 @@
       const brands=[...new Set(per.flatMap(p=>[...p.map.keys()]))].sort((a,b)=>per.reduce((s,p)=>s+(p.map.get(b)||0)-(p.map.get(a)||0),0));
       const lines=brands.map(name=>({name,values:per.map(p=>p.total?100*(p.map.get(name)||0)/p.total:null)}));researchPlot(weeks,lines,'榜单品牌销量占比 / %',100);
       researchTable(['周期','实收条数','样本销量/万台',...brands.map(b=>b+' (%)'),'CR3 (%)','HHI (0–10000)'],weeks.map((w,i)=>{const p=per[i],v=lines.map(l=>l.values[i]),sort=v.filter(x=>x!==null).sort((a,b)=>b-a);return [w.period,w.count,p.total?numberText(p.total,4):'',...v.map(x=>numberText(x)),p.total?numberText(sort.slice(0,3).reduce((s,x)=>s+x,0)):'',p.total?numberText(sort.reduce((s,x)=>s+x*x,0),0):''];}));
-      notice.textContent='显示各品牌原始榜单销量占比；表格同时提供 CR3 和 HHI。';return;
+      notice.textContent='显示所选区间各品牌原始榜单销量占比；不受覆盖率与插补设置限制。表格同时提供 CR3 和 HHI。';return;
     }
     if(researchView==='event'){
       $('researchDesc').textContent='选择活动自然周与对照期（活动前等长自然周），比较所选长期追踪机型。任一周无法估算则该区间留空；增减不代表促销的因果效果。';
@@ -746,7 +757,7 @@
   };
   activeDataset = ds();
   activeDataset.archiveOutlier = $('outlier').value;
-  window.SalesEstimateArchive = Object.freeze({buildRows, normalizeModelName, buildSalesPanel: rows => buildSalesPanel(rows,col), header:HEADER.slice()});
+  window.SalesEstimateArchive = Object.freeze({buildRows, normalizeModelName, buildSalesPanel: (rows,options) => buildSalesPanel(rows,col,options), header:HEADER.slice()});
   updateControls(true);
   async function loadRepository() {
     loading = true;

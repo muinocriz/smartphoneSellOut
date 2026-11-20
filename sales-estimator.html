@@ -143,14 +143,14 @@
   <div id="qualityGuard" class="msg warn" style="margin:0 0 18px">尚无标定数据：可预览像素比例，正式图卡与发布文案需先填入已知销量。</div>
   <div class="studio-grid">
     <div class="studio-controls">
-      <div class="studio-steps">第一步 · 选择发布选题</div>
+      <div class="studio-steps">选择发布选题</div>
       <div class="post-templates" id="templateChooser">
-        <button type="button" class="template-option active" data-template="top"><span class="template-symbol">01</span><span><b>TOP10 排行榜</b><small>热销机型 · 数据一览</small></span></button>
-        <button type="button" class="template-option" data-template="versus"><span class="template-symbol">02</span><span><b>双机销量 PK</b><small>同榜对决 · 倍数差距</small></span></button>
-        <button type="button" class="template-option" data-template="brands"><span class="template-symbol">03</span><span><b>品牌上榜实力</b><small>入榜样本 · 品牌结构</small></span></button>
-        <button type="button" class="template-option" data-template="leader"><span class="template-symbol">04</span><span><b>榜首领先分析</b><small>头部集中度 · 销量差</small></span></button>
+        <button type="button" class="template-option active" data-template="top"><span><b>TOP10 排行榜</b><small>热销机型 · 数据一览</small></span></button>
+        <button type="button" class="template-option" data-template="versus"><span><b>双机销量 PK</b><small>同榜对决 · 倍数差距</small></span></button>
+        <button type="button" class="template-option" data-template="brands"><span><b>品牌上榜实力</b><small>入榜样本 · 品牌结构</small></span></button>
+        <button type="button" class="template-option" data-template="leader"><span><b>榜首领先分析</b><small>头部集中度 · 销量差</small></span></button>
       </div>
-      <div class="studio-steps">第二步 · 图卡文案编辑</div>
+      <div class="studio-steps">图卡文案编辑</div>
       <section class="copy-box">
         <div class="copy-head"><b>主视觉文案编辑</b><span class="copy-mini">默认自动带入当前模板文案，修改后即时渲染到预览与导出</span></div>
         <p class="copy-desc">可直接编辑主标题、副标题、榜单标签、账号水印（左上角 / 右上角）以及左下角免责附注。免责附注支持换行；恢复默认后会重新跟随当前模板与标定状态更新。</p>
@@ -166,7 +166,7 @@
         </div>
         <div class="copy-actions"><button type="button" id="resetPosterCopy">恢复当前模板默认文案</button></div>
       </section>
-      <div class="studio-steps">第三步 · 图卡设定</div>
+      <div class="studio-steps">生成并保存</div>
       <label class="lbl" for="posterRatio">图卡比例</label>
       <select id="posterRatio" class="field ui-field"><option value="3:4">3:4 · 小红书 / 抖音图文</option><option value="9:16">9:16 · 竖屏</option></select>
       <label class="lbl" for="posterExportWidth">PNG 导出分辨率</label>
@@ -177,9 +177,18 @@
         <option value="3240">极清 · 3240 × 4320</option>
       </select>
       <p class="caption">仅改变单张 PNG 和 ZIP 图卡的导出像素尺寸，不改变实时预览或排版；极清档占用更多内存。</p>
+      <div id="duelSetup" hidden>
+        <label class="lbl" for="duelA">对阵机型 A</label><select id="duelA" class="field ui-field"></select>
+        <label class="lbl" for="duelB">对阵机型 B</label><select id="duelB" class="field ui-field"></select>
+      </div>
+      <div class="studio-buttons">
+        <button type="button" class="primary" id="downloadCard">下载当前高清 PNG</button>
+        <button type="button" class="secondary" id="downloadAllCards">一键打包四张图 + 文案 + CSV</button>
+      </div>
+      <div class="msg" id="exportWarning">导出内容保留数据来源、估算口径及样本限制。</div>
       <div class="safe-editor">
         <section class="safe-box ui-panel">
-          <div class="safe-box-head"><span class="safe-box-title ui-section-title">3. 抖音安全区独立规避</span><label class="switchline"><span>启用</span><input id="safeEnable" type="checkbox" checked><span class="switch-ui" aria-hidden="true"></span></label></div>
+          <div class="safe-box-head"><span class="safe-box-title ui-section-title">抖音安全区独立规避</span><label class="switchline"><span>启用</span><input id="safeEnable" type="checkbox" checked><span class="switch-ui" aria-hidden="true"></span></label></div>
           <p class="safe-box-desc ui-control-description">独立调节右侧可用宽度与底部可用高度，默认右侧 15%、底部 10%；内容按安全边界重新布局。预览区会同步显示遮挡参考区域，导出 PNG 时自动隐藏。</p>
           <div class="safe-slider">
             <div class="safe-slider-label ui-safe-slider-label"><span>右侧交互栏留白宽度</span><b id="safeRightVal">15%（推荐）</b></div>
@@ -191,29 +200,10 @@
           </div>
           <label class="safe-check"><input type="checkbox" id="safeGuides" checked> 在预览中显示点赞/文案区遮挡参考线（导出自动隐藏）</label>
         </section>
-        <section class="safe-box ui-panel">
-          <div class="safe-box-head"><span class="safe-box-title ui-section-title">4. 海报主题与配色方案</span></div>
-          <div class="ui-palette-grid" id="paletteChooser">
-            <button type="button" class="ui-palette-card" data-theme="lilac"><span class="ui-palette-name">柔雾丁香</span><span class="ui-swatches"><i class="ui-swatch"></i><i class="ui-swatch"></i><i class="ui-swatch"></i></span></button>
-            <button type="button" class="ui-palette-card is-selected" data-theme="editorial"><span class="ui-palette-name">编辑部米白</span><span class="ui-swatches"><i class="ui-swatch"></i><i class="ui-swatch"></i><i class="ui-swatch"></i></span></button>
-            <button type="button" class="ui-palette-card" data-theme="pure"><span class="ui-palette-name">极简纯白</span><span class="ui-swatches"><i class="ui-swatch"></i><i class="ui-swatch"></i><i class="ui-swatch"></i></span></button>
-            <button type="button" class="ui-palette-card" data-theme="mist"><span class="ui-palette-name">雾蓝极简</span><span class="ui-swatches"><i class="ui-swatch"></i><i class="ui-swatch"></i><i class="ui-swatch"></i></span></button>
-            <button type="button" class="ui-palette-card" data-theme="coral"><span class="ui-palette-name">日落珊瑚</span><span class="ui-swatches"><i class="ui-swatch"></i><i class="ui-swatch"></i><i class="ui-swatch"></i></span></button>
-            <button type="button" class="ui-palette-card" data-theme="olive"><span class="ui-palette-name">莫兰迪绿野</span><span class="ui-swatches"><i class="ui-swatch"></i><i class="ui-swatch"></i><i class="ui-swatch"></i></span></button>
-          </div>
-          <select id="posterTheme" class="field ui-field" hidden>
-            <option value="lilac">柔雾丁香</option>
-            <option value="editorial" selected>编辑部米白</option>
-            <option value="pure">极简纯白</option>
-            <option value="mist">雾蓝极简</option>
-            <option value="coral">日落珊瑚</option>
-            <option value="olive">莫兰迪绿野</option>
-          </select>
-        </section>
       </div>
-      <!-- 5. 图片水印：Canvas 海报实时预览与 PNG/ZIP 导出同步 -->
+      <!-- 图片水印：Canvas 海报实时预览与 PNG/ZIP 导出同步 -->
       <div class="wm-card ui-panel ui-watermark-card" id="watermarkControls">
-        <h3 class="ui-section-title">5. 图片水印</h3>
+        <h3 class="ui-section-title">图片水印</h3>
       <p>两种模式互斥，默认均关闭。水印会同时显示在预览和导出的图片中。</p>
       <div class="wm-section">
         <div class="wm-head"><div><strong>全屏倾斜水印</strong><small>斜向重复平铺在图表区域</small></div><input id="wmDiagonalEnabled" class="wm-toggle" type="checkbox" aria-label="开启全屏倾斜水印"></div>
@@ -234,16 +224,27 @@
       </div>
     </div>
 
-      <div id="duelSetup" hidden>
-        <label class="lbl" for="duelA">对阵机型 A</label><select id="duelA" class="field ui-field"></select>
-        <label class="lbl" for="duelB">对阵机型 B</label><select id="duelB" class="field ui-field"></select>
+      <div class="safe-editor">
+        <section class="safe-box ui-panel">
+          <div class="safe-box-head"><span class="safe-box-title ui-section-title">海报主题与配色方案</span></div>
+          <div class="ui-palette-grid" id="paletteChooser">
+            <button type="button" class="ui-palette-card" data-theme="lilac"><span class="ui-palette-name">柔雾丁香</span><span class="ui-swatches"><i class="ui-swatch"></i><i class="ui-swatch"></i><i class="ui-swatch"></i></span></button>
+            <button type="button" class="ui-palette-card is-selected" data-theme="editorial"><span class="ui-palette-name">编辑部米白</span><span class="ui-swatches"><i class="ui-swatch"></i><i class="ui-swatch"></i><i class="ui-swatch"></i></span></button>
+            <button type="button" class="ui-palette-card" data-theme="pure"><span class="ui-palette-name">极简纯白</span><span class="ui-swatches"><i class="ui-swatch"></i><i class="ui-swatch"></i><i class="ui-swatch"></i></span></button>
+            <button type="button" class="ui-palette-card" data-theme="mist"><span class="ui-palette-name">雾蓝极简</span><span class="ui-swatches"><i class="ui-swatch"></i><i class="ui-swatch"></i><i class="ui-swatch"></i></span></button>
+            <button type="button" class="ui-palette-card" data-theme="coral"><span class="ui-palette-name">日落珊瑚</span><span class="ui-swatches"><i class="ui-swatch"></i><i class="ui-swatch"></i><i class="ui-swatch"></i></span></button>
+            <button type="button" class="ui-palette-card" data-theme="olive"><span class="ui-palette-name">莫兰迪绿野</span><span class="ui-swatches"><i class="ui-swatch"></i><i class="ui-swatch"></i><i class="ui-swatch"></i></span></button>
+          </div>
+          <select id="posterTheme" class="field ui-field" hidden>
+            <option value="lilac">柔雾丁香</option>
+            <option value="editorial" selected>编辑部米白</option>
+            <option value="pure">极简纯白</option>
+            <option value="mist">雾蓝极简</option>
+            <option value="coral">日落珊瑚</option>
+            <option value="olive">莫兰迪绿野</option>
+          </select>
+        </section>
       </div>
-      <div class="studio-steps">第三步 · 生成并保存</div>
-      <div class="studio-buttons">
-        <button type="button" class="primary" id="downloadCard">下载当前高清 PNG</button>
-        <button type="button" class="secondary" id="downloadAllCards">一键打包四张图 + 文案 + CSV</button>
-      </div>
-      <div class="msg" id="exportWarning">导出内容保留数据来源、估算口径及样本限制。</div>
       <div class="studio-bottom">
     <section class="story-card">
       <div class="righttop"><h3>自动生成的发布文案</h3><button type="button" class="secondary" id="copyStory">复制文案</button></div>

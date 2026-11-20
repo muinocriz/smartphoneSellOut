@@ -1053,9 +1053,9 @@
   }
   // Add the research topics to the existing publishing-topic chooser.
   const chooser=$('templateChooser');
-  for(const [i,[key,label]] of Object.entries(researchViews).entries()){
+  for(const [key,label] of Object.entries(researchViews)){
     const b=document.createElement('button');b.type='button';b.className='template-option';b.dataset.template='research:'+key;
-    b.innerHTML='<span class="template-symbol">'+String(i+5).padStart(2,'0')+'</span><span><b>'+e(label)+'</b><small>'+e(researchSubtitles[key])+'</small></span>';chooser.append(b);
+    b.innerHTML='<span><b>'+e(label)+'</b><small>'+e(researchSubtitles[key])+'</small></span>';chooser.append(b);
   }
   const importCurrent=document.createElement('button');importCurrent.type='button';importCurrent.className='secondary';importCurrent.textContent='导入当前研究专题';importCurrent.style.margin='8px 0';
   importCurrent.onclick=()=>sendResearchToStudio(researchView);chooser.after(importCurrent);

@@ -531,7 +531,7 @@ function placeLabels(inst,ctx,lo,hi){
   });
   const base=[...(ctx.base||[])];
   if(o.exp)base.push({type:"text",left:o.mobile?16:20,bottom:o.mobile?12:14,silent:true,
-    style:{text:"muinocriz.github.io/smartphoneSellOut",fill:t.mu,font:`12px ${FONT()}`}});
+    style:{text:"smartphonesellout.zirconium.workers.dev",fill:t.mu,font:`12px ${FONT()}`}});
   // 导出图：没有名字/序号的线改成浅灰细线，只表示「还有其他机型」，不用颜色误导；桌面导出在底部注明数量
   // （手机导出的数量写在下方列表末尾）
   if(o.exp){const done=new Set(L.map(l=>l.i));

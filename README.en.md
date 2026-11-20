@@ -45,6 +45,10 @@ For the full CSV schema, full-sales-week definitions, poster specifications, des
 
 Sales-tracking data is manually compiled mainly from public posts by **RD观测** and **数码闲聊站**. It is for reference and personal study, not official reporting. **Module 1 contains a selected model sample, not a market-wide ranking; Module 2 auto-loads an editable market-share CSV (non-official estimates) and retains sample data as an offline fallback; Module 3 describes only the listed models in the corresponding ranking period, not total brand market share.** Verify dates, definitions and underlying data before publication.
 
+## Cloudflare deployment
+
+The repository includes a Cloudflare Workers configuration: module 1 is public, while modules 2 and 3 under `/studio/` require Cloudflare Access email authorization. Only allowlisted assets are deployed. Configure Access and JWT parameters and retire older public deployments before relying on this protection. See the [deployment guide (Chinese)](docs/CLOUDFLARE_DEPLOYMENT.md). Local development does not enforce Access.
+
 ## Documentation
 
 - [CHANGELOG.md](CHANGELOG.md) — feature history and fixes.

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-studio-access="local">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -102,6 +102,7 @@ td.bad{color:var(--warn)}
 .page-tabs button[aria-selected="true"]{color:var(--accent);background:var(--accent-soft)}
 .sales-view{display:grid;gap:16px;min-width:0}
 #shareView,#estimatorView{min-width:0}
+.studio-gate{padding:48px 24px;text-align:center;max-width:720px;margin:24px auto;background:var(--panel);border:1px solid var(--line);border-radius:12px}.studio-gate h2{margin:0 0 12px;font-size:20px}.studio-gate p{color:var(--muted);margin:0 0 20px}.studio-gate a,.studio-gate button{display:inline-block;padding:10px 16px;border-radius:8px;font:inherit;font-weight:600;cursor:pointer}.studio-gate a{background:var(--accent);color:var(--panel);text-decoration:none;margin-right:8px}.studio-gate button{background:var(--panel);color:var(--fg);border:1px solid var(--line)}
 .share-frame,.estimator-frame{display:block;width:100%;height:calc(100dvh - 116px);min-height:780px;border:1px solid var(--line);border-radius:10px}.share-frame{background:#0f172a}.estimator-frame{background:#f5f7fb;min-height:0;height:calc(100dvh - 108px)}
 @media(max-width:600px){.page-tabs{width:100%;justify-content:space-between}.page-tabs button{font-size:clamp(12px,3.7vw,16px);padding:6px clamp(7px,2.5vw,13px)}.share-frame,.estimator-frame{min-height:calc(100dvh - 130px)}}
 </style>
@@ -185,10 +186,22 @@ td.bad{color:var(--warn)}
   <section class="panel tbl"><table id="tbl"></table></section>
   </div>
   <section id="shareView" role="tabpanel" aria-labelledby="tabShare" hidden>
-    <iframe id="shareFrame" class="share-frame" title="手机市场份额可视化与海报生成" data-src="market-share.html" loading="lazy"></iframe>
+    <div class="studio-gate" id="shareGate" hidden>
+      <h2>市场份额 · 授权工作台</h2>
+      <p id="shareGateStatus" role="status" aria-live="polite">请使用已授权邮箱登录。</p>
+      <a href="studio/login?module=share">登录 / 进入工作台</a>
+      <button id="shareRetry" type="button">重新检查登录状态</button>
+    </div>
+    <iframe id="shareFrame" class="share-frame" title="手机市场份额可视化与海报生成" data-src="market-share.html" loading="lazy" hidden></iframe>
   </section>
   <section id="estimatorView" role="tabpanel" aria-labelledby="tabEstimator" hidden>
-    <iframe id="estimatorFrame" class="estimator-frame" title="手机销量榜单像素标定、数据分析与社交图文生成" data-src="sales-estimator.html" loading="lazy"></iframe>
+    <div class="studio-gate" id="estimatorGate" hidden>
+      <h2>榜单推算 · 授权工作台</h2>
+      <p id="estimatorGateStatus" role="status" aria-live="polite">请使用已授权邮箱登录。</p>
+      <a href="studio/login?module=estimator">登录 / 进入工作台</a>
+      <button id="estimatorRetry" type="button">重新检查登录状态</button>
+    </div>
+    <iframe id="estimatorFrame" class="estimator-frame" title="手机销量榜单像素标定、数据分析与社交图文生成" data-src="sales-estimator.html" loading="lazy" hidden></iframe>
   </section>
 </div>
 
@@ -837,6 +850,44 @@ fetch(DATA_URL+"?t="+Date.now()).then(r=>{if(!r.ok)throw new Error(r.status);ret
   const estimatorFrame = document.getElementById("estimatorFrame");
   const sub = document.getElementById("sub");
   let frameObserver = null;
+  const requireStudioAccess = document.documentElement.dataset.studioAccess === "required";
+  let activeKey = "sales", accessCheck = 0;
+
+  // 公共首页只检查可信服务端会话，不使用浏览器邮箱、哈希或本地存储判断权限。
+  // 登录跳转由顶层链接发起，避免 Access 在 iframe 内被拦截。
+  async function openStudio(key, check) {
+    const frame = key === "share" ? shareFrame : estimatorFrame;
+    const gate = document.getElementById(key + "Gate");
+    const status = document.getElementById(key + "GateStatus");
+    if (requireStudioAccess) {
+      frame.hidden = true;
+      gate.hidden = false;
+      status.textContent = "正在检查访问权限…";
+      let authorized = false;
+      let message = "请使用已授权的邮箱登录后访问。";
+      try {
+        const res = await fetch("studio/session.json", {credentials:"same-origin", cache:"no-store", redirect:"manual"});
+        if (res.ok && (res.headers.get("content-type") || "").includes("application/json")) {
+          authorized = (await res.json()).authorized === true;
+        } else if (res.status === 503) {
+          message = "工作台访问控制尚未配置完成，请联系维护者。";
+        }
+      } catch (_) {
+        message = "暂时无法确认访问权限，请重新检查或登录。";
+      }
+      if (check !== accessCheck || activeKey !== key) return;
+      if (!authorized) {
+        frame.removeAttribute("src");
+        status.textContent = message;
+        return;
+      }
+    }
+    if (check !== accessCheck || activeKey !== key) return;
+    gate.hidden = true;
+    frame.hidden = false;
+    if (!frame.hasAttribute("src")) frame.src = frame.dataset.src;
+    if (key === "share") requestAnimationFrame(resizeShareFrame);
+  }
 
   function resizeShareFrame() {
     if (shareView.hidden || !shareFrame.hasAttribute("src")) return;
@@ -865,12 +916,11 @@ fetch(DATA_URL+"?t="+Date.now()).then(r=>{if(!r.ok)throw new Error(r.status);ret
       item.tab.tabIndex = selected ? 0 : -1;
     });
     sub.hidden = active.key !== "sales";
+    activeKey = active.key;
+    const check = ++accessCheck;
     if (updateUrl && location.hash !== active.hash) history.pushState(null, "", active.hash);
-    if (active.key === "share") {
-      if (!shareFrame.hasAttribute("src")) shareFrame.src = shareFrame.dataset.src;
-      requestAnimationFrame(resizeShareFrame);
-    } else if (active.key === "estimator") {
-      if (!estimatorFrame.hasAttribute("src")) estimatorFrame.src = estimatorFrame.dataset.src;
+    if (active.key === "share" || active.key === "estimator") {
+      openStudio(active.key, check);
     } else {
       // ECharts 在隐藏后重新显示时需要重新测量宽度。
       requestAnimationFrame(() => window.dispatchEvent(new Event("resize")));
@@ -895,6 +945,8 @@ fetch(DATA_URL+"?t="+Date.now()).then(r=>{if(!r.ok)throw new Error(r.status);ret
     });
   });
 
+  document.getElementById("shareRetry").onclick = () => activate("share");
+  document.getElementById("estimatorRetry").onclick = () => activate("estimator");
   window.addEventListener("popstate", syncFromUrl);
   window.addEventListener("hashchange", syncFromUrl);
   window.addEventListener("resize", resizeShareFrame);

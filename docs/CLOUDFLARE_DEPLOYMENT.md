@@ -1,0 +1,27 @@
+# Cloudflare Workers 分模块访问部署
+
+目标：模块 1 公开，模块 2／3 仅指定邮箱可以使用。仓库仍保留三份 CSV 及原有根目录源码；不要从仓库删除数据，不要将整个仓库作为静态资产目录。
+
+## 1. 安全边界
+
+- `dist/` 由 `npm run build` 重新生成。根目录仅发布 index.html、data.csv、studio-ui.css、iso-sales-week.js；市场份额／榜单推算的页面、两个数据 CSV 与依赖全部复制到 /studio/。
+- `wrangler.jsonc` 的静态资产目录为 dist；`cloudflare-worker.mjs` 拦截除明确公开资产以外的请求。私有资源及 /studio/session.json、/studio/login 均要求由 Access 签发且通过签名、发行方、AUD、过期时间校验的 JWT；缺少配置直接返回 503，缺少或无效凭证拒绝。私有响应禁止缓存。不要删除路由拦截、直接发布 dist，或把私有文件移出 /studio/。
+- 邮箱授权在 Cloudflare Access 配置中管理，不把邮箱名单、令牌或密钥写入网页、源码、CSV。Access 策略才是授权主体；Worker 不接受网页传入的邮箱或伪造登录状态。
+- 首页保留原来的两个 hash 导航；hash 本身不是安全边界。公开首页检查 /studio/session.json 后才载入同源 iframe；未授权时显示顶层登录链接，到 /studio/login 完成身份验证后返回相应标签。
+- 原根目录的本地开发预览仍可直接访问三模块，不应用 Access；只能在信任的本地网络运行。任何公开站点必须用本部署流程。模块 1 的 data.csv 是公开数据，授权用户仍可保存模块 2／3 的数据。
+
+## 2. 首次配置（现有 smartphonesellout Worker）
+
+1. 首先将 GitHub 源仓库设为 Private，并确认旧 GitHub Pages 已关闭、任何旧公开站点及可访问的历史部署都不再提供私有 CSV。此前公开过的数据可能已被下载，无法追回。
+2. Cloudflare Zero Trust → Access → Applications → Add an application → Self-hosted。添加你实际的生产 workers.dev 主机名，路径 /studio/*（如需保护目录本身也可添加 /studio）。不要对整个 Worker 启用 All traffic 身份验证，否则模块 1 也需登录。应用名可设 Smartphone Studio。创建 Allow 策略，Include 选择 Emails，仅填入你和获准人员的完整邮箱；登录方式 One-time PIN 或已有身份提供程序。允许会话时长按需设定（例如 24 小时）。不要配置 Everyone、邮箱域名通配、Bypass。记录应用的 Application Audience (AUD) 和 Zero Trust team domain。
+3. Workers & Pages → smartphonesellout → Settings → Variables and Secrets：增加文本变量 CF_ACCESS_TEAM_DOMAIN（完整 https://<team>.cloudflareaccess.com）、CF_ACCESS_AUD（第 2 步的应用 AUD）。AUD 与域名不是密码；授权名单由 Access 管理。配置文件 keep_vars=true 保留控制台变量。
+4. 在该 Worker 的 Builds 设置中保持生产分支 master、根目录为仓库根；使用 npm 安装依赖（Workers Builds 默认安装，必要时构建命令填 npm install --no-audit --no-fund）；部署命令须为 npx wrangler deploy。wrangler 的自定义 build.command 会执行 npm run build。不要附加 --assets=. 或 --assets=dist；使用仓库配置确保请求经过 Worker 校验。首次部署需使控制台变量随部署生效。项目名 smartphonesellout 与 Worker 名一致。
+5. 保持 workers.dev 生产 URL 启用；关闭 Preview URLs（配置已设 preview_urls:false），不要启用其他可绕过访问控制的域名／路由；不要恢复旧的未保护 Worker 版本。确认旧部署、根目录 market-share.csv/sales-estimates.csv、旧 GitHub Pages、其他公开别名均已关闭或不可访问。
+
+## 3. 用户验收（维护者自行完成）
+
+- 无痕窗口访问根网址：模块 1 正常且 /data.csv 公开；模块 2／3 显示授权入口。直接访问 /studio/market-share.csv、/studio/sales-estimates.csv、两张 HTML 及对应 JS 不得返回内容；旧根路径 /market-share.csv、/sales-estimates.csv 不得返回数据。
+- 通过授权邮箱顶层登录：返回所选标签，允许加载 iframe 及完整数据；切换两个授权模块不重复要求登录（会话有效期内）。未授权邮箱不得通过。检查会话过期后再次切换标签是否需要登录。
+- 配置和实际部署未验收前不能声称数据已私有。新增文件时审查构建白名单及 Worker 路由，不能将私有资产加入公开路径。
+
+参考：[Cloudflare Workers Access 路径保护](https://developers.cloudflare.com/workers/configuration/cloudflare-access/#protect-a-specific-hostname-custom-domain-or-path)、[Access JWT 校验](https://developers.cloudflare.com/cloudflare-one/access-controls/applications/http-apps/authorization-cookie/validating-json/)、[Static Assets 配置](https://developers.cloudflare.com/workers/static-assets/binding/)。

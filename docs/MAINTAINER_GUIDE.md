@@ -166,6 +166,13 @@ dataset_id,source,series,period_type,period,period_start,period_end,top_n,actual
 - **公开性**：GitHub Pages 和仓库公开；不要将私人或未经授权的数据提交到任何数据 CSV 或截图目录。在发布估算图卡前核对来源与统计口径。
 
 
+### Cloudflare 分模块部署
+
+- 原有根目录源码与 CSV 仍是维护源；Cloudflare 构建通过 `scripts/build-cloudflare.mjs` 的明确白名单生成 `dist/`。只有模块 1 的首页、数据及共享依赖公开；模块 2／3 及其独立 CSV 放在 `/studio/`。不发布 README、维护文档、测试和 Git 历史。
+- `wrangler.jsonc` 固定静态资产目录并禁用预览 URL；`cloudflare-worker.mjs` 对私有路径和登录／会话入口校验 Cloudflare Access JWT，缺少配置或验证失败即拒绝访问。必须保留服务端权限校验；首页 hash、iframe 显隐、本地存储或账号名称不是权限依据。
+- 邮箱白名单由 Access 的 Allow 策略管理，`CF_ACCESS_TEAM_DOMAIN` 与 `CF_ACCESS_AUD` 在 Cloudflare Worker 控制台设置；不要提交令牌及邮箱名单。未完成配置及旧公开部署清理前不能宣称数据已私有。
+- Cloudflare 部署使用 Node/npm（仅部署侧依赖），业务前端保持原生静态 HTML/CSS/JS；本地根目录预览不需要构建。实际设置、旧部署保护及手动验收见 [Cloudflare 部署指南](CLOUDFLARE_DEPLOYMENT.md)。
+
 ## 8. 开发与测试流程（轻量优先）
 
 - **默认原则**：优先完成用户明确要求的功能，并验证核心流程能跑通；严格控制改动范围，不因简单需求主动扩大为全面重构、全量回归或额外功能开发。

@@ -6,6 +6,12 @@
 
 ## 2026-11-20
 
+### Cloudflare 分模块访问部署
+
+- 新增 Cloudflare Workers 资产白名单构建、独立 /studio/ 受保护路径及服务端 Access JWT 校验；模块 1 保持公开，模块 2／3 页面及 CSV 只在授权路径提供。缺少配置时私有路径默认拒绝。
+- 首页保留原标签并增加授权状态检查和顶层登录入口；本地开发操作不受影响。保留三个 CSV 原始维护路径，部署不包含开发文档和测试。
+- 新增 Cloudflare 部署指南；实际 Access 应用、邮箱策略、环境变量及旧公开部署关闭须由维护者配置。未运行测试。
+
 ### 榜单估算历史数据库与图文复用（模块 3）
 
 - [908cebc](https://github.com/muinocriz/smartphoneSellOut/commit/908cebc86dafc975e8e325ff7e1c115ec1c570ac) **正式历史存档**：新增 `sales-estimates.csv` 与 `sales-estimate-archive.js`；支持周榜、月榜、自定义日期范围及非固定 TOP 规模（截图识别支持 2–100 条柱条），区分标称 TOP 数和实收条数。按来源、榜单系列、周期类型和周期标识整期数据，不补零；同一期修订须确认整期替换。

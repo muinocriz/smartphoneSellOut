@@ -431,6 +431,7 @@
     // 3. 全局状态管理（支持 localStorage 自动持久化）
     // ==========================================
     const STORAGE_KEY = 'phone_market_share_viz_state_v1';
+    const STATE_VERSION = 2;
 
     function getDefaultState() {
       return {
@@ -451,7 +452,7 @@
         footerSource: '数据口径：国内手机市场 Sell-Out 销量占比（OPPO含一加/realme，vivo含iQOO）',
         footerNote: '底色高亮标注本周最大份额提升与最大回落品牌 · 适配抖音 3:4 安全区',
         watermark: {diagonalEnabled:false,diagonalText:'归零return0',diagonalOpacity:8,diagonalSize:32,diagonalGap:220,centerEnabled:false,centerText:'归零return0',centerOpacity:12,centerSize:72},
-        dataMode: 'empty', selectedWeek: null, textOverrides: {},
+        dataMode: 'empty', selectedWeek: null, followLatestMarketShare: true, textOverrides: {},
         brands: getDefaultBrands()
       };
     }
@@ -459,27 +460,24 @@
     function loadSavedState() {
       const def = getDefaultState();
       try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (!raw) return def;
-        const parsed = JSON.parse(raw);
-        return {
-          ...def,
-          ...parsed,
-          dataMode: parsed.dataMode,
-          textOverrides: parsed.textOverrides,
-          // 已删除的旧主题自动迁移到当前默认主题，避免预览和选中色卡不同步。
-          paletteId: Object.hasOwn(PALETTES, parsed.paletteId) ? parsed.paletteId : def.paletteId,
-          brands: Array.isArray(parsed.brands) && parsed.brands.length > 0 ? parsed.brands : def.brands,
-          watermark: {...def.watermark,...(parsed.watermark&&typeof parsed.watermark==='object'?parsed.watermark:{})}
-        };
-      } catch (e) {
-        return def;
-      }
+        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
+        if (saved?.version !== STATE_VERSION || !saved.data || !Object.hasOwn(PALETTES, saved.data.paletteId)) return def;
+        const next = {...def, ...saved.data};
+        // Cached CSV values are not a current data source. Retain selection and explicit text overrides.
+        if (next.dataMode !== 'manual') {
+          next.dataMode = 'empty';
+          next.brands = def.brands;
+          for (const key of ['title','subtitle','insight','w1Label','w2Label','w1Market','w2Market']) {
+            if (!next.textOverrides[key]) next[key] = def[key];
+          }
+        }
+        return next;
+      } catch (_) { return def; }
     }
 
     function saveStateToLocal() {
       try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({version: STATE_VERSION, data: state}));
       } catch (e) {
         // 忽略无痕模式或存储满的异常
       }
@@ -491,31 +489,6 @@
       const entries=state.brands.flatMap(b=>b.subBrands||[b]);
       return entries.length===9&&['w1','w2'].every(k=>entries.every(b=>b[k]!=null&&String(b[k]).trim()!==''&&Number.isFinite(Number(b[k]))&&Number(b[k])>=0&&Number(b[k])<=100)&&entries.reduce((sum,b)=>sum+Number(b[k]),0)<=100.005);
     }
-    function prepareMarketState(){
-      // Old example data is recognized only during migration; it is never a default chart source.
-      const oldExample=[[28.7,29.3],[19.4,20.8],[13.4,13],[8.5,8.2],[3.8,3.9],[0.2,0.2],[8.1,8.1],[3.7,3.3],[11.6,10.6]],oldText={"title":"2026 W45 国内手机市场份额周环比变化","subtitle":"对比 W44 (10.26–11.1) 与 W45 (11.2–11.8) | 单位：百分点","insight":"本周大盘降约5% · 华为逆势涨 +1.4 突破20% · 苹果稳居榜首","w1Label":"W44 (10.26 - 11.1)","w2Label":"W45 (11.2 - 11.8)","w1Market":"大盘趋势：略微上升 ↗","w2Market":"大盘趋势：环比下降约 5% ↘"};
-      const defaults=getDefaultState();
-      const legacyMode=!state.dataMode;
-      if(!state.textOverrides||typeof state.textOverrides!=='object'){
-        state.textOverrides={};
-        for(const key of ['title','subtitle','insight','w1Label','w2Label']){
-          if(typeof state[key]==='string'&&state[key]!==oldText[key]&&state[key]!==defaults[key])state.textOverrides[key]=true;
-        }
-      }
-      if(legacyMode){
-        const saved=state.brands.flatMap(b=>b.subBrands||[b]).map(b=>[b.w1,b.w2]);
-        state.dataMode=JSON.stringify(saved)!==JSON.stringify(oldExample)&&completeMarketData()?'manual':'empty';
-      }
-      if(state.dataMode==='csv'||state.dataMode==='empty'){
-        state.brands=getDefaultBrands();
-        state.dataMode='empty';
-        for(const key of Object.keys(oldText))if(!state.textOverrides[key])state[key]=defaults[key];
-      }else if(legacyMode){
-        for(const key of Object.keys(oldText))if(state[key]===oldText[key]&&!state.textOverrides[key])state[key]=defaults[key];
-      }
-    }
-    prepareMarketState();
-
     function getPalette() {
       return PALETTES[state.paletteId] || PALETTES.editorial_paper;
     }

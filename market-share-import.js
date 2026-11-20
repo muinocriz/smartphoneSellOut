@@ -17,7 +17,7 @@
     return (d.getUTCMonth()+1)+'.'+d.getUTCDate();
   };
   const weekRange=row=>dateLabel(row.monday)+'–'+dateLabel(row.monday+6*IsoSalesWeek.DAY);
-  const fieldOverrides=()=>state.textOverrides||(state.textOverrides={});
+  const fieldOverrides=()=>state.textOverrides;
 
   function status(message,isError=false){
     const el=byId('marketShareCsvStatus');
@@ -47,10 +47,7 @@
     setAutoField('subtitle',`对比 ${weekLabel(previous.week)} (${weekRange(previous)}) 与 ${weekLabel(current.week)} (${weekRange(current)}) | 份额 % · 变化 pp`);
     setAutoField('w1Label',`${previous.week.slice(4)} (${weekRange(previous)})`);
     setAutoField('w2Label',`${current.week.slice(4)} (${weekRange(current)})`);
-    // Trend cards always reflect the selected CSV rows, even if older local
-    // state contains textOverrides from a previously edited week.
-    delete fieldOverrides().w1Market;
-    delete fieldOverrides().w2Market;
+    // Trend cards always reflect the selected CSV rows.
     state.w1Market=`大盘趋势：${previous.trend}`;
     state.w2Market=`大盘趋势：${current.trend}`;
     setAutoField('insight',buildInsight());
@@ -85,7 +82,6 @@
     const nextPairs=data.pairIndices(next);
     if(!nextPairs.length)throw new Error('CSV 没有可比较的连续两周，请补充相邻 ISO 周');
     rows=next;pairs=nextPairs;sourceName=source;
-    if(typeof state.followLatestMarketShare!=='boolean')state.followLatestMarketShare=true;
     renderWeekChoices();
     // Follow newly published weeks unless an older pair was explicitly selected.
     if(!preferSaved)state.followLatestMarketShare=true;

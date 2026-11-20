@@ -1,6 +1,5 @@
 /* Module 3 publishing workflow, immutable export snapshots and local preferences. */
 const socialState={template:'top',ratio:'3:4',theme:'editorial',duelA:0,duelB:1,lastDS:null,duelOptions:null,safeEnabled:true,safeRight:15,safeBottom:10,safeGuides:true};
-const LEGACY_WATERMARK_KEY='smartphoneSellOut_estimator_watermark_v1';
 const watermarkDefaults={diagonalEnabled:false,diagonalText:'归零return0',diagonalOpacity:8,diagonalSize:32,diagonalGap:220,centerEnabled:false,centerText:'归零return0',centerOpacity:12,centerSize:72};
 const watermarkState={...watermarkDefaults};
 const socialCopyState={title:'',subtitle:'',tagLabel:'',markLeft:'',markRight:'',disclaimer:''};
@@ -353,12 +352,7 @@ async function restorePublicationScheme(){
  StudioPref.write('visual',getVisualPreferences());notify(same?'已恢复发布方案及文案':'当前数据与保存时不同，仅恢复样式、选题和账号水印；统计文案按当前数据生成');
 }
 function initPublicationPreferences(){
- const visual=StudioPref.read('visual');
- if(!visual.watermark){
-  try{const legacy=JSON.parse(localStorage.getItem(LEGACY_WATERMARK_KEY)||'null');if(legacy&&typeof legacy==='object')visual.watermark=legacy;}catch(_){}
- }
- setVisualPreferences(visual);
- if(StudioPref.write('visual',getVisualPreferences())){try{localStorage.removeItem(LEGACY_WATERMARK_KEY)}catch(_){}}
+ setVisualPreferences(StudioPref.read('visual'));
  const host=$('socialStudio'),controls=document.createElement('div');controls.style.cssText='display:flex;flex-wrap:wrap;gap:8px;margin:8px 0';
  for(const [label,action] of [['保存当前发布方案',savePublicationScheme],['恢复本地发布方案',restorePublicationScheme],['清除本地发布方案',()=>{StudioPref.remove('publication');notify('已清除本地发布方案，当前编辑内容不变');}]]){const b=document.createElement('button');b.type='button';b.className='secondary';b.textContent=label;b.onclick=action;controls.append(b);}
  $('templateChooser').after(controls);

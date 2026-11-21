@@ -61,8 +61,9 @@ function auditPosterGeometry(ctx,L,type,research){
 function showPosterAudit(a){
  const node=$('posterLayoutQuality');if(!node)return;
  const errors=[...a.errors],warnings=[...a.warnings],issues=errors.length?errors:warnings;
- const message=errors.length?'海报布局不可导出：'+issues.join('；')+'。请缩短附注、减少留白或切换比例。':warnings.length?'海报可读性提示：'+issues.join('；')+'。仍可导出，请核对预览。':'海报布局：空间与文字字号检查通过（不代表人工视觉验收）。';
- const cls='msg studio-layout-warning '+(errors.length?'bad':warnings.length?'warn':'good');
+ node.hidden=issues.length===0;
+ const message=errors.length?'海报布局不可导出：'+issues.join('；')+'。请缩短附注、减少留白或切换比例。':warnings.length?'海报可读性提示：'+issues.join('；')+'。仍可导出，请核对预览。':'';
+ const cls='msg studio-layout-warning '+(errors.length?'bad':'warn');
  if(node.className!==cls)node.className=cls;if(node.textContent!==message)node.textContent=message;
 }
 function posterFitText(ctx,value,x,y,size,color,weight='600',align='left',width=Infinity){

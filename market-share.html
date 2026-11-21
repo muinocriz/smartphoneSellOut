@@ -56,7 +56,6 @@
         <div id="showOtherOption" class="ms-option-row">
           <div>
             <div class="ms-option-title">显示“其他”自动推算项</div>
-            <div class="ms-option-note">发散/组合图默认聚焦前六大主流品牌</div>
           </div>
           <label class="ms-toggle">
             <input type="checkbox" id="toggleOtherBrand" >
@@ -67,7 +66,6 @@
         <div id="subBrandOption" class="ms-option-row">
           <div>
             <div class="ms-option-title">堆叠图拆分展示子品牌</div>
-            <div class="ms-option-note">独立展示一加/realme 与 iQOO 份额</div>
           </div>
           <label class="ms-toggle">
             <input type="checkbox" id="splitSubBrands"  checked>
@@ -105,10 +103,7 @@
           </div>
         </div>
 
-        <div class="ms-row-between">
-          <span class="ms-state-note">
-            <span>●</span> 已开启浏览器本地自动记忆（刷新不丢失）
-          </span>
+        <div class="ms-reset-row">
           <button id="resetDataBtn" class="ms-link-button">清空份额数据</button>
         </div>
       </div>
@@ -123,20 +118,17 @@
         <option value="2160" selected>超清 · 2160 × 2880（推荐）</option>
         <option value="3240">极清 · 3240 × 4320</option>
       </select>
-      <p class="ms-hint">仅调整导出像素尺寸，不改变预览或排版；极清档占用更多内存。</p>
       <button type="button" id="exportBtn" class="ui-export-primary" disabled>
         <svg class="ui-export-icon" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
         <span>导出</span>
       </button>
       <button type="button" id="exportVersionsBtn" class="ui-export-secondary" title="启用抖音安全区独立规避后可导出规避版与完整版" disabled>多版本导出</button>
       <p id="marketExportStatus" class="ui-export-status" role="status" aria-live="polite" hidden></p>
-      <p class="ms-hint">导出时将自动隐藏红色/琥珀色安全区辅助线，输出纯净原图</p>
     </div>
 
     <!-- 抖音安全区：与模块 3 一致的独立布局开关及预览参考线 -->
     <section id="safeControlPanel" class="ms-card safe-box ui-panel">
       <div class="safe-box-head"><span class="safe-box-title ui-section-title">抖音安全区独立规避</span><label class="switchline"><span>启用</span><input id="safeEnable" type="checkbox" checked><span class="switch-ui" aria-hidden="true"></span></label></div>
-      <p class="safe-box-desc ui-control-description">独立调节右侧可用宽度与底部可用高度，默认右侧 13%、底部 10%；内容按安全边界重新布局。预览区会同步显示遮挡参考区域，导出 PNG 时自动隐藏。</p>
       <div class="safe-slider">
         <div class="safe-slider-label ui-safe-slider-label"><span>右侧交互栏留白宽度</span><b id="safeRightVal">13%（推荐）</b></div>
         <input id="safeRight" class="range" type="range" min="0" max="30" step="1" value="13">
@@ -145,7 +137,7 @@
         <div class="safe-slider-label ui-safe-slider-label"><span>下方文案区留白高度</span><b id="safeBottomVal">10%（推荐）</b></div>
         <input id="safeBottom" class="range" type="range" min="0" max="25" step="1" value="10">
       </div>
-      <label class="safe-check"><input type="checkbox" id="safeGuides" checked> 在预览中显示点赞/文案区遮挡参考线（导出自动隐藏）</label>
+      <label class="safe-check"><input type="checkbox" id="safeGuides" checked> 显示安全区参考线</label>
     </section>
 
     <!-- 6大精选视觉配色方案：与第三模块一致，深蓝强调面板 -->
@@ -1584,7 +1576,7 @@
         const publication=captureMarketPublication();
         const blob=await marketPosterBlob(publication);
         PosterExport.downloadBlob(blob,publication.name);
-        marketExportJob.report('高清 PNG 已导出','success');
+        marketExportJob.report('导出完成','success');
       }catch(err){
         marketExportJob.report('PNG 导出失败：'+(err?.message||String(err)),'error');
       }finally{marketExportJob.end()}

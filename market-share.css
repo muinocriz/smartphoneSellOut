@@ -47,8 +47,7 @@ body.market-share-light{
 .market-share-light .ms-option-row{display:flex;align-items:center;justify-content:space-between;gap:12px;min-width:0}
 .market-share-light .ms-option-row > div{min-width:0}
 .market-share-light .ms-option-title{font-size:var(--ui-text-body);font-weight:700;color:#2b3c58}
-.market-share-light .ms-option-note,.market-share-light .ms-muted,
-.market-share-light .ms-hint,.market-share-light .ms-csv-status{
+.market-share-light .ms-muted,.market-share-light .ms-csv-status{
   font-size:var(--ui-text-small);color:#72829a;line-height:1.6
 }
 .market-share-light .ms-toggle{position:relative;display:inline-flex;align-items:center;flex-shrink:0;cursor:pointer}
@@ -103,14 +102,13 @@ body.market-share-light{
   display:flex;align-items:center;justify-content:space-between;gap:8px;
   margin-top:8px;padding-top:8px;border-top:1px solid #e0e8f3;font-size:var(--ui-text-small)
 }
-.market-share-light .ms-state-note{color:#278361;font-size:var(--ui-text-small);line-height:1.5}
+.market-share-light .ms-reset-row{display:flex;justify-content:flex-end}
 .market-share-light .ms-link-button{border:0;background:transparent;color:#2865db;text-decoration:underline;font-size:var(--ui-text-small);padding:4px 0}
 .market-share-light .ms-link-button:hover{color:#174b99}
 /* Module 3 safety controls, scoped to module 2. */
 
 .market-share-light #safeControlPanel{padding:16px 16px 14px}
 .market-share-light #safeControlPanel .safe-box-head{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:6px}
-.market-share-light #safeControlPanel .safe-box-desc{margin:0 0 12px}
 .market-share-light #safeControlPanel .switchline{display:flex;align-items:center;gap:10px;justify-content:flex-end;font-size:var(--ui-text-small);color:#475d7c;font-weight:700;position:relative;cursor:pointer}
 .market-share-light #safeControlPanel .switchline input{position:absolute;right:0;top:50%;transform:translateY(-50%);width:54px;height:30px;margin:0;opacity:0;pointer-events:none}
 .market-share-light #safeControlPanel .switchline input:focus-visible + .switch-ui{outline:3px solid #9bc2ff;outline-offset:3px;background:#dce5f2;box-shadow:inset 0 0 0 1px #b7c6d9}
@@ -136,7 +134,6 @@ body.market-share-light{
   display:grid;gap:10px;padding-top:12px;margin-top:2px;border-top:1px solid #e0e8f3
 }
 .market-share-light .ms-subheading{color:#506581;font-size:var(--ui-text-body);font-weight:700}
-.market-share-light .ms-hint{text-align:center;margin:8px 0 0}
 .market-share-light .ms-preview{
   flex:1;min-width:0;min-height:600px;padding:26px 16px 36px;
   display:flex;flex-direction:column;align-items:center;justify-content:flex-start;

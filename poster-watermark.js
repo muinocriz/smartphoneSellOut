@@ -3,9 +3,8 @@
   'use strict';
   const defaults=Object.freeze({diagonalEnabled:false,diagonalText:'归零return0',diagonalOpacity:8,diagonalSize:32,diagonalGap:220,centerEnabled:false,centerText:'归零return0',centerOpacity:12,centerSize:72});
   const markup=`
-  <p>两种模式互斥，默认均关闭。水印会同时显示在预览和导出的图片中。</p>
   <div class="wm-section">
-    <div class="wm-head"><div><strong>全屏倾斜水印</strong><small>斜向重复平铺在图表区域</small></div><input id="wmDiagonalEnabled" class="wm-toggle" type="checkbox" aria-label="开启全屏倾斜水印"></div>
+    <div class="wm-head"><div><strong>全屏倾斜水印</strong></div><input id="wmDiagonalEnabled" class="wm-toggle" type="checkbox" aria-label="开启全屏倾斜水印"></div>
     <div class="wm-field"><label for="wmDiagonalText">水印文案</label><input id="wmDiagonalText" type="text" value="归零return0" maxlength="80"></div>
     <div class="wm-grid">
       <div class="wm-field"><label for="wmDiagonalOpacity">透明度 <span id="wmDiagonalOpacityValue">8%</span></label><input id="wmDiagonalOpacity" type="range" min="0" max="30" step="1" value="8"></div>
@@ -14,7 +13,7 @@
     <div class="wm-field"><label for="wmDiagonalGap">排版间距 <span id="wmDiagonalGapValue">220px</span></label><input id="wmDiagonalGap" type="range" min="110" max="420" step="10" value="220"></div>
   </div>
   <div class="wm-section">
-    <div class="wm-head"><div><strong>中心水印模式</strong><small>仅在图表内容区域中心显示一个大号水印</small></div><input id="wmCenterEnabled" class="wm-toggle" type="checkbox" aria-label="开启中心水印"></div>
+    <div class="wm-head"><div><strong>中心水印模式</strong></div><input id="wmCenterEnabled" class="wm-toggle" type="checkbox" aria-label="开启中心水印"></div>
     <div class="wm-field"><label for="wmCenterText">水印文案</label><input id="wmCenterText" type="text" value="归零return0" maxlength="80"></div>
     <div class="wm-grid">
       <div class="wm-field"><label for="wmCenterOpacity">透明度 <span id="wmCenterOpacityValue">12%</span></label><input id="wmCenterOpacity" type="range" min="0" max="30" step="1" value="12"></div>

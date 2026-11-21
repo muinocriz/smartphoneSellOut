@@ -158,12 +158,6 @@
 /* Watermark inputs and switches are intentionally identical across modules. */
 .studio-ui .ui-watermark-card {padding:16px}
 .studio-ui .ui-watermark-card .ui-section-title {margin-bottom:5px}
-.studio-ui .ui-watermark-card > p {
-  font-size:var(--ui-text-small);
-  line-height:1.65;
-  color:#7888a0;
-  margin:0 0 13px;
-}
 .studio-ui .wm-section {
   padding:13px;
   background:#f8fafe;
@@ -173,7 +167,6 @@
 }
 .studio-ui .wm-head {display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:9px}
 .studio-ui .wm-head strong {font-size:var(--ui-text-body);color:#293d56}
-.studio-ui .wm-head small {display:block;color:#7d8ea7;font-size:var(--ui-text-small);line-height:1.5;margin-top:2px}
 .studio-ui .wm-toggle {
   appearance:none;
   position:relative;
@@ -245,3 +238,6 @@
   padding:6px 10px;font:600 var(--ui-text-small)/1.5 var(--ui-font-body);cursor:pointer;
 }
 .studio-ui .ui-export-retry:hover{background:#f1f5fb}
+
+/* Hide healthy quality states without affecting validation or export controls. */
+.studio-ui #qualityGuard[hidden],.studio-ui #posterLayoutQuality[hidden]{display:none!important}

@@ -99,9 +99,7 @@
       try{downloadBlob(file.blob,file.name);initiated++}
       catch(err){console.warn('自动下载未能启动：',err)}
     }
-    job.offerDownloads(files,initiated===files.length
-      ?'两张 PNG 已生成，已发起下载。如浏览器拦截多文件下载，可分别点击下方按钮。'
-      :'两张 PNG 已生成，请点击下方按钮分别下载。');
+    job.offerDownloads(files,initiated===files.length?'两张 PNG 已生成':'两张 PNG 已生成，请分别下载');
   }
   root.PosterExport=Object.freeze({presets,defaultWidth,widthOf,dimensions,updateOptions,createJob,waitForFonts,canvasPNG,downloadBlob,exportSafeVersions});
 })(window);

@@ -132,6 +132,32 @@ function drawBrandComposition(ctx,chart,box,p,note=''){
  if(note)drawText(note,left,bottom-3,small,p.sub,'550','left',width);
 }
 
+// Shared heatmap rendering for live canvas and poster. Cell values are already normalized by the research engine.
+function drawResearchHeatmap(ctx,chart,box,p,note=''){
+ const {left,right,top,bottom,width,height}=box,rows=chart.periods,cols=chart.lines;
+ if(!rows.length||!cols.length)return;
+ const labelW=Math.min(width*.29,Math.max(100,width*.22)),headerH=Math.min(75,height*.14),footH=note?62:43;
+ const x0=left+labelW,y0=top+headerH,x1=right-8,y1=bottom-footH,cw=(x1-x0)/cols.length,rh=(y1-y0)/rows.length;
+ if(!auditPlot(ctx,x1-x0,y1-y0,'热力矩阵绘图区',220,150))return;
+ if(cw<32||rh<20)auditIssue(ctx,'热力矩阵单元较密，请缩小属性类别数');
+ const max=Math.max(0,...cols.flatMap(l=>l.values.filter(Number.isFinite))),font=Math.max(10,Math.min(20,cw*.27,rh*.43)),subFont=Math.max(10,Math.min(18,rh*.45));
+ const fmt=v=>chart.unit==='项次'?String(Math.round(v)):v.toFixed(1)+(chart.unit==='%'?'%':'');
+ posterFitText(ctx,chart.rowLabel+' × '+chart.colLabel+' · '+chart.unit,left,top+17,Math.min(19,headerH*.33),p.sub,'650','left',width);
+ cols.forEach((l,j)=>posterFitText(ctx,l.name,x0+(j+.5)*cw,y0-10,Math.min(17,headerH*.35),p.ink,'650','center',cw-5));
+ rows.forEach((name,i)=>{
+  const y=y0+i*rh;posterFitText(ctx,name,x0-8,y+rh*.58,subFont,p.ink,'650','right',labelW-12);
+  cols.forEach((l,j)=>{
+   const v=l.values[i],x=x0+j*cw,valid=Number.isFinite(v),ratio=valid&&max>0?Math.max(0,Math.min(1,v/max)):0;
+   ctx.fillStyle=valid?'rgb('+Math.round(240-205*ratio)+','+Math.round(246-133*ratio)+','+Math.round(253-72*ratio)+')':'#e5e7eb';
+   ctx.fillRect(x+1,y+1,Math.max(0,cw-2),Math.max(0,rh-2));
+   if(cw>=26&&rh>=17)posterFitText(ctx,valid?fmt(v):'—',x+cw/2,y+rh*.59,font,valid&&ratio>.65?'#ffffff':'#17263c','650','center',cw-5);
+  });
+ });
+ const ly=y1+13,sw=Math.min(26,width*.045);for(let j=0;j<5;j++){const r=j/4;ctx.fillStyle='rgb('+Math.round(240-205*r)+','+Math.round(246-133*r)+','+Math.round(253-72*r)+')';ctx.fillRect(left+45+j*sw,ly,sw-1,10);}
+ posterFitText(ctx,'0',left+37,ly+10,12,p.sub,'550','right',32);
+ posterFitText(ctx,'最大 '+fmt(max),left+48+5*sw,ly+10,12,p.sub,'550','left',width*.55);
+ if(note)posterFitText(ctx,note,left,bottom-5,Math.min(16,font),p.sub,'550','left',width);
+}
 const ResearchCharts=(()=>{
  const COLORS=['#2563eb','#ea580c','#059669','#9333ea','#db2777','#0891b2','#92400e','#64748b','#be123c','#4d7c0f','#0369a1','#7c3aed'];
  function lineScale(chart,box){
@@ -166,13 +192,13 @@ const ResearchCharts=(()=>{
   });
  }
  function renderComposition(host,chart,label){
-  const W=chart.kind==='brandStack'?Math.max(780,chart.periods.length*78+120):850,H=chart.kind==='scatter'?560:510;
+  const W=chart.kind==='heatmap'?Math.max(850,chart.lines.length*94+210):chart.kind==='brandStack'?Math.max(780,chart.periods.length*78+120):850,H=chart.kind==='heatmap'?Math.max(510,chart.periods.length*42+135):chart.kind==='scatter'?560:510;
   const canvas=document.createElement('canvas'),density=Math.min(2,window.devicePixelRatio||1);
   canvas.width=Math.round(W*density);canvas.height=Math.round(H*density);canvas.style.cssText='display:block;width:100%;min-width:620px;background:#fff;border-radius:10px';
   canvas.setAttribute('role','img');canvas.setAttribute('aria-label',label+'；完整数值见数据表');
   const ctx=canvas.getContext('2d');ctx.setTransform(density,0,0,density,0,0);ctx.fillStyle='#fff';ctx.fillRect(0,0,W,H);
   const box={left:16,right:W-16,top:16,bottom:H-16,width:W-32,height:H-32},p={ink:'#17263c',sub:'#64748b',hair:'#e4e9f0',accent:'#c93630',bar:'#265a87'};
-  if(chart.kind==='scatter'||chart.kind==='bars')drawHeadStaticPoster(ctx,p,{chart,chartNote:''},box);else drawBrandComposition(ctx,chart,box,p,'');
+  if(chart.kind==='heatmap')drawResearchHeatmap(ctx,chart,box,p);else if(chart.kind==='scatter'||chart.kind==='bars')drawHeadStaticPoster(ctx,p,{chart,chartNote:''},box);else drawBrandComposition(ctx,chart,box,p,'');
   host.append(canvas);
  }
  return Object.freeze({lineScale,svgLine,canvasLine,renderComposition});

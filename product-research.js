@@ -70,9 +70,9 @@ function priceBand(m,cuts=DEFAULT_CUTS){
 function observed(weeks,master,col,filters={}){
  return weeks.map(w=>{
   if(!w.hasBoard)return {period:w.period,valid:false,entries:[],total:null,knownPrice:null,count:null,status:w.comparisonStatus||'无有效榜单'};
-  const entries=[...w.map].map(([key,r])=>({key,model:master?.get(key)||null,units:Number(r[col.estimated_wan]),brand:r[col.brand_group]})).filter(x=>Number.isFinite(x.units)&&x.units>=0&&matches(x.model,filters));
+  const entries=[...w.map].map(([key,r])=>({key,model:master?.get(key)||null,units:Number(r[col.estimated_wan]),brand:r[col.brand_group],week:{period:w.period,start:w.start,end:w.end}})).filter(x=>Number.isFinite(x.units)&&x.units>=0&&matches(x.model,filters));
   const total=entries.reduce((s,x)=>s+x.units,0);
-  return {period:w.period,valid:true,entries,total,count:entries.length,knownPrice:entries.reduce((s,x)=>s+(validPrice(x.model)!==null?x.units:0),0),status:entries.length?'有效样本':'属性筛选后无样本'};
+  return {period:w.period,start:w.start,end:w.end,valid:true,entries,total,count:entries.length,knownPrice:entries.reduce((s,x)=>s+(validPrice(x.model)!==null?x.units:0),0),status:entries.length?'有效样本':'属性筛选后无样本'};
  });
 }
 function aggregate(entries,classify){
@@ -89,5 +89,32 @@ function rankGroups(per,classify){
  const totals=new Map();for(const w of per)if(w.valid)for(const [k,v] of aggregate(w.entries,classify))totals.set(k,(totals.get(k)||0)+v.sales);
  return [...totals].sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0],'zh-CN',{numeric:true})).map(([k])=>k);
 }
-root.ProductResearch=Object.freeze({FIELDS,UNKNOWN,PRICE_BANDS,value,matches,options,groups,lifecycle,aligned,lifecycleAxis,retention,entryType,DEFAULT_CUTS,parseCuts,bandLabels,validPrice,priceBand,observed,aggregate,priceStats,rankGroups});
+const AGE_CUTS=Object.freeze([4,12,26,52]);
+const AGE_FIELDS=Object.freeze([...FIELDS,Object.freeze(['age_band','上市年龄'])]);
+function ageLabels(cuts=AGE_CUTS){return ['P0–W'+cuts[0],...cuts.slice(1).map((n,i)=>'W'+(cuts[i]+1)+'–W'+n),'W'+(cuts.at(-1)+1)+'及以上'];}
+function ageBand(model,week,cuts=AGE_CUTS){
+ const age=lifecycle(model,week);if(!age)return UNKNOWN;
+ const i=cuts.findIndex(n=>age.index<=n);return ageLabels(cuts)[i<0?cuts.length:i];
+}
+function dimension(entry,field){return field==='age_band'?ageBand(entry.model,entry.week):value(entry.model,field);}
+function cross(entries,rowOf,colOf){
+ const rows=new Map(),cols=new Map(),cells=new Map();let total=0,count=0,knownBoth=0,knownRow=0,knownCol=0;
+ const add=(map,k,x)=>{const v=map.get(k)||{sales:0,count:0};v.sales+=x.units;v.count++;map.set(k,v);};
+ for(const x of entries){const r=rowOf(x),c=colOf(x);total+=x.units;count++;if(r!==UNKNOWN)knownRow+=x.units;if(c!==UNKNOWN)knownCol+=x.units;if(r!==UNKNOWN&&c!==UNKNOWN)knownBoth+=x.units;
+  add(rows,r,x);add(cols,c,x);if(!cells.has(r))cells.set(r,new Map());add(cells.get(r),c,x);
+ }
+ return {rows,cols,cells,total,count,knownBoth,knownRow,knownCol};
+}
+function rankedKeys(map){return [...map].sort((a,b)=>b[1].sales-a[1].sales||a[0].localeCompare(b[0],'zh-CN',{numeric:true})).map(([k])=>k);}
+function displayDimension(map,limit){
+ const all=rankedKeys(map),known=all.filter(k=>k!==UNKNOWN),major=known.slice(0,limit),other='其他已知类别（合并）';
+ return {labels:[...major,...(known.length>major.length?[other]:[]),...(all.includes(UNKNOWN)?[UNKNOWN]:[])],collapse:k=>k===UNKNOWN||major.includes(k)?k:other};
+}
+function matrixValue(matrix,r,c,metric){
+ const v=matrix.cells.get(r)?.get(c)||{sales:0,count:0};
+ if(metric==='volume')return v.sales;if(metric==='count')return v.count;
+ const denominator=metric==='row_share'?(matrix.rows.get(r)?.sales||0):metric==='col_share'?(matrix.cols.get(c)?.sales||0):matrix.total;
+ return denominator>0?100*v.sales/denominator:null;
+}
+root.ProductResearch=Object.freeze({FIELDS,UNKNOWN,PRICE_BANDS,value,matches,options,groups,lifecycle,aligned,lifecycleAxis,retention,entryType,DEFAULT_CUTS,parseCuts,bandLabels,validPrice,priceBand,observed,aggregate,priceStats,rankGroups,AGE_CUTS,AGE_FIELDS,ageLabels,ageBand,dimension,cross,rankedKeys,displayDimension,matrixValue});
 })(typeof globalThis!=='undefined'?globalThis:this);

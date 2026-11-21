@@ -55,7 +55,7 @@ function auditPosterGeometry(ctx,L,type,research){
  if(L.footerLines.length>5)auditIssue(ctx,'免责附注超过5行，建议精简');
  if(L.footerLines.length&&L.footSize<16)auditIssue(ctx,'附注字号偏小');
  if(type==='top'&&(L.bodyHeight-28)/10<55)auditIssue(ctx,'TOP10 行高偏小');
- if(research?.chart?.lines?.length>12&&!['brandStack','brandRibbon','bars','scatter'].includes(research.chart.kind))auditIssue(ctx,'曲线较多，建议减少机型或分组');
+ if(research?.chart?.lines?.length>12&&!['brandStack','brandRibbon','bars','scatter','heatmap'].includes(research.chart.kind))auditIssue(ctx,'曲线较多，建议减少机型或分组');
  return true;
 }
 function showPosterAudit(a){
@@ -296,6 +296,7 @@ function drawResearchPosterContent(ctx,L,p,s){
  posterFitText(ctx,s.displayMetric+' · '+s.modeLabel+(s.key==='head'?' · 共同有效 '+s.effectivePeriods.length+' 周':''),left,bodyTop+intro*.83,27,p.ink,'700','left',width);
  const bottom=bodyBottom-14,height=bottom-start;
  if(!auditPlot(ctx,width,height,'研究图表内容区',360,230))return;
+ if(s.chart?.kind==='heatmap'){drawResearchHeatmap(ctx,s.chart,{left,right,top:start,bottom,width,height},p,s.chartNote);return;}
  if(s.chart?.kind==='brandStack'||s.chart?.kind==='brandRibbon'){drawBrandComposition(ctx,s.chart,{left,right,top:start,bottom,width,height},p,s.chartNote);return;}
  if(s.chart?.kind==='bars'||s.chart?.kind==='scatter'){drawHeadStaticPoster(ctx,p,s,{left,right,top:start,bottom,width,height});return;}
  if(s.chart){

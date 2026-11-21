@@ -16,7 +16,7 @@ A smartphone data dashboard and social-poster toolkit deployed on Cloudflare Wor
 | --- | --- | --- |
 | **01 · Sales Tracking** | Explore cumulative sales, weekly changes and full ISO sales-week trends; default to recent 12-week launches, filter models, save custom lists and export desktop/mobile PNGs. | [Sales Tracking](https://smartphonesellout.zirconium.workers.dev/) |
 | **02 · Market Share** | Auto-load weekly brand shares from `market-share.csv`; compare adjacent ISO weeks, import a local CSV, manually edit values, and export five chart types (including market-scale stacked charts) in six themes as high-resolution 3:4 PNGs. | [Market Share](https://smartphonesellout.zirconium.workers.dev/#market-share) |
-| **03 · Ranking Estimator & Poster Studio** | Calibrate ranking screenshots against known sales or create posters directly from archived rankings and twelve research topics; merge CSV history and export high-resolution 3:4/9:16 PNGs and ZIP bundles. | [Ranking Estimator](https://smartphonesellout.zirconium.workers.dev/#sales-estimator) |
+| **03 · Ranking Estimator & Poster Studio** | Calibrate ranking screenshots against known sales or create posters directly from archived rankings and fourteen research topics; merge CSV history and export high-resolution 3:4/9:16 PNGs and ZIP bundles. | [Ranking Estimator](https://smartphonesellout.zirconium.workers.dev/#sales-estimator) |
 
 ## Getting started
 

@@ -56,7 +56,7 @@ function getPosterCopy(type,o){const defs=posterCopyDefaults(type,o);return {tit
 function resetPosterCopy(force=false){if(researchStudioActive()){for(const k of ['title','subtitle','tagLabel'])socialCopyDirty[k]=false;syncPosterCopyUI(socialState.template,socialData());if(!force)updateSocial(false);return;}for(const k of Object.keys(socialCopyDirty))socialCopyDirty[k]=false;const o=socialData();syncPosterCopyUI(socialState.template,o,true);if(!force)updateSocial(false)}
 function activeColumnMode(){if(researchStudioActive())return 'research';const chosen=$('contentColumn')?.value||'auto';if(chosen!=='auto')return chosen;return({top:'weekly',versus:'duel',brands:'brands',leader:'leader'})[socialState.template]||'weekly'}
 function columnModeLabel(mode=activeColumnMode()){if(mode==='research')return socialResearchSnapshot?.title||'研究专题';return({weekly:'每周 TOP10 栏目',duel:'双机销量 PK 栏目',brands:'品牌上榜实力栏目',leader:'榜首断层分析栏目'})[mode]||'自动栏目'}
-function generateHeadlinePack(type,o){if(isResearchTemplate(type)&&socialResearchSnapshot){const s=socialResearchSnapshot;return {summary:s.context,xhs:s.title+'｜'+s.range,dy:s.title+'\n'+s.range,carousel:''};}if(o.models.length<2)return {summary:'请先导入有效榜单。',xhs:'',dy:'',carousel:''};const top=o.models[0],second=o.models[1],period=o.d.label,mode=activeColumnMode();const prefix=columnModeLabel(mode),safeNote=socialState.safeEnabled?`已启用安全区独立布局：右 ${Math.round(socialState.safeRight)}% / 下 ${Math.round(socialState.safeBottom)}%。`:'未启用安全区规避。';let xhs='',dy='',carousel='';if(mode==='weekly'){xhs=`${period}销量TOP10出炉｜${top.name}排第一，${displayTimes(o.ratio)}断层领先`;dy=`${period.replace(' · ',' ')}
+function generateHeadlinePack(type,o){if(isResearchTemplate(type)&&socialResearchSnapshot){const s=socialResearchSnapshot;return {summary:s.context,xhs:s.title+'｜'+s.range,dy:s.title+'\n'+s.range,carousel:''};}if(o.models.length<2)return {summary:'请先导入有效榜单。',xhs:'',dy:'',carousel:''};const top=o.models[0],second=o.models[1],period=o.d.label,mode=activeColumnMode();const prefix=columnModeLabel(mode);let xhs='',dy='',carousel='';if(mode==='weekly'){xhs=`${period}销量TOP10出炉｜${top.name}排第一，${displayTimes(o.ratio)}断层领先`;dy=`${period.replace(' · ',' ')}
 TOP10谁卖得最好？
 ${top.name}冲到第一`;carousel=`P1 封面：${period}手机销量TOP10
 P2 榜首信息：${top.name}约${displaySale(top.sale)}，领先第二名 ${displayTimes(o.ratio)}
@@ -86,7 +86,7 @@ P3 第二名：${second.name}约${displaySale(second.sale)}
 P4 差距：榜首约领先 ${displaySale(lead)}，倍数 ${displayTimes(o.ratio)}
 P5 集中度：TOP3占比 ${displayPct(o.top3)}，TOP5占比 ${displayPct(o.top5)}
 P6 结尾：说明这是当前榜单的头部集中度，不是全市场集中度`;}
- const summary=`当前采用：${prefix}。${safeNote} 适用于 ${socialState.ratio==='9:16'?'抖音竖屏':'小红书 / 抖音图文'}。`;
+ const summary=`当前采用：${prefix}。适用于 ${socialState.ratio==='9:16'?'抖音竖屏':'小红书 / 抖音图文'}。`;
  return {summary,xhs,dy,carousel};}
 function normalizeDuelSelection(data){
  if(socialState.lastDS!==data.d){
@@ -294,9 +294,6 @@ function redrawSafeAreaPreview(){
  updateSafeLabels();
  const o=socialData();
  drawPoster(socialState.template,$('posterCanvas'),o,true);
- // Preserve the existing headline help text, including its safe-area status.
- const summary=$('headlineSummary'),next=generateHeadlinePack(socialState.template,o).summary;
- if(summary.textContent!==next)summary.textContent=next;
 }
 
 const StudioPref=window.StudioPreferences;

@@ -186,12 +186,6 @@ td.bad{color:var(--warn)}
   <section class="panel tbl"><table id="tbl"></table></section>
   </div>
   <section id="shareView" role="tabpanel" aria-labelledby="tabShare" hidden>
-    <div class="studio-gate" id="shareGate" hidden>
-      <h2>市场份额 · 授权工作台</h2>
-      <p id="shareGateStatus" role="status" aria-live="polite">请使用已授权邮箱登录。</p>
-      <a href="studio/login?module=share">登录 / 进入工作台</a>
-      <button id="shareRetry" type="button">重新检查登录状态</button>
-    </div>
     <iframe id="shareFrame" class="share-frame" title="手机市场份额可视化与海报生成" data-src="market-share.html" loading="lazy" hidden></iframe>
   </section>
   <section id="estimatorView" role="tabpanel" aria-labelledby="tabEstimator" hidden>
@@ -856,9 +850,10 @@ fetch(DATA_URL+"?t="+Date.now()).then(r=>{if(!r.ok)throw new Error(r.status);ret
   // 登录跳转由顶层链接发起，避免 Access 在 iframe 内被拦截。
   async function openStudio(key, check) {
     const frame = key === "share" ? shareFrame : estimatorFrame;
-    const gate = document.getElementById(key + "Gate");
-    const status = document.getElementById(key + "GateStatus");
-    if (requireStudioAccess) {
+    // Module 2 is public; only Module 3 has an Access gate.
+    const gate = key === "estimator" ? document.getElementById("estimatorGate") : null;
+    const status = key === "estimator" ? document.getElementById("estimatorGateStatus") : null;
+    if (requireStudioAccess && key === "estimator") {
       frame.hidden = true;
       gate.hidden = false;
       status.textContent = "正在检查访问权限…";
@@ -882,7 +877,7 @@ fetch(DATA_URL+"?t="+Date.now()).then(r=>{if(!r.ok)throw new Error(r.status);ret
       }
     }
     if (check !== accessCheck || activeKey !== key) return;
-    gate.hidden = true;
+    if (gate) gate.hidden = true;
     frame.hidden = false;
     if (!frame.hasAttribute("src")) frame.src = frame.dataset.src;
     if (key === "share") requestAnimationFrame(resizeShareFrame);
@@ -944,7 +939,6 @@ fetch(DATA_URL+"?t="+Date.now()).then(r=>{if(!r.ok)throw new Error(r.status);ret
     });
   });
 
-  document.getElementById("shareRetry").onclick = () => activate("share");
   document.getElementById("estimatorRetry").onclick = () => activate("estimator");
   window.addEventListener("popstate", syncFromUrl);
   window.addEventListener("hashchange", syncFromUrl);

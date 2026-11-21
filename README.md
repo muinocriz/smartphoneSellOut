@@ -20,7 +20,7 @@
 
 ## 快速使用
 
-访问上方在线入口即可使用；模块 2／3 需要授权。拥有私有仓库访问权限的维护者可克隆或下载仓库，在项目根目录执行：
+访问上方在线入口即可使用；模块 1／2 公开，模块 3 需要授权。拥有私有仓库访问权限的维护者可克隆或下载仓库，在项目根目录执行：
 
 ```bash
 python3 -m http.server 8000
@@ -47,7 +47,7 @@ CSV 字段、完整销售周口径、设计约定、部署和维护方法见 [�
 
 ## Cloudflare 分模块部署
 
-生产站点已迁移至 Cloudflare Workers；GitHub 源仓库为 Private，原 GitHub Pages 已由维护者关闭。模块 1 公开，模块 2／3 须使用获准邮箱通过 Cloudflare Access 一次性验证码认证；其页面和独立 CSV 位于 `/studio/`，由 Worker 服务端校验 Access JWT。部署仅发布白名单资产，私有仓库的 `master` 分支继续作为部署来源。本地开发入口不应用访问控制。验收范围和维护事项详见[部署指南](docs/CLOUDFLARE_DEPLOYMENT.md)。
+生产站点已迁移至 Cloudflare Workers；GitHub 源仓库为 Private，原 GitHub Pages 已由维护者关闭。模块 1／2 公开（含 `data.csv` 和 `market-share.csv`），模块 3 须使用获准邮箱通过 Cloudflare Access 一次性验证码认证；其页面、历史 CSV 和衍生数据位于 `/studio/`，由 Worker 服务端校验 Access JWT。模块 2 的公开资源在根目录提供，构建保留 `/studio/market-share.csv` 等兼容副本供跨模块研究使用。部署仅发布白名单资产，私有仓库的 `master` 分支继续作为部署来源。本地开发入口不应用访问控制。验收范围和维护事项详见[部署指南](docs/CLOUDFLARE_DEPLOYMENT.md)。
 
 ## 更多文档
 

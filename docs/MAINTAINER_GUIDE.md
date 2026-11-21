@@ -162,15 +162,15 @@ dataset_id,source,series,period_type,period,period_start,period_end,top_n,actual
 - **依赖**：销量追踪使用 Apache ECharts 5.4.3（cdnjs）；市场份额编辑器使用原生 HTML/CSS 与 SVG，不依赖 Tailwind；模块 3 使用 Canvas 图卡导出。字体仍使用 Google Fonts，失败时回退系统字体。完整离线部署仍需考虑 ECharts CDN 和字体资源。
 - **本地预览**：项目根目录执行 `python3 -m http.server 8000`，浏览器访问 `http://localhost:8000`；直接打开 HTML 可能触发 CSV 的本地文件访问限制。
 - **生产部署**：使用 Cloudflare Workers，正式入口为 https://smartphonesellout.zirconium.workers.dev/；GitHub 私有仓库的 `master` 为部署来源。原 GitHub Pages 已由维护者关闭，不再作为发布渠道，不得重新启用旧的公开根目录部署。
-- **直达链接**：`/` 为公开销量追踪，`/#market-share` 为模块 2，`/#sales-estimator` 为模块 3；模块 2／3 在通过 Access 后加载 `/studio/` 下的资源。
-- **公开性**：GitHub 仓库为 Private；模块 1（含 `data.csv`）仍公开，模块 2／3 的页面和独立 CSV 必须通过授权访问。不得提交密钥或未经授权的数据，且此前公开过的数据无法追回。在发布估算图卡前核对来源与统计口径。
+- **直达链接**：`/` 为公开销量追踪，`/#market-share` 为模块 2，`/#sales-estimator` 为模块 3；模块 2 直接加载公开根目录资源，模块 3 在通过 Access 后加载 `/studio/` 下的资源。
+- **公开性**：GitHub 仓库为 Private；模块 1／2（含 `data.csv`、`market-share.csv`）公开，模块 3 的页面、历史 CSV 和衍生数据必须通过授权访问。不得提交密钥或未经授权的数据，且此前公开过的数据无法追回。在发布估算图卡前核对来源与统计口径。
 
 
 ### Cloudflare 分模块部署
 
-- 原有根目录源码与 CSV 仍是维护源；Cloudflare 构建通过 `scripts/build-cloudflare.mjs` 的明确白名单生成 `dist/`。只有模块 1 的首页、数据及共享依赖公开；模块 2／3 及其独立 CSV 放在 `/studio/`。不发布 README、维护文档、测试和 Git 历史。
+- 原有根目录源码与 CSV 仍是维护源；Cloudflare 构建通过 `scripts/build-cloudflare.mjs` 的明确白名单生成 `dist/`。模块 1／2 的页面、数据及依赖公开；模块 3 及其独立历史和衍生 CSV 放在 `/studio/`，保留模块 2 的兼容副本供跨模块研究使用。不发布 README、维护文档、测试和 Git 历史。
 - `wrangler.jsonc` 固定静态资产目录并禁用预览 URL；`cloudflare-worker.mjs` 对私有路径和登录／会话入口校验 Cloudflare Access JWT，缺少配置或验证失败即拒绝访问。必须保留服务端权限校验；首页 hash、iframe 显隐、本地存储或账号名称不是权限依据。
-- 邮箱白名单由 Access 的 Allow 策略管理，`CF_ACCESS_TEAM_DOMAIN` 与 `CF_ACCESS_AUD` 在 Cloudflare Worker 控制台设置；不要提交令牌及邮箱名单。维护者已确认指定邮箱认证、公开首页和两个私有 CSV 的匿名拦截符合预期；历史部署、其他域名和会话失效仍须按部署指南逐项检查，不得将有限验收表述为完整安全审计。
+- 邮箱白名单由 Access 的 Allow 策略管理，`CF_ACCESS_TEAM_DOMAIN` 与 `CF_ACCESS_AUD` 在 Cloudflare Worker 控制台设置；不要提交令牌及邮箱名单。2026-11-20 维护者曾确认指定邮箱认证、公开首页和当时两个私有 CSV 的匿名拦截符合预期；模块 2 公开配置变更尚待重新验收，历史部署、其他域名和会话失效仍须按部署指南逐项检查，不得将有限验收表述为完整安全审计。
 - Cloudflare 部署使用 Node/npm（仅部署侧依赖），业务前端保持原生静态 HTML/CSS/JS；本地根目录预览不需要构建。实际设置、旧部署保护及手动验收见 [Cloudflare 部署指南](CLOUDFLARE_DEPLOYMENT.md)。
 
 ## 8. 开发与测试流程（轻量优先）

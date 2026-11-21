@@ -20,7 +20,7 @@ A smartphone data dashboard and social-poster toolkit deployed on Cloudflare Wor
 
 ## Getting started
 
-Use the live site above (modules 2 and 3 require authorization). Maintainers with private repository access can download or clone it and serve it locally:
+Use the live site above (modules 1 and 2 are public; module 3 requires authorization). Maintainers with private repository access can download or clone it and serve it locally:
 
 ```bash
 python3 -m http.server 8000
@@ -47,7 +47,7 @@ Sales-tracking data is manually compiled mainly from public posts by **RD观测*
 
 ## Cloudflare deployment
 
-Production hosting has migrated to Cloudflare Workers. The source repository is private, and the maintainer has disabled the former GitHub Pages site. Module 1 is public; modules 2 and 3 require Cloudflare Access authorization via an approved email and one-time PIN. Their pages and separate CSV files live under `/studio/`, with server-side Access JWT verification by the Worker. Only allowlisted assets are deployed; the private repository's `master` branch remains the deployment source. See the [deployment guide (Chinese)](docs/CLOUDFLARE_DEPLOYMENT.md) for validation scope and maintenance requirements. Local development does not enforce Access.
+Production hosting has migrated to Cloudflare Workers. The source repository is private, and the maintainer has disabled the former GitHub Pages site. Modules 1 and 2 are public, including `data.csv` and `market-share.csv`. Module 3 requires Cloudflare Access authorization via an approved email and one-time PIN. Its page, historical CSV and derived datasets live under `/studio/`, with server-side Access JWT verification by the Worker. Module 2 assets are served at the root; the build retains compatible copies under `/studio/` for cross-module research. Only allowlisted assets are deployed; the private repository's `master` branch remains the deployment source. See the [deployment guide (Chinese)](docs/CLOUDFLARE_DEPLOYMENT.md) for validation scope and maintenance requirements. Local development does not enforce Access.
 
 ## Documentation
 

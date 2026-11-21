@@ -12,7 +12,6 @@ await mkdir(join(dist, 'studio'), {recursive:true});
 let home = await readFile(join(root, 'index.html'), 'utf8');
 for (const [from, to] of [
   ['data-studio-access="local"', 'data-studio-access="required"'],
-  ['data-src="market-share.html"', 'data-src="studio/market-share.html"'],
   ['data-src="sales-estimator.html"', 'data-src="studio/sales-estimator.html"']
 ]) {
   if (!home.includes(from)) throw new Error('首页部署标记缺失：' + from);
@@ -22,4 +21,4 @@ await writeFile(join(dist, 'index.html'), home);
 for (const file of publicFiles) await copyFile(join(root, file), join(dist, file));
 for (const file of protectedFiles) await copyFile(join(root, file), join(dist, 'studio', file));
 await generateSalesPanel(join(root,'sales-estimates.csv'),join(dist,'studio'));
-console.log('Cloudflare assets: public module 1 + /studio/ (Access required)');
+console.log('Cloudflare assets: public modules 1 and 2 + /studio/ (Module 3 Access required)');

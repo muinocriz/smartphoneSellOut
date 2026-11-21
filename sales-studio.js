@@ -227,12 +227,8 @@ function downloadBlob(blob,name){PosterExport.downloadBlob(blob,name)}
 function exportCSVBlob(rows,name){downloadBlob(new Blob([toCSV(rows)],{type:'text/csv;charset=utf-8'}),name)}
 function getPosterExportWidth(){return PosterExport.widthOf($('posterExportWidth').value)}
 function getPosterExportHeight(width,ratio=socialState.ratio){return PosterExport.dimensions(width,ratio).height}
-function updatePosterExportLabel(){
- $('posterExportLabel').textContent=PosterExport.buttonLabel(socialState.ratio,getPosterExportWidth());
-}
 function updatePosterExportOptions(){
  PosterExport.updateOptions($('posterExportWidth'),socialState.ratio);
- updatePosterExportLabel();
 }
 async function posterBlob(publication,card){
  await PosterExport.waitForFonts();
@@ -350,7 +346,6 @@ function initSocial(){PosterWatermark.mount(()=>watermarkState,()=>updateSocial(
  for(const key of ['A','B'])$('duel'+key).onchange=ev=>{socialState['duel'+key]=Number(ev.target.value);if(socialState.duelA===socialState.duelB){notify('请选择两个不同的机型');socialState['duel'+key]=(socialState['duel'+key]+1)%Math.max(2,socialData().models.length);$('duel'+key).value=String(socialState['duel'+key])}updateSocial(true)};
  [['copyTitle','title'],['copySubtitle','subtitle'],['copyTagLabel','tagLabel'],['copyMarkLeft','markLeft'],['copyMarkRight','markRight'],['copyDisclaimer','disclaimer']].forEach(([id,key])=>{$(id).addEventListener('input',ev=>{socialCopyState[key]=ev.target.value;socialCopyDirty[key]=true;updateSocial(false)})});
  $('resetPosterCopy').onclick=()=>{resetPosterCopy();notify('已恢复当前模板默认文案')};
- $('posterExportWidth').addEventListener('change',updatePosterExportLabel);
  $('downloadCard').onclick=saveCard;$('downloadAllCards').onclick=saveBundle;
  $('exportInsight').onclick=()=>{if(researchStudioActive()){const s=socialResearchSnapshot;exportCSVBlob(s.csv,slugName(studioExportLabel())+'_专题数据.csv');return;}const o=socialData();exportCSVBlob(insightRows(o),slugName(o.d.label)+'_机型派生分析.csv')};$('exportBrands').onclick=()=>{const o=socialData();exportCSVBlob(brandRows(o),slugName(o.d.label)+'_品牌上榜样本分析.csv')};
  $('regenStory').onclick=()=>{$('storyText').value=generateStory(socialState.template,socialData());notify('文案已按当前数据重新生成')};

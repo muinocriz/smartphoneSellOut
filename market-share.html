@@ -126,7 +126,7 @@
       <p class="ms-hint">仅调整导出像素尺寸，不改变预览或排版；极清档占用更多内存。</p>
       <button type="button" id="exportBtn" class="ui-export-primary" disabled>
         <svg class="ui-export-icon" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-        <span id="msExportLabel">导出 3:4 海报 (2160×2880 PNG)</span>
+        <span>导出</span>
       </button>
       <p id="marketExportStatus" class="ui-export-status" role="status" aria-live="polite" hidden></p>
       <p class="ms-hint">导出时将自动隐藏红色/琥珀色安全区辅助线，输出纯净原图</p>
@@ -1516,9 +1516,6 @@
     function getMarketExportSize(){
       return PosterExport.dimensions(document.getElementById('msExportWidth').value,'3:4');
     }
-    function updateMarketExportLabel(){
-      document.getElementById('msExportLabel').textContent=PosterExport.buttonLabel('3:4',getMarketExportSize().width);
-    }
     function captureMarketPublication(){
       // Freeze the rendered SVG, target size and filename before awaiting resources.
       renderPoster();
@@ -1757,8 +1754,6 @@
       });
 
       PosterExport.updateOptions(document.getElementById('msExportWidth'),'3:4');
-      document.getElementById('msExportWidth').addEventListener('change', updateMarketExportLabel);
-      updateMarketExportLabel();
       document.getElementById('exportBtn').addEventListener('click', exportHighResPNG);
     }
 

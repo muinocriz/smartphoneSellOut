@@ -27,10 +27,6 @@
     select.value=String(selected);
     return dimensions(selected,ratio);
   }
-  function buttonLabel(ratio,value){
-    const {width,height}=dimensions(value,ratio);
-    return '导出 '+ratio+' 海报 ('+width+'×'+height+' PNG)';
-  }
   function createJob({buttons,status,onIdle=()=>{}}){
     let busy=false;
     function report(message,kind='working'){
@@ -70,5 +66,5 @@
     try{a.href=url;a.download=name;document.body.appendChild(a);a.click()}
     finally{a.remove();setTimeout(()=>URL.revokeObjectURL(url),4000)}
   }
-  root.PosterExport=Object.freeze({presets,defaultWidth,widthOf,dimensions,updateOptions,buttonLabel,createJob,waitForFonts,canvasPNG,downloadBlob});
+  root.PosterExport=Object.freeze({presets,defaultWidth,widthOf,dimensions,updateOptions,createJob,waitForFonts,canvasPNG,downloadBlob});
 })(window);

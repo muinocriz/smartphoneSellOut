@@ -24,7 +24,6 @@ function parse(raw){
     const date=Series.parseDate(m.sale_start_date);
     if(m.sale_start_date&&date===null)issues.push({id:m.model_id,field:'sale_start_date',value:m.sale_start_date});
     m.sale_start_date=date===null?null:new Date(date).toISOString().slice(0,10);
-    m.is_combined=/[\/／]/.test(m.model_name)||/[\/／]/.test(m.variant);
     Object.freeze(m);byId.set(m.model_id,m);
     for(const name of [m.model_name,...m.aliases]){
       const k=normalize(name);if(!k)continue;

@@ -925,10 +925,10 @@
     if(key==='age'){renderAgeStudy(per,weeks,cfg,general,sample);return;}
     if(key==='price'){
       const cuts=Product.parseCuts(cfg.cuts);visible($('priceBrandWrap'),cfg.view==='matrix');
-      $('researchDesc').textContent=general+' 首发价为起售价，不是成交价；合并统计项的价格归入未知。';
+      $('researchDesc').textContent=general+' 首发价为起售价，不是成交价；含其他版本的统计项按主数据代表性首发价归类，不拆分销量。';
       if(!cuts){notice.textContent='请输入1–8个严格递增的正整数价格分界线（不超过1000000元）。';return;}
       const classify=x=>Product.priceBand(x.model,cuts),labels=[...Product.bandLabels(cuts),Product.UNKNOWN],metric=cfg.metric;
-      const metricLabel='首发价格带'+attrMetricLabel(metric),note='首发起售价分组；未知计入分母；非全市场';
+      const metricLabel='首发价格带'+attrMetricLabel(metric),note='首发起售价分组（含版本项用代表价）；未知计入分母；非全市场';
       if(cfg.view==='matrix'){
         if(!nonempty(last)){notice.textContent='所选末周无有效样本，不自动改用较早周。';return;}
         const colOf=x=>attrBrand(x,cfg.brandLevel),columns=Product.rankGroups([last],colOf);
@@ -944,13 +944,13 @@
       notice.textContent=metricLabel+suffix+' · 末周有效价格销量覆盖率 '+(cov===null?'—':cov.toFixed(2)+'%');return;
     }
     if(key==='position'){
-      const threshold=Number(cfg.high);$('researchDesc').textContent=general+' 加权首发价以价格有效的销量为分母，未知价格及合并项不参与加权；高价位贡献以筛选样本（含未知价格）为分母，不是成交 ASP。';
+      const threshold=Number(cfg.high);$('researchDesc').textContent=general+' 加权首发价以价格有效的销量为分母，仅未知或无效价格不参与加权；含其他版本的统计项使用主数据代表性首发价；高价位贡献以筛选样本（含未知价格）为分母，不是成交 ASP。';
       if(!Number.isSafeInteger(threshold)||threshold<=0||threshold>1000000){notice.textContent='请输入1–1000000元的整数高价门槛。';return;}
       const classify=x=>attrBrand(x,cfg.brandLevel),labels=Product.rankGroups(per,classify),selected=cfg.view==='scatter'?[last]:per;
       const byWeek=selected.map(w=>new Map(labels.map(k=>[k,Product.priceStats(w.entries.filter(x=>classify(x)===k),threshold)])));
       const rows=selected.flatMap((w,i)=>labels.map(k=>{const a=byWeek[i].get(k);return [w.period,w.status,k,w.valid?numberText(a.sales,4):'',w.valid?numberText(a.known,4):'',w.valid?numberText(a.unknown,4):'',w.valid?numberText(a.coverage):'',w.valid?numberText(a.weightedPrice,2):'',w.valid?numberText(a.high,4):'',w.valid?numberText(a.highShare):'',w.valid?numberText(pct(a.high,w.total)):''];}));
       researchTable(['周期','样本状态','品牌','品牌样本销量/万台','价格有效销量/万台','未知价格销量/万台','价格覆盖率/%','销量加权首发价/元','高价位销量/万台','高价位占品牌样本/%','高价位占全部筛选样本/%'],rows);
-      const note='加权首发价非 ASP；价格覆盖率见 CSV；高价贡献含未知分母';
+      const note='代表性首发价加权，非 ASP；价格覆盖率见 CSV';
       let chart,metricLabel,effective;
       if(cfg.view==='scatter'){
         const points=labels.map(k=>({k,...byWeek[0].get(k)})).filter(a=>nonempty(last)&&a.weightedPrice!==null&&a.sales>0).slice(0,12);

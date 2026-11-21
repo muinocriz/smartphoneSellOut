@@ -6,8 +6,8 @@ const FIELDS=Object.freeze([['brand','品牌'],['brand_group','母品牌'],['ser
 const PRICE_BANDS=Object.freeze([[0,1000],[1000,2000],[2000,3000],[3000,4000],[4000,5000],[5000,6000],[6000,8000],[8000,Infinity]].map(Object.freeze));
 function value(m,field){
  if(!m)return UNKNOWN;
- if(field==='price_band'){const b=!m.is_combined&&PRICE_BANDS.find(([a,z])=>Number.isFinite(m.launch_price)&&m.launch_price>=a&&m.launch_price<z);return b?(b[1]===Infinity?b[0]+'元及以上':b[0]===0?b[1]+'元以下':b[0]+'–'+(b[1]-1)+'元'):UNKNOWN;}
- if(field==='base_ram'||field==='base_rom')return !m.is_combined&&Number.isFinite(m[field])?m[field]+'GB':UNKNOWN;
+ if(field==='price_band')return priceBand(m);
+ if(field==='base_ram'||field==='base_rom')return Number.isFinite(m[field])&&m[field]>0?m[field]+'GB':UNKNOWN;
  if(field==='series')return m.series&&m.brand?(m.series.startsWith(m.brand)?m.series:m.brand+' '+m.series):UNKNOWN;
  if(field==='chip_model')return m.chip_model&&m.chip_vendor?m.chip_vendor+' / '+normalize(m.chip_model):UNKNOWN;
  return m[field]||UNKNOWN;
@@ -62,7 +62,7 @@ function parseCuts(raw){
 function bandLabels(cuts=DEFAULT_CUTS){
  return [cuts[0]+'元以下',...cuts.slice(1).map((n,i)=>cuts[i]+'–'+(n-1)+'元'),cuts.at(-1)+'元及以上'];
 }
-function validPrice(m){return m&&!m.is_combined&&Number.isFinite(m.launch_price)&&m.launch_price>0?m.launch_price:null;}
+function validPrice(m){return m&&Number.isFinite(m.launch_price)&&m.launch_price>0?m.launch_price:null;}
 function priceBand(m,cuts=DEFAULT_CUTS){
  const price=validPrice(m);if(price===null)return UNKNOWN;
  const i=cuts.findIndex(n=>price<n);return bandLabels(cuts)[i<0?cuts.length:i];

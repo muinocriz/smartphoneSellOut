@@ -56,3 +56,5 @@ Production hosting has migrated to Cloudflare Workers. The source repository is 
 - [Module 3 Architecture (Chinese)](docs/MODULE3_ARCHITECTURE.md) — research engine, preferences, initialization isolation and generated datasets.
 
 **Acknowledgement:** Thanks to [@zhoulin12138](https://github.com/zhoulin12138) for ideas, guidance and support.
+
+Module 1 defaults to original observations, with optional linear or history-trend constrained estimates between observed cumulative endpoints only. Milestones distinguish adjacent-week attainment from interval-confirmed attainment. Estimates never overwrite the CSV.

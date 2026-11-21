@@ -170,6 +170,12 @@ td.bad{color:var(--warn)}
       <label class="check"><input type="checkbox" id="showLabel" checked> 显示数据标签</label>
       <label class="check"><input type="checkbox" id="logY"> 对数纵轴</label>
     </div>
+    <div class="row">
+      <span class="lbl">缺失周</span>
+      <div class="seg" id="gapMode"><button data-v="raw" aria-pressed="true">仅原始观测</button><button data-v="linear" aria-pressed="false">线性插值</button><button data-v="fit" aria-pressed="false">历史趋势约束</button></div>
+      <label id="fitWindowWrap" hidden>历史窗口 <select id="fitWindow" aria-label="断更前连续真实周增量数"><option value="3">3周</option><option value="4">4周</option><option value="6" selected>6周</option><option value="8">8周</option></select></label>
+      <span class="note">估算仅供研究，虚线及 ≈ 标识；不写回 CSV，不参与真实周增量选机。</span>
+    </div>
   </section>
 
   <section class="panel">
@@ -235,16 +241,21 @@ function load(text){
   if(ib<0||im<0||id<0)throw new Error("表头缺少 brand / model / date 列");
   const wIdx=[];head.forEach((h,i)=>{const m=h.match(/^(?:(\d{4})[-_ ]?)?W(\d{1,2})$/i);if(m)wIdx.push({i,y:m[1]?+m[1]:DEFAULT_YEAR,w:+m[2],name:h})});
   if(!wIdx.length)throw new Error("没有找到周列（列名应为 W34 或 2026W34 这种格式）");
-  WEEKS=wIdx.map(x=>x.name.toUpperCase());
-  WMON=wIdx.map(x=>isoWeekMonday(x.y,x.w));
-  if(WMON.some(m=>m==null)||new Set(WMON).size!==WMON.length)throw new Error("存在无效或重复的ISO周列");
+  const weekCols=new Map();
+  for(const x of wIdx){const m=isoWeekMonday(x.y,x.w);if(m==null||weekCols.has(m))throw new Error("存在无效或重复的ISO周列");weekCols.set(m,x);}
+  const times=[...weekCols.keys()].sort((a,b)=>a-b),step=7*IsoSalesWeek.DAY;
+  const ordered=[];for(let m=times[0];m<=times.at(-1);m+=step){
+    const x=weekCols.get(m),y=new Date(m+3*IsoSalesWeek.DAY).getUTCFullYear(),w=1+Math.round((m-IsoSalesWeek.isoWeek1Monday(y))/step);
+    ordered.push(x?{...x,m}:{i:-1,name:y+"W"+String(w).padStart(2,"0"),m});
+  }
+  WEEKS=ordered.map(x=>x.name.toUpperCase());WMON=ordered.map(x=>x.m);
   ROWS=t.slice(1).filter(c=>(c[ib]||"").trim()&&(c[im]||"").trim()).map(c=>{
     const dp=(c[id]||"").trim().split(/[\/\-.]/).map(Number);
     const ok=utcDate(dp)!=null;
     const w1m=ok?firstFullWeekMonday(dp):null;
     const p0=ok?partialWeek(dp):null;
     return {brand:c[ib].trim(),model:c[im].trim(),cat:ic>=0?(c[ic]||"").trim():"",date:(c[id]||"").trim(),
-      vals:wIdx.map(x=>{const v=(c[x.i]||"").trim().replace(/,/g,"");return v===""||isNaN(+v)?null:+v}),
+      vals:ordered.map(x=>{const v=(c[x.i]||"").trim().replace(/,/g,"");return v===""||!Number.isFinite(+v)?null:+v}),
       offs:WMON.map(m=>lifecycleWeekIndex(m,w1m)),
       p0:p0?{days:p0.days,isoMonday:p0.isoMonday}:null}});
   assignColors();
@@ -267,7 +278,7 @@ function assignColors(){const n=new Map();let other=0;
     r.cl=hsl2hex(h+dh,sa,li);r.cd=hsl2hex(h+dh,sa,Math.min(74,li+14))})} // 深色背景下整体提亮
 const PAL=["#2f6fde","#e0592a","#1c9a6c","#b4489f","#d29a00","#0f9bb0","#7a5ae0","#c23b4e","#5d8a1f","#8a6a4a","#3b4fa0","#d06d9c"];
 
-const S={list:null,brand:"华为",sel:new Set(),axis:"week",val:"cum",label:!matchMedia("(max-width: 600px)").matches,log:false,from:null,to:null};
+const S={list:null,brand:"华为",sel:new Set(),axis:"week",val:"cum",gap:"raw",fitWindow:6,label:!matchMedia("(max-width: 600px)").matches,log:false,from:null,to:null};
 const $=id=>document.getElementById(id);
 const chart=echarts.init($("chart"),null,{renderer:"canvas"});
 const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
@@ -288,10 +299,59 @@ function isDark(){const m=css("--bg").match(/^#(..)(..)(..)$/);if(!m)return fals
   return (parseInt(m[1],16)*.3+parseInt(m[2],16)*.59+parseInt(m[3],16)*.11)<128}
 function colorOf(r){return isDark()?r.cd:r.cl}
 function hasData(r){return r.vals.some(v=>v!=null)}
-function series(r){ // 返回按周索引的数值
-  if(S.val==="cum")return r.vals.slice();
-  return r.vals.map((v,i)=>i===0||v==null||r.vals[i-1]==null?null:+(v-r.vals[i-1]).toFixed(2));
+// Only internal bounded gaps are estimated. Raw observations are never changed.
+const gapCache=new WeakMap();
+function historicalTrend(vals,left,window){
+  const ds=[];
+  for(let i=left;i>0&&ds.length<window;i--){
+    const a=vals[i-1],b=vals[i];
+    if(!Number.isFinite(a)||!Number.isFinite(b)||a<0||b<a)break;
+    ds.unshift(b-a);
+  }
+  const count=ds.length;
+  if(count<3||ds.filter(v=>v>0).length<3)return {count,method:"linear",reason:"断更前有效连续增量不足3个"};
+  // Regression of log weekly increments; limit extrapolated weekly ratio to 0.8–1.25.
+  const ys=ds.map(v=>Math.log(Math.max(v,.01))),mean=ys.reduce((a,b)=>a+b,0)/count,mx=(count-1)/2;
+  let xx=0,xy=0,yy=0;ys.forEach((v,i)=>{xx+=(i-mx)**2;xy+=(i-mx)*(v-mean);yy+=(v-mean)**2});
+  const slope=xy/xx,r2=yy>0?xy*xy/(xx*yy):0;
+  if(!Number.isFinite(slope)||r2<.2)return {count,method:"linear",reason:"历史趋势不明显",r2};
+  const k=Math.max(-Math.log(1.25),Math.min(Math.log(1.25),slope));
+  return {count,method:"fit",k,r2,limited:k!==slope};
 }
+function gapData(r){
+  const cacheKey=S.gap+"|"+S.fitWindow,prior=gapCache.get(r);
+  if(prior?.key===cacheKey)return prior.data;
+  const vals=r.vals,cum=vals.slice(),flags=vals.map(()=>null),gaps=[];
+  let left=-1;
+  for(let right=0;right<vals.length;right++){
+    if(!Number.isFinite(vals[right]))continue;
+    if(left>=0&&right-left>1){
+      const n=right-left,total=vals[right]-vals[left],g={left,right,n,total,method:"raw",count:0};
+      if(S.gap!=="raw"&&vals[left]>=0&&total>=0){
+        const h=S.gap==="fit"?historicalTrend(vals,left,S.fitWindow):{method:"linear",count:0};Object.assign(g,h);
+        // Shift exponents before normalization to avoid overflow even for long gaps.
+        const k=h.method==="fit"?h.k:0,shift=Math.max(0,k*(n-1)),weights=Array.from({length:n},(_,i)=>Math.exp(k*i-shift)),sum=weights.reduce((a,b)=>a+b,0);
+        let acc=0;for(let j=1;j<=n;j++){acc+=weights[j-1];const i=left+j;if(i<right)cum[i]=vals[left]+total*acc/sum;flags[i]=g;}
+      }else if(S.gap!=="raw")g.reason="累计下降或端点无效，不估算";
+      gaps.push(g);
+    }
+    left=right;
+  }
+  const delta=cum.map((v,i)=>i===0||v==null||cum[i-1]==null?null:v-cum[i-1]);
+  // The ending cumulative point is observed, but the weekly increment ending there is estimated.
+  const data={cum,delta,gaps,flags,cumFlags:flags.map((g,i)=>g&&vals[i]==null?g:null)};
+  gapCache.set(r,{key:cacheKey,data});return data;
+}
+function series(r){const d=gapData(r);return S.val==="cum"?d.cum:d.delta;}
+function axisFlags(r,cats){
+  const d=gapData(r),flags=S.val==="cum"?d.cumFlags:d.flags;
+  if(S.axis==="week")return cats.map(c=>flags[c.k]||null);
+  const map=new Map(r.offs.map((v,i)=>[v,flags[i]]));return cats.map(c=>map.get(c.k)||null);
+}
+function gapLabel(g){return g.method==="fit"?"历史趋势约束（"+g.count+"个连续真实周增量"+(g.limited?"，趋势限幅":"")+"）":g.reason?"线性估算（"+g.reason+"）":"线性估算";}
+function valueLabel(v,g){return (g?"≈":"")+fmtV(v);}
+function gapModeLabel(){return S.gap==="raw"?"仅原始观测":S.gap==="linear"?"含线性估算":"含趋势约束/线性估算";}
+
 
 function renderBrands(){
   $("brands").innerHTML=BRANDS.map(b=>`<button aria-pressed="${b===S.brand}" data-b="${b}">${b}</button>`).join("");
@@ -335,7 +395,7 @@ function spec(o){return o.mobile
   :{ax:11,end:12,val:11,lw:2,lwH:3,sym:o.exp?6:7,maxEnd:0.24}}
 // 一个机型按当前横轴（自然周 / 完整销售第 N 周）排列的数值，图和表格共用
 function axisData(r,cats){const vs=series(r);
-  if(S.axis==="week")return vs;
+  if(S.axis==="week")return cats.map(c=>vs[c.k]??null);
   const m=new Map();vs.forEach((v,i)=>{if(v!=null&&r.offs[i]!=null)m.set(r.offs[i],v)});
   return cats.map(c=>m.has(c.k)?m.get(c.k):null)}
 function seriesData(sel,cats){
@@ -348,7 +408,7 @@ function lastIdx(d,lo,hi){for(let k=Math.min(hi,d.length-1);k>=lo;k--)if(d[k]!=n
 // 导出：最多 2 列 × 6 行，超出的不编号并注明数量；网页：单列、全部列出
 const ML={row:21,rows:6,pad:16,gapTop:10};
 function mobileRank(sel,datas,o){
-  const items=sel.map((r,i)=>{const j=lastIdx(datas[i],o.lo,o.hi);return j<0?null:{i,r,v:datas[i][j]}}).filter(Boolean)
+  const items=sel.map((r,i)=>{const j=lastIdx(datas[i],o.lo,o.hi);return j<0?null:{i,r,v:datas[i][j],estimated:!!o.estFlags?.[i]?.[j]}}).filter(Boolean)
     .sort((a,b)=>b.v-a.v);
   const cols=o.exp&&items.length>4?2:1,cap=o.exp?cols*ML.rows:Infinity; // 网页上列表可滚动，全部列出
   let shown=items;if(items.length>cap)shown=items.slice(0,cap-1);
@@ -370,7 +430,7 @@ function mobileList(o,t){
   cells.forEach((c,n)=>{const col=Math.floor(n/rows),row=n%rows; // 先竖后横，阅读顺序 1→6 再 7→12
     const x=ML.pad+col*colW,y=top+row*ML.row+ML.row/2;
     if(c.more){g.push({type:"text",x,y,silent:true,style:{text:`另有 ${c.more} 个机型未列出（灰线）`,fill:t.mu,font:`12px ${FONT()}`,textVerticalAlign:"middle"}});return}
-    const {it,k}=c,num=String(k+1),vt=Math.round(it.v).toLocaleString("zh-CN"),col_=colorOf(it.r);
+    const {it,k}=c,num=String(k+1),vt=(it.estimated?"≈":"")+Math.round(it.v).toLocaleString("zh-CN"),col_=colorOf(it.r);
     const vW=textW(vt,12,400,MONO);
     g.push({type:"text",x,y,silent:true,style:{text:num,fill:col_,font:`700 13px ${FONT()}`,textVerticalAlign:"middle"}});
     g.push({type:"line",silent:true,shape:{x1:x+nW,y1:y,x2:x+nW+sw,y2:y},style:{stroke:col_,lineWidth:3,lineCap:"round"}});
@@ -384,16 +444,24 @@ function buildOption(sel,cats,datas,o){
   const t=theme(),f=spec(o),W=o.W;
   // 右侧留出线尾名字的宽度（超过上限则截断名字）
   const maxEnd=Math.round(W*f.maxEnd);
+  o.estFlags=sel.map(r=>axisFlags(r,cats));
   if(o.mobile)mobileRank(sel,datas,o);
   else o.names=sel.map((r,i)=>lastIdx(datas[i],o.lo,o.hi)<0?null:fitText(label(r),maxEnd-14,f.end,500));
   const endW=Math.max(0,...o.names.filter(Boolean).map(x=>textW(x,f.end,500)));
-  const ser=sel.map((r,i)=>({name:label(r),type:"line",data:datas[i],connectNulls:false,smooth:false,
+  const ser=sel.map((r,i)=>({name:label(r),type:"line",data:datas[i].map((v,j)=>o.estFlags[i][j]?null:v),connectNulls:false,smooth:false,
     symbol:"circle",symbolSize:f.sym,showSymbol:sel.length<=12, // 线很多时不画数据点，避免白色描边叠成竖条
     lineStyle:{width:f.lw,color:colorOf(r)},itemStyle:{color:colorOf(r),borderColor:t.pn,borderWidth:1.5},
     label:{show:S.label&&!(o.mobile&&o.exp),position:"top",fontSize:f.val,color:t.fg,fontFamily:MONO,
       formatter:p=>p.value==null?"":fmtV(p.value),textBorderColor:t.pn,textBorderWidth:2},
     labelLayout:{hideOverlap:true},
     emphasis:{focus:"series",lineStyle:{width:f.lwH}}}));
+  // Append dashed overlays after the original series to keep highlighting/label indices stable.
+  sel.forEach((r,i)=>{
+    const flags=o.estFlags[i],d=datas[i],estimated=d.map((v,j)=>flags[j]&&v!=null?{value:v,itemStyle:{color:t.pn,borderColor:colorOf(r),borderWidth:2},label:{show:S.label&&!(o.mobile&&o.exp)}}:((flags[j-1]||flags[j+1])&&v!=null?{value:v,symbol:"none",label:{show:false}}:null));
+    if(!flags.some(Boolean))return;
+    o.overlayIndices=o.overlayIndices||new Map();o.overlayIndices.set(i,ser.length);
+    ser.push({name:label(r)+"（估算）",type:"line",data:estimated,connectNulls:false,smooth:false,silent:true,tooltip:{show:false},symbol:"circle",symbolSize:f.sym,showSymbol:true,lineStyle:{type:"dashed",width:f.lw,color:colorOf(r)},itemStyle:{color:t.pn,borderColor:colorOf(r),borderWidth:2},label:{position:"top",fontSize:f.val,color:t.fg,fontFamily:MONO,formatter:p=>p.value==null?"":"≈"+fmtV(p.value),textBorderColor:t.pn,textBorderWidth:2},labelLayout:{hideOverlap:true},emphasis:{disabled:true}});
+  });
   const catT=cats.map(c=>c.t);
   const opt={
     animation:!o.exp,animationDuration:400,
@@ -408,13 +476,13 @@ function buildOption(sel,cats,datas,o){
   if(o.exp){
     const rg=cats.length?catT[0].split("\n")[0]+" – "+catT[catT.length-1].split("\n")[0]:"";
     const bs=[...new Set(sel.map(r=>r.brand))];
-    const sub=[bs.length===1?bs[0]:"",rg,S.val==="cum"?"累计销量（万台）":"周环比增量（万台）",S.log?"对数纵轴":""].filter(Boolean).join(" · ");
+    const sub=[bs.length===1?bs[0]:"",rg,S.val==="cum"?"累计销量（万台）":"周环比增量（万台）",S.log?"对数纵轴":"",S.gap!=="raw"?"虚线/≈为估算":""].filter(Boolean).join(" · ");
     opt.title={text:"新机周销量追踪",subtext:sub,left:o.mobile?16:20,top:o.mobile?16:18,itemGap:6,
       textStyle:{color:t.fg,fontSize:o.mobile?18:20,fontWeight:700,fontFamily:FONT()},
       subtextStyle:{color:t.mu,fontSize:o.mobile?12:13,fontFamily:FONT()}};
   }else{
     opt.tooltip={trigger:"axis",backgroundColor:t.pn,borderColor:t.ln,textStyle:{color:t.fg},
-      valueFormatter:v=>v==null?"—":(+v).toFixed(2)+" 万台"};
+      formatter:params=>{const arr=Array.isArray(params)?params:[params],j=arr[0]?.dataIndex;if(j==null)return "";return [esc(cats[j]?.t.replace("\n"," ")||""),...sel.map((r,i)=>{const v=datas[i][j],g=o.estFlags[i][j];return v==null?null:esc(label(r))+"： "+esc(valueLabel(v,g))+" 万台"+(g?"（"+esc(gapLabel(g))+"）":"");}).filter(Boolean)].join("<br>");}};
     opt.dataZoom=[{type:"slider",xAxisIndex:0,startValue:S.from,endValue:S.to,bottom:o.mobile?6:14,height:o.mobile?20:22,
         borderColor:t.ln,fillerColor:"rgba(100,130,220,.18)",textStyle:{color:t.mu},brushSelect:false,
         dataBackground:{lineStyle:{color:t.ln},areaStyle:{color:t.ln}}},
@@ -457,7 +525,7 @@ function placeLabels(inst,ctx,lo,hi){
   const vbox=[];
   if(S.label&&!(o.mobile&&o.exp))sel.forEach((r,i)=>{const d=datas[i];
     for(let k=lo;k<=Math.min(hi,d.length-1);k++){if(d[k]==null)continue;
-      const q=inst.convertToPixel({seriesIndex:i},[k,d[k]]),w=textW(fmtV(d[k]),f.val)+2,yb=q[1]-f.sym/2-5;
+      const q=inst.convertToPixel({seriesIndex:i},[k,d[k]]),w=textW(valueLabel(d[k],o.estFlags?.[i]?.[k]),f.val)+2,yb=q[1]-f.sym/2-5;
       vbox.push({x0:q[0]-w/2,x1:q[0]+w/2,y0:yb-f.val-2,y1:yb})}});
   const L=[];
   sel.forEach((r,i)=>{const d=datas[i],j=lastIdx(d,lo,hi);if(j<0||!o.names[i])return;
@@ -533,8 +601,10 @@ function placeLabels(inst,ctx,lo,hi){
   if(o.exp){const done=new Set(L.map(l=>l.i));
     const un=sel.map((r,i)=>i).filter(i=>lastIdx(datas[i],lo,hi)>=0&&!done.has(i));
     if(un.length){const u=new Set(un);
-      inst.setOption({series:sel.map((r,i)=>u.has(i)?{z:1,showSymbol:false,label:{show:false},
-        lineStyle:{color:t.mu,width:1,opacity:.35},itemStyle:{color:t.mu,opacity:.35}}:{z:3})});
+      const updates=sel.map((r,i)=>u.has(i)?{z:1,showSymbol:false,label:{show:false},
+        lineStyle:{color:t.mu,width:1,opacity:.35},itemStyle:{color:t.mu,opacity:.35}}:{z:3});
+      if(o.overlayIndices)for(const [i,index] of o.overlayIndices)updates[index]=u.has(i)?{z:1,showSymbol:false,label:{show:false},lineStyle:{type:"dashed",color:t.mu,width:1,opacity:.35}}:{z:3};
+      inst.setOption({series:updates});
       if(!o.mobile)base.push({type:"text",right:20,bottom:14,silent:true,
         style:{text:`另有 ${un.length} 个机型未标注（灰线）`,fill:t.mu,font:`12px ${FONT()}`}})}}
   ctx.labels=L;
@@ -578,7 +648,7 @@ function renderRank(){
   el.style.gridTemplateRows=`repeat(${rows},auto)`;
   // 名字可用宽度：每列宽 − 序号 − 色条 − 数值 − 间距；完整名放不下时先去掉品牌
   const colW=(el.clientWidth||chart.getWidth())/cols-10;
-  el.innerHTML=o.rank.map((it,k)=>{const v=Math.round(it.v).toLocaleString("zh-CN");
+  el.innerHTML=o.rank.map((it,k)=>{const v=(it.estimated?"≈":"")+Math.round(it.v).toLocaleString("zh-CN");
     const max=colW-textW(String(n),13,700)-14-28-textW(v,12,400,MONO)-10;
     return `<li data-i="${it.i}" style="--c:${colorOf(it.r)}"${HL===it.i?' class="on"':""}><b>${k+1}</b><i></i><span>${esc(listName(it.r,max))}</span><em>${v}</em></li>`}).join("");
 }
@@ -620,17 +690,20 @@ async function exportPNG(mobile){
 // 导出文件名：新机周销量-列表名或品牌-横轴-纵轴-桌面/手机.png
 // 选中了「我的列表」里的列表（自建的或自动生成的「本周里程碑」）时写列表名，不再写品牌
 function exportName(mobile){
-  const l=S.list===MS_ID?MILE:S.list===RECENT_ID?RECENT:curList();
-  const parts=["新机周销量",l?l.name:S.brand,S.axis==="launch"?"完整销售周":"自然",S.val==="delta"?"周增量":"总销量",mobile?"手机":"桌面"];
+  const l=S.list===MS_ID?MILE:S.list===CROSS_MS_ID?CROSS_MILE:S.list===RECENT_ID?RECENT:curList();
+  const parts=["新机周销量",l?l.name:S.brand,S.axis==="launch"?"完整销售周":"自然",S.val==="delta"?"周增量":"总销量",S.gap==="raw"?"":gapModeLabel(),mobile?"手机":"桌面"];
   return parts.filter(Boolean).map(s=>String(s).replace(/[\\/:*?"<>|]/g,"_")).join("-")+".png"}
 
 function renderNote(sel){
   const msgs=[];
-  if(S.list===MS_ID){const on=new Set(sel.map(key));
-    const ms=MILE.items.filter(x=>on.has(x.k)).map(x=>`<b>${label(x.r)}</b> 突破 ${x.m} 万台（${WEEKS[x.w]}）`);
-    if(ms.length)msgs.push("🏁 "+ms.join("、"))}
-  sel.forEach(r=>{for(let i=1;i<r.vals.length;i++){const a=r.vals[i-1],b=r.vals[i];
-    if(a!=null&&b!=null&&b<a)msgs.push(`<b>${label(r)}</b> 在 ${WEEKS[i]} 由 ${a} 降至 ${b}，疑似数据异常`)}});
+  if(S.list===MS_ID||S.list===CROSS_MS_ID){const on=new Set(sel.map(key)),list=S.list===MS_ID?MILE:CROSS_MILE;
+    const ms=list.items.filter(x=>on.has(x.k)).map(x=>esc(milestoneText(x,true)));
+    if(ms.length)msgs.push("🏁 "+ms.join("；"))}
+  sel.forEach(r=>{let prev=-1;for(let i=0;i<r.vals.length;i++){const b=r.vals[i];if(b==null)continue;
+    if(prev>=0&&b<r.vals[prev])msgs.push(`<b>${esc(label(r))}</b> 在 ${WEEKS[prev]} 至 ${WEEKS[i]} 由 ${r.vals[prev]} 降至 ${b}，疑似数据异常，不跨期估算`);prev=i}
+    for(const g of gapData(r).gaps){if(g.method==="raw")continue;msgs.push(esc(label(r)+"："+WEEKS[g.left]+" → "+WEEKS[g.right]+"，跨"+g.n+"周累计变化 "+fmtV(g.total)+" 万台；"+gapLabel(g)));}
+  });
+  if(S.gap!=="raw")msgs.unshift("虚线与 ≈ 均为估算，跨期结束周的累计仍是原始观测，结束周增量属于估算；手机排序仅为图中显示值顺序，不是实际周销量榜");
   const empty=sel.filter(r=>!hasData(r)).map(label);
   if(empty.length)msgs.push(`${empty.join("、")} 暂无数据`);
   if(CUR&&CUR.skipped&&!CUR.o.mobile)msgs.push(`另有 ${CUR.skipped} 条线因空间不足，名字以淡色显示在线尾（越靠后越淡），悬停该线可看清`);
@@ -645,7 +718,7 @@ function renderTable(sel){ // 列与图表横轴一致，但倒序：最新的�
   // P0仅展示实际天数与其周末累计销量，绝不占用W1或折算成完整周。
   const p0Headers=lifecycle?'<th title="上市周实际覆盖天数；周一上市不设置P0">P0天数</th><th title="P0所在ISO周的周末累计销量（万台），不等于P0单周销量；周增量模式仍显示累计值">P0末累计</th>':"";
   const h=`<tr><th>机型</th><th>发布日期</th>${p0Headers}${cats.slice().reverse().map(c=>`<th>${c.t.split("\n")[0]}</th>`).join("")}</tr>`;
-  const b=sel.map(r=>{const vs=axisData(r,cats).slice().reverse();
+  const b=sel.map(r=>{const vs=axisData(r,cats).slice().reverse(),flags=axisFlags(r,cats).slice().reverse();
     let p0Cells="";
     if(lifecycle){
       const idx=r.p0?WMON.indexOf(r.p0.isoMonday):-1;
@@ -655,7 +728,7 @@ function renderTable(sel){ // 列与图表横轴一致，但倒序：最新的�
         :'<td class="na">不适用</td><td class="na">—</td>';
     }
     return `<tr><td><span class="dot" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${colorOf(r)};margin-right:6px"></span>${label(r)}</td><td>${r.date}</td>${p0Cells}${
-      vs.map(v=>v==null?`<td class="na">—</td>`:`<td class="n${v<0?" bad":""}">${v.toFixed(2)}</td>`).join("")}</tr>`}).join("");
+      vs.map((v,i)=>v==null?`<td class="na">—</td>`:`<td class="n${v<0?" bad":""}"${flags[i]?' title="'+esc(gapLabel(flags[i]))+'"':''}>${flags[i]?"≈":""}${v.toFixed(2)}</td>`).join("")}</tr>`}).join("");
   $("tbl").innerHTML=`<thead>${h}</thead><tbody>${b}</tbody>`;
 }
 
@@ -712,23 +785,33 @@ function recentButton(){
   const tip="以最新数据周 "+week+" 为截止，自动包含该周及之前11个ISO周上市且有销量记录的机型。可通过机型选择器调整并保存为自定义列表。";
   return `<button class="ms" data-id="${RECENT_ID}" aria-pressed="${S.list===RECENT_ID}" title="${esc(tip)}"${n?"":" disabled"}>✨ ${RECENT.name}<span class="cnt">${n}</span></button>`;
 }
-const MS_STEP=50,MS_ID="__milestone";
-let MILE={id:MS_ID,name:"本周里程碑",models:[],items:[]};
+const MS_STEP=50,MS_ID="__milestone",CROSS_MS_ID="__crossMilestone";
+let MILE={id:MS_ID,name:"本周里程碑",models:[],items:[]},CROSS_MILE={id:CROSS_MS_ID,name:"跨期里程碑",models:[],items:[]};
 function computeMilestones(){
   const lastW=new Map();
   ROWS.forEach(r=>{for(let i=r.vals.length-1;i>=0;i--)if(r.vals[i]!=null){lastW.set(r.brand,Math.max(lastW.get(r.brand)??-1,i));break}});
-  const items=[];
-  ROWS.forEach(r=>{const w=lastW.get(r.brand);if(w==null||w<1)return;
-    const a=r.vals[w-1],b=r.vals[w];if(a==null||b==null)return;
-    const kb=Math.floor(b/MS_STEP);if(kb>Math.floor(a/MS_STEP))items.push({k:key(r),r,m:kb*MS_STEP,w})});
-  items.sort((x,y)=>y.m-x.m);
-  MILE={id:MS_ID,name:"本周里程碑",models:items.map(x=>x.k),items};
+  const weekly=[],cross=[];
+  ROWS.forEach(r=>{const w=lastW.get(r.brand);if(w==null||w<1||r.vals[w]==null)return;
+    let prev=w-1;while(prev>=0&&r.vals[prev]==null)prev--;if(prev<0)return;
+    const a=r.vals[prev],b=r.vals[w],kb=Math.floor(b/MS_STEP),prior=Math.max(0,...r.vals.slice(0,w).filter(Number.isFinite));
+    if(kb>Math.floor(prior/MS_STEP)&&b>=a){const item={k:key(r),r,m:kb*MS_STEP,w,prev};(w-prev===1?weekly:cross).push(item);}
+  });
+  for(const [list,items] of [[MILE,weekly],[CROSS_MILE,cross]]){items.sort((x,y)=>y.m-x.m);list.items=items;list.models=items.map(x=>x.k);}
 }
-function msButton(){const n=MILE.items.length;
-  const tip=n?MILE.items.map(x=>`${full(x.r)} 突破 ${x.m} 万台（${WEEKS[x.w]}）`).join("\n"):`最新一周没有机型的累计销量跨过 ${MS_STEP} 万台的整数倍`;
-  return `<button class="ms" data-id="${MS_ID}" aria-pressed="${S.list===MS_ID}" title="${esc(tip)}"${n?"":" disabled"}>🏁 ${MILE.name}<span class="cnt">${n}</span></button>`}
+function milestoneText(x,short=false){
+  const name=short?label(x.r):full(x.r);
+  if(x.w-x.prev===1)return name+" 达到 "+x.m+" 万台（"+WEEKS[x.w]+"）";
+  const gap=gapData(x.r).gaps.find(g=>g.left===x.prev&&g.right===x.w);
+  let estimate="";
+  if(gap&&gap.method!=="raw"){const cum=gapData(x.r).cum;for(let i=x.prev+1;i<=x.w;i++)if(cum[i]>=x.m){estimate="；估计达成周 "+WEEKS[i]+"（"+gapLabel(gap)+"，非实际确认时间）";break}}
+  return name+" 最新确认达到 "+x.m+" 万台（"+WEEKS[x.prev]+" 后至 "+WEEKS[x.w]+"，具体达成周未知"+estimate+"）";
+}
+function msButton(list){const n=list.items.length;
+  const tip=n?list.items.map(x=>milestoneText(x)).join("\n"):(list.id===MS_ID?"最新相邻自然周未达成新门槛":"最新观测未发现跨期达成新门槛");
+  return `<button class="ms" data-id="${list.id}" aria-pressed="${S.list===list.id}" title="${esc(tip)}"${n?"":" disabled"}>🏁 ${list.name}<span class="cnt">${n}</span></button>`;
+}
 function renderLists(){
-  $("lists").innerHTML=recentButton()+msButton()+(LISTS.length?LISTS.map(l=>`<button aria-pressed="${l.id===S.list}" data-id="${l.id}" title="${esc(l.models.map(k=>k.replace("|"," ")).join("、"))}">${esc(l.name)}<span class="cnt">${l.models.length}</span></button>`).join("")
+  $("lists").innerHTML=recentButton()+msButton(MILE)+msButton(CROSS_MILE)+(LISTS.length?LISTS.map(l=>`<button aria-pressed="${l.id===S.list}" data-id="${l.id}" title="${esc(l.models.map(k=>k.replace("|"," ")).join("、"))}">${esc(l.name)}<span class="cnt">${l.models.length}</span></button>`).join("")
     :'<span class="hint">选好机型后点「保存当前选择」，下次打开可一键恢复</span>');
   const l=curList();$("listEditor").hidden=!l;
   if(l){if(document.activeElement!==$("listName"))$("listName").value=l.name;disarm();renderListState()}
@@ -744,7 +827,7 @@ function applyList(l){
   S.brand=brands.length===1?brands[0]:"全部";S.sel=new Set(ks);S.list=l.id;
   renderBrands();renderModels();renderLists();draw(false)}
 $("lists").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;
-  const l=b.dataset.id===RECENT_ID?RECENT:b.dataset.id===MS_ID?MILE:LISTS.find(x=>x.id===b.dataset.id);if(!l||!l.models.length)return;
+  const l=b.dataset.id===RECENT_ID?RECENT:b.dataset.id===MS_ID?MILE:b.dataset.id===CROSS_MS_ID?CROSS_MILE:LISTS.find(x=>x.id===b.dataset.id);if(!l||!l.models.length)return;
   if(S.list===l.id){S.list=null;renderLists();return}
   applyList(l)});
 $("listNew").onclick=()=>{const ks=curKeys();
@@ -777,6 +860,8 @@ loadLists();renderLists();
 function seg(id,prop){$(id).addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;
   S[prop]=b.dataset.v;[...$(id).children].forEach(x=>x.setAttribute("aria-pressed",x===b));draw(prop==="val")})}
 seg("axisMode","axis");seg("valMode","val");
+$("gapMode").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;S.gap=b.dataset.v;[...$("gapMode").children].forEach(x=>x.setAttribute("aria-pressed",x===b));$("fitWindowWrap").hidden=S.gap!=="fit";renderLists();draw(true)});
+$("fitWindow").onchange=e=>{S.fitWindow=Number(e.target.value);renderLists();draw(true)};
 $("showLabel").checked=S.label;
 $("showLabel").onchange=e=>{S.label=e.target.checked;draw(true)};
 $("logY").onchange=e=>{S.log=e.target.checked;draw(true)};

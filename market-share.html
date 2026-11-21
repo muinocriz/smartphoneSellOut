@@ -128,6 +128,7 @@
         <svg class="ui-export-icon" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
         <span>导出</span>
       </button>
+      <button type="button" id="exportVersionsBtn" class="ui-export-secondary" title="启用抖音安全区独立规避后可导出规避版与完整版" disabled>多版本导出</button>
       <p id="marketExportStatus" class="ui-export-status" role="status" aria-live="polite" hidden></p>
       <p class="ms-hint">导出时将自动隐藏红色/琥珀色安全区辅助线，输出纯净原图</p>
     </div>
@@ -393,9 +394,9 @@
     function normalizeSafeMargin(value,max,fallback){
       return Number.isFinite(value)?Math.max(0,Math.min(max,Math.round(value))):fallback;
     }
-    function getSafeArea(W=900,H=1200){
-      const right=state.safeEnabled?normalizeSafeMargin(state.rightMarginPct,30,13)/100:0;
-      const bottom=state.safeEnabled?normalizeSafeMargin(state.bottomMarginPct,25,10)/100:0;
+    function getSafeArea(W=900,H=1200,safeEnabled=state.safeEnabled){
+      const right=safeEnabled?normalizeSafeMargin(state.rightMarginPct,30,13)/100:0;
+      const bottom=safeEnabled?normalizeSafeMargin(state.bottomMarginPct,25,10)/100:0;
       return {right,bottom,rightEdge:W-Math.round(W*right),bottomEdge:H-Math.round(H*bottom)};
     }
 
@@ -433,9 +434,9 @@
 
     const state = loadSavedState();
     const marketExportJob=PosterExport.createJob({
-      buttons:()=>[document.getElementById('exportBtn')],
+      buttons:()=>[document.getElementById('exportBtn'),document.getElementById('exportVersionsBtn')],
       status:()=>document.getElementById('marketExportStatus'),
-      onIdle:()=>{document.getElementById('exportBtn').disabled=!completeMarketData()}
+      onIdle:()=>syncMarketExportButtons()
     });
     function completeMarketData(){
       if(!Array.isArray(state.brands)||state.brands.length!==6)return false;
@@ -557,13 +558,18 @@
       }
     }
 
-    function renderPoster() {
+    function syncMarketExportButtons(ready=completeMarketData()){
+      const disabled=marketExportJob.busy||!ready;
+      document.getElementById('exportBtn').disabled=disabled;
+      document.getElementById('exportVersionsBtn').disabled=disabled||!state.safeEnabled;
+    }
+    function renderPoster({safeEnabled=state.safeEnabled,preview=true}={}) {
       const svg = document.getElementById('posterSvg');
       svg.innerHTML = '';
-      renderSafeGuides();
+      if(preview)renderSafeGuides();
       const P = getPalette();
       const ready=completeMarketData();
-      document.getElementById('exportBtn').disabled=marketExportJob.busy||!ready;
+      if(preview)syncMarketExportButtons(ready);
       if(!ready){
         svg.appendChild(svgEl('rect',{width:900,height:1200,fill:'#ffffff'}));
         svg.appendChild(svgEl('text',{x:450,y:580,'text-anchor':'middle','font-size':30,fill:P.textPrimary},'尚无完整市场份额数据'));
@@ -575,7 +581,7 @@
       const W = 900;
       const H = 1200;
       const leftPad = 44;
-      const safeArea=getSafeArea(W,H);
+      const safeArea=getSafeArea(W,H,safeEnabled);
       const rightSafeReserve=W-safeArea.rightEdge;
       const safeRightX = W - Math.max(36, rightSafeReserve + 14);
       const contentWidth = safeRightX - leftPad;
@@ -1516,17 +1522,25 @@
     function getMarketExportSize(){
       return PosterExport.dimensions(document.getElementById('msExportWidth').value,'3:4');
     }
-    function captureMarketPublication(){
-      // Freeze the rendered SVG, target size and filename before awaiting resources.
-      renderPoster();
+    function marketExportFilename(){
+      const chartNames={combo:'双图组合模式',diverging:'横向发散条形图',slope:'坡度图',dumbbell:'哑铃图',stacked:'堆叠流动图'};
+      return (state.selectedWeek||'手动对比')+'_手机份额战报_'+chartNames[state.chartType]+'_3比4抖音版.png';
+    }
+    function captureMarketPublication(safeEnabled=state.safeEnabled){
+      const live=document.getElementById('posterSvg');
+      // Render in the attached SVG for font measurements, then synchronously
+      // restore the exact previous preview nodes without changing state.
+      const previous=Array.from(live.childNodes);
+      let svg;
+      try{
+        renderPoster({safeEnabled,preview:false});
+        svg=live.cloneNode(true);
+      }finally{live.replaceChildren(...previous)}
       const {width,height}=getMarketExportSize();
-      const svg=document.getElementById('posterSvg').cloneNode(true);
       svg.setAttribute('width',String(width));
       svg.setAttribute('height',String(height));
       svg.setAttribute('font-family','Inter,"Noto Sans SC",sans-serif');
-      const chartNames={combo:'双图组合模式',diverging:'横向发散条形图',slope:'坡度图',dumbbell:'哑铃图',stacked:'堆叠流动图'};
-      const name=(state.selectedWeek||'手动对比')+'_手机份额战报_'+chartNames[state.chartType]+'_3比4抖音版.png';
-      return Object.freeze({svg,width,height,name});
+      return Object.freeze({svg,width,height,name:marketExportFilename()});
     }
     async function marketPosterBlob(publication){
       const {svg,width,height}=publication;
@@ -1553,7 +1567,6 @@
           image.onerror=()=>reject(new Error('海报渲染失败，请尝试降低导出分辨率'));
           image.src=url;
         });
-        marketExportJob.report('正在生成 PNG 文件…');
         return await PosterExport.canvasPNG(canvas=>{
           canvas.width=width;canvas.height=height;
           const ctx=canvas.getContext('2d');
@@ -1574,6 +1587,17 @@
         marketExportJob.report('高清 PNG 已导出','success');
       }catch(err){
         marketExportJob.report('PNG 导出失败：'+(err?.message||String(err)),'error');
+      }finally{marketExportJob.end()}
+    }
+
+    async function exportMarketVersions(){
+      if(marketExportJob.busy||!completeMarketData()||!state.safeEnabled)return;
+      if(!marketExportJob.begin('正在准备两种海报版本…'))return;
+      try{
+        await PosterExport.exportSafeVersions(marketExportJob,marketExportFilename(),
+          enabled=>captureMarketPublication(enabled),marketPosterBlob);
+      }catch(err){
+        marketExportJob.report('多版本导出失败：'+(err?.message||String(err)),'error');
       }finally{marketExportJob.end()}
     }
 
@@ -1755,6 +1779,7 @@
 
       PosterExport.updateOptions(document.getElementById('msExportWidth'),'3:4');
       document.getElementById('exportBtn').addEventListener('click', exportHighResPNG);
+      document.getElementById('exportVersionsBtn').addEventListener('click', exportMarketVersions);
     }
 
     window.addEventListener('DOMContentLoaded', () => {

@@ -237,3 +237,11 @@
 .studio-ui .ui-export-status[data-state="success"]{background:#edf8f2;color:#266943;border-color:#c6e8d1}
 .studio-ui .ui-export-status[data-state="error"]{background:#fff2f1;color:#ab3d33;border-color:#f7d1cc}
 .studio-ui .ui-export-status[hidden]{display:none}
+
+/* Manual fallback for browsers that block automatic multi-file downloads. */
+.studio-ui .ui-export-downloads{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.studio-ui .ui-export-retry{
+  border:1px solid #c6d6ee;border-radius:8px;background:#fff;color:var(--ui-accent);
+  padding:6px 10px;font:600 var(--ui-text-small)/1.5 var(--ui-font-body);cursor:pointer;
+}
+.studio-ui .ui-export-retry:hover{background:#f1f5fb}

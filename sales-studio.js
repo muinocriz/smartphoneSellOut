@@ -198,7 +198,7 @@ function capturePublication(types,o){
  return freezePublication(JSON.parse(JSON.stringify(snapshot)));
 }
 const publicationJob=PosterExport.createJob({
- buttons:()=>[$('downloadCard'),$('downloadAllCards')],
+ buttons:()=>[$('downloadCard'),$('downloadVersions'),$('downloadAllCards')],
  status:()=>$('posterExportStatus'),
  onIdle:()=>updateSocial(false)
 });
@@ -244,6 +244,20 @@ async function saveCard(){
  const pub=capturePublication([socialState.template],o),card=pub.cards[0];
  if(!beginPublication('正在生成高清 PNG…'))return;
  try{const blob=await posterBlob(pub,card);downloadBlob(blob,slugName(pub.label)+'_'+card.name+'_'+pub.state.ratio.replace(':','x')+'.png');publicationResult('高清 PNG 已导出')}catch(err){publicationResult('PNG 导出失败：'+err.message,'error')}finally{endPublication()}
+}
+async function saveCardVersions(){
+ if(publicationJob.busy){notify('已有图卡导出正在进行');return;}
+ if(!socialState.safeEnabled)return;
+ const o=safeExport();if(!o)return;
+ if(!beginPublication('正在准备两种海报版本…'))return;
+ try{
+  const pub=capturePublication([socialState.template],o),card=pub.cards[0];
+  const name=slugName(pub.label)+'_'+card.name+'_'+pub.state.ratio.replace(':','x')+'.png';
+  await PosterExport.exportSafeVersions(publicationJob,name,
+   enabled=>freezePublication({...pub,state:{...pub.state,safeEnabled:enabled}}),
+   publication=>posterBlob(publication,card));
+  notify('两张 PNG 已生成');
+ }catch(err){publicationResult('多版本导出失败：'+err.message,'error')}finally{endPublication()}
 }
 function storyName(type){if(isResearchTemplate(type))return slugName(socialResearchSnapshot?.title||'研究专题');return {top:'01_TOP10榜单',versus:'02_双机对比',brands:'03_品牌样本',leader:'04_榜首领先'}[type]}
 // 离线 ZIP（Store 模式，无外部依赖；含 UTF-8 文件名和 CRC32）。
@@ -346,7 +360,7 @@ function initSocial(){PosterWatermark.mount(()=>watermarkState,()=>updateSocial(
  for(const key of ['A','B'])$('duel'+key).onchange=ev=>{socialState['duel'+key]=Number(ev.target.value);if(socialState.duelA===socialState.duelB){notify('请选择两个不同的机型');socialState['duel'+key]=(socialState['duel'+key]+1)%Math.max(2,socialData().models.length);$('duel'+key).value=String(socialState['duel'+key])}updateSocial(true)};
  [['copyTitle','title'],['copySubtitle','subtitle'],['copyTagLabel','tagLabel'],['copyMarkLeft','markLeft'],['copyMarkRight','markRight'],['copyDisclaimer','disclaimer']].forEach(([id,key])=>{$(id).addEventListener('input',ev=>{socialCopyState[key]=ev.target.value;socialCopyDirty[key]=true;updateSocial(false)})});
  $('resetPosterCopy').onclick=()=>{resetPosterCopy();notify('已恢复当前模板默认文案')};
- $('downloadCard').onclick=saveCard;$('downloadAllCards').onclick=saveBundle;
+ $('downloadCard').onclick=saveCard;$('downloadVersions').onclick=saveCardVersions;$('downloadAllCards').onclick=saveBundle;
  $('exportInsight').onclick=()=>{if(researchStudioActive()){const s=socialResearchSnapshot;exportCSVBlob(s.csv,slugName(studioExportLabel())+'_专题数据.csv');return;}const o=socialData();exportCSVBlob(insightRows(o),slugName(o.d.label)+'_机型派生分析.csv')};$('exportBrands').onclick=()=>{const o=socialData();exportCSVBlob(brandRows(o),slugName(o.d.label)+'_品牌上榜样本分析.csv')};
  $('regenStory').onclick=()=>{$('storyText').value=generateStory(socialState.template,socialData());notify('文案已按当前数据重新生成')};
  $('regenHeadline').onclick=()=>{const pack=generateHeadlinePack(socialState.template,socialData());$('headlineSummary').textContent=pack.summary;$('xhsTitle').value=pack.xhs;$('dyTitle').value=pack.dy;$('carouselText').value=pack.carousel;notify('标题与轮播脚本已按当前数据重新生成')};

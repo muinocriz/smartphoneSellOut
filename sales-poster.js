@@ -274,7 +274,14 @@ function drawPoster(type,canvas,o=socialData(),showGuides=false,pixelRatio=1,pub
  drawImageWatermark(ctx,W,H,right,bottom,publication?.watermark||watermarkState,state,p);
  if(showGuides)drawSafeGuides(ctx,W,H,p);
  posterAudits.delete(ctx);
- if(showGuides&&!publication){showPosterAudit(audit);if(publicationJob.busy||audit.errors.size){$('downloadCard').disabled=true;$('downloadAllCards').disabled=true;}else{$('downloadCard').disabled=!canDownloadSocial(o,type);$('downloadAllCards').disabled=!canDownloadSocial(o,isResearchTemplate(type)?type:'bundle');}}
+ if(showGuides&&!publication){
+  showPosterAudit(audit);
+  const unavailable=publicationJob.busy||audit.errors.size>0;
+  const singleDisabled=unavailable||!canDownloadSocial(o,type);
+  $('downloadCard').disabled=singleDisabled;
+  $('downloadVersions').disabled=singleDisabled||!socialState.safeEnabled;
+  $('downloadAllCards').disabled=unavailable||!canDownloadSocial(o,isResearchTemplate(type)?type:'bundle');
+ }
  return {errors:[...audit.errors],warnings:[...audit.warnings]};
 }
 

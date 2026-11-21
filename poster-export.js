@@ -49,7 +49,23 @@
       for(const button of buttons())button.removeAttribute('aria-busy');
       onIdle();
     }
-    return Object.freeze({get busy(){return busy},begin,report,end});
+    function offerDownloads(files,message){
+      report(message,'success');
+      const el=status();
+      if(!el)return;
+      const actions=document.createElement('span');
+      actions.className='ui-export-downloads';
+      for(const file of files){
+        const button=document.createElement('button');
+        button.type='button';
+        button.className='ui-export-retry';
+        button.textContent='下载'+file.label;
+        button.addEventListener('click',()=>downloadBlob(file.blob,file.name));
+        actions.appendChild(button);
+      }
+      el.appendChild(actions);
+    }
+    return Object.freeze({get busy(){return busy},begin,report,end,offerDownloads});
   }
   async function waitForFonts(){if(document.fonts?.ready)await document.fonts.ready}
   async function canvasPNG(draw){
@@ -66,5 +82,26 @@
     try{a.href=url;a.download=name;document.body.appendChild(a);a.click()}
     finally{a.remove();setTimeout(()=>URL.revokeObjectURL(url),4000)}
   }
-  root.PosterExport=Object.freeze({presets,defaultWidth,widthOf,dimensions,updateOptions,createJob,waitForFonts,canvasPNG,downloadBlob});
+  // Capture both versions synchronously, then render serially to bound canvas memory.
+  async function exportSafeVersions(job,filename,capture,render){
+    const stem=filename.replace(/\.png$/i,'');
+    const versions=[
+      {enabled:true,label:'规避版'},
+      {enabled:false,label:'完整版'}
+    ].map(v=>({...v,name:stem+'_'+v.label+'.png',publication:capture(v.enabled)}));
+    const files=[];
+    for(const [index,version] of versions.entries()){
+      job.report('正在生成'+version.label+'（'+(index+1)+' / '+versions.length+'）…');
+      files.push({label:version.label,name:version.name,blob:await render(version.publication)});
+    }
+    let initiated=0;
+    for(const file of files){
+      try{downloadBlob(file.blob,file.name);initiated++}
+      catch(err){console.warn('自动下载未能启动：',err)}
+    }
+    job.offerDownloads(files,initiated===files.length
+      ?'两张 PNG 已生成，已发起下载。如浏览器拦截多文件下载，可分别点击下方按钮。'
+      :'两张 PNG 已生成，请点击下方按钮分别下载。');
+  }
+  root.PosterExport=Object.freeze({presets,defaultWidth,widthOf,dimensions,updateOptions,createJob,waitForFonts,canvasPNG,downloadBlob,exportSafeVersions});
 })(window);

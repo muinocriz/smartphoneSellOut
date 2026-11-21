@@ -8,11 +8,45 @@
 
 ### 模块 2 公开访问
 
-- 模块 1／2 无需登录，市场份额页面、CSV 和依赖由根路径公开提供；模块 3 及历史销量、衍生数据继续受 /studio/* Access 与 Worker JWT 校验保护。
+- [8480289](https://github.com/muinocriz/smartphoneSellOut/commit/8480289) 模块 1／2 无需登录，市场份额页面、CSV 和依赖由根路径公开提供；模块 3 及历史销量、衍生数据继续受 /studio/* Access 与 Worker JWT 校验保护。
 - 保留 /studio/market-share.csv 等兼容副本供模块 3 跨模块研究使用，原始 CSV 仍统一在仓库根目录维护。
 - 更新中英文 README、维护与部署指南；未执行构建、测试及线上验收。
 
+### 销量追踪、数据与图卡体验
+
+- [bcfd732](https://github.com/muinocriz/smartphoneSellOut/commit/bcfd732) 修正历史 CSV 中小米 18 系列名称的空格写法，不改变估算销量。截至本次文档基线，W38–W45 共 8 期、239 条源记录（W40 为 TOP29，其余各 30 条）；此为文件行数统计，不代表运行验收。
+- [b1c5da4](https://github.com/muinocriz/smartphoneSellOut/commit/b1c5da4) 模块1禁用鼠标滚轮及触控板滚动缩放。
+- [ab235e0](https://github.com/muinocriz/smartphoneSellOut/commit/ab235e0) / [e7166ab](https://github.com/muinocriz/smartphoneSellOut/commit/e7166ab) 模块2移除区块编号，PNG 导出独立为 CSV 数据区之后的同级面板。
+- [e4b5b42](https://github.com/muinocriz/smartphoneSellOut/commit/e4b5b42) / [33b5e40](https://github.com/muinocriz/smartphoneSellOut/commit/33b5e40) 两个图卡工作台统一抖音安全区控件和独立规避行为，右侧默认 13%、底部默认 10%，参考线仅供预览。
+- [be331ee](https://github.com/muinocriz/smartphoneSellOut/commit/be331ee) 共用 `poster-export.js`：分辨率、作业状态、字体等待、Blob 导出和下载重试集中管理；模块各自保留 SVG／Canvas 渲染和发布数据。
+- [5294e24](https://github.com/muinocriz/smartphoneSellOut/commit/5294e24) / [2868eee](https://github.com/muinocriz/smartphoneSellOut/commit/2868eee) 导出按钮统一静态文案“导出”；启用安全区时新增“多版本导出”，同一发布快照输出规避版、完整版两张 PNG，串行渲染，提供分别下载入口。
+- [f0a1423](https://github.com/muinocriz/smartphoneSellOut/commit/f0a1423) / [40a9836](https://github.com/muinocriz/smartphoneSellOut/commit/40a9836) / [7341917](https://github.com/muinocriz/smartphoneSellOut/commit/7341917) 精简预览说明、标题、附注及状态标签；质量提示仅在有实际问题时展示，调整专题和图卡编辑文案。
+
+### 模块 3 历史 CSV 初始化回归修复
+
+- [7341917](https://github.com/muinocriz/smartphoneSellOut/commit/7341917) 精简提示元素后遗留 `trackerParameterHint` 和 `.panel-desc` 两处 DOM 依赖，可能导致脚本初始化中断。
+- [e55eded](https://github.com/muinocriz/smartphoneSellOut/commit/e55eded) 删除残留文本操作；历史 CSV 读取先启动，专题研究与估算存档改为独立初始化函数；研究、工作台同步及估算控件更新分别捕获异常，避免研究失败阻断历史读取。历史榜单显示不再依赖专题初始化或工作台销量格式化函数。仍保留单文件、共享历史状态和现有业务接口，不是完整物理模块拆分。
+- [2cb2c2f](https://github.com/muinocriz/smartphoneSellOut/commit/2cb2c2f) 将专题导航挂载到保留的标题 `h2` 后方，移除已删除说明的筛选引用。上述修复未执行自动或线上运行测试。
+
 ## 2026-11-20
+
+### 热销机型研究与图文工作台（模块 3）
+
+- [437fead](https://github.com/muinocriz/smartphoneSellOut/commit/437fead) 模块1导出图的网址水印更新为 Cloudflare Workers 生产域名。
+- [f2d4225](https://github.com/muinocriz/smartphoneSellOut/commit/f2d4225) 补充 W38 起历史榜单数据，为 iPhone 17 系列同期销量研究提供估算依据。
+- [0d471b9](https://github.com/muinocriz/smartphoneSellOut/commit/0d471b9) / [e98bd84](https://github.com/muinocriz/smartphoneSellOut/commit/e98bd84) / [5b3ff4d](https://github.com/muinocriz/smartphoneSellOut/commit/5b3ff4d) 新增热销机型追踪、归一化机型标识、连续 ISO 周面板；支持不同规模榜单（含 TOP29）、短期缺失插补与动态末名门槛；四个功能 Tab 独立切换。
+- [8047605](https://github.com/muinocriz/smartphoneSellOut/commit/8047605) / [09a6d49](https://github.com/muinocriz/smartphoneSellOut/commit/09a6d49) 支持研究区间、覆盖率分母、原始／插补模式、最大缺失周数、整周缺榜及末周估算开关；自定义机型分组、同档代际配对与固定 TOP K 原始样本比较。
+- [7d93e72](https://github.com/muinocriz/smartphoneSellOut/commit/7d93e72) / [682bb6e](https://github.com/muinocriz/smartphoneSellOut/commit/682bb6e) / [c46b770](https://github.com/muinocriz/smartphoneSellOut/commit/c46b770) 研究专题接入图文工作台，支持高清图卡与专题 CSV、文案打包；新增跨模块品牌头部效应、全市场对比、品牌份额堆叠、双周流向及 CR／HHI 集中度分析。
+- [de39b5e](https://github.com/muinocriz/smartphoneSellOut/commit/de39b5e) / [623b6ed](https://github.com/muinocriz/smartphoneSellOut/commit/623b6ed) 统一母品牌聚合、各专题独立分组、有效统计区间和附注；发布数据以冻结快照为准。专题按产品销量研究、榜单生态研究、跨模块研究分类，共十项。
+- [f5827d4](https://github.com/muinocriz/smartphoneSellOut/commit/f5827d4) / [cf13b6a](https://github.com/muinocriz/smartphoneSellOut/commit/cf13b6a) / [0ae61dd](https://github.com/muinocriz/smartphoneSellOut/commit/0ae61dd) 安全区改为独立横纵留白而非整体缩放；移除工作台步骤编号、调整设定位置、修复安全区焦点滚动。
+
+### 共用实现、代码清理与发布基础设施
+
+- [74120cd](https://github.com/muinocriz/smartphoneSellOut/commit/74120cd) 修复公共品牌工具的私有部署白名单及模块2 CSV 初始化错误提示；[0cf6297](https://github.com/muinocriz/smartphoneSellOut/commit/0cf6297) 极简纯白主题改为红涨绿跌。
+- [dd36f96](https://github.com/muinocriz/smartphoneSellOut/commit/dd36f96) 拆分模块3标定、图卡渲染、工作台、数据引擎与图表；新增版本化研究／视觉／发布方案、本地配置和可复现派生数据构建。浏览器与 Node 共用 `sales-series.js`，构建生成受保护的周销量面板与元数据清单。
+- [99e047b](https://github.com/muinocriz/smartphoneSellOut/commit/99e047b) / [50125ca](https://github.com/muinocriz/smartphoneSellOut/commit/50125ca) 移除过时界面、仓库根目录派生快照及 `tests/`，清理旧兼容并保留可编辑文案；模块2不再内置示例份额。
+- [b2fa4f4](https://github.com/muinocriz/smartphoneSellOut/commit/b2fa4f4) / [475856f](https://github.com/muinocriz/smartphoneSellOut/commit/475856f) / [d66291b](https://github.com/muinocriz/smartphoneSellOut/commit/d66291b) / [11d7601](https://github.com/muinocriz/smartphoneSellOut/commit/11d7601) 精简模块2／3标题、说明及状态标签，统一主题 ID、渲染入口与按版本读取本地配置，移除旧配置迁移。
+- [f4043ce](https://github.com/muinocriz/smartphoneSellOut/commit/f4043ce) / [e5a9c01](https://github.com/muinocriz/smartphoneSellOut/commit/e5a9c01) / [0b200f4](https://github.com/muinocriz/smartphoneSellOut/commit/0b200f4) / [112bf13](https://github.com/muinocriz/smartphoneSellOut/commit/112bf13) 统一水印默认值、控件和渲染参数，复用份额 SVG 组件、涨跌样式、双周堆叠几何、海报主卡几何和数字字体分词，合并共享表单 CSS 及清理覆盖声明。
 
 ### Cloudflare 分模块访问部署
 

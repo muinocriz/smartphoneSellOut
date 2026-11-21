@@ -147,9 +147,9 @@
       <div>
         <div class="ui-safe-slider-label">
           <span>右侧交互栏留白宽度</span>
-          <span id="safeRightVal" class="ms-safe-value-right">15% (推荐)</span>
+          <span id="safeRightVal" class="ms-safe-value-right">13% (推荐)</span>
         </div>
-        <input type="range" id="safeRightSlider" min="0" max="22" value="15" class="ms-range">
+        <input type="range" id="safeRightSlider" min="0" max="22" value="13" class="ms-range">
       </div>
 
       <!-- 下方留白滑块 -->
@@ -239,9 +239,9 @@
       <!-- 抖音 UI 安全区检测叠加层（导出时自动忽略，仅用于实时预览检查） -->
       <div id="douyinOverlay" class="ms-overlay">
         <!-- 右侧危险遮挡警戒带 -->
-        <div id="dyRightZone" class="ms-safe-right" style="width: 15%;">
+        <div id="dyRightZone" class="ms-safe-right" style="width: 13%;">
           <div class="ms-safe-label">
-            右侧避让<br><span id="dyRightTag">15%</span>
+            右侧避让<br><span id="dyRightTag">13%</span>
           </div>
 
           <!-- 模拟抖音右侧悬浮按钮列 -->
@@ -423,7 +423,7 @@
         showOtherBrand: false,     // 是否在发散/坡度/哑铃图中展示“其他”
         splitSubBrands: true,      // 堆叠图是否拆分子品牌
         showSafeZone: true,        // 是否显示抖音辅助线
-        rightMarginPct: 15,        // 右侧留白百分比 (默认 15%)
+        rightMarginPct: 13,        // 右侧留白百分比 (默认 13%)
         bottomMarginPct: 10,       // 下侧留白百分比 (默认 10%)
         paletteId: 'editorial_paper', // 与第三模块统一的默认「编辑部米白」
         title: '国内手机市场份额周环比变化',
@@ -1645,7 +1645,7 @@
 
       const rVal = state.rightMarginPct;
       document.getElementById('safeRightSlider').value = rVal;
-      document.getElementById('safeRightVal').textContent = rVal === 15 ? '15% (推荐)' : `${rVal}%`;
+      document.getElementById('safeRightVal').textContent = rVal === 13 ? '13% (推荐)' : `${rVal}%`;
       document.getElementById('dyRightTag').textContent = `${rVal}%`;
       const dyRightZone = document.getElementById('dyRightZone');
       dyRightZone.style.width = `${rVal}%`;
@@ -1745,7 +1745,7 @@
       rightSlider.addEventListener('input', (e) => {
         const val = parseInt(e.target.value, 10);
         state.rightMarginPct = val;
-        rightVal.textContent = val === 15 ? '15% (推荐)' : `${val}%`;
+        rightVal.textContent = val === 13 ? '13% (推荐)' : `${val}%`;
         dyRightTag.textContent = `${val}%`;
         dyRightZone.style.width = `${val}%`;
         dyRightZone.style.display = val === 0 ? 'none' : 'flex';

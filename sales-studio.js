@@ -1,5 +1,5 @@
 /* Module 3 publishing workflow, immutable export snapshots and local preferences. */
-const socialState={template:'top',ratio:'3:4',theme:'editorial_paper',duelA:0,duelB:1,lastDS:null,duelOptions:null,safeEnabled:true,safeRight:15,safeBottom:10,safeGuides:true};
+const socialState={template:'top',ratio:'3:4',theme:'editorial_paper',duelA:0,duelB:1,lastDS:null,duelOptions:null,safeEnabled:true,safeRight:13,safeBottom:10,safeGuides:true};
 const watermarkDefaults=PosterWatermark.defaults;
 const watermarkState={...watermarkDefaults};
 const socialCopyState={title:'',subtitle:'',tagLabel:'',markLeft:'',markRight:'',disclaimer:''};
@@ -36,7 +36,7 @@ function displayWan(value){return value===null||value===undefined||!Number.isFin
 function displayTimes(v){return v===null||!Number.isFinite(v)?'—':fmt(v,2)+' 倍'}
 function displayPct(v){return Number.isFinite(v)?fmt(v*100,1)+'%':'—'}
 function displaySale(value){return value===null||value===undefined||!Number.isFinite(value)?'待标定':displayWan(value)+' 万台'}
-function updateSafeLabels(){const r=Math.round(socialState.safeRight),b=Math.round(socialState.safeBottom);if($('safeRightVal'))$('safeRightVal').textContent=r+'%'+(r===15?'（推荐）':'');if($('safeBottomVal'))$('safeBottomVal').textContent=b+'%'+(b===10?'（推荐）':'');if($('safeEnable'))$('safeEnable').checked=!!socialState.safeEnabled;if($('safeGuides'))$('safeGuides').checked=!!socialState.safeGuides;if($('safeRight'))$('safeRight').value=String(r);if($('safeBottom'))$('safeBottom').value=String(b)}
+function updateSafeLabels(){const r=Math.round(socialState.safeRight),b=Math.round(socialState.safeBottom);if($('safeRightVal'))$('safeRightVal').textContent=r+'%'+(r===13?'（推荐）':'');if($('safeBottomVal'))$('safeBottomVal').textContent=b+'%'+(b===10?'（推荐）':'');if($('safeEnable'))$('safeEnable').checked=!!socialState.safeEnabled;if($('safeGuides'))$('safeGuides').checked=!!socialState.safeGuides;if($('safeRight'))$('safeRight').value=String(r);if($('safeBottom'))$('safeBottom').value=String(b)}
 function syncPaletteChooser(){
  const holder=$('paletteChooser');if(!holder)return;
  holder.querySelectorAll('[data-theme]').forEach(btn=>{

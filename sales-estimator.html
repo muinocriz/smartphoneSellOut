@@ -9,6 +9,7 @@
 <script src="brand-utils.js"></script>
 <script src="sales-series.js"></script>
 <script src="model-master.js"></script>
+<script src="product-research.js"></script>
 <script src="studio-preferences.js"></script>
 <link rel='preconnect' href='https://fonts.googleapis.com'>
 <link rel='preconnect' href='https://fonts.gstatic.com' crossorigin>
@@ -165,7 +166,7 @@
 <div><label class="lbl" for="trackerMode">统计方式</label><select id="trackerMode" class="field ui-field"><option value="weekly_wan">周销量增量</option><option value="cumulative_wan">区间累计增量</option></select></div></div>
 <label class="lbl" for="trackerFilter">筛选机型（名称、别名、ID、品牌、系列、芯片）</label><input class="field ui-field" id="trackerFilter" placeholder="例如 iPhone 18 或 Pro Max">
 <div id="trackerModels" style="display:flex;flex-wrap:wrap;gap:8px 16px;max-height:180px;overflow:auto;padding:10px 0"></div>
-<button class="secondary" type="button" id="trackerExport" disabled>导出当前口径整理后 CSV</button>
+<button class="secondary" type="button" id="trackerExport" disabled>导出已选且符合筛选的机型 CSV</button>
 <div id="trackerStatus" class="msg" aria-live="polite"></div>
 <div id="trackerChart" style="overflow:auto"></div><div id="trackerLegend" style="display:flex;flex-wrap:wrap;gap:8px 16px"></div>
 <p class="mini">单位：万台。实心点及实线为原始观测，空心点及虚线为插补；累计曲线首次含插补后用虚线。累计仅计算所选区间，历史首次观测前留空，之后任一无法补全的周会使后续累计留空；并非上市以来累计销量。</p>

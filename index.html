@@ -425,7 +425,9 @@ function buildOption(sel,cats,datas,o){
         borderColor:t.ln,fillerColor:"rgba(100,130,220,.18)",textStyle:{color:t.mu},brushSelect:false,
         dataBackground:{lineStyle:{color:t.ln},areaStyle:{color:t.ln}}},
       // 触屏设备不启用「在图上拖动/双指缩放」，否则会拦截手指上下滑动页面；改用下方滑块或周期下拉框
-      ...(TOUCH?[]:[{type:"inside",xAxisIndex:0,startValue:S.from,endValue:S.to}])];
+      // 桌面端仅保留鼠标拖动平移，禁用滚轮平移与滚轮/触控板缩放。
+      ...(TOUCH?[]:[{type:"inside",xAxisIndex:0,startValue:S.from,endValue:S.to,
+        zoomLock:true,zoomOnMouseWheel:false,moveOnMouseWheel:false,moveOnMouseMove:true}])];
   }
   return opt;
 }

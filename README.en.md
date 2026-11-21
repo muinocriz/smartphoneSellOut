@@ -59,4 +59,4 @@ Production hosting has migrated to Cloudflare Workers. The source repository is 
 
 Module 1 defaults to original observations, with optional linear or history-trend constrained estimates between observed cumulative endpoints only. Milestones distinguish adjacent-week attainment from interval-confirmed attainment. Estimates never overwrite the CSV.
 
-Module 1 treats positive exact multiples of 50 (10,000 units) as milestone lower bounds, regardless of observation spacing; they are excluded from weekly increments and equality-constrained fitting.
+Module 1 treats positive exact multiples of 50 (10,000 units) as milestone lower bounds, regardless of observation spacing; they are excluded from observed weekly increments and trend samples, but can anchor an optional threshold-attainment scenario, explicitly labeled as estimated rather than exact.

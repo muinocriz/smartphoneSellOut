@@ -262,7 +262,8 @@
   const researchButtons={};
   let researchView='model';
   const scopeControl=$('trackerScope');
-  tracker.querySelector('.panel-desc').after(researchNav);
+  // The research navigation follows the retained heading, not optional descriptive copy.
+  tracker.querySelector('h2').after(researchNav);
   const researchPanel=document.createElement('div');
   researchPanel.innerHTML='<h3 id="researchTitle"></h3><p id="researchDesc" class="mini"></p>'+
     '<div id="researchGroupControls"><p class="mini">创建分组、命名并从机型池勾选成员。一个机型只能属于一个组；不自动合并不同产品版本。</p>'+
@@ -295,7 +296,7 @@
   tracker.append(researchPanel);
   // Scope is always visible. The original chart/filter controls are retained for the model and event views.
   const commonGrid=scopeControl.parentElement.parentElement;
-  const modelNodes=Array.from(tracker.children).filter(n=>n!==researchNav&&n!==researchPanel&&n!==parameterPanel&&n!==commonGrid&&n!==tracker.querySelector('h2')&&n!==tracker.querySelector('.panel-desc')&&n!==$('trackerExport'));
+  const modelNodes=Array.from(tracker.children).filter(n=>n!==researchNav&&n!==researchPanel&&n!==parameterPanel&&n!==commonGrid&&n!==tracker.querySelector('h2')&&n!==$('trackerExport'));
   // Keep selection controls available in event comparison without duplicating them.
   const eventPickNodes=[$('trackerFilter').previousElementSibling,$('trackerFilter'),$('trackerModels')];
   const metricNode=$('trackerMode').parentElement;

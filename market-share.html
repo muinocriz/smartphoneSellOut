@@ -78,23 +78,6 @@
 
     <!-- 自定义周度数据输入区（方便未来每周更新） -->
     <div class="ms-card">
-      <!-- 导出按钮 -->
-      <div class="ms-export">
-        <label for="msExportWidth" class="ui-section-title">PNG 导出分辨率</label>
-        <select id="msExportWidth" class="ui-field" style="width:100%;margin:8px 0 12px;">
-          <option value="1080">标准 · 1080 × 1440</option>
-          <option value="1620">高清 · 1620 × 2160</option>
-          <option value="2160" selected>超清 · 2160 × 2880（推荐）</option>
-          <option value="3240">极清 · 3240 × 4320</option>
-        </select>
-        <p class="ms-hint">仅调整导出像素尺寸，不改变预览或排版；极清档占用更多内存。</p>
-        <button id="exportBtn" class="ms-export-btn" disabled>
-          <svg class="ms-icon" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-          <span id="msExportLabel">导出 3:4 海报 (2160×2880 PNG)</span>
-        </button>
-        <p class="ms-hint">导出时将自动隐藏红色/琥珀色安全区辅助线，输出纯净原图</p>
-      </div>
-
       <div class="ms-row-between">
         <h2 class="ui-section-title">录入 / 修改份额数据 (%)</h2>
         <button id="toggleDataEditorBtn" class="ms-subtle-button">
@@ -128,6 +111,23 @@
           <button id="resetDataBtn" class="ms-link-button">清空份额数据</button>
         </div>
       </div>
+    </div>
+
+    <!-- 独立 PNG 导出功能区 -->
+    <div class="ms-card">
+      <label for="msExportWidth" class="ui-section-title">PNG 导出分辨率</label>
+      <select id="msExportWidth" class="ui-field" style="width:100%;">
+        <option value="1080">标准 · 1080 × 1440</option>
+        <option value="1620">高清 · 1620 × 2160</option>
+        <option value="2160" selected>超清 · 2160 × 2880（推荐）</option>
+        <option value="3240">极清 · 3240 × 4320</option>
+      </select>
+      <p class="ms-hint">仅调整导出像素尺寸，不改变预览或排版；极清档占用更多内存。</p>
+      <button id="exportBtn" class="ms-export-btn" disabled>
+        <svg class="ms-icon" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+        <span id="msExportLabel">导出 3:4 海报 (2160×2880 PNG)</span>
+      </button>
+      <p class="ms-hint">导出时将自动隐藏红色/琥珀色安全区辅助线，输出纯净原图</p>
     </div>
 
     <!-- 抖音安全区独立双向规避设置：与第三模块一致，深蓝强调面板 -->

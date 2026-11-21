@@ -20,7 +20,7 @@
 
 ## 1. 安全边界
 
-- `dist/` 由 `npm run build` 重新生成。根目录按 `studio-assets.mjs` 白名单发布首页、模块 1／2 的 CSV、页面及依赖；模块 3 的页面、历史 CSV、衍生数据与依赖全部放在 /studio/。保留模块 2 资源的受保护兼容副本（含跨模块研究所需 market-share.csv），从同一源文件构建，不另行维护数据。
+- `dist/` 由 `npm run build` 重新生成。根目录按 `studio-assets.mjs` 白名单发布首页、模块 1／2 的 CSV、页面及依赖；模块 3 的页面、历史 CSV、机型主数据 `model-master.csv`、衍生数据与依赖全部放在 /studio/。保留模块 2 资源的受保护兼容副本（含跨模块研究所需 market-share.csv），从同一源文件构建，不另行维护数据。
 - `wrangler.jsonc` 的静态资产目录为 dist；`cloudflare-worker.mjs` 拦截除明确公开资产以外的请求。私有资源及 /studio/session.json、/studio/login 均要求由 Access 签发且通过签名、发行方、AUD、过期时间校验的 JWT；缺少配置直接返回 503，缺少或无效凭证拒绝。私有响应禁止缓存。不要删除路由拦截、直接发布 dist，或把私有文件移出 /studio/。
 - 邮箱授权在 Cloudflare Access 配置中管理，不把邮箱名单、令牌或密钥写入网页、源码、CSV。Access 策略才是授权主体；Worker 不接受网页传入的邮箱或伪造登录状态。
 - 首页保留原来的两个 hash 导航；hash 本身不是安全边界。模块 2 直接载入根目录同源 iframe，无需登录；模块 3 检查 /studio/session.json 后才载入受保护 iframe，未授权时显示顶层登录链接，到 /studio/login 完成身份验证后返回模块 3。
@@ -36,8 +36,10 @@
 
 ## 3. 完整验收清单（维护者自行完成）
 
-- 无痕窗口访问根网址：模块 1／2 均无需登录，/data.csv、/market-share.html、/market-share.csv 和模块 2 依赖正常返回；确认模块 2 自动读取 CSV、图表和导出功能正常。模块 3 显示授权入口；直接匿名访问 /studio/sales-estimator.html、/studio/sales-estimates.csv、/studio/weekly-sales-panel.csv、/studio/weekly-sales-panel.meta.json 及私有 JS 不得返回私有内容；根路径 /sales-estimator.html、/sales-estimates.csv 和衍生数据也不得返回。/studio/market-share.csv 仍要求认证，而根路径 /market-share.csv 有意公开。
+- 无痕窗口访问根网址：模块 1／2 均无需登录，/data.csv、/market-share.html、/market-share.csv 和模块 2 依赖正常返回；确认模块 2 自动读取 CSV、图表和导出功能正常。模块 3 显示授权入口；直接匿名访问 /studio/sales-estimator.html、/studio/sales-estimates.csv、/studio/model-master.csv、/studio/weekly-sales-panel.csv、/studio/weekly-sales-panel.meta.json 及私有 JS 不得返回私有内容；根路径 /sales-estimator.html、/sales-estimates.csv、/model-master.csv 和衍生数据也不得返回。/studio/market-share.csv 仍要求认证，而根路径 /market-share.csv 有意公开。
 - 通过授权邮箱顶层登录：返回模块 3，允许加载 iframe 及完整历史数据；确认跨模块市场份额研究可以读取 /studio/market-share.csv。会话有效期内从公开模块切回模块 3 不重复登录；未授权邮箱不得通过。检查会话过期后再次进入模块 3 是否需要登录，且模块 1／2 不受影响。
 - 配置和实际部署未验收前不能声称数据已私有。新增文件时审查构建白名单及 Worker 路由，不能将私有资产加入公开路径。
 
 参考：[Cloudflare Workers Access 路径保护](https://developers.cloudflare.com/workers/configuration/cloudflare-access/#protect-a-specific-hostname-custom-domain-or-path)、[Access JWT 校验](https://developers.cloudflare.com/cloudflare-one/access-controls/applications/http-apps/authorization-cookie/validating-json/)、[Static Assets 配置](https://developers.cloudflare.com/workers/static-assets/binding/)。
+
+机型主数据新增验收项：重新部署后，匿名访问 `/model-master.csv` 不应返回数据，匿名访问 `/studio/model-master.csv` 必须被拦截；授权访问 `/studio/model-master.csv` 应正常下载。此项尚未执行线上验收。

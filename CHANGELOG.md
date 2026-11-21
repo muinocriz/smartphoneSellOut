@@ -6,6 +6,12 @@
 
 ## 2026-11-21
 
+### 模块 3 机型主数据准备
+
+- 新增 `model-master.csv`，初始版本包含 53 个机型及合并统计项、19 个字段，保存机型固定标识、别名、系列、正式开售日期、代际、首发价、芯片归类、起售 RAM/ROM 与来源备注。主数据独立维护，暂未接入网页研究计算。
+- 文件仅列入 `protectedFiles`，构建复制到 `/studio/model-master.csv`，沿用模块 3 Access 与 Worker JWT 校验；不在公开根路径发布。实际部署与访问权限尚待维护者验收。
+- [4f95eaf](https://github.com/muinocriz/smartphoneSellOut/commit/4f95eaf) 将 `data.csv` 的 iPhone 17 系列日期由预购日 2025/9/12 修正为正式开售日 2025/9/19；`date` 字段按正式开售日维护。
+
 ### 模块 2 公开访问
 
 - [8480289](https://github.com/muinocriz/smartphoneSellOut/commit/8480289) 模块 1／2 无需登录，市场份额页面、CSV 和依赖由根路径公开提供；模块 3 及历史销量、衍生数据继续受 /studio/* Access 与 Worker JWT 校验保护。

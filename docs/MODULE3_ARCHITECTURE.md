@@ -26,3 +26,11 @@
 ## 双版本出图
 
 启用抖音安全区后可导出当前布局及规避版/完整版；两种版本共享同一发布内容和选择的分辨率，只有安全区启用状态不同。默认右侧13%、底部10%；预览参考线不进入成品。PosterExport 串行生成 PNG，提供独立下载入口，降低并行画布内存峰值。
+
+## 机型主数据（已入库，待业务接入）
+
+- 根目录 `model-master.csv` 是长期属性表，独立于 `sales-estimates.csv`，首次入库 53 行、19 列，UTF-8 BOM。生产构建仅复制到 `/studio/model-master.csv`，受原 Access 和 Worker JWT 校验保护；公开根路径不可发布。
+- 字段顺序：`model_id,model_name,brand,brand_group,aliases,series,generation,variant,form_factor,sale_start_date,predecessor_id,launch_price,chip_vendor,chip_model,base_ram,base_rom,source_url,notes,verification`。
+- 后续接入约定：永久机型 ID 唯一，名称与别名用现有 BrandUtils.normalize 精确匹配；不自动合并不同型号。新上榜补录，退出保留，重新上榜复用。合并统计项独立保留，不分摊销量。上一代 ID 可以指向尚未入库或无销量的机型；不因此拒绝文件，不补零或计算无依据的代际增速。
+- 正式开售日期而非发布日期；首发价为人民币元、RAM/ROM 为 GB，数值无单位后缀。芯片名称以维护者归类为准，不自动剥除后缀。来源、备注与核查文本不覆盖结构化字段；缺失或不适用的属性按专题隔离处理并报告覆盖率。加权首发价不是 ASP。
+- 当前仅准备数据和访问控制，未修改网页、匹配引擎、专题、派生数据算法或导出。将来独立加载主数据，失败不应影响历史销量读取。部署、运行及统计验收尚未执行。

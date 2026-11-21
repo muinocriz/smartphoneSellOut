@@ -174,7 +174,7 @@ td.bad{color:var(--warn)}
       <span class="lbl">缺失周</span>
       <div class="seg" id="gapMode"><button data-v="raw" aria-pressed="true">仅原始观测</button><button data-v="linear" aria-pressed="false">线性插值</button><button data-v="fit" aria-pressed="false">历史趋势约束</button></div>
       <label id="fitWindowWrap" hidden>历史窗口 <select id="fitWindow" aria-label="断更前连续真实周增量数"><option value="3">3周</option><option value="4">4周</option><option value="6" selected>6周</option><option value="8">8周</option></select></label>
-      <span class="note">整50万台正数为里程碑下限（≥）；可选下限情景估算，虚线及 ≈ 非实际销量。</span>
+      <span class="note">整50万台正数为里程碑下限（≥）；可作估算左右端点，虚线及 ≈ 非实际销量。</span>
     </div>
   </section>
 
@@ -329,11 +329,12 @@ function gapData(r){
   let left=-1;
   for(let right=0;right<vals.length;right++){
     if(!Number.isFinite(vals[right]))continue;
-    // A milestone is a lower bound, not an exact observation. In estimate modes,
-    // explicitly model the conservative threshold-attainment scenario ending at that bound.
-    const lowerBound=isVirtual(vals[right]);
+    // Recorded milestone thresholds are allowed at either end of an estimated interval.
+    // Their difference is a reference scenario, not a measured increment.
+    const rightVirtual=isVirtual(vals[right]),leftVirtual=left>=0&&isVirtual(vals[left]);
+    const lowerBound=leftVirtual||rightVirtual;
     if(left>=0&&(right-left>1||lowerBound)){
-      const n=right-left,total=vals[right]-vals[left],g={left,right,n,total,lowerBound,method:"raw",count:0};
+      const n=right-left,total=vals[right]-vals[left],g={left,right,n,total,lowerBound,leftVirtual,rightVirtual,method:"raw",count:0};
       if(S.gap!=="raw"&&vals[left]>=0&&total>=0){
         const h=S.gap==="fit"?historicalTrend(vals,left,S.fitWindow):{method:"linear",count:0};Object.assign(g,h);
         // Shift exponents before normalization to avoid overflow even for long gaps.
@@ -342,10 +343,10 @@ function gapData(r){
       }else if(S.gap!=="raw")g.reason="累计下降或端点无效，不估算";
       gaps.push(g);
     }
-    // Never use an uncertain lower bound as the starting point of a subsequent fit.
-    left=lowerBound?-1:right;
+    // Keep either kind of recorded point as the next interval's left anchor.
+    left=right;
   }
-  const delta=cum.map((v,i)=>i===0||v==null||cum[i-1]==null||isVirtual(vals[i-1])||(isVirtual(vals[i])&&!flags[i])?null:v-cum[i-1]);
+  const delta=cum.map((v,i)=>i===0||v==null||cum[i-1]==null||((isVirtual(vals[i-1])||isVirtual(vals[i]))&&!flags[i])?null:v-cum[i-1]);
   // The ending cumulative point is observed, but the weekly increment ending there is estimated.
   const data={cum,delta,gaps,flags,cumFlags:flags.map((g,i)=>isVirtual(vals[i])?VIRTUAL_FLAG:g&&vals[i]==null?g:null)};
   gapCache.set(r,{key:cacheKey,data});return data;
@@ -356,7 +357,7 @@ function axisFlags(r,cats){
   if(S.axis==="week")return cats.map(c=>flags[c.k]||null);
   const map=new Map(r.offs.map((v,i)=>[v,flags[i]]));return cats.map(c=>map.get(c.k)||null);
 }
-function gapLabel(g){if(g.method==="virtual")return "虚拟里程碑下限，精确销量未知";const text=g.method==="fit"?"历史趋势约束（"+g.count+"个连续真实周增量"+(g.limited?"，趋势限幅":"")+"）":g.reason?"线性估算（"+g.reason+"）":"线性估算";return g.lowerBound?text+" · 下限情景，非实际周销量":text;}
+function gapLabel(g){if(g.method==="virtual")return "虚拟里程碑下限，精确销量未知";const text=g.method==="fit"?"历史趋势约束（"+g.count+"个连续真实周增量"+(g.limited?"，趋势限幅":"")+"）":g.reason?"线性估算（"+g.reason+"）":"线性估算";return g.lowerBound?text+" · 里程碑参考情景，非实际周销量":text;}
 function flagPrefix(g){return g?.method==="virtual"?"≥":g?"≈":"";}
 function valueLabel(v,g){return flagPrefix(g)+fmtV(v);}
 function gapModeLabel(){return S.gap==="raw"?"仅原始观测":S.gap==="linear"?"含线性估算":"含趋势约束/线性估算";}
@@ -468,8 +469,8 @@ function buildOption(sel,cats,datas,o){
   sel.forEach((r,i)=>{
     const allFlags=o.estFlags[i],d=datas[i];
     const indices=cats.map(c=>S.axis==="week"?c.k:r.offs.indexOf(c.k));
-    // One overlay per bounded gap, including the virtual right endpoint only as a
-    // line anchor. Separate overlays cannot accidentally join unrelated intervals.
+    // One overlay per bounded gap, using virtual endpoints only as line anchors.
+    // Separate overlays cannot accidentally join unrelated intervals.
     for(const g of gapData(r).gaps){
       if(g.method==="raw")continue;
       const estimated=d.map((v,j)=>{
@@ -480,7 +481,7 @@ function buildOption(sel,cats,datas,o){
       });
       if(!estimated.some(v=>v!=null))continue;
       o.overlayIndices=o.overlayIndices||new Map();o.overlayIndices.set(ser.length,{i,virtual:false});
-      ser.push({name:label(r)+(g.lowerBound?"（下限情景）":"（估算）"),type:"line",data:estimated,connectNulls:false,smooth:false,silent:true,symbol:"circle",symbolSize:f.sym,showSymbol:true,lineStyle:{type:"dashed",width:f.lw,color:colorOf(r)},itemStyle:{color:t.pn,borderColor:colorOf(r),borderWidth:2},label:{position:"top",fontSize:f.val,color:t.fg,fontFamily:MONO,formatter:p=>p.value==null?"":"≈"+fmtV(p.value),textBorderColor:t.pn,textBorderWidth:2},labelLayout:{hideOverlap:true},emphasis:{disabled:true}});
+      ser.push({name:label(r)+(g.lowerBound?"（里程碑参考估算）":"（估算）"),type:"line",data:estimated,connectNulls:false,smooth:false,silent:true,symbol:"circle",symbolSize:f.sym,showSymbol:true,lineStyle:{type:"dashed",width:f.lw,color:colorOf(r)},itemStyle:{color:t.pn,borderColor:colorOf(r),borderWidth:2},label:{position:"top",fontSize:f.val,color:t.fg,fontFamily:MONO,formatter:p=>p.value==null?"":"≈"+fmtV(p.value),textBorderColor:t.pn,textBorderWidth:2},labelLayout:{hideOverlap:true},emphasis:{disabled:true}});
     }
     if(allFlags.some((g,j)=>g?.method==="virtual"&&d[j]!=null)){
       o.overlayIndices=o.overlayIndices||new Map();o.overlayIndices.set(ser.length,{i,virtual:true});
@@ -501,7 +502,7 @@ function buildOption(sel,cats,datas,o){
   if(o.exp){
     const rg=cats.length?catT[0].split("\n")[0]+" – "+catT[catT.length-1].split("\n")[0]:"";
     const bs=[...new Set(sel.map(r=>r.brand))];
-    const sub=[bs.length===1?bs[0]:"",rg,S.val==="cum"?"累计销量（万台）":"周环比增量（万台）",S.log?"对数纵轴":"",o.estFlags.some(a=>a.some(g=>g?.lowerBound))?"≈含下限情景":S.gap!=="raw"?"虚线/≈为估算":"",o.estFlags.some(a=>a.some(g=>g?.method==="virtual"))?"≥为里程碑下限":""].filter(Boolean).join(" · ");
+    const sub=[bs.length===1?bs[0]:"",rg,S.val==="cum"?"累计销量（万台）":"周环比增量（万台）",S.log?"对数纵轴":"",o.estFlags.some(a=>a.some(g=>g?.lowerBound))?"≈含里程碑估算":S.gap!=="raw"?"虚线/≈为估算":"",o.estFlags.some(a=>a.some(g=>g?.method==="virtual"))?"≥为里程碑下限":""].filter(Boolean).join(" · ");
     opt.title={text:"新机周销量追踪",subtext:sub,left:o.mobile?16:20,top:o.mobile?16:18,itemGap:6,
       textStyle:{color:t.fg,fontSize:o.mobile?18:20,fontWeight:700,fontFamily:FONT()},
       subtextStyle:{color:t.mu,fontSize:o.mobile?12:13,fontFamily:FONT()}};
@@ -726,10 +727,10 @@ function renderNote(sel){
     if(ms.length)msgs.push("🏁 "+ms.join("；"))}
   sel.forEach(r=>{let prev=-1;for(let i=0;i<r.vals.length;i++){const b=r.vals[i];if(b==null)continue;
     if(prev>=0&&isExact(b)&&b<r.vals[prev])msgs.push(`<b>${esc(label(r))}</b> 在 ${WEEKS[prev]} 至 ${WEEKS[i]} 由 ${r.vals[prev]} 降至 ${b}，疑似数据异常，不跨期估算`);prev=i}
-    r.vals.forEach((v,i)=>{if(isVirtual(v))msgs.push(esc(label(r)+"："+WEEKS[i]+" 累计≥"+fmtV(v)+" 万台（虚拟里程碑下限，精确销量未知；仅允许下限情景估算）"));});
-    for(const g of gapData(r).gaps){if(g.method==="raw")continue;msgs.push(esc(label(r)+"："+WEEKS[g.left]+" → "+WEEKS[g.right]+"，跨"+g.n+"周"+(g.lowerBound?"累计增量至少 ":"累计增量 ")+fmtV(g.total)+" 万台；"+gapLabel(g)));}
+    r.vals.forEach((v,i)=>{if(isVirtual(v))msgs.push(esc(label(r)+"："+WEEKS[i]+" 累计≥"+fmtV(v)+" 万台（虚拟里程碑下限，精确销量未知；可作左右参考估算端点）"));});
+    for(const g of gapData(r).gaps){if(g.method==="raw")continue;msgs.push(esc(label(r)+"："+WEEKS[g.left]+" → "+WEEKS[g.right]+"，跨"+g.n+"周"+(g.leftVirtual?"记录端点参考差额 ":g.rightVirtual?"累计增量至少 ":"累计增量 ")+fmtV(g.total)+" 万台；"+gapLabel(g)));}
   });
-  if(S.gap!=="raw")msgs.unshift("虚线与 ≈ 均为估算；里程碑下限情景只分配达到门槛所需的最少累计增量，各周估值并非各周真实下限；不参与真实周增量选机");
+  if(S.gap!=="raw")msgs.unshift("虚线与 ≈ 均为估算；里程碑可作左右参考端点，按记录数值之差分配，含虚拟左端点时差额也不是实际增量下限；不参与真实周增量选机");
   if(sel.some(r=>r.vals.some(isVirtual)))msgs.unshift("空心菱形及 ≥ 表示里程碑下限，不是精确值；手机列表按显示数值排序，不代表精确累计销量排名");
   const empty=sel.filter(r=>!hasData(r)).map(label);
   if(empty.length)msgs.push(`${empty.join("、")} 暂无数据`);

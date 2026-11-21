@@ -6,6 +6,7 @@
   <title>2026 国内手机市场份额战报 · 3:4 抖音数据可视化</title>
   <script src="poster-themes.js"></script>
   <script src="poster-watermark.js"></script>
+  <script src="poster-export.js"></script>
   <script src="iso-sales-week.js"></script>
   <script src="market-share-data.js"></script>
   <script src="brand-utils.js"></script>
@@ -123,10 +124,11 @@
         <option value="3240">极清 · 3240 × 4320</option>
       </select>
       <p class="ms-hint">仅调整导出像素尺寸，不改变预览或排版；极清档占用更多内存。</p>
-      <button id="exportBtn" class="ms-export-btn" disabled>
-        <svg class="ms-icon" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+      <button type="button" id="exportBtn" class="ui-export-primary" disabled>
+        <svg class="ui-export-icon" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
         <span id="msExportLabel">导出 3:4 海报 (2160×2880 PNG)</span>
       </button>
+      <p id="marketExportStatus" class="ui-export-status" role="status" aria-live="polite" hidden></p>
       <p class="ms-hint">导出时将自动隐藏红色/琥珀色安全区辅助线，输出纯净原图</p>
     </div>
 
@@ -212,7 +214,6 @@
 
   <!-- 右侧实时 3:4 画布预览舞台 -->
   <main class="ms-preview">
-    <div id="toastMsg" class="ms-toast" role="status" aria-live="polite">✓ 已成功生成高清海报！</div>
 
     <!-- 3:4 海报容器（核心 SVG 渲染区 + 抖音模拟叠加层） -->
     <div id="posterContainer" class="ms-poster">
@@ -431,6 +432,11 @@
     }
 
     const state = loadSavedState();
+    const marketExportJob=PosterExport.createJob({
+      buttons:()=>[document.getElementById('exportBtn')],
+      status:()=>document.getElementById('marketExportStatus'),
+      onIdle:()=>{document.getElementById('exportBtn').disabled=!completeMarketData()}
+    });
     function completeMarketData(){
       if(!Array.isArray(state.brands)||state.brands.length!==6)return false;
       const entries=state.brands.flatMap(b=>b.subBrands||[b]);
@@ -557,7 +563,7 @@
       renderSafeGuides();
       const P = getPalette();
       const ready=completeMarketData();
-      document.getElementById('exportBtn').disabled=!ready;
+      document.getElementById('exportBtn').disabled=marketExportJob.busy||!ready;
       if(!ready){
         svg.appendChild(svgEl('rect',{width:900,height:1200,fill:'#ffffff'}));
         svg.appendChild(svgEl('text',{x:450,y:580,'text-anchor':'middle','font-size':30,fill:P.textPrimary},'尚无完整市场份额数据'));
@@ -1507,87 +1513,71 @@
       return embeddedNumberFontPromise;
     }
 
-    function getMarketExportSize() {
-      const width = Number(document.getElementById('msExportWidth').value) || 2160;
-      return {width, height: Math.round(width * 4 / 3)};
+    function getMarketExportSize(){
+      return PosterExport.dimensions(document.getElementById('msExportWidth').value,'3:4');
     }
-    function updateMarketExportLabel() {
-      const {width, height} = getMarketExportSize();
-      document.getElementById('msExportLabel').textContent = `导出 3:4 海报 (${width}×${height} PNG)`;
+    function updateMarketExportLabel(){
+      document.getElementById('msExportLabel').textContent=PosterExport.buttonLabel('3:4',getMarketExportSize().width);
     }
-    async function exportHighResPNG() {
-      if(!completeMarketData())return;
-      const {width, height} = getMarketExportSize();
-      if(document.fonts?.ready)await document.fonts.ready;
-      if(!completeMarketData())return;
-      const svg = document.getElementById('posterSvg');
-      const fontCss=await embeddedNumberFontCss();
-      if(!completeMarketData())return;
-      // 字体加载后重新测量文字，导出与最终布局一致。
+    function captureMarketPublication(){
+      // Freeze the rendered SVG, target size and filename before awaiting resources.
       renderPoster();
-      const exportSvg=svg.cloneNode(true);
-      // 保留 900×1200 viewBox，直接以目标像素尺寸栅格化。
-      exportSvg.setAttribute('width', String(width));
-      exportSvg.setAttribute('height', String(height));
+      const {width,height}=getMarketExportSize();
+      const svg=document.getElementById('posterSvg').cloneNode(true);
+      svg.setAttribute('width',String(width));
+      svg.setAttribute('height',String(height));
+      svg.setAttribute('font-family','Inter,"Noto Sans SC",sans-serif');
+      const chartNames={combo:'双图组合模式',diverging:'横向发散条形图',slope:'坡度图',dumbbell:'哑铃图',stacked:'堆叠流动图'};
+      const name=(state.selectedWeek||'手动对比')+'_手机份额战报_'+chartNames[state.chartType]+'_3比4抖音版.png';
+      return Object.freeze({svg,width,height,name});
+    }
+    async function marketPosterBlob(publication){
+      const {svg,width,height}=publication;
+      await PosterExport.waitForFonts();
+      const fontCss=await embeddedNumberFontCss();
       if(fontCss){
-        let defs=exportSvg.querySelector('defs');
+        let defs=svg.querySelector('defs');
         if(!defs){
           defs=document.createElementNS('http://www.w3.org/2000/svg','defs');
-          exportSvg.insertBefore(defs,exportSvg.firstChild);
+          svg.insertBefore(defs,svg.firstChild);
         }
         const style=document.createElementNS('http://www.w3.org/2000/svg','style');
         style.textContent=fontCss;defs.appendChild(style);
       }
-      const serializer = new XMLSerializer();
-      let source = serializer.serializeToString(exportSvg);
-
-      if (!source.match(/^<svg[^>]+xmlns="http\:\/\/www\.w3\.org\/2000\/svg"/)) {
-        source = source.replace(/^<svg/, '<svg xmlns="http://www.w3.org/2000/svg"');
+      let source=new XMLSerializer().serializeToString(svg);
+      if(!/^<svg[^>]+xmlns="http:\/\/www\.w3\.org\/2000\/svg"/.test(source)){
+        source=source.replace(/^<svg/,'<svg xmlns="http://www.w3.org/2000/svg"');
       }
-
-      const svgBlob = new Blob([source], { type: 'image/svg+xml;charset=utf-8' });
-      const url = URL.createObjectURL(svgBlob);
-
-      const img = new Image();
-      img.onload = function () {
-        const canvas = document.createElement('canvas');
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = 'high';
-        ctx.drawImage(img, 0, 0, width, height);
-        URL.revokeObjectURL(url);
-
-        canvas.toBlob(function (blob) {
-          if (!blob) { alert('PNG 导出失败，请尝试降低导出分辨率。'); return; }
-          const link = document.createElement('a');
-          const chartNames = {
-            combo: '双图组合模式',
-            diverging: '横向发散条形图',
-            slope: '坡度图',
-            dumbbell: '哑铃图',
-            stacked: '堆叠流动图'
-          };
-          link.download = `${state.selectedWeek || '手动对比'}_手机份额战报_${chartNames[state.chartType]}_3比4抖音版.png`;
-          const downloadUrl = URL.createObjectURL(blob);
-          link.href = downloadUrl;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-          setTimeout(() => URL.revokeObjectURL(downloadUrl), 4000);
-
-          const toast = document.getElementById('toastMsg');
-          toast.style.opacity = '1';
-          setTimeout(() => { toast.style.opacity = '0'; }, 3000);
-        }, 'image/png', 1.0);
-      };
-      img.onerror = function () {
-        URL.revokeObjectURL(url);
-        alert('海报渲染失败，请尝试降低导出分辨率。');
-      };
-      img.src = url;
+      const url=URL.createObjectURL(new Blob([source],{type:'image/svg+xml;charset=utf-8'}));
+      try{
+        const img=await new Promise((resolve,reject)=>{
+          const image=new Image();
+          image.onload=()=>resolve(image);
+          image.onerror=()=>reject(new Error('海报渲染失败，请尝试降低导出分辨率'));
+          image.src=url;
+        });
+        marketExportJob.report('正在生成 PNG 文件…');
+        return await PosterExport.canvasPNG(canvas=>{
+          canvas.width=width;canvas.height=height;
+          const ctx=canvas.getContext('2d');
+          if(!ctx)throw new Error('无法创建绘图画布，请尝试降低导出分辨率');
+          ctx.imageSmoothingEnabled=true;
+          ctx.imageSmoothingQuality='high';
+          ctx.drawImage(img,0,0,width,height);
+        });
+      }finally{URL.revokeObjectURL(url)}
+    }
+    async function exportHighResPNG(){
+      if(marketExportJob.busy||!completeMarketData())return;
+      if(!marketExportJob.begin('正在准备海报与字体资源…'))return;
+      try{
+        const publication=captureMarketPublication();
+        const blob=await marketPosterBlob(publication);
+        PosterExport.downloadBlob(blob,publication.name);
+        marketExportJob.report('高清 PNG 已导出','success');
+      }catch(err){
+        marketExportJob.report('PNG 导出失败：'+(err?.message||String(err)),'error');
+      }finally{marketExportJob.end()}
     }
 
     // ==========================================
@@ -1766,6 +1756,7 @@
         renderPoster();
       });
 
+      PosterExport.updateOptions(document.getElementById('msExportWidth'),'3:4');
       document.getElementById('msExportWidth').addEventListener('change', updateMarketExportLabel);
       updateMarketExportLabel();
       document.getElementById('exportBtn').addEventListener('click', exportHighResPNG);

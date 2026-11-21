@@ -3,6 +3,7 @@
 <title>手机销量推算与小红书抖音图文工作台</title>
 <script src="poster-themes.js"></script>
 <script src="poster-watermark.js"></script>
+<script src="poster-export.js"></script>
 <script src="iso-sales-week.js"></script>
 <script src="market-share-data.js"></script>
 <script src="brand-utils.js"></script>
@@ -206,9 +207,10 @@
         <label class="lbl" for="duelB">对阵机型 B</label><select id="duelB" class="field ui-field"></select>
       </div>
       <div class="studio-buttons">
-        <button type="button" class="primary" id="downloadCard">下载当前高清 PNG</button>
-        <button type="button" class="secondary" id="downloadAllCards">一键打包四张图 + 文案 + CSV</button>
+        <button type="button" class="ui-export-primary" id="downloadCard"><svg class="ui-export-icon" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg><span id="posterExportLabel">导出 3:4 海报 (2160×2880 PNG)</span></button>
+        <button type="button" class="ui-export-secondary" id="downloadAllCards">一键打包四张图 + 文案 + CSV</button>
       </div>
+      <p id="posterExportStatus" class="ui-export-status" role="status" aria-live="polite" hidden></p>
       <div class="msg" id="exportWarning">导出内容保留数据来源、估算口径及样本限制。</div>
       <div class="msg studio-layout-warning" id="posterLayoutQuality" role="status" aria-live="polite">海报布局：等待预览</div>
       <div class="safe-editor">

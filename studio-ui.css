@@ -213,3 +213,27 @@
 @media(max-width:460px) {
   .studio-ui .wm-grid {grid-template-columns:1fr}
 }
+
+/* Shared PNG/ZIP export controls; never applied to the rendered poster. */
+.studio-ui .ui-export-primary,
+.studio-ui .ui-export-secondary{
+  display:flex;align-items:center;justify-content:center;gap:8px;width:100%;
+  min-height:46px;padding:12px 14px;border-radius:12px;
+  font-family:var(--ui-font-body);font-size:var(--ui-text-body);
+  line-height:1.5;font-weight:800;text-align:center;cursor:pointer;
+}
+.studio-ui .ui-export-primary{color:#fff;background:var(--ui-accent);border:1px solid var(--ui-accent)}
+.studio-ui .ui-export-primary:hover:not(:disabled){background:#1e57c6}
+.studio-ui .ui-export-secondary{color:#45617f;background:#fff;border:1px solid #d9e2ef}
+.studio-ui .ui-export-secondary:hover:not(:disabled){background:#f1f5fb}
+.studio-ui .ui-export-primary:disabled,.studio-ui .ui-export-secondary:disabled{opacity:.55;cursor:not-allowed}
+.studio-ui .ui-export-primary[aria-busy="true"],.studio-ui .ui-export-secondary[aria-busy="true"]{cursor:progress}
+.studio-ui .ui-export-icon{width:20px;height:20px;flex:none}
+.studio-ui .ui-export-status{
+  padding:9px 11px;margin:0;border:1px solid #dbe5f2;border-radius:9px;
+  background:#f4f7fc;color:#48617f;font-size:var(--ui-text-small);line-height:1.6;
+  overflow-wrap:anywhere;
+}
+.studio-ui .ui-export-status[data-state="success"]{background:#edf8f2;color:#266943;border-color:#c6e8d1}
+.studio-ui .ui-export-status[data-state="error"]{background:#fff2f1;color:#ab3d33;border-color:#f7d1cc}
+.studio-ui .ui-export-status[hidden]{display:none}

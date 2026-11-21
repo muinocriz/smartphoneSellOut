@@ -97,6 +97,31 @@
   for(const [id,button] of Object.entries(moduleButtons))button.onclick=()=>activateModuleTab(id);
   activateModuleTab('estimate');
 
+  // Shared history presentation helpers must not depend on research initialization.
+  function classifyHeadBrand(row){return window.BrandUtils.classify(row[col.model],row[col.brand_group]);}
+  function historyDisplayWan(value){return Number.isFinite(value)?value.toLocaleString('zh-CN',{minimumFractionDigits:1,maximumFractionDigits:1, style:'decimal'}):'待标定';}
+  let research = null;
+  function reportConsumerError(area, err) {
+    console.error('[Module 3] ' + area, err);
+  }
+  function reportResearchError(err) {
+    reportConsumerError('专题研究', err);
+    const status = $('trackerStatus');
+    if (status) status.textContent = '专题研究暂不可用：' + (err?.message || String(err)) + '。历史榜单数据不受影响。';
+  }
+  function refreshResearch() {
+    if (!research) return;
+    try { research.refreshTracker(); }
+    catch (err) { reportResearchError(err); }
+  }
+  async function sendResearchToStudio(key) {
+    if (!research) { notify('专题研究暂不可用，请刷新页面后重试。'); return false; }
+    try { return await research.sendResearchToStudio(key); }
+    catch (err) { reportResearchError(err); notify('专题研究出图失败：' + (err?.message || String(err))); return false; }
+  }
+
+  // Research owns its UI and state. It consumes history; it never gates history loading.
+  function initResearch() {
   const parameterPanel=document.createElement('section');
   parameterPanel.style.cssText='border:1px solid var(--ui-border,#dbe2ea);border-radius:12px;padding:14px;margin:12px 0';
   parameterPanel.innerHTML='<h3 id="trackerParameterTitle" style="margin:0 0 4px">时间序列构建参数</h3>'+
@@ -142,7 +167,6 @@
     $('trackerMissingBoard').disabled=rawTopic||rawMode||noGap;$('trackerTrailing').disabled=rawTopic||rawMode||noGap||$('trackerImputeRule').value!=='bounded';
     visible($('trackerInterpolationHint'),!rawTopic);
     $('trackerParameterTitle').textContent=rawTopic?'统计区间':'时间序列构建参数';
-    $('trackerParameterHint').textContent=rawTopic?'仅使用所选区间的原始榜单；覆盖率和插补参数不适用于当前专题。':'按自然周研究，不限制榜单规模；调整参数即时重算，不改写原始 CSV。';
     $('trackerResetParams').textContent=rawTopic?'恢复完整统计区间':'恢复默认参数';
     updateParameterStatus();
   }
@@ -494,7 +518,6 @@
     })();
     return marketPending;
   }
-  function classifyHeadBrand(row){return window.BrandUtils.classify(row[col.model],row[col.brand_group]);}
   const headMean=xs=>xs.length?xs.reduce((s,v)=>s+v,0)/xs.length:null;
   const headRatio=(a,b)=>Number.isFinite(a)&&Number.isFinite(b)&&b>0?a/b:null;
   const headDiff=(a,b)=>Number.isFinite(a)&&Number.isFinite(b)?a-b:null;
@@ -812,16 +835,35 @@
   for(const [target,saved] of [[headTopState,storedResearch.headTop],[otherTopState,storedResearch.otherTop]]){if(['all','10','20','30','custom'].includes(saved?.mode))target.mode=saved.mode;if(Number(saved?.custom)>=1&&Number(saved.custom)<=10000)target.custom=String(saved.custom);}
   Pref.setControl($('researchTopMode'),otherTopState.mode);Pref.setControl($('researchTopK'),otherTopState.custom);
   setResearchView(Object.prototype.hasOwnProperty.call(researchViews,storedResearch.view)?storedResearch.view:'model');
+  return {refreshTracker,sendResearchToStudio};
+  }
 
-
+  const controls = {source:'archiveSource',series:'archiveSeries',type:'archiveType',period:'archivePeriod',
+    start:'archiveStart',end:'archiveEnd',top:'archiveTop'};
+  function initEstimateArchive() {
   $('exportCsv').textContent = '导出本期销量 CSV';
   const report = document.createElement('button');
   report.type = 'button'; report.className = 'secondary'; report.textContent = '导出标定报告 CSV';
   $('exportCsv').after(report);
   report.onclick = exportCSV;
 
-  const controls = {source:'archiveSource',series:'archiveSeries',type:'archiveType',period:'archivePeriod',
-    start:'archiveStart',end:'archiveEnd',top:'archiveTop'};
+  for (const [key,id] of Object.entries(controls)) {
+    $(id).addEventListener('input', () => {
+      const m = datasetMeta(ds());
+      const oldType = m.type;
+      readControls();
+      if (key === 'type' && oldType !== m.type) {
+        m.period = ''; $('archivePeriod').value = '';
+      }
+      updateControls();
+    });
+  }
+  $('exportCsv').onclick = () => {
+    try { const rows = buildRows(); exportCSVBlob([HEADER,...rows],singleName(rows)); notify('本期标准销量 CSV 已导出'); }
+    catch (err) { notify(err.message); }
+  };
+  updateControls(true);
+  }
   function readControls() {
     const m = datasetMeta(ds());
     for (const [key,id] of Object.entries(controls)) m[key] = $(id).value;
@@ -850,17 +892,6 @@
     $('archiveMerge').disabled = !loaded || loading || !ready;
     $('exportCsv').disabled = !ready;
   }
-  for (const [key,id] of Object.entries(controls)) {
-    $(id).addEventListener('input', () => {
-      const m = datasetMeta(ds());
-      const oldType = m.type;
-      readControls();
-      if (key === 'type' && oldType !== m.type) {
-        m.period = ''; $('archivePeriod').value = '';
-      }
-      updateControls();
-    });
-  }
   function showHistory(message) {
     const map = groups(history);
     const select = $('archiveSelect'), old = select.value;
@@ -881,19 +912,24 @@
       '尚未加载历史 CSV；为防止覆盖历史，请先导入完整历史文件。');
     $('archiveImport').disabled = loading;
     showHistoryRows();
-    refreshTracker();
-    // Refresh an already bound snapshot if the selected historical records changed.
-    if (socialArchiveDataset && !loading) {
-      const selected = map.get(select.value);
-      if (!selected) setSocialArchiveDataset(null);
-      else if (socialArchiveDataset.id !== select.value ||
-          JSON.stringify(socialArchiveDataset.archiveRows) !== JSON.stringify(selected)) setSocialArchiveDataset(studioDataset(selected));
+    // Optional downstream consumers cannot prevent the history UI or other consumers updating.
+    if (!loading) {
+      try {
+        if (socialArchiveDataset) {
+          const selected = map.get(select.value);
+          if (!selected) setSocialArchiveDataset(null);
+          else if (socialArchiveDataset.id !== select.value ||
+              JSON.stringify(socialArchiveDataset.archiveRows) !== JSON.stringify(selected)) setSocialArchiveDataset(studioDataset(selected));
+        }
+      } catch (err) { reportConsumerError('图文工作台', err); }
     }
-    updateControls();
+    try { updateControls(); }
+    catch (err) { reportConsumerError('榜单估算', err); }
+    if (!loading) refreshResearch();
   }
   function showHistoryRows() {
     const list = groups(history).get($('archiveSelect').value) || [];
-    $('archiveRows').innerHTML = list.length ? list.map(r => '<tr><td>'+e(r[col.rank])+'</td><td>'+e(r[col.model])+'</td><td>'+e(classifyHeadBrand(r)||'未识别品牌')+'</td><td class="num">'+e(displayWan(Number(r[col.estimated_units])))+'</td></tr>').join('') : '<tr><td colspan="4" class="empty">'+(loading ? '正在加载历史销量…' : loaded ? '尚无历史销量记录' : '历史加载失败，请查看上方提示')+'</td></tr>';
+    $('archiveRows').innerHTML = list.length ? list.map(r => '<tr><td>'+e(r[col.rank])+'</td><td>'+e(r[col.model])+'</td><td>'+e(classifyHeadBrand(r)||'未识别品牌')+'</td><td class="num">'+e(historyDisplayWan(Number(r[col.estimated_units])/10000))+'</td></tr>').join('') : '<tr><td colspan="4" class="empty">'+(loading ? '正在加载历史销量…' : loaded ? '尚无历史销量记录' : '历史加载失败，请查看上方提示')+'</td></tr>';
   }
   function bindSelectedHistory(scroll = false) {
     const list = groups(history).get($('archiveSelect').value);
@@ -920,10 +956,6 @@
     const r = rows[0];
     return 'sales-estimates_' + slugName(r[col.period]) + (r[col.top_n] ? '_TOP' + r[col.top_n] : '_sample' + r[col.actual_count]) + '.csv';
   }
-  $('exportCsv').onclick = () => {
-    try { const rows = buildRows(); exportCSVBlob([HEADER,...rows],singleName(rows)); notify('本期标准销量 CSV 已导出'); }
-    catch (err) { notify(err.message); }
-  };
   $('archiveMerge').onclick = () => {
     try {
       if (!loaded || loading) fail('请先加载完整历史 CSV。');
@@ -936,7 +968,6 @@
   };
 
   window.SalesEstimateArchive = Object.freeze({buildRows,sendResearchToStudio,updateControls,header:HEADER.slice()});
-  updateControls(true);
   async function loadRepository() {
     loading = true;
     showHistory('正在读取仓库历史数据…');
@@ -958,5 +989,14 @@
     if (pending && !window.confirm('刷新仓库历史将替换当前会话的未提交数据。请确认已导出备份，是否继续？')) return;
     loadRepository();
   };
+  // Start the history request before initializing optional UI consumers.
   loadRepository();
+  try { initEstimateArchive(); }
+  catch (err) {
+    reportConsumerError('榜单估算初始化', err);
+    const status = $('archiveMetaStatus');
+    if (status) status.textContent = '榜单估算存档初始化失败：' + (err?.message || String(err));
+  }
+  try { research = initResearch(); }
+  catch (err) { reportResearchError(err); }
 })();

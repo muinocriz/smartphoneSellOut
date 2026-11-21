@@ -27,10 +27,14 @@
 
 启用抖音安全区后可导出当前布局及规避版/完整版；两种版本共享同一发布内容和选择的分辨率，只有安全区启用状态不同。默认右侧13%、底部10%；预览参考线不进入成品。PosterExport 串行生成 PNG，提供独立下载入口，降低并行画布内存峰值。
 
-## 机型主数据（已入库，待业务接入）
+## 机型主数据与统一序列身份
 
 - 根目录 `model-master.csv` 是长期属性表，独立于 `sales-estimates.csv`，首次入库 53 行、19 列，UTF-8 BOM。生产构建仅复制到 `/studio/model-master.csv`，受原 Access 和 Worker JWT 校验保护；公开根路径不可发布。
 - 字段顺序：`model_id,model_name,brand,brand_group,aliases,series,generation,variant,form_factor,sale_start_date,predecessor_id,launch_price,chip_vendor,chip_model,base_ram,base_rom,source_url,notes,verification`。
-- 后续接入约定：永久机型 ID 唯一，名称与别名用现有 BrandUtils.normalize 精确匹配；不自动合并不同型号。新上榜补录，退出保留，重新上榜复用。合并统计项独立保留，不分摊销量。上一代 ID 可以指向尚未入库或无销量的机型；不因此拒绝文件，不补零或计算无依据的代际增速。
+- 关联规则：永久机型 ID 唯一，名称与别名用现有 BrandUtils.normalize 精确匹配；不自动合并不同型号。新上榜补录，退出保留，重新上榜复用。合并统计项独立保留，不分摊销量。上一代 ID 可以指向尚未入库或无销量的机型；不因此拒绝文件，不补零或计算无依据的代际增速。
 - 正式开售日期而非发布日期；首发价为人民币元、RAM/ROM 为 GB，数值无单位后缀。芯片名称以维护者归类为准，不自动剥除后缀。来源、备注与核查文本不覆盖结构化字段；缺失或不适用的属性按专题隔离处理并报告覆盖率。加权首发价不是 ASP。
-- 当前仅准备数据和访问控制，未修改网页、匹配引擎、专题、派生数据算法或导出。将来独立加载主数据，失败不应影响历史销量读取。部署、运行及统计验收尚未执行。
+- `model-master.js`（浏览器和 Node 共用）使用 SalesSeries.readCSV 通用解析器，提供 parse/load、get/resolve/getSeries/getPredecessor、enrich/audit；索引标准名称、分号分隔别名、永久 ID 及品牌+系列。ID 或跨机型名称冲突阻止主数据加载，不自动猜测；数值/日期缺失或格式错误单独保留为空，审计报告，不修改源文件。
+- SalesSeries.sequenceIdentity 在构建周榜时统一使用永久 `model_id`，未关联的机型使用保留前缀 `unmatched:` 加规范化名称；原始榜单名称留在 raw_model。派生数据采用 sequence_id、model_id（未匹配留空），删除旧 model_key 字段，不做旧配置迁移。同一期榜单若多个原始名称指向同一身份，拒绝该研究序列，避免重算和重复累计；原始历史读取仍独立。尚未补录的新机型不丢弃。
+- 机型主数据异步独立加载，等待首次读取结果后构建研究序列；失败时保留历史读取并以未匹配标识提供销量研究，不保存临时配置，允许重试。重试成功清除临时选择/分组，重新构建。研究配置 research v2、发布方案 publication v3，旧版本不迁移。
+- 移除硬编码 iPhone 名称主键及预设；默认机型取最新有效榜单中的符合研究口径的前五（不足时补足），系列/版本预设按当前选择的首个可识别品牌及符合覆盖率的机型生成，代际预设依据明确 predecessor_id，允许前代未收录；保留手动分组。固定组统计仍严格处理缺失，不自动缩减成员。尚未实现价格、芯片等新专题。
+- `weekly-panel-v2` 在浏览器与构建侧共用身份逻辑；派生 CSV 和研究导出携带主数据版本指纹，生成清单 schema v2 增加主数据及关联代码 SHA-256。构建要求有效主数据，防止错误发布。新增 JS 与 CSV 均仅在 /studio/ 白名单下提供。未执行构建、测试或线上验收。

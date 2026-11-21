@@ -8,6 +8,7 @@
 <script src="market-share-data.js"></script>
 <script src="brand-utils.js"></script>
 <script src="sales-series.js"></script>
+<script src="model-master.js"></script>
 <script src="studio-preferences.js"></script>
 <link rel='preconnect' href='https://fonts.googleapis.com'>
 <link rel='preconnect' href='https://fonts.gstatic.com' crossorigin>
@@ -158,10 +159,11 @@
 <button type="button" class="secondary" id="archiveUseStudio" style="margin-top:8px" disabled>使用所选历史榜单生成图文</button>
 <div class="tablewrap" style="margin-top:8px"><table class="ranktable"><thead><tr><th>排名</th><th>机型</th><th>品牌系列</th><th class="num">估算销量 / 万台</th></tr></thead><tbody id="archiveRows"></tbody></table></div></details></section>
 <section class="panel" id="module3-tracker" role="tabpanel" aria-labelledby="module3-tab-tracker" hidden style="display:none"><h2 class="panel-title">热销机型追踪</h2>
+<div id="modelMasterStatus" class="msg" aria-live="polite">正在读取机型主数据…</div><button id="modelMasterRetry" type="button" class="secondary" hidden>重试读取机型主数据</button>
 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px">
 <div><label class="lbl" for="trackerScope">榜单口径</label><select id="trackerScope" class="field ui-field"></select></div>
 <div><label class="lbl" for="trackerMode">统计方式</label><select id="trackerMode" class="field ui-field"><option value="weekly_wan">周销量增量</option><option value="cumulative_wan">区间累计增量</option></select></div></div>
-<label class="lbl" for="trackerFilter">筛选机型（支持空格、大小写变体）</label><input class="field ui-field" id="trackerFilter" placeholder="例如 iPhone 18 或 Pro Max">
+<label class="lbl" for="trackerFilter">筛选机型（名称、别名、ID、品牌、系列、芯片）</label><input class="field ui-field" id="trackerFilter" placeholder="例如 iPhone 18 或 Pro Max">
 <div id="trackerModels" style="display:flex;flex-wrap:wrap;gap:8px 16px;max-height:180px;overflow:auto;padding:10px 0"></div>
 <button class="secondary" type="button" id="trackerExport" disabled>导出当前口径整理后 CSV</button>
 <div id="trackerStatus" class="msg" aria-live="polite"></div>

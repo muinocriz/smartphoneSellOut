@@ -35,7 +35,7 @@ function drawHeadStaticPoster(ctx,p,s,box){
   const legendStep=Math.min(29,height*.065),legendH=legendRows*legendStep;
   const x0=left+62,x1=right-22,y0=top+28,y1=bottom-legendH-86;
   if(!auditPlot(ctx,x1-x0,y1-y0,'四象限绘图区',260,160))return;
-  const mx=Math.max(1.25,...xx.filter(Number.isFinite))*1.1,my=Math.max(1.25,...yy.filter(Number.isFinite))*1.1;
+  const minimum=s.chart.xLabel?0.01:1.25,mx=Math.max(minimum,...xx.filter(Number.isFinite))*1.1,my=Math.max(minimum,...yy.filter(Number.isFinite))*1.1;
   const x=v=>x0+v/mx*(x1-x0),y=v=>y1-v/my*(y1-y0);
   posterFitText(ctx,'纵轴：'+(s.chart.yLabel||'单品销量强度指数'),left,top+17,22,p.sub,'600','left',width);
   for(let i=0;i<=4;i++){
@@ -113,6 +113,7 @@ function drawBrandComposition(ctx,chart,box,p,note=''){
   const x0=left+Math.max(36,57*f),x1=right-Math.max(10,18*f),y0=top+Math.max(16,22*f),y1=legendY-Math.max(35,48*f);
   const plotH=y1-y0,slot=(x1-x0)/n,bw=Math.min(slot*.72,92*Math.max(.8,f));
   if(!auditPlot(ctx,x1-x0,plotH,'多周堆叠图',260,180))return;
+  if(bw<3){auditIssue(ctx,'堆叠柱过密，无法清楚区分各类别',true);return;}
   if(bw<25)auditIssue(ctx,'周次较多，堆叠柱或内部标签较密集');
   for(let i=0;i<=4;i++){const v=cap*i/4,y=y1-plotH*i/4;line(x0,y,x1,y);drawText(Number(v.toFixed(2))+(pct?'%':''),x0-6,y+small*.3,small,p.sub,'550','right',x0-left-7);}
   drawText(unit,x0,top+small*.7,small,p.sub,'600');
@@ -140,6 +141,7 @@ function drawResearchHeatmap(ctx,chart,box,p,note=''){
  const x0=left+labelW,y0=top+headerH,x1=right-8,y1=bottom-footH,cw=(x1-x0)/cols.length,rh=(y1-y0)/rows.length;
  if(!auditPlot(ctx,x1-x0,y1-y0,'热力矩阵绘图区',220,150))return;
  if(cw<32||rh<20)auditIssue(ctx,'热力矩阵单元较密，请缩小属性类别数');
+ if(cw<16||rh<12){auditIssue(ctx,'热力矩阵单元过小，无法完整显示',true);return;}
  const max=Math.max(0,...cols.flatMap(l=>l.values.filter(Number.isFinite))),font=Math.max(10,Math.min(20,cw*.27,rh*.43)),subFont=Math.max(10,Math.min(18,rh*.45));
  const fmt=v=>chart.unit==='项次'?String(Math.round(v)):v.toFixed(1)+(chart.unit==='%'?'%':'');
  posterFitText(ctx,chart.rowLabel+' × '+chart.colLabel+' · '+chart.unit,left,top+17,Math.min(19,headerH*.33),p.sub,'650','left',width);

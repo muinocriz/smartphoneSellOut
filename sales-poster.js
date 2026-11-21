@@ -56,6 +56,7 @@ function auditPosterGeometry(ctx,L,type,research){
  if(L.footerLines.length&&L.footSize<16)auditIssue(ctx,'附注字号偏小');
  if(type==='top'&&(L.bodyHeight-28)/10<55)auditIssue(ctx,'TOP10 行高偏小');
  if(research?.chart?.lines?.length>12&&!['brandStack','brandRibbon','bars','scatter','heatmap'].includes(research.chart.kind))auditIssue(ctx,'曲线较多，建议减少机型或分组');
+ if(research?.chart?.kind==='heatmap'&&(research.chart.periods.length>8||research.chart.lines.length>8))auditIssue(ctx,'热力矩阵类别较多，建议降低每轴类别上限或使用9:16');
  return true;
 }
 function showPosterAudit(a){
@@ -321,6 +322,7 @@ function drawResearchPosterContent(ctx,L,p,s){
   let off=left;labels.forEach((label,i)=>{posterFitText(ctx,label,off+(i?widths[i]-8:0),headY,22,p.sub,'650',i?'right':'left',widths[i]-12);off+=widths[i];});
   const maxRows=Math.min(10,rows.length),step=Math.min(78,(bottom-headY-65)/Math.max(1,maxRows));
   if(!auditPlot(ctx,width,step,'研究表格行',360,32))return;
+  if(step<17){auditIssue(ctx,'研究表格行过小，无法完整显示',true);return;}
   rows.slice(0,maxRows).forEach((row,i)=>{const yy=headY+(i+1)*step;let xx=left;posterRule(ctx,left,right,yy+Math.min(10,step*.18),p);indices.forEach((k,j)=>{posterFitText(ctx,row[k]??'',xx+(j?widths[j]-8:0),yy,Math.min(24,step*.57),p.ink,j?'600':'700',j?'right':'left',widths[j]-12);xx+=widths[j];});});
   posterFitText(ctx,'展示前 '+maxRows+' / '+rows.length+' 款 · 完整结果见专题 CSV',left,bottom-35,21,p.sub,'550','left',width);
   posterFitText(ctx,s.chartNote,left,bottom-8,21,p.sub,'550','left',width);

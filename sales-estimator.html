@@ -197,7 +197,7 @@
             <div class="copy-field"><label for="copyMarkLeft">账号水印（↖）</label><input id="copyMarkLeft" type="text" spellcheck="false"></div>
             <div class="copy-field"><label for="copyMarkRight">账号水印（↗）</label><input id="copyMarkRight" type="text" spellcheck="false"></div>
           </div>
-          <div class="copy-field"><label for="copyDisclaimer">免责附注（支持换行↙）</label><textarea id="copyDisclaimer" rows="4" spellcheck="false"></textarea></div>
+          <div class="copy-field"><label id="copyDisclaimerLabel" for="copyDisclaimer">免责附注（支持换行↙）</label><textarea id="copyDisclaimer" rows="4" spellcheck="false"></textarea></div>
         </div>
         <div class="copy-actions"><button type="button" id="resetPosterCopy">恢复当前模板默认文案</button></div>
       </section>
@@ -265,7 +265,7 @@
     <section class="story-card">
       <h3>派生分析概览</h3>
       <div id="insightSummary" class="insight-summary">待计算</div>
-      <div class="data-exports"><button id="exportInsight" class="secondary" type="button">下载机型分析 CSV</button><button id="exportBrands" class="secondary" type="button">下载品牌系列 CSV</button></div>
+      <div class="data-exports"><button id="exportInsight" class="secondary" type="button">下载机型分析 CSV</button><button id="exportBrands" class="secondary" type="button">下载品牌系列 CSV</button><button id="exportChartData" class="secondary" type="button" hidden>下载图表显示数据 CSV</button></div>
     </section>
     <section class="story-card">
       <div class="righttop"><h3>栏目模板与标题工作台</h3><button type="button" class="secondary" id="copyHeadline">复制全部标题</button></div>

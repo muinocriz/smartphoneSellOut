@@ -197,7 +197,7 @@
   function onProductFilterChange(){updateProductInfo(currentScope());trackerOptions();syncResearchEditors();renderTracker();renderResearch();}
   for(const n of Object.values(productControls))n.onchange=onProductFilterChange;
   $('productFilterReset').onclick=()=>{for(const n of Object.values(productControls))n.value='';onProductFilterChange();};
-  const researchControlIds=['trackerCoverage','trackerCoverageBase','trackerDataMode','trackerImputeRule','trackerMaxGap','trackerMissingBoard','trackerTrailing','trackerMode','researchStreak','headView','headBrand','headTrendMetric','headConcentration','brandView','brandMetric','brandCon','researchGroupField','researchGroupMode','researchGenerationLevel',...filterIds];
+  const researchControlIds=['trackerCoverage','trackerCoverageBase','trackerDataMode','trackerImputeRule','trackerMaxGap','trackerMissingBoard','trackerTrailing','trackerMode','researchStreak','headView','headBrand','headTrendMetric','headConcentration','brandView','brandMetric','brandCon','researchGroupField','researchGroupMode','researchGenerationLevel','trackerAxis','researchTailView','researchNewWeeks',...filterIds];
   const safeEntries=value=>Array.isArray(value)?value.filter(v=>Array.isArray(v)&&v.length===2&&typeof v[0]==='string'):[];
   let catalog=[],activeScopeId='',restoringScope=false;
   const scopeSettings=new Map(safeEntries(storedResearch.scopes));
@@ -269,7 +269,30 @@
       label.append(cb,document.createTextNode(' '+m.name));target.append(label);
     }
   }
-  function modelExportRows(){const c=trackerData.header.indexOf('sequence_id'),rows=trackerData.rows.filter(r=>trackerSelected.has(r[c])&&matchesAttributes(r[c]));return Series.versionedRows({...trackerData,rows}).map((r,i)=>[...r,i===0?'product_filters':JSON.stringify(filters())]);}
+  const lifeMode=()=> $('trackerAxis').value==='lifecycle';
+  const lifeMetric=metric=>metric==='cumulative_wan'?'W1 起完整销售周累计（不含 P0）':'完整销售周销量';
+  function curvePoints(rows,c,metric){
+    let estimated=false;
+    return rows.map(r=>{const flag=r?.[c.is_imputed]==='1';estimated=estimated||flag;return {value:!r||r[c[metric]]===''?null:Number(r[c[metric]]),imputed:metric==='cumulative_wan'?estimated:flag};});
+  }
+  function seriesRows(scope,c,key){
+    const map=new Map(scope.rows.filter(r=>r[c.sequence_id]===key).map(r=>[r[c.period],r]));return scope.weeks.map(w=>map.get(w.period));
+  }
+  function lifeMaps(scope,curves,c,metric){return curves.map(o=>Product.aligned(masterCatalog?.get(o.key),scope.weeks,curvePoints(o.rows,c,'weekly_wan'),metric==='cumulative_wan'));}
+  function lifeChart(curves,maps,axis=Product.lifecycleAxis(maps)){
+    return {axis:'lifecycle',periods:axis.map(n=>'W'+n),calendarPeriods:[...new Set(maps.flatMap(m=>axis.map(n=>m.get(n)).filter(v=>Number.isFinite(v?.value)).map(v=>v.period)))].sort(),unit:'万台',lines:curves.map((o,i)=>({name:o.name,color:o.color||trackerPalette[i%trackerPalette.length],values:axis.map(n=>maps[i].get(n)?.value??null),imputed:axis.map(n=>!!maps[i].get(n)?.imputed)}))};
+  }
+  function modelExportRows(){
+    const c=Object.fromEntries(trackerData.header.map((h,i)=>[h,i])),scope=currentScope(),metric=$('trackerMode').value;
+    const rows=(scope?.rows||[]).filter(r=>trackerSelected.has(r[c.sequence_id])&&matchesAttributes(r[c.sequence_id]));
+    const source=Series.versionedRows({...trackerData,rows}),byKey=new Map(),weeks=new Map((scope?.weeks||[]).map(w=>[w.period,w]));
+    if(scope&&lifeMode())for(const key of new Set(rows.map(r=>r[c.sequence_id])))byKey.set(key,Product.aligned(masterCatalog?.get(key),scope.weeks,curvePoints(seriesRows(scope,c,key),c,'weekly_wan'),metric==='cumulative_wan'));
+    return source.map((r,i)=>{
+      if(!i)return [...r,'product_filters','chart_axis','chart_metric','sale_start_date','lifecycle_week','lifecycle_chart_wan','lifecycle_chart_imputed'];
+      const model=masterCatalog?.get(r[c.sequence_id]),age=Product.lifecycle(model,weeks.get(r[c.period])),point=age&&!age.partial?byKey.get(r[c.sequence_id])?.get(age.index):null;
+      return [...r,JSON.stringify(filters()),lifeMode()?'lifecycle':'calendar',metric,model?.sale_start_date||'',age?.label||'',point?.value==null?'':Number(point.value).toFixed(4),point?.value==null?'':point.imputed?'1':'0'];
+    });
+  }
   let trackerPublicationChart=null;
   function renderTracker(){try{renderTrackerContent();}finally{if(researchView==='model')saveResearchPreferences();}}
   function renderTrackerContent(){
@@ -284,13 +307,19 @@
     const curves=models.map((m,i)=>({m,color:trackerPalette[i%trackerPalette.length],rows:scope.rows.filter(r=>r[c.sequence_id]===m.key)}));
     $('trackerStatus').textContent=scope.weeks.length+' 周 / '+scope.models.length+' 款长期追踪机型 · 已选且符合属性筛选 '+models.length+' 款 · 插补 '+curves.reduce((n,o)=>n+o.rows.filter(r=>r[c.is_imputed]==='1').length,0)+' 条';
     if(!curves.length){$('trackerStatus').textContent+=' · 请勾选符合当前参数的机型；必要时降低覆盖率。';return;}
-    const val=r=>r[c[metric]]===''?null:Number(r[c[metric]]);
-    trackerPublicationChart={periods:scope.weeks.map(w=>w.period),unit:'万台',lines:curves.map(o=>{let prior=false;return {name:o.m.name,color:o.color,values:o.rows.map(val),imputed:o.rows.map(r=>{const now=r[c.is_imputed]==='1';prior=prior||now;return metric==='cumulative_wan'?prior:now;})};})};
+    if(lifeMode()){
+      const items=curves.map(o=>({key:o.m.key,name:o.m.name,color:o.color,rows:o.rows})),maps=lifeMaps(scope,items,c,metric);
+      trackerPublicationChart=lifeChart(items,maps);
+      $('trackerStatus').textContent+=' · '+lifeMetric(metric)+' · P0 不纳入；未知开售日期或缺失 W1 不回填。';
+      if(!trackerPublicationChart.lines.some(l=>l.values.some(Number.isFinite)))$('trackerStatus').textContent+=' 当前区间无可绘制的完整销售周数据。';
+    }else{
+      trackerPublicationChart={periods:scope.weeks.map(w=>w.period),unit:'万台',lines:curves.map(o=>{const pts=curvePoints(o.rows,c,metric);return {name:o.m.name,color:o.color,values:pts.map(v=>v.value),imputed:pts.map(v=>v.imputed)};})};
+    }
     ResearchCharts.svgLine(chart,legend,trackerPublicationChart,'热销机型销量折线图',4);
     for(const o of curves){
       const last=o.rows[o.rows.length-1], n=o.rows.filter(r=>r[c.is_imputed]==='1').length;
       const show=v=>v===''?'—':Number(v).toFixed(2);
-      const tr=document.createElement('tr');tr.innerHTML='<td>'+e(o.m.name)+'</td><td>'+e((100*Number(last[c.coverage_rate])).toFixed(1))+'%</td><td>'+n+'</td><td class="num">'+e(show(last[c.weekly_wan]))+'</td><td class="num">'+e(show(last[c.cumulative_wan]))+'</td>';table.append(tr);
+      const tr=document.createElement('tr');tr.innerHTML='<td>'+e(o.m.name)+'</td><td>'+e(o.m.master?.sale_start_date||'—')+'</td><td>'+e(Product.lifecycle(o.m.master,scope.weeks.at(-1))?.label||'—')+'</td><td>'+e((100*Number(last[c.coverage_rate])).toFixed(1))+'%</td><td>'+n+'</td><td class="num">'+e(show(last[c.weekly_wan]))+'</td><td class="num">'+e(show(last[c.cumulative_wan]))+'</td>';table.append(tr);
     }
   }
 
@@ -309,6 +338,7 @@
   $('trackerResetParams').onclick=()=>{fillRangeControls(catalog.find(s=>s.id===$('trackerScope').value));if(isRawResearch(researchView)){applyTrackerParams();return;}$('trackerCoverage').value='80';$('trackerCoverageBase').value='first';$('trackerDataMode').value='filled';$('trackerImputeRule').value='bounded';$('trackerMaxGap').value='3';$('trackerMissingBoard').checked=true;$('trackerTrailing').checked=true;applyTrackerParams();};
   $('trackerFilter').oninput=trackerOptions;
   $('trackerMode').onchange=()=>{renderTracker();renderResearch();};
+  $('trackerAxis').onchange=()=>{renderTracker();renderResearch();};
   $('trackerExport').onclick=()=>exportCSVBlob(modelExportRows(),'weekly-sales-panel-'+$('trackerStart').value+'_'+$('trackerEnd').value+'.csv');
 
   // Research views share the selected source/series and never combine different observation scopes.
@@ -336,7 +366,7 @@
     '<div id="researchGenerationChoice"><label class="lbl" for="researchGenerationPair">明确的前代关系</label><select id="researchGenerationPair" class="field ui-field"></select><label class="lbl" for="researchGenerationLevel">比较对象</label><select id="researchGenerationLevel" class="field ui-field"><option value="model">配对机型</option><option value="series">对应系列历史已观测成员</option></select></div>'+
     '<div id="researchGroupButtons" style="display:flex;gap:8px;flex-wrap:wrap;margin:8px 0"><button type="button" class="secondary" id="researchSeriesPreset">应用自动分组</button><button type="button" class="secondary" id="researchAddGroup">+ 添加分组</button></div>'+
     '<div id="researchGroupEditor"></div><p id="researchGroupInfo" class="mini" aria-live="polite"></p></div>'+
-    '<div id="researchTierControls"><p class="mini">手动选择相同产品档位的新旧机型。按相同自然周比较，非上市同期；未观测且无法插补时保留空值。</p>'+
+    '<div id="researchTierControls"><p class="mini">按明确代际关系或手动配对，支持自然周及完整销售周同期；缺少双边可比数据时不计算差值、倍数或贡献率。</p>'+
     '<div style="display:flex;gap:8px;flex-wrap:wrap;margin:8px 0"><button type="button" class="secondary" id="researchPairPreset">按主数据生成代际配对</button><button type="button" class="secondary" id="researchAddPair">+ 添加档位</button></div>'+
     '<div id="researchPairEditor"></div><label class="lbl" for="researchPairFocus">图表展示档位</label><select id="researchPairFocus" class="field ui-field"></select><p id="researchPairInfo" class="mini"></p></div>'+
     '<div id="researchTopControls"><label class="lbl" for="researchTopMode">榜单样本口径</label><select id="researchTopMode" class="field ui-field"><option value="all">原始榜单全量</option><option value="10">固定 TOP10</option><option value="20">固定 TOP20</option><option value="30">固定 TOP30</option><option value="custom">自定义 TOP K</option></select>'+
@@ -355,7 +385,8 @@
     '<div id="headTrendControl"><label class="lbl" for="headTrendMetric">趋势指标</label><select id="headTrendMetric" class="field ui-field"><option value="share">榜单与市场份额</option><option value="index">头部富集与单品强度</option></select></div>'+
     '<div id="headConcentrationControl"><label class="lbl" for="headConcentration">集中度指标</label><select id="headConcentration" class="field ui-field"><option value="cr3">CR3（%）</option><option value="hhi">HHI（共同品牌组）</option></select></div></div>'+
     '<button type="button" class="secondary" id="headReload">重新读取全市场 CSV</button><p id="headDataInfo" class="mini" aria-live="polite"></p></div>'+
-    '<div id="researchTailControls"><label class="lbl" for="researchStreak">最少连续上榜周数（最长连续纪录）</label><input type="number" id="researchStreak" class="field ui-field" min="1" step="1" value="12"></div>'+
+    '<div id="researchTailControls"><label class="lbl" for="researchStreak">最少连续上榜周数（最长连续纪录）</label><input type="number" id="researchStreak" class="field ui-field" min="1" step="1" value="12"><label class="lbl" for="researchTailView">展示方式</label><select id="researchTailView" class="field ui-field"><option value="table">韧性指标表</option><option value="scatter">末周上市年龄 × 销量（最多12款）</option></select></div>'+
+    '<div id="researchFlowControls"><label class="lbl" for="researchNewWeeks">新品门槛（完整销售周，含 P0）</label><input id="researchNewWeeks" type="number" class="field ui-field" min="0" max="52" step="1" value="4"></div>'+
     '<div id="researchNotice" class="msg" aria-live="polite"></div><div id="researchChart" style="overflow:auto"></div><div id="researchLegend" style="display:flex;flex-wrap:wrap;gap:8px 16px"></div>'+
     '<div class="tablewrap"><table class="ranktable"><thead id="researchHead"></thead><tbody id="researchRows"></tbody></table></div>'+
     '<button type="button" class="secondary" id="researchExport" style="margin-top:10px" disabled>导出当前专题 CSV</button>';
@@ -363,9 +394,9 @@
   // Scope is always visible. The original chart/filter controls are retained for the model view.
   const commonGrid=scopeControl.parentElement.parentElement;
   const modelNodes=Array.from(tracker.children).filter(n=>n!==researchNav&&n!==researchPanel&&n!==parameterPanel&&n!==productPanel&&n!==$('modelMasterStatus')&&n!==$('modelMasterRetry')&&n!==commonGrid&&n!==tracker.querySelector('h2')&&n!==$('trackerExport'));
-  const metricNode=$('trackerMode').parentElement;
+  const metricNode=$('trackerMode').parentElement,axisNode=$('trackerAxis').parentElement;
   function visible(node,show){if(!node)return;node.hidden=!show;node.style.display=show?(node.dataset.researchDisplay||''):'none';}
-  for(const n of [...modelNodes,productPanel,metricNode,researchPanel,$('researchGroupControls'),$('researchTierControls'),$('researchTopControls'),$('researchBrandControls'),$('researchHeadControls'),$('researchTailControls')])if(n)n.dataset.researchDisplay=n.style.display||'';
+  for(const n of [...modelNodes,productPanel,metricNode,axisNode,researchPanel,$('researchGroupControls'),$('researchTierControls'),$('researchTopControls'),$('researchBrandControls'),$('researchHeadControls'),$('researchTailControls')])if(n)n.dataset.researchDisplay=n.style.display||'';
   let headTopState={mode:'30',custom:'40'},otherTopState={mode:'all',custom:'40'};
   function setResearchView(key){
     if(key!==researchView&&(key==='head'||researchView==='head')){
@@ -378,7 +409,7 @@
     for(const [id,b] of Object.entries(researchButtons)){b.className=id===key?'primary':'secondary';b.setAttribute('aria-pressed',String(id===key));}
     for(const n of modelNodes)visible(n,key==='model');
     visible(productPanel,filterTopics.has(key));updateProductInfo(currentScope());
-    visible(metricNode,key==='model'||key==='series'||key==='tier');
+    visible(metricNode,key==='model'||key==='series'||key==='tier');visible(axisNode,key==='model'||key==='tier');
     visible(researchPanel,key!=='model');visible($('trackerExport'),key==='model');
     visible($('researchGroupControls'),['series','generation','structure'].includes(key));
     visible($('researchTierControls'),key==='tier');
@@ -386,7 +417,7 @@
     visible($('researchHeadControls'),key==='head');
     visible($('researchBrandControls'),key==='brand');
     $('researchTopCustom').hidden=$('researchTopMode').value!=='custom';
-    visible($('researchTailControls'),key==='tail');
+    visible($('researchTailControls'),key==='tail');visible($('researchFlowControls'),key==='flow');
     if(key==='model'){trackerOptions();renderTracker();}else {syncResearchEditors();renderResearch();}
   }
   function topicSection(host,label,gridClass){
@@ -404,7 +435,7 @@
   let researchExportRows=[],researchPublicationChart=null,researchPublicationTable=null;
   function researchTable(headers,rows){
     researchPublicationTable={headers:[...headers],rows:rows.map(r=>[...r])};
-    const p=readTrackerParams();const rawView=isRawResearch(researchView);const meta=['榜单口径','统计起始周','统计结束周','最低覆盖率%','覆盖率分母','数据模式','插补方法','最大缺失周','允许整周插补','允许末周估算'];const values=[p.scopeId,p.start,p.end,rawView?'不适用':p.coverage,rawView?'不适用':p.coverageBase,rawView?'raw':p.dataMode,rawView||p.dataMode==='raw'?'不适用':p.method,rawView||p.dataMode==='raw'?'不适用':p.maxGap,rawView||p.dataMode==='raw'?'不适用':String(p.missingBoard),rawView||p.dataMode==='raw'?'不适用':String(p.trailing)];const scope=currentScope(),isTop=usesTopK(researchView),isGroup=['series','generation','structure'].includes(researchView);meta.push('时间序列算法版本','机型主数据版本指纹','榜单样本模式','固定TOP K','机型分组定义','产品属性筛选','成员统计口径');values.push(Series.VERSION,masterCatalog?.revision||'',isTop?(topKValue()===null?'all':'fixed'):'不适用',isTop&&topKValue()!==null?String(topKValue()):'',isGroup&&scope?JSON.stringify(activeGroups(scope)):'',filterTopics.has(researchView)?JSON.stringify(filters()):'',isGroup?(observedGroups(researchView)?'当期原始入榜':'固定成员'):'');if(researchView==='brand'){meta.push('品牌研究视图','品牌统计维度','基准周','对比周','集中度指标');const view=$('brandView').value;values.push(view,view==='concentration'?'sales':$('brandMetric').value,view==='ribbon'?$('brandBase').value:'',view==='ribbon'?$('brandCompare').value:'',view==='concentration'?$('brandCon').value:'');}researchExportRows=[[...meta,...headers],...rows.map(r=>[...values,...r])];
+    const p=readTrackerParams();const rawView=isRawResearch(researchView);const meta=['榜单口径','统计起始周','统计结束周','最低覆盖率%','覆盖率分母','数据模式','插补方法','最大缺失周','允许整周插补','允许末周估算'];const values=[p.scopeId,p.start,p.end,rawView?'不适用':p.coverage,rawView?'不适用':p.coverageBase,rawView?'raw':p.dataMode,rawView||p.dataMode==='raw'?'不适用':p.method,rawView||p.dataMode==='raw'?'不适用':p.maxGap,rawView||p.dataMode==='raw'?'不适用':String(p.missingBoard),rawView||p.dataMode==='raw'?'不适用':String(p.trailing)];const scope=currentScope(),isTop=usesTopK(researchView),isGroup=['series','generation','structure'].includes(researchView);meta.push('时间序列算法版本','机型主数据版本指纹','榜单样本模式','固定TOP K','机型分组定义','产品属性筛选','成员统计口径');values.push(Series.VERSION,masterCatalog?.revision||'',isTop?(topKValue()===null?'all':'fixed'):'不适用',isTop&&topKValue()!==null?String(topKValue()):'',isGroup&&scope?JSON.stringify(activeGroups(scope)):'',filterTopics.has(researchView)?JSON.stringify(filters()):'',isGroup?(observedGroups(researchView)?'当期原始入榜':'固定成员'):'');if(researchView==='brand'){meta.push('品牌研究视图','品牌统计维度','基准周','对比周','集中度指标');const view=$('brandView').value;values.push(view,view==='concentration'?'sales':$('brandMetric').value,view==='ribbon'?$('brandBase').value:'',view==='ribbon'?$('brandCompare').value:'',view==='concentration'?$('brandCon').value:'');}if(researchView==='flow'){meta.push('新品完整周门槛');values.push($('researchNewWeeks').value);}if(researchView==='tier'){meta.push('对齐横轴');values.push(lifeMode()?'lifecycle':'calendar');}if(researchView==='tail'){meta.push('长尾展示方式','最少连续上榜周');values.push($('researchTailView').value,$('researchStreak').value);}researchExportRows=[[...meta,...headers],...rows.map(r=>[...values,...r])];
     $('researchHead').innerHTML='<tr>'+headers.map(h=>'<th>'+e(h)+'</th>').join('')+'</tr>';
     $('researchRows').innerHTML=rows.length?rows.map(r=>'<tr>'+r.map(v=>'<td>'+e(v)+'</td>').join('')+'</tr>').join(''):'<tr><td colspan="'+headers.length+'">暂无符合条件的数据</td></tr>';
     $('researchExport').disabled=!rows.length;
@@ -547,30 +578,35 @@
     });
   }
   function renderTierComparison(scope,c){
-    const weeks=scope.weeks,known=knownModels(scope),pairs=activePairs(scope),metric=$('trackerMode').value,focus=Number($('researchPairFocus').value);
-    const metricName=metric==='cumulative_wan'?'区间累计增量':'周销量增量';
-    $('researchDesc').textContent='按同一自然周对比旧代与新代的'+metricName+'。销量差为新代减旧代；倍数和贡献率仅在双边数据有效时计算。非上市同期，不推断用户换机。';
-    const records=[],issues=[];
-    const series=key=>{
-      let estimated=false;
-      const map=new Map(scope.rows.filter(r=>r[c.sequence_id]===key).map(r=>[r[c.period],r]));
-      return {name:known.get(key)||masterCatalog?.get(key)?.model_name||key||'未选择',values:weeks.map(w=>{const r=map.get(w.period);return !r||r[c[metric]]===''?null:Number(r[c[metric]]);}),imputed:weeks.map(w=>{const flag=map.get(w.period)?.[c.is_imputed]==='1';estimated=estimated||flag;return metric==='cumulative_wan'?estimated:flag;})};
-    };
-    const eligible=new Set(scope.models.map(m=>m.key));
+    const weeks=scope.weeks,known=knownModels(scope),pairs=activePairs(scope),metric=$('trackerMode').value,focus=Number($('researchPairFocus').value),life=lifeMode();
+    const metricName=life?lifeMetric(metric):metric==='cumulative_wan'?'区间累计增量':'周销量增量';
+    $('researchDesc').textContent=life?'按各机型正式开售后的完整销售周对齐。P0 排除；累计仅从 W1 连续有效观测起算，允许当前设置下的插补，不向历史前回填。双边缺失不计算比较。':'按相同自然周比较旧代与新代，不推断用户换机；双边有效才计算差值、倍数及贡献率。';
+    const records=[],issues=[],eligible=new Set(scope.models.map(m=>m.key));
+    const series=key=>({key,name:known.get(key)||masterCatalog?.get(key)?.model_name||key||'未选择',rows:seriesRows(scope,c,key)});
     pairs.forEach((p,i)=>{
       const name=p.name.trim()||'档位 '+(i+1),old=series(p.old),next=series(p.next),distinct=p.old&&p.next&&p.old!==p.next;
       if(!distinct)issues.push(name+'：请选择不同的新旧代机型');
       else if(!eligible.has(p.old)||!eligible.has(p.next))issues.push(name+'：部分机型当前无可用序列');
-      if(i===focus&&distinct)researchPlot(weeks,[old,next],'万台');
-      weeks.forEach((w,j)=>{
-        const x=old.values[j],y=next.values[j],ok=!!distinct&&x!==null&&y!==null;
-        const status=!distinct?'机型未配置或重复':!ok?'缺少可比数据':old.imputed[j]||next.imputed[j]?'含插补':'原始观测';
-        records.push([name,w.period,old.name,next.name,metricName,numberText(x,4),numberText(y,4),numberText(ok?y-x:null,4),numberText(ok&&x>0?y/x:null,3),numberText(ok&&x+y>0?100*y/(x+y):null),status]);
+      let axis,points,chart;
+      if(life){
+        const maps=lifeMaps(scope,[old,next],c,metric);axis=Product.lifecycleAxis(maps);
+        chart=lifeChart([old,next],maps,axis);
+        points=maps.map(m=>axis.map(n=>m.get(n)||{value:null,period:'',imputed:false}));
+        if(!masterCatalog?.get(p.old)?.sale_start_date||!masterCatalog?.get(p.next)?.sale_start_date)issues.push(name+'：缺少开售日期');
+      }else{
+        axis=weeks.map(w=>w.period);points=[old,next].map(o=>curvePoints(o.rows,c,metric).map((v,j)=>({...v,period:axis[j]})));
+        chart={periods:axis,unit:'万台',lines:[old,next].map((o,j)=>({name:o.name,color:trackerPalette[j],values:points[j].map(v=>v.value),imputed:points[j].map(v=>v.imputed)}))};
+      }
+      if(i===focus&&distinct){researchPublicationChart=chart;ResearchCharts.svgLine($('researchChart'),$('researchLegend'),chart,researchViews[researchView]);}
+      let comparable=0;
+      axis.forEach((w,j)=>{const a=points[0][j],b=points[1][j],x=a.value,y=b.value,ok=!!distinct&&x!==null&&y!==null;if(ok)comparable++;
+        records.push([name,life?'W'+w:w,old.name,next.name,a.period||'',b.period||'',metricName,numberText(x,4),numberText(y,4),numberText(ok?y-x:null,4),numberText(ok&&x>0?y/x:null,3),numberText(ok&&x+y>0?100*y/(x+y):null),!distinct?'机型未配置或重复':!ok?'缺少可比数据':a.imputed||b.imputed?'含插补':'原始观测']);
       });
+      if(distinct&&!comparable)issues.push(name+'：没有双边有效的'+(life?'完整销售周':'自然周'));
     });
     $('researchPairInfo').textContent=issues.join('；');
-    researchTable(['档位','周期','旧代机型','新代机型','统计指标','旧代销量/万台','新代销量/万台','新旧销量差/万台','新代/旧代倍数','新代贡献率/%','数据状态'],records);
-    $('researchNotice').textContent=pairs.length+' 个档位 · 图表展示选定档位，表格及 CSV 包含全部档位。空值不代表零。';
+    researchTable(['档位','周期','旧代机型','新代机型','旧代自然周','新代自然周','统计指标','旧代销量/万台','新代销量/万台','新旧销量差/万台','新代/旧代倍数','新代贡献率/%','数据状态'],records);
+    $('researchNotice').textContent=pairs.length+' 个档位 · '+(life?'完整销售周同期':'自然周同期')+' · 图表展示选定档位；CSV 包含全部档位。空值不代表零。';
   }
 
   // Cross-module analysis uses the same validated parent-brand parser as module 2.
@@ -790,25 +826,36 @@
       notice.textContent=researchView==='generation'?'两个代际的样本销量及相对占比；占比变化不证明用户实际换机。':'各组占所选样本总销量的贡献比例，并非整体市场份额。';return;
     }
     if(researchView==='tail'){
-      $('researchDesc').textContent='基于所选区间全部原始上榜机型（不受覆盖率和插补设置限制）；仅真实观测计入连续上榜，整周缺失会中断连续纪录。可按主数据属性筛选，不将未入榜解释为零销量。';
+      $('researchDesc').textContent='只使用原始入榜观测；整周缺失中断连续纪录。末周年龄及销量对应所选末周；保持率 W4/W1、W8/W1 仅在所选区间具备两个真实完整销售周观测且 W1 大于零时计算。缺失不等于零。';
       const all=new Map();weeks.forEach(w=>w.map.forEach((r,k)=>matchesAttributes(k)&&all.set(k,canonicalName(r[col.model]))));
-      const minimum=Math.max(1,Math.floor(Number($('researchStreak').value)||1));
+      const minimum=Math.max(1,Math.floor(Number($('researchStreak').value)||1)),end=weeks.at(-1);
       const records=[...all].map(([k,name])=>{let streak=0,best=0,count=0,first=null,last=null,total=0;
         for(const w of weeks){const r=w.map.get(k);if(r){count++;streak++;best=Math.max(best,streak);let v=Number(r[col.estimated_wan]);if(first===null)first=v;last=v;total+=v;}else streak=0;}
-        const change=first>0?100*(last-first)/first:null;
-        return {name,count,best,streak,total,first,last,change};}).filter(r=>r.best>=minimum).sort((a,b)=>b.best-a.best||b.count-a.count||b.total-a.total);
-      researchTable(['机型','观测周数','最长连续上榜','截至末周连续上榜','首个观测销量/万台','最近观测销量/万台','首末变化/%','上榜周销量合计/万台'],records.map(r=>[r.name,r.count,r.best,r.streak,numberText(r.first),numberText(r.last),numberText(r.change),numberText(r.total)]));
-      notice.textContent=weeks.length+' 周历史 · '+records.length+' 款达到 '+minimum+' 周门槛'+(weeks.length<minimum?'（当前历史长度不足）':'');return;
+        const m=masterCatalog?.get(k),age=Product.lifecycle(m,end),r=end.map.get(k);
+        return {name,count,best,streak,total,first,last,change:first>0?100*(last-first)/first:null,date:m?.sale_start_date||'',age,now:r?Number(r[col.estimated_wan]):null,w4:Product.retention(m,weeks,k,col,4),w8:Product.retention(m,weeks,k,col,8)};
+      }).filter(r=>r.best>=minimum).sort((a,b)=>b.best-a.best||b.count-a.count||b.total-a.total);
+      researchTable(['机型','观测周数','最长连续上榜','截至末周连续上榜','首个观测销量/万台','最近观测销量/万台','首末变化/%','上榜周销量合计/万台','开售日期','末周生命周期','末周上市天数','末周销量/万台','W4/W1保持率/%','W8/W1保持率/%'],records.map(r=>[r.name,r.count,r.best,r.streak,numberText(r.first),numberText(r.last),numberText(r.change),numberText(r.total),r.date,r.age?.label||'',r.age?.daysSinceSale??'',numberText(r.now,4),numberText(r.w4),numberText(r.w8)]));
+      const valid=records.filter(r=>r.age&&Number.isFinite(r.now)).sort((a,b)=>b.now-a.now),shown=valid.slice(0,12);
+      if($('researchTailView').value==='scatter'&&shown.length){
+        researchPublicationChart={kind:'scatter',axis:'age',xLabel:'末周上市天数',yLabel:'末周销量（万台）',periods:shown.map(r=>r.name),lines:[{name:'上市天数',values:shown.map(r=>r.age.daysSinceSale)},{name:'销量/万台',values:shown.map(r=>r.now)}],calendarPeriods:[end.period]};
+        ResearchCharts.renderComposition($('researchChart'),researchPublicationChart,'末周上市年龄与销量');
+      }
+      notice.textContent=weeks.length+' 周历史 · '+records.length+' 款达到 '+minimum+' 周门槛'+(weeks.length<minimum?'（当前历史长度不足）':'')+($('researchTailView').value==='scatter'?' · 散点展示末周有年龄及销量的前 '+shown.length+'/'+valid.length+' 款（按销量），表格保留全部。':'');return;
     }
     if(researchView==='flow'){
-      $('researchDesc').textContent='相邻自然周均满足当前榜单口径时比较机型集合；不可比较周中断比较。新增/退出仅是榜单可见性变化，不等于上市或停销。原始全量模式下榜单规模变化会影响结果。';
-      const rows=[],values=[[],[],[]];
-      weeks.forEach((w,i)=>{const p=weeks[i-1],ok=!!p?.hasBoard&&w.hasBoard;const add=ok?[...w.map].filter(([k])=>!p.map.has(k)):[],out=ok?[...p.map].filter(([k])=>!w.map.has(k)):[],stay=ok?w.count-add.length:null;
-        [stay,ok?add.length:null,ok?out.length:null].forEach((v,j)=>values[j].push(v));
-        rows.push([w.period,w.top,w.originalCount,w.count??'',w.comparisonStatus,numberText(w.cutoff,4),stay??'',ok?add.length:'',ok?out.length:'',add.map(x=>canonicalName(x[1][col.model])).join('、'),out.map(x=>canonicalName(x[1][col.model])).join('、')]);});
-      researchPlot(weeks,['留榜','新进入榜单','退出榜单'].map((name,i)=>({name,values:values[i]})),'机型数');
-      researchTable(['周期','标称 TOP','原始实收条数','分析条数','周样本状态','门槛/万台','留榜','新进入','退出','进入名单','退出名单'],rows);
-      notice.textContent='按所选区间原始观测识别榜单流动，不受覆盖率与插补设置限制。';return;
+      const threshold=Math.min(52,Math.max(0,Math.floor(Number($('researchNewWeeks').value)||0)));$('researchNewWeeks').value=threshold;
+      $('researchDesc').textContent='相邻可比较自然周才统计流动；按同一榜单口径的全部历史区分回榜和首次观测。首次观测且开售年龄为 P0 或 W1–W'+threshold+' 归为新品；更老为老机首次观测，无法判断日期为未知。首次观测不是实际首次上榜，退出不等于停销。';
+      const rows=[],values=[[],[],[],[],[],[]],seen=new Set(),first=weeks[0].period;
+      for(const w of fixedTopWeeks(scope.fullWeeks,topKValue())){if(w.period>=first)break;if(w.hasBoard)for(const k of w.map.keys())seen.add(k);}
+      weeks.forEach((w,i)=>{const prev=weeks[i-1],ok=!!prev?.hasBoard&&w.hasBoard,add=ok?[...w.map].filter(([k])=>!prev.map.has(k)):[],out=ok?[...prev.map].filter(([k])=>!w.map.has(k)):[],stay=ok?w.count-add.length:null;
+        const types={new:[],old:[],return:[],unknown:[]};for(const [k,r] of add)types[Product.entryType(masterCatalog?.get(k),w,seen.has(k),threshold)].push(canonicalName(r[col.model]));
+        [stay,ok?types.new.length:null,ok?types.old.length:null,ok?types.return.length:null,ok?types.unknown.length:null,ok?out.length:null].forEach((v,j)=>values[j].push(v));
+        rows.push([w.period,w.top,w.originalCount,w.count??'',w.comparisonStatus,numberText(w.cutoff,4),stay??'',ok?add.length:'',ok?out.length:'',ok?types.new.length:'',ok?types.old.length:'',ok?types.return.length:'',ok?types.unknown.length:'',types.new.join('、'),types.old.join('、'),types.return.join('、'),types.unknown.join('、'),out.map(x=>canonicalName(x[1][col.model])).join('、')]);
+        if(w.hasBoard)for(const k of w.map.keys())seen.add(k);
+      });
+      researchPlot(weeks,['留榜','新品首次观测进入','老机首次观测进入','重新上榜','年龄未知进入','退出榜单'].map((name,i)=>({name,values:values[i]})),'机型数');
+      researchTable(['周期','标称 TOP','原始实收条数','分析条数','周样本状态','门槛/万台','留榜','新进入合计','退出','新品首次观测','老机首次观测','重新上榜','年龄未知','新品名单','老机首次观测名单','回榜名单','未知名单','退出名单'],rows);
+      notice.textContent='仅原始观测 · 新品门槛 P0 至 W'+threshold+' · 回榜按所选榜单口径全部历史判定。';return;
     }
     if(researchView==='brand'){renderBoardBrand(scope,weeks);return;}
   }
@@ -832,7 +879,7 @@
   $('researchAddPair').onclick=()=>{const s=currentScope();if(s){activePairs(s).push({name:'',old:'',next:''});renderPairEditor(s);renderResearch();}};
   $('researchPairFocus').onchange=()=>{const s=currentScope();if(s){pairFocusStates.set(s.id,Number($('researchPairFocus').value));renderResearch();}};
   $('researchTopMode').onchange=renderResearch;$('researchTopK').onchange=renderResearch;
-  $('researchStreak').oninput=renderResearch;
+  $('researchStreak').oninput=renderResearch;$('researchTailView').onchange=renderResearch;$('researchNewWeeks').onchange=renderResearch;
   $('researchExport').onclick=()=>exportCSVBlob(researchExportRows,'sales-research-'+researchView+'.csv');
 
   const researchSubtitles={model:'重点机型周销量与累计增量变化',series:'样本机型的销量合计与变化',generation:'新旧两代样本机型销量占比变化',structure:'不同产品分组样本销量贡献',tier:'同产品档位新旧机型销量对比',tail:'连续上榜纪录与销量长尾表现',flow:'新入、退出及留榜机型的变化',brand:'品牌结构、双周变化、集中度趋势',head:'头部榜单与全市场的品牌结构、富集与单品强度'};
@@ -854,24 +901,24 @@
     const hasData=chart?(chart.kind==='scatter'?chart.lines[0].values.some((v,i)=>Number.isFinite(v)&&Number.isFinite(chart.lines[1].values[i])):chart.lines.some(l=>l.values.some(Number.isFinite))):key==='tail'&&!!table?.rows.length;
     if(!hasData)return null;
     const timeAxis=chart?.periods?.length&&chart.periods.every(v=>/^\d{4}-W\d{2}$/.test(v));
-    const chartRange=key==='brand'&&brandPublicationInfo?brandPublicationInfo.range:timeAxis?chart.periods[0]+'—'+chart.periods[chart.periods.length-1]:key==='head'&&headPublicationInfo?headPublicationInfo.range:selectedRange;
-    const effectivePeriods=key==='head'?headPublicationInfo?.effectivePeriods||[]:key==='brand'?brandPublicationInfo?.effectivePeriods||[]:timeAxis?chart.periods.filter((_,i)=>chart.lines.some(l=>Number.isFinite(l.values[i]))):scope.weeks.filter(w=>w.hasBoard).map(w=>w.period);
+    const chartRange=chart?.axis==='lifecycle'&&chart.periods.length?chart.periods[0]+'—'+chart.periods.at(-1)+'（完整销售周）':key==='brand'&&brandPublicationInfo?brandPublicationInfo.range:timeAxis?chart.periods[0]+'—'+chart.periods[chart.periods.length-1]:key==='head'&&headPublicationInfo?headPublicationInfo.range:selectedRange;
+    const effectivePeriods=chart?.calendarPeriods|| (key==='head'?headPublicationInfo?.effectivePeriods||[]:key==='brand'?brandPublicationInfo?.effectivePeriods||[]:timeAxis?chart.periods.filter((_,i)=>chart.lines.some(l=>Number.isFinite(l.values[i]))):scope.weeks.filter(w=>w.hasBoard).map(w=>w.period));
     const range=chartRange;
     if(chart&&chart.lines.length>24){notify('单张图卡最多展示24条曲线，请减少研究机型或分组。');return null;}
     const top=usesTopK(key)?topKValue():null;
     const modeLabel=rawView?'仅原始观测':p.dataMode==='raw'?'仅原始观测':p.maxGap===0?'不插补':p.method==='bounded'?'门槛约束插补':'线性插值';
-    const displayMetric=key==='head'?(headPublicationInfo?.metricLabel||'跨模块品牌研究'):key==='generation'||key==='structure'?'样本销量占比':key==='brand'?(brandPublicationInfo?.metricLabel||'榜单品牌结构'):key==='flow'?'榜单流动 · '+(top===null?'原始全量':'固定 TOP'+top):key==='tail'?'连续上榜 · ≥ '+$('researchStreak').value+' 周':metric==='cumulative_wan'?'区间累计增量':'周销量增量';
+    const displayMetric=chart?.axis==='lifecycle'?lifeMetric(metric):chart?.axis==='age'?'末周上市年龄与销量':key==='head'?(headPublicationInfo?.metricLabel||'跨模块品牌研究'):key==='generation'||key==='structure'?'样本销量占比':key==='brand'?(brandPublicationInfo?.metricLabel||'榜单品牌结构'):key==='flow'?'榜单流动 · '+(top===null?'原始全量':'固定 TOP'+top):key==='tail'?'连续上榜 · ≥ '+$('researchStreak').value+' 周':metric==='cumulative_wan'?'区间累计增量':'周销量增量';
     let detail='';
     if(['series','generation','structure'].includes(key))detail=$('researchGroupInfo').textContent;
-    if(key==='tier')detail=activePairs(scope).map(q=>q.name+'：'+q.old+' / '+q.next).join('；');
+    if(key==='tier')detail=activePairs(scope).map(q=>q.name+'：'+q.old+' / '+q.next).join('；')+'；'+$('researchPairInfo').textContent;
     if(filterTopics.has(key)&&Object.keys(filters()).length)detail+=(detail?'；':'')+'属性筛选：'+JSON.stringify(filters())+(['series','structure','generation','tier'].includes(key)&&!observedGroups(key)?'（固定成员未自动缩减）':'');
-    if(usesTopK(key))detail=$('researchTopInfo').textContent;
+    if(usesTopK(key))detail=$('researchTopInfo').textContent+(key==='flow'?'；'+$('researchNotice').textContent:'');
     if(key==='head')detail=headPublicationInfo?.detail||detail;
     if(key==='brand')detail=brandPublicationInfo?.detail||detail;
     const note=(key==='head'?'头部榜单为估算样本；全市场份额来自模块2独立数据源；缺失不等于零。':'数据为历史榜单估算样本，不代表全市场销量或份额；缺失不等于零。')+(chart?.imputed?'图中含插补值。':'');
-    const chartNote=key==='head'?(headPublicationInfo?.note||'仅共同有效周'):key==='brand'?(brandPublicationInfo?.note||'仅榜单样本'):key==='flow'?'相邻可比较周 · 进入/退出不代表上市/停销':key==='tail'?'连续上榜只计原始观测 · 未入榜不等于零销量':key==='generation'||key==='structure'?'仅分组样本占比 · 不代表市场份额':'估算销量 · 仅所选样本，非上市以来累计';
+    const chartNote=chart?.axis==='lifecycle'?'完整销售周 W1 起；不含 P0；累计缺 W1 或中断留空':chart?.axis==='age'?'末周实收样本；按销量最多12款，完整记录见 CSV':key==='head'?(headPublicationInfo?.note||'仅共同有效周'):key==='brand'?(brandPublicationInfo?.note||'仅榜单样本'):key==='flow'?'相邻可比较周 · 进入/退出不代表上市/停销':key==='tail'?'连续上榜只计原始观测 · 未入榜不等于零销量':key==='generation'||key==='structure'?'仅分组样本占比 · 不代表市场份额':'估算销量 · 仅所选样本，非上市以来累计';
     const summary=key==='model'?$('trackerStatus').textContent:$('researchNotice').textContent;
-    const description=key==='model'?'选中机型在当前统计区间的销量趋势。':$('researchDesc').textContent;
+    const description=key==='model'?(chart?.axis==='lifecycle'?'按正式开售日对齐完整销售周；累计从 W1 连续有效起算，不含 P0。':'选中机型在当前统计区间的销量趋势。'):$('researchDesc').textContent;
     const baseCsv=key==='model'?modelExportRows():researchExportRows;
     const effectiveText=effectivePeriods.length+' 周'+(effectivePeriods.length?'（'+effectivePeriods[0]+'—'+effectivePeriods[effectivePeriods.length-1]+'）':'');
     const csv=baseCsv.map((r,i)=>i===0?[...r,'发布所选区间','发布图表区间','发布有效周次']: [...r,selectedRange,chartRange,effectivePeriods.join(' / ')]);

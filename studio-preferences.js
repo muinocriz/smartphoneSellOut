@@ -1,6 +1,6 @@
 (function(root){
 'use strict';
-const versions=Object.freeze({research:3,visual:2,publication:4}),prefix='smartphoneSellOut.module3.';
+const versions=Object.freeze({research:4,visual:2,publication:5}),prefix='smartphoneSellOut.module3.';
 function read(name,fallback={}){try{const x=JSON.parse(localStorage.getItem(prefix+name)||'null');return x?.version===versions[name]&&x.data&&typeof x.data==='object'?x.data:fallback;}catch(_){return fallback;}}
 function write(name,data){try{localStorage.setItem(prefix+name,JSON.stringify({version:versions[name],data}));return true;}catch(_){return false;}}
 function remove(name){try{localStorage.removeItem(prefix+name);return true;}catch(_){return false;}}

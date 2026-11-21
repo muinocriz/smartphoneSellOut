@@ -163,14 +163,14 @@
 <div id="modelMasterStatus" class="msg" aria-live="polite">正在读取机型主数据…</div><button id="modelMasterRetry" type="button" class="secondary" hidden>重试读取机型主数据</button>
 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px">
 <div><label class="lbl" for="trackerScope">榜单口径</label><select id="trackerScope" class="field ui-field"></select></div>
-<div><label class="lbl" for="trackerMode">统计方式</label><select id="trackerMode" class="field ui-field"><option value="weekly_wan">周销量增量</option><option value="cumulative_wan">区间累计增量</option></select></div></div>
+<div><label class="lbl" for="trackerMode">统计方式</label><select id="trackerMode" class="field ui-field"><option value="weekly_wan">周销量增量</option><option value="cumulative_wan">累计增量</option></select></div><div><label class="lbl" for="trackerAxis">横轴（机型/代际）</label><select id="trackerAxis" class="field ui-field"><option value="calendar">ISO 自然周</option><option value="lifecycle">完整销售周（W1 起）</option></select></div></div>
 <label class="lbl" for="trackerFilter">筛选机型（名称、别名、ID、品牌、系列、芯片）</label><input class="field ui-field" id="trackerFilter" placeholder="例如 iPhone 18 或 Pro Max">
 <div id="trackerModels" style="display:flex;flex-wrap:wrap;gap:8px 16px;max-height:180px;overflow:auto;padding:10px 0"></div>
 <button class="secondary" type="button" id="trackerExport" disabled>导出已选且符合筛选的机型 CSV</button>
 <div id="trackerStatus" class="msg" aria-live="polite"></div>
 <div id="trackerChart" style="overflow:auto"></div><div id="trackerLegend" style="display:flex;flex-wrap:wrap;gap:8px 16px"></div>
 <p class="mini">单位：万台。实心点及实线为原始观测，空心点及虚线为插补；累计曲线首次含插补后用虚线。累计仅计算所选区间，历史首次观测前留空，之后任一无法补全的周会使后续累计留空；并非上市以来累计销量。</p>
-<div class="tablewrap"><table class="ranktable"><thead><tr><th>机型</th><th>观测覆盖率</th><th>插补周数</th><th class="num">最新周销量 / 万台</th><th class="num">累计增量 / 万台</th></tr></thead><tbody id="trackerRows"></tbody></table></div></section>
+<div class="tablewrap"><table class="ranktable"><thead><tr><th>机型</th><th>正式开售日</th><th>末周生命周期</th><th>观测覆盖率</th><th>插补周数</th><th class="num">最新自然周销量 / 万台</th><th class="num">自然周区间累计 / 万台</th></tr></thead><tbody id="trackerRows"></tbody></table></div></section>
 <section class="studio panel" id="socialStudio" role="tabpanel" aria-labelledby="module3-tab-social" hidden style="display:none">
   <h2 class="studio-title">图文内容工作台</h2>
   <div class="msg" style="margin:0 0 10px;display:flex;flex-wrap:wrap;align-items:center;gap:8px;justify-content:space-between"><span id="studioSource" aria-live="polite">图文数据源：当前标定榜单</span><button id="studioUseCurrent" type="button" class="secondary" hidden>切回当前标定榜单</button></div>

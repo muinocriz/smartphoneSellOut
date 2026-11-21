@@ -37,15 +37,15 @@ function drawHeadStaticPoster(ctx,p,s,box){
   if(!auditPlot(ctx,x1-x0,y1-y0,'四象限绘图区',260,160))return;
   const mx=Math.max(1.25,...xx.filter(Number.isFinite))*1.1,my=Math.max(1.25,...yy.filter(Number.isFinite))*1.1;
   const x=v=>x0+v/mx*(x1-x0),y=v=>y1-v/my*(y1-y0);
-  posterFitText(ctx,'纵轴：单品销量强度指数',left,top+17,22,p.sub,'600','left',width);
+  posterFitText(ctx,'纵轴：'+(s.chart.yLabel||'单品销量强度指数'),left,top+17,22,p.sub,'600','left',width);
   for(let i=0;i<=4;i++){
    const a=mx*i/4,b=my*i/4;ctx.strokeStyle=p.hair;ctx.lineWidth=1.4;ctx.beginPath();ctx.moveTo(x(a),y0);ctx.lineTo(x(a),y1);ctx.moveTo(x0,y(b));ctx.lineTo(x1,y(b));ctx.stroke();
    posterFitText(ctx,a.toFixed(2),x(a),y1+22,18,p.sub,'550','center',54);
    posterFitText(ctx,b.toFixed(2),x0-8,y(b)+6,18,p.sub,'550','right',52);
   }
-  ctx.save();ctx.setLineDash([9,7]);ctx.strokeStyle=p.sub;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x(1),y0);ctx.lineTo(x(1),y1);ctx.moveTo(x0,y(1));ctx.lineTo(x1,y(1));ctx.stroke();ctx.restore();
+  if(!s.chart.xLabel){ctx.save();ctx.setLineDash([9,7]);ctx.strokeStyle=p.sub;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x(1),y0);ctx.lineTo(x(1),y1);ctx.moveTo(x0,y(1));ctx.lineTo(x1,y(1));ctx.stroke();ctx.restore();}
   periods.forEach((name,i)=>{if(!Number.isFinite(xx[i])||!Number.isFinite(yy[i]))return;ctx.fillStyle=window.BrandUtils.color(name)||colors[i%colors.length];ctx.beginPath();ctx.arc(x(xx[i]),y(yy[i]),6,0,Math.PI*2);ctx.fill();});
-  posterFitText(ctx,'横轴：头部销量富集指数',right,y1+46,20,p.sub,'600','right',width);
+  posterFitText(ctx,'横轴：'+(s.chart.xLabel||'头部销量富集指数'),right,y1+46,20,p.sub,'600','right',width);
   periods.forEach((name,i)=>{const lx=left+(i%cols)*width/cols,ly=y1+65+Math.floor(i/cols)*legendStep;ctx.fillStyle=window.BrandUtils.color(name)||colors[i%colors.length];ctx.fillRect(lx,ly-12,15,7);posterFitText(ctx,name+'  '+(Number.isFinite(xx[i])&&Number.isFinite(yy[i])?xx[i].toFixed(2)+' / '+yy[i].toFixed(2):'—'),lx+22,ly,Math.min(20,legendStep*.77),p.ink,'600','left',width/cols-28);});
  }else{
   const labelW=Math.min(116,width*.20),numberW=Math.min(100,width*.17),x0=left+labelW,x1=right-numberW,y0=top+48,y1=bottom-40;

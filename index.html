@@ -399,6 +399,22 @@ let MEAS=null;
 function textW(t,size,weight,fam){MEAS=MEAS||document.createElement("canvas").getContext("2d");MEAS.font=`${weight||400} ${size}px ${fam||FONT()}`;return MEAS.measureText(t).width}
 function fitText(t,max,size,weight){if(textW(t,size,weight)<=max)return t;
   while(t.length>1&&textW(t+"…",size,weight)>max)t=t.slice(0,-1);return t+"…"}
+// Export subtitle: wrap whole metadata phrases before falling back to character wrapping.
+// Do not truncate explanatory labels, including the milestone and estimate legend.
+function wrapExportSub(parts,max,size){
+  const lines=[];let line="";
+  for(const part of parts.filter(Boolean)){
+    const joined=line?line+" · "+part:part;
+    if(textW(joined,size)<=max){line=joined;continue;}
+    if(line){lines.push(line);line="";}
+    for(const ch of part){
+      if(line&&textW(line+ch,size)>max){lines.push(line);line="";}
+      line+=ch;
+    }
+  }
+  if(line)lines.push(line);
+  return lines;
+}
 // 各尺寸参数：mobile 以 400px 宽设计、3 倍导出，所有文字 ≥12px
 function spec(o){return o.mobile
   ?{ax:12,end:13,val:12,lw:2,lwH:3,sym:5,maxEnd:0.40}
@@ -502,10 +518,15 @@ function buildOption(sel,cats,datas,o){
   if(o.exp){
     const rg=cats.length?catT[0].split("\n")[0]+" – "+catT[catT.length-1].split("\n")[0]:"";
     const bs=[...new Set(sel.map(r=>r.brand))];
-    const sub=[bs.length===1?bs[0]:"",rg,S.val==="cum"?"累计销量（万台）":"周环比增量（万台）",S.log?"对数纵轴":"",o.estFlags.some(a=>a.some(g=>g?.lowerBound))?"≈含里程碑估算":S.gap!=="raw"?"虚线/≈为估算":"",o.estFlags.some(a=>a.some(g=>g?.method==="virtual"))?"≥为里程碑下限":""].filter(Boolean).join(" · ");
-    opt.title={text:"新机周销量追踪",subtext:sub,left:o.mobile?16:20,top:o.mobile?16:18,itemGap:6,
-      textStyle:{color:t.fg,fontSize:o.mobile?18:20,fontWeight:700,fontFamily:FONT()},
-      subtextStyle:{color:t.mu,fontSize:o.mobile?12:13,fontFamily:FONT()}};
+    const meta=[bs.length===1?bs[0]:"",rg,S.val==="cum"?"累计销量（万台）":"周环比增量（万台）",S.log?"对数纵轴":""];
+    const notes=[o.estFlags.some(a=>a.some(g=>g?.lowerBound))?"≈含里程碑估算":S.gap!=="raw"?"虚线/≈为估算":"",o.estFlags.some(a=>a.some(g=>g?.method==="virtual"))?"≥为里程碑下限":""];
+    const titleLeft=o.mobile?16:20,titleTop=o.mobile?16:18,titleSize=o.mobile?18:20,subSize=o.mobile?12:13,subLineHeight=o.mobile?17:19,itemGap=6;
+    const maxSubWidth=W-titleLeft*2-4;
+    const lines=o.mobile?[...wrapExportSub(meta,maxSubWidth,subSize),...wrapExportSub(notes,maxSubWidth,subSize)]:wrapExportSub([...meta,...notes],maxSubWidth,subSize);
+    opt.title={text:"新机周销量追踪",subtext:lines.join("\n"),left:titleLeft,top:titleTop,padding:0,itemGap,
+      textStyle:{color:t.fg,fontSize:titleSize,lineHeight:titleSize+4,fontWeight:700,fontFamily:FONT()},
+      subtextStyle:{color:t.mu,fontSize:subSize,lineHeight:subLineHeight,fontFamily:FONT()}};
+    opt.grid.top=Math.max(opt.grid.top,titleTop+titleSize+4+itemGap+lines.length*subLineHeight+12);
   }else{
     opt.tooltip={trigger:"axis",backgroundColor:t.pn,borderColor:t.ln,textStyle:{color:t.fg},
       formatter:params=>{const arr=Array.isArray(params)?params:[params],j=arr[0]?.dataIndex;if(j==null)return "";return [esc(cats[j]?.t.replace("\n"," ")||""),...sel.map((r,i)=>{const v=datas[i][j],g=o.estFlags[i][j];return v==null?null:esc(label(r))+"： "+esc(valueLabel(v,g))+" 万台"+(g?"（"+esc(gapLabel(g))+"）":"");}).filter(Boolean)].join("<br>");}};

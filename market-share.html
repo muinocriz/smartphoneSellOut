@@ -130,37 +130,20 @@
       <p class="ms-hint">导出时将自动隐藏红色/琥珀色安全区辅助线，输出纯净原图</p>
     </div>
 
-    <!-- 抖音安全区独立双向规避设置：与第三模块一致，深蓝强调面板 -->
-    <div id="safeControlPanel" class="ms-card ui-panel">
-      <div class="ms-row-between">
-        <div>
-          <h2 class="ui-section-title">抖音安全区独立规避</h2>
-          <p class="ui-control-description">独立调节右侧交互栏与底部文案区的安全留白</p>
-        </div>
-        <label class="ms-toggle">
-          <input type="checkbox" id="toggleSafeZone"  checked>
-          <div class="ms-toggle-track"></div>
-        </label>
+    <!-- 抖音安全区：与模块 3 一致的独立布局开关及预览参考线 -->
+    <section id="safeControlPanel" class="ms-card safe-box ui-panel">
+      <div class="safe-box-head"><span class="safe-box-title ui-section-title">抖音安全区独立规避</span><label class="switchline"><span>启用</span><input id="safeEnable" type="checkbox" checked><span class="switch-ui" aria-hidden="true"></span></label></div>
+      <p class="safe-box-desc ui-control-description">独立调节右侧可用宽度与底部可用高度，默认右侧 13%、底部 10%；内容按安全边界重新布局。预览区会同步显示遮挡参考区域，导出 PNG 时自动隐藏。</p>
+      <div class="safe-slider">
+        <div class="safe-slider-label ui-safe-slider-label"><span>右侧交互栏留白宽度</span><b id="safeRightVal">13%（推荐）</b></div>
+        <input id="safeRight" class="range" type="range" min="0" max="30" step="1" value="13">
       </div>
-
-      <!-- 右侧留白滑块 -->
-      <div>
-        <div class="ui-safe-slider-label">
-          <span>右侧交互栏留白宽度</span>
-          <span id="safeRightVal" class="ms-safe-value-right">13% (推荐)</span>
-        </div>
-        <input type="range" id="safeRightSlider" min="0" max="22" value="13" class="ms-range">
+      <div class="safe-slider bottom">
+        <div class="safe-slider-label ui-safe-slider-label"><span>下方文案区留白高度</span><b id="safeBottomVal">10%（推荐）</b></div>
+        <input id="safeBottom" class="range" type="range" min="0" max="25" step="1" value="10">
       </div>
-
-      <!-- 下方留白滑块 -->
-      <div>
-        <div class="ui-safe-slider-label">
-          <span>下方文案区留白高度</span>
-          <span id="safeBottomVal" class="ms-safe-value-bottom">10% (推荐)</span>
-        </div>
-        <input type="range" id="safeBottomSlider" min="0" max="20" value="10" class="ms-range">
-      </div>
-    </div>
+      <label class="safe-check"><input type="checkbox" id="safeGuides" checked> 在预览中显示点赞/文案区遮挡参考线（导出自动隐藏）</label>
+    </section>
 
     <!-- 6大精选视觉配色方案：与第三模块一致，深蓝强调面板 -->
     <div id="paletteControlPanel" class="ms-card ui-panel">
@@ -236,44 +219,8 @@
       <!-- 高精度响应式 SVG 画布 (逻辑坐标 900 x 1200) -->
       <svg id="posterSvg" viewBox="0 0 900 1200" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" ></svg>
 
-      <!-- 抖音 UI 安全区检测叠加层（导出时自动忽略，仅用于实时预览检查） -->
-      <div id="douyinOverlay" class="ms-overlay">
-        <!-- 右侧危险遮挡警戒带 -->
-        <div id="dyRightZone" class="ms-safe-right" style="width: 13%;">
-          <div class="ms-safe-label">
-            右侧避让<br><span id="dyRightTag">13%</span>
-          </div>
-
-          <!-- 模拟抖音右侧悬浮按钮列 -->
-          <div class="ms-overlay-icons">
-            <div class="ms-avatar-wrap">
-              <div class="ms-avatar">数码</div>
-              <div class="ms-avatar-add">+</div>
-            </div>
-            <div class="ms-overlay-icon">
-              <svg class="ms-overlay-icon-svg ms-rose" fill="currentColor" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
-              <span class="ms-overlay-icon-text">2.4w</span>
-            </div>
-            <div class="ms-overlay-icon">
-              <svg class="ms-overlay-icon-svg" fill="currentColor" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-              <span class="ms-overlay-icon-text">1892</span>
-            </div>
-            <div class="ms-overlay-icon">
-              <svg class="ms-overlay-icon-svg ms-amber" fill="currentColor" viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
-              <span class="ms-overlay-icon-text">3410</span>
-            </div>
-            <div class="ms-overlay-icon">
-              <svg class="ms-overlay-icon-svg" fill="currentColor" viewBox="0 0 24 24"><path d="M14 9V5l7 7-7 7v-4.1c-5 0-8.5 1.6-11 5.1 1-5 4-10 11-11z"/></svg>
-              <span class="ms-overlay-icon-text">965</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- 底部抖音标题栏安全区提示（独立调节高度） -->
-        <div id="dyBottomZone" class="ms-safe-bottom" style="height: 10%;">
-          <span class="ms-safe-label">底部文案/进度条避让区 (<span id="dyBottomTag">10%</span>)</span>
-        </div>
-      </div>
+      <!-- SVG 预览参考线层独立于导出海报 -->
+      <svg id="douyinOverlay" class="ms-overlay" viewBox="0 0 900 1200" width="100%" height="100%" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"></svg>
     </div>
   </main>
 
@@ -422,7 +369,8 @@
         chartType: 'combo',        // 默认展示 'combo' | 'diverging' | 'stacked' | 'slope' | 'dumbbell'
         showOtherBrand: false,     // 是否在发散/坡度/哑铃图中展示“其他”
         splitSubBrands: true,      // 堆叠图是否拆分子品牌
-        showSafeZone: true,        // 是否显示抖音辅助线
+        safeEnabled: true,         // 是否启用安全区布局
+        safeGuides: true,          // 是否在预览中显示参考线
         rightMarginPct: 13,        // 右侧留白百分比 (默认 13%)
         bottomMarginPct: 10,       // 下侧留白百分比 (默认 10%)
         paletteId: 'editorial_paper', // 与第三模块统一的默认「编辑部米白」
@@ -441,12 +389,27 @@
       };
     }
 
+    function normalizeSafeMargin(value,max,fallback){
+      return Number.isFinite(value)?Math.max(0,Math.min(max,Math.round(value))):fallback;
+    }
+    function getSafeArea(W=900,H=1200){
+      const right=state.safeEnabled?normalizeSafeMargin(state.rightMarginPct,30,13)/100:0;
+      const bottom=state.safeEnabled?normalizeSafeMargin(state.bottomMarginPct,25,10)/100:0;
+      return {right,bottom,rightEdge:W-Math.round(W*right),bottomEdge:H-Math.round(H*bottom)};
+    }
+
     function loadSavedState() {
       const def = getDefaultState();
       try {
         const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
         if (saved?.version !== STATE_VERSION || !saved.data || !Object.hasOwn(PALETTES, saved.data.paletteId)) return def;
         const next = {...def, ...saved.data};
+        // 旧版 showSafeZone 只影响参考线，迁移时保持原有留白。
+        if(typeof saved.data.safeGuides!=='boolean')next.safeGuides=typeof saved.data.showSafeZone==='boolean'?saved.data.showSafeZone:def.safeGuides;
+        if(typeof saved.data.safeEnabled!=='boolean')next.safeEnabled=def.safeEnabled;
+        delete next.showSafeZone;
+        next.rightMarginPct=normalizeSafeMargin(next.rightMarginPct,30,def.rightMarginPct);
+        next.bottomMarginPct=normalizeSafeMargin(next.bottomMarginPct,25,def.bottomMarginPct);
         // Cached CSV values are not a current data source. Retain selection and explicit text overrides.
         if (next.dataMode !== 'manual') {
           next.dataMode = 'empty';
@@ -556,9 +519,42 @@
       svg.appendChild(overlay);
     }
 
+    // 模块 3 的 Canvas 指南按 SVG 坐标等比重绘，预览层不参与导出。
+    function renderSafeGuides(){
+      const layer=document.getElementById('douyinOverlay');
+      layer.innerHTML='';
+      if(!state.safeEnabled||!state.safeGuides)return;
+      const W=900,H=1200,{right,bottom}=getSafeArea(W,H);
+      const rw=W*right,bh=H*bottom;
+      if(rw>0)layer.appendChild(svgEl('rect',{x:W-rw,y:0,width:rw,height:H,fill:'rgba(255,80,110,0.12)'}));
+      if(bh>0)layer.appendChild(svgEl('rect',{x:0,y:H-bh,width:W,height:bh,fill:'rgba(255,179,37,0.13)'}));
+      const line={'stroke-dasharray':'10 8.33','stroke-width':2.5};
+      if(rw>0)layer.appendChild(svgEl('line',{...line,x1:W-rw,y1:0,x2:W-rw,y2:H,stroke:'rgba(255,88,124,0.92)'}));
+      if(bh>0)layer.appendChild(svgEl('line',{...line,x1:0,y1:H-bh,x2:W,y2:H-bh,stroke:'rgba(255,176,31,0.95)'}));
+      if(rw>0){
+        const x=W-rw-206.67;
+        layer.appendChild(svgEl('rect',{x,y:26.67,width:183.33,height:35,rx:11.67,fill:'rgba(255,88,124,0.92)'}));
+        layer.appendChild(svgEl('text',{x:x+91.67,y:50,fill:'#ffffff','font-size':16.67,'font-weight':800,'text-anchor':'middle'},'右侧交互安全区 '+Math.round(right*100)+'%'));
+      }
+      if(bh>0){
+        const y=H-bh-46.67;
+        layer.appendChild(svgEl('rect',{x:28.33,y,width:196.67,height:35,rx:11.67,fill:'rgba(255,176,31,0.96)'}));
+        layer.appendChild(svgEl('text',{x:126.67,y:y+23.34,fill:'#12202f','font-size':16.67,'font-weight':900,'text-anchor':'middle'},'底部文案安全区 '+Math.round(bottom*100)+'%'));
+      }
+    }
+
+    function fitPosterText(node,maxWidth){
+      const length=node.getComputedTextLength?.()||0;
+      if(length>maxWidth&&maxWidth>0){
+        node.setAttribute('textLength',maxWidth);
+        node.setAttribute('lengthAdjust','spacingAndGlyphs');
+      }
+    }
+
     function renderPoster() {
       const svg = document.getElementById('posterSvg');
       svg.innerHTML = '';
+      renderSafeGuides();
       const P = getPalette();
       const ready=completeMarketData();
       document.getElementById('exportBtn').disabled=!ready;
@@ -573,11 +569,12 @@
       const W = 900;
       const H = 1200;
       const leftPad = 44;
-      const rightSafeReserve = Math.round(W * (state.rightMarginPct / 100));
+      const safeArea=getSafeArea(W,H);
+      const rightSafeReserve=W-safeArea.rightEdge;
       const safeRightX = W - Math.max(36, rightSafeReserve + 14);
       const contentWidth = safeRightX - leftPad;
 
-      const bottomSafeReserve = Math.round(H * (state.bottomMarginPct / 100));
+      const bottomSafeReserve=H-safeArea.bottomEdge;
       const safeBottomY = H - Math.max(24, bottomSafeReserve);
 
       // 1. 背景层与细微网格
@@ -605,9 +602,16 @@
       svg.appendChild(svgEl('rect',{...card,fill:'url(#dotGrid)'}));
       svg.appendChild(svgEl('rect',{...card,fill:'none',stroke:P.cardBorder,'stroke-width':'1.5'}));
 
+      // 与模块 3 一样，仅裁剪内容层，完整保留背景。
+      const clip=svgEl('clipPath',{id:'posterSafeContentClip'});
+      clip.appendChild(svgEl('rect',{x:0,y:0,width:safeArea.rightEdge,height:safeArea.bottomEdge}));
+      defs.appendChild(clip);
+      const content=svgEl('g',{'clip-path':'url(#posterSafeContentClip)'});
+      svg.appendChild(content);
+
       // 顶部标签栏
-      svg.appendChild(svgEl('rect', { x: leftPad, y: 34, width: 48, height: 5.5, rx: 2.75, fill: P.upColor }));
-      svg.appendChild(svgEl('text', {
+      content.appendChild(svgEl('rect', { x: leftPad, y: 34, width: 48, height: 5.5, rx: 2.75, fill: P.upColor }));
+      content.appendChild(svgEl('text', {
         x: leftPad + 60, y: 41,
         fill: P.textSecondary,
         'font-size': '14',
@@ -616,7 +620,7 @@
       }, 'CHINA SMARTPHONE SELL-OUT · WEEKLY REPORT'));
 
       // 2. 海报头部标题区（紧凑排版避免海报过长）
-      svg.appendChild(svgEl('text', {
+      content.appendChild(svgEl('text', {
         x: leftPad, y: 86,
         fill: P.textPrimary,
         'font-size': '33',
@@ -624,7 +628,7 @@
         'letter-spacing': '-0.5'
       }, state.title));
 
-      svg.appendChild(svgEl('text', {
+      content.appendChild(svgEl('text', {
         x: leftPad, y: 118,
         fill: P.textSecondary,
         'font-size': '17.5',
@@ -633,7 +637,7 @@
 
       // 核心洞察摘要胶囊卡片
       const insightY = 136;
-      svg.appendChild(svgEl('rect', {
+      content.appendChild(svgEl('rect', {
         x: leftPad, y: insightY,
         width: contentWidth, height: 38,
         rx: 10,
@@ -641,7 +645,7 @@
         stroke: P.badgeBorder,
         'stroke-width': '1.5'
       }));
-      svg.appendChild(svgEl('text', {
+      content.appendChild(svgEl('text', {
         x: leftPad + 14, y: insightY + 24.5,
         fill: P.badgeText,
         'font-size': '16',
@@ -657,9 +661,15 @@
         [0,state.w1Label,state.w1Market,'基准周'],[1,state.w2Label,state.w2Market,'对比周']
       ]){
         const x = leftPad + i * (kpiW + kpiGap);
-        chartCard(svg, P, x, kpiY, kpiW, 52, 10);
-        chartText(svg, `${label} ${role}`, x + 14, kpiY + 20, P.textSecondary, 13, 600);
-        chartText(svg, market, x + 14, kpiY + 41, P.textPrimary, 16, 800);
+        chartCard(content, P, x, kpiY, kpiW, 52, 10);
+        chartText(content, `${label} ${role}`, x + 14, kpiY + 20, P.textSecondary, 13, 600);
+        chartText(content, market, x + 14, kpiY + 41, P.textPrimary, 16, 800);
+      }
+
+      const headerLimits=new Map([[41,contentWidth-60],[86,contentWidth],[118,contentWidth],[insightY+24.5,contentWidth-28],[kpiY+20,kpiW-28],[kpiY+41,kpiW-28]]);
+      for(const node of content.querySelectorAll('text')){
+        const limit=headerLimits.get(Number(node.getAttribute('y')));
+        if(limit)fitPosterText(node,limit);
       }
 
       // 3. 动态计算主图表区域（随下方安全区实时自适应压缩/舒展）
@@ -671,39 +681,41 @@
 
       // 根据当前选中的图表类型渲染对应图表
       if (state.chartType === 'combo') {
-        renderComboChart(svg, P, leftPad, chartTop, contentWidth, chartHeight);
+        renderComboChart(content, P, leftPad, chartTop, contentWidth, chartHeight);
       } else {
-        chartCard(svg, P, leftPad, chartTop, contentWidth, chartHeight, 18);
+        chartCard(content, P, leftPad, chartTop, contentWidth, chartHeight, 18);
 
         if (state.chartType === 'diverging') {
-          renderDivergingBarChart(svg, P, leftPad, chartTop, contentWidth, chartHeight, false);
+          renderDivergingBarChart(content, P, leftPad, chartTop, contentWidth, chartHeight, false);
         } else if (state.chartType === 'slope') {
-          renderSlopeChart(svg, P, leftPad, chartTop, contentWidth, chartHeight);
+          renderSlopeChart(content, P, leftPad, chartTop, contentWidth, chartHeight);
         } else if (state.chartType === 'dumbbell') {
-          renderDumbbellChart(svg, P, leftPad, chartTop, contentWidth, chartHeight);
+          renderDumbbellChart(content, P, leftPad, chartTop, contentWidth, chartHeight);
         } else if (state.chartType === 'stacked') {
-          renderStackedFlowChart(svg, P, leftPad, chartTop, contentWidth, chartHeight);
+          renderStackedFlowChart(content, P, leftPad, chartTop, contentWidth, chartHeight);
         }
       }
 
       // 4. 底部注脚区（紧贴下方安全区上沿，不越界）
-      svg.appendChild(svgEl('line', {
+      content.appendChild(svgEl('line', {
         x1: leftPad, y1: footerY,
         x2: safeRightX, y2: footerY,
         stroke: P.cardBorder, 'stroke-width': '1'
       }));
-      svg.appendChild(svgEl('text', {
+      content.appendChild(svgEl('text', {
         x: leftPad, y: footerY + 17,
         fill: P.textMuted,
         'font-size': '13.5',
         'font-weight': '500'
       }, state.footerSource));
-      svg.appendChild(svgEl('text', {
+      content.appendChild(svgEl('text', {
         x: leftPad, y: footerY + 36,
         fill: P.textMuted,
         'font-size': '13',
         'font-weight': '500'
       }, state.footerNote));
+      // 最后两项为底部文案，按安全可用宽度适配。
+      for(const node of Array.from(content.children).slice(-2))fitPosterText(node,contentWidth);
       renderImageWatermark(svg,W,H,safeRightX,safeBottomY);
     }
 
@@ -1511,6 +1523,8 @@
       const svg = document.getElementById('posterSvg');
       const fontCss=await embeddedNumberFontCss();
       if(!completeMarketData())return;
+      // 字体加载后重新测量文字，导出与最终布局一致。
+      renderPoster();
       const exportSvg=svg.cloneNode(true);
       // 保留 900×1200 viewBox，直接以目标像素尺寸栅格化。
       exportSvg.setAttribute('width', String(width));
@@ -1618,6 +1632,16 @@
       otherOpt.style.opacity = hasList ? '1' : '0.45';
     }
 
+    function syncSafeControls(){
+      const r=state.rightMarginPct,b=state.bottomMarginPct;
+      document.getElementById('safeEnable').checked=!!state.safeEnabled;
+      document.getElementById('safeGuides').checked=!!state.safeGuides;
+      document.getElementById('safeRight').value=r;
+      document.getElementById('safeBottom').value=b;
+      document.getElementById('safeRightVal').textContent=r+'%'+(r===13?'（推荐）':'');
+      document.getElementById('safeBottomVal').textContent=b+'%'+(b===10?'（推荐）':'');
+    }
+
     function syncUIWithState() {
       document.querySelectorAll('.chart-btn').forEach(b => {
         if (b.dataset.type === state.chartType) {
@@ -1629,8 +1653,7 @@
 
       document.getElementById('toggleOtherBrand').checked = !!state.showOtherBrand;
       document.getElementById('splitSubBrands').checked = !!state.splitSubBrands;
-      document.getElementById('toggleSafeZone').checked = !!state.showSafeZone;
-      document.getElementById('douyinOverlay').style.opacity = state.showSafeZone ? '1' : '0';
+      syncSafeControls();
 
       document.getElementById('inputTitle').value = state.title;
       document.getElementById('inputSubtitle').value = state.subtitle;
@@ -1643,21 +1666,7 @@
       document.getElementById('inputFooterNote').value = state.footerNote ?? '';
       PosterWatermark.sync(state.watermark);
 
-      const rVal = state.rightMarginPct;
-      document.getElementById('safeRightSlider').value = rVal;
-      document.getElementById('safeRightVal').textContent = rVal === 13 ? '13% (推荐)' : `${rVal}%`;
-      document.getElementById('dyRightTag').textContent = `${rVal}%`;
-      const dyRightZone = document.getElementById('dyRightZone');
-      dyRightZone.style.width = `${rVal}%`;
-      dyRightZone.style.display = rVal === 0 ? 'none' : 'flex';
 
-      const bVal = state.bottomMarginPct;
-      document.getElementById('safeBottomSlider').value = bVal;
-      document.getElementById('safeBottomVal').textContent = bVal === 10 ? '10% (推荐)' : `${bVal}%`;
-      document.getElementById('dyBottomTag').textContent = `${bVal}%`;
-      const dyBottomZone = document.getElementById('dyBottomZone');
-      dyBottomZone.style.height = `${bVal}%`;
-      dyBottomZone.style.display = bVal === 0 ? 'none' : 'flex';
     }
 
     function initEvents() {
@@ -1731,42 +1740,15 @@
         }
       });
 
-      const dyOverlay = document.getElementById('douyinOverlay');
-      document.getElementById('toggleSafeZone').addEventListener('change', (e) => {
-        state.showSafeZone = e.target.checked;
-        dyOverlay.style.opacity = state.showSafeZone ? '1' : '0';
-        saveStateToLocal();
-      });
-
-      const rightSlider = document.getElementById('safeRightSlider');
-      const rightVal = document.getElementById('safeRightVal');
-      const dyRightZone = document.getElementById('dyRightZone');
-      const dyRightTag = document.getElementById('dyRightTag');
-      rightSlider.addEventListener('input', (e) => {
-        const val = parseInt(e.target.value, 10);
-        state.rightMarginPct = val;
-        rightVal.textContent = val === 13 ? '13% (推荐)' : `${val}%`;
-        dyRightTag.textContent = `${val}%`;
-        dyRightZone.style.width = `${val}%`;
-        dyRightZone.style.display = val === 0 ? 'none' : 'flex';
+      function safeChanged(){
+        syncSafeControls();
         saveStateToLocal();
         renderPoster();
-      });
-
-      const bottomSlider = document.getElementById('safeBottomSlider');
-      const bottomVal = document.getElementById('safeBottomVal');
-      const dyBottomZone = document.getElementById('dyBottomZone');
-      const dyBottomTag = document.getElementById('dyBottomTag');
-      bottomSlider.addEventListener('input', (e) => {
-        const val = parseInt(e.target.value, 10);
-        state.bottomMarginPct = val;
-        bottomVal.textContent = val === 10 ? '10% (推荐)' : `${val}%`;
-        dyBottomTag.textContent = `${val}%`;
-        dyBottomZone.style.height = `${val}%`;
-        dyBottomZone.style.display = val === 0 ? 'none' : 'flex';
-        saveStateToLocal();
-        renderPoster();
-      });
+      }
+      document.getElementById('safeEnable').addEventListener('change',e=>{state.safeEnabled=e.target.checked;safeChanged()});
+      document.getElementById('safeGuides').addEventListener('change',e=>{state.safeGuides=e.target.checked;safeChanged()});
+      document.getElementById('safeRight').addEventListener('input',e=>{state.rightMarginPct=normalizeSafeMargin(Number(e.target.value),30,13);safeChanged()});
+      document.getElementById('safeBottom').addEventListener('input',e=>{state.bottomMarginPct=normalizeSafeMargin(Number(e.target.value),25,10);safeChanged()});
 
       document.getElementById('inputTitle').addEventListener('input', (e) => {
         state.title = e.target.value;
@@ -1792,6 +1774,7 @@
     window.addEventListener('DOMContentLoaded', () => {
       initEvents();
       renderPoster();
+      document.fonts?.ready.then(()=>renderPoster());
     });
   </script>
   <script src="market-share-import.js"></script>

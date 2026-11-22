@@ -157,7 +157,7 @@
 </div><div class="msg" id="archiveHistoryStatus" aria-live="polite">正在读取仓库历史数据…</div>
 <details id="archiveHistoryDetails" open style="margin-top:12px"><summary>查看历史榜单（只读）</summary>
 <label class="lbl" for="archiveSelect">选择历史榜单（同步图文工作台）</label><select id="archiveSelect" class="field ui-field"></select>
-<button type="button" class="secondary" id="archiveUseStudio" style="margin-top:8px" disabled>使用所选历史榜单生成图文</button>
+<button type="button" class="primary" id="archiveUseStudio" style="margin-top:8px" disabled>用所选历史榜单生成图卡</button>
 <div class="tablewrap" style="margin-top:8px"><table class="ranktable"><thead><tr><th>排名</th><th>机型</th><th>品牌系列</th><th class="num">估算销量 / 万台</th></tr></thead><tbody id="archiveRows"></tbody></table></div></details></section>
 <section class="panel" id="module3-tracker" role="tabpanel" aria-labelledby="module3-tab-tracker" hidden style="display:none"><h2 class="panel-title">热销机型追踪</h2>
 <div id="modelMasterStatus" class="msg" aria-live="polite">正在读取机型主数据…</div><button id="modelMasterRetry" type="button" class="secondary" hidden>重试读取机型主数据</button>
@@ -173,7 +173,7 @@
 <div class="tablewrap"><table class="ranktable"><thead><tr><th>机型</th><th>正式开售日</th><th>末周生命周期</th><th>观测覆盖率</th><th>插补周数</th><th class="num">最新自然周销量 / 万台</th><th class="num">自然周区间累计 / 万台</th></tr></thead><tbody id="trackerRows"></tbody></table></div></section>
 <section class="studio panel" id="socialStudio" role="tabpanel" aria-labelledby="module3-tab-social" hidden style="display:none">
   <h2 class="studio-title">图文内容工作台</h2>
-  <div class="msg" style="margin:0 0 10px;display:flex;flex-wrap:wrap;align-items:center;gap:8px;justify-content:space-between"><span id="studioSource" aria-live="polite">图文数据源：当前标定榜单</span><button id="studioUseCurrent" type="button" class="secondary" hidden>切回当前标定榜单</button></div>
+  <div class="msg" style="margin:0 0 10px;display:flex;flex-wrap:wrap;align-items:center;gap:8px;justify-content:space-between"><span id="studioSource" aria-live="polite">图文数据源：当前标定榜单</span><div style="display:flex;flex-wrap:wrap;gap:8px"><button id="studioReturnSource" type="button" class="primary" hidden>返回来源页面</button><button id="studioUseCurrent" type="button" class="secondary" hidden>切回当前标定榜单</button></div></div>
   <div id="qualityGuard" class="msg warn" style="margin:0 0 18px">尚无标定数据：可预览像素比例，正式图卡与发布文案需先填入已知销量。</div>
   <div class="studio-grid">
     <div class="studio-controls">

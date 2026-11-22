@@ -198,7 +198,7 @@
   function onProductFilterChange(){updateProductInfo(currentScope());trackerOptions();syncResearchEditors();renderTracker();renderResearch();}
   for(const n of Object.values(productControls))n.onchange=onProductFilterChange;
   $('productFilterReset').onclick=()=>{for(const n of Object.values(productControls))n.value='';onProductFilterChange();};
-  const researchControlIds=['trackerCoverage','trackerCoverageBase','trackerDataMode','trackerImputeRule','trackerMaxGap','trackerMissingBoard','trackerTrailing','trackerMode','researchStreak','headView','headBrand','headTrendMetric','headConcentration','brandView','brandMetric','brandCon','researchGroupField','researchGroupMode','researchGenerationLevel','trackerAxis','researchTailView','researchNewWeeks','priceCuts','priceView','priceMetric','priceBrandLevel','positionView','positionBrandLevel','positionHigh','chipDimension','chipView','chipMetric','chipLimit','ageView','ageMetric','ageBrandLevel','crossRow','crossColumn','crossMetric','crossRange','crossLimit',...filterIds];
+  const researchControlIds=['trackerCoverage','trackerCoverageBase','trackerDataMode','trackerImputeRule','trackerMaxGap','trackerMissingBoard','trackerTrailing','trackerMode','trackerTrendView','researchStreak','headView','headBrand','headTrendMetric','headConcentration','brandView','brandMetric','brandCon','researchGroupField','researchGroupMode','researchGenerationLevel','trackerAxis','researchTailView','researchNewWeeks','priceCuts','priceView','priceMetric','priceBrandLevel','positionView','positionBrandLevel','positionHigh','chipDimension','chipView','chipMetric','chipLimit','ageView','ageMetric','ageBrandLevel','crossRow','crossColumn','crossMetric','crossRange','crossLimit',...filterIds];
   const safeEntries=value=>Array.isArray(value)?value.filter(v=>Array.isArray(v)&&v.length===2&&typeof v[0]==='string'):[];
   let catalog=[],activeScopeId='',restoringScope=false;
   const scopeSettings=new Map(safeEntries(storedResearch.scopes));
@@ -297,11 +297,95 @@
   // Rank is always read from the original board, never inferred from estimated sales.
   const trackerView=document.createElement('select');
   trackerView.id='trackerTrendView';trackerView.className='field ui-field';
-  trackerView.innerHTML='<option value="both">销量与排名走势</option><option value="sales">仅销量走势</option><option value="rank">仅排名走势</option>';
+  trackerView.innerHTML='<option value="both">销量与排名走势</option><option value="sales">仅销量走势</option><option value="rank">仅排名走势</option><option value="matrix">历史排名矩阵</option>';
   const trackerViewBox=document.createElement('div');
   const trackerViewLabel=document.createElement('label');trackerViewLabel.className='lbl';trackerViewLabel.htmlFor=trackerView.id;trackerViewLabel.textContent='追踪图表';
   trackerViewBox.append(trackerViewLabel,trackerView);$('trackerChart').before(trackerViewBox);
   trackerView.onchange=()=>renderTracker();
+  const trendExport=document.createElement('button');trendExport.type='button';trendExport.className='secondary';trendExport.textContent='导出当前图表 PNG';trendExport.disabled=true;trendExport.style.marginTop='8px';trackerViewBox.append(trendExport);
+  const trendHint=document.createElement('p');trendHint.className='mini';trendHint.textContent='PNG 使用图文工作台当前水印及导出宽度，不包含安全区裁切。';trackerViewBox.append(trendHint);
+  let trendSnapshot=null,trendBusy=false;
+  function captureTrend(chart,scope,metric){
+    const plots=[...chart.querySelectorAll('svg')].map(svg=>{
+      const copy=svg.cloneNode(true),box=svg.viewBox.baseVal;
+      copy.setAttribute('xmlns','http://www.w3.org/2000/svg');copy.setAttribute('width',box.width);copy.setAttribute('height',box.height);
+      copy.removeAttribute('style');copy.setAttribute('color','#202a3d');copy.setAttribute('font-family',CJK_FONT);
+      copy.querySelectorAll('[data-trend-guide]').forEach(n=>n.remove());
+      return {title:svg.previousElementSibling?.textContent||'',width:box.width,height:box.height,xml:new XMLSerializer().serializeToString(copy)};
+    });
+    if(!plots.length)return;
+    const range=scope.weeks[0].period+'—'+scope.weeks.at(-1).period;
+    trendSnapshot={plots,names:trackerPublicationChart.lines.map(l=>({name:l.name,color:l.color})),title:'热销机型追踪 · '+trackerView.selectedOptions[0].textContent,source:scope.source+' / '+scope.series,range:range+(lifeMode()?' · 完整销售周 W1 起':' · ISO 自然周'),filenameRange:range,mode:trackerView.value,metricNote:'实线/实心点：原始观测；销量虚线/空心点：含插补。'+(metric==='cumulative_wan'?' 累计按当前统计口径。':'')};
+    trendExport.disabled=trendBusy;
+  }
+  trendExport.onclick=async()=>{
+    if(!trendSnapshot||trendBusy)return;
+    const snapshot=trendSnapshot,wm={...watermarkState},width=PosterExport.widthOf($('posterExportWidth').value);
+    trendBusy=true;trendExport.disabled=true;
+    try{
+      await PosterExport.waitForFonts();
+      const blob=await PosterExport.canvasPNG(async canvas=>{
+        const maxW=Math.max(...snapshot.plots.map(p=>p.width)),padding=32,logicalW=maxW+padding*2;
+        const cols=Math.max(1,Math.floor(maxW/230)),legendH=Math.ceil(snapshot.names.length/cols)*34;
+        const logicalH=155+legendH+snapshot.plots.reduce((a,p)=>a+p.height+52,0)+100;
+        const scale=Math.min(width/logicalW,16000/logicalH,Math.sqrt(40000000/(logicalW*logicalH)));
+        canvas.width=Math.max(1,Math.round(logicalW*scale));canvas.height=Math.max(1,Math.round(logicalH*scale));
+        const ctx=canvas.getContext('2d');ctx.scale(scale,scale);ctx.fillStyle='#fff';ctx.fillRect(0,0,logicalW,logicalH);
+        const text=(v,x,y,size=18,color='#202a3d',max=logicalW-64)=>{ctx.fillStyle=color;ctx.font='600 '+size+'px '+CJK_FONT;ctx.fillText(v,x,y,max);};
+        text(snapshot.title,padding,52,32);text(snapshot.source,padding,86,18,'#64748b');text(snapshot.range,padding,114,18,'#64748b');
+        snapshot.names.forEach((l,i)=>{const x=padding+(i%cols)*maxW/cols,y=150+Math.floor(i/cols)*34;ctx.fillStyle=l.color;ctx.fillRect(x,y-12,16,8);text(l.name,x+22,y,16,'#202a3d',maxW/cols-28);});
+        let y=155+legendH;
+        for(const p of snapshot.plots){
+          text(p.title,padding,y+24,22);y+=40;
+          const url=URL.createObjectURL(new Blob([p.xml],{type:'image/svg+xml;charset=utf-8'}));
+          try{const img=new Image();await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=()=>reject(new Error('图表图像生成失败'));img.src=url;});ctx.drawImage(img,padding,y,p.width,p.height);}finally{URL.revokeObjectURL(url);}
+          y+=p.height+12;
+        }
+        text('仅历史榜单估算样本，非全市场；缺失不等于零，排名不插补。',padding,y+20,17,'#64748b');
+        text(snapshot.metricNote,padding,y+48,17,'#64748b');
+        drawImageWatermark(ctx,logicalW,logicalH,0,0,wm,{safeEnabled:false},{muted:'#425772'});
+      });
+      PosterExport.downloadBlob(blob,'机型追踪-'+snapshot.mode+'-'+snapshot.filenameRange+'.png');notify('图表 PNG 已生成');
+    }catch(err){notify('图表导出失败：'+err.message);}finally{trendBusy=false;trendExport.disabled=!trendSnapshot;}
+  };
+  function linkTrackerPlots(host,sales,rank){
+    const svgs=[...host.querySelectorAll('svg')],n=sales.periods.length;if(!n||!svgs.length)return;
+    const ns='http://www.w3.org/2000/svg',info=document.createElement('div');info.className='msg';info.style.cssText='position:sticky;left:0;max-width:100%;overflow-wrap:anywhere';info.textContent='移动鼠标或点击数据区，查看所选周的销量与排名。';host.prepend(info);
+    const guides=svgs.map(svg=>{
+      const g=document.createElementNS(ns,'line');g.setAttribute('data-trend-guide','1');g.setAttribute('y1','25');g.setAttribute('y2','265');g.setAttribute('stroke','#64748b');g.setAttribute('stroke-dasharray','4 4');g.setAttribute('pointer-events','none');g.setAttribute('visibility','hidden');svg.append(g);return {svg,g};
+    });
+    function show(i){
+      guides.forEach(({svg,g})=>{const W=svg.viewBox.baseVal.width,x=n===1?(56+W-55)/2:56+i*(W-111)/(n-1);g.setAttribute('x1',x);g.setAttribute('x2',x);g.setAttribute('visibility','visible');});
+      info.replaceChildren();const title=document.createElement('strong');title.textContent=sales.periods[i];info.append(title);
+      sales.lines.forEach((l,j)=>{
+        const p=rank.lines[j]?.points[i],v=l.values[i],row=document.createElement('div');row.style.color=l.color;
+        row.textContent=l.name+'：'+(Number.isFinite(v)?v.toFixed(2)+' 万台'+(l.imputed?.[i]?'（含插补）':''):'销量缺失')+' / '+(Number.isFinite(p?.value)?'第 '+p.value+' 名（TOP '+p.top+'）':p?.status||'无对应记录')+(lifeMode()&&p?.period?' · '+p.period:'');info.append(row);
+      });
+    }
+    for(const {svg} of guides){
+      const move=ev=>{const pt=svg.createSVGPoint();pt.x=ev.clientX;pt.y=ev.clientY;const matrix=svg.getScreenCTM();if(!matrix)return;const q=pt.matrixTransform(matrix.inverse()),W=svg.viewBox.baseVal.width;if(q.y<25||q.y>265||q.x<50||q.x>W-49)return;show(n===1?0:Math.max(0,Math.min(n-1,Math.round((q.x-56)/(W-111)*(n-1)))));};
+      svg.addEventListener('pointermove',move);svg.addEventListener('click',move);
+      svg.addEventListener('pointerleave',()=>guides.forEach(({g})=>g.setAttribute('visibility','hidden')));
+    }
+  }
+  function renderTrackerMatrix(host,rank){
+    if(!rank.periods.length)return;
+    const ns='http://www.w3.org/2000/svg',svg=document.createElementNS(ns,'svg'),L=230,T=48,cw=78,ch=34,W=Math.max(720,L+rank.periods.length*cw+20),H=T+rank.lines.length*ch+55;
+    svg.setAttribute('viewBox','0 0 '+W+' '+H);svg.setAttribute('role','img');svg.setAttribute('aria-label','历史原始排名矩阵');svg.style.cssText='display:block;width:100%;min-width:'+W+'px';
+    function node(tag,attrs,txt,parent=svg){const el=document.createElementNS(ns,tag);for(const [k,v] of Object.entries(attrs))el.setAttribute(k,v);if(txt!=null)el.textContent=txt;parent.append(el);return el;}
+    const fill=v=>v===1?'#164e87':v<=3?'#327ab5':v<=5?'#83b6dc':v<=10?'#c6ddf0':'#e8f0f8';
+    rank.periods.forEach((p,i)=>node('text',{x:L+(i+.5)*cw,y:30,'text-anchor':'middle','font-size':12,fill:'currentColor'},p));
+    rank.lines.forEach((l,j)=>{
+      const yy=T+j*ch;const name=node('text',{x:L-10,y:yy+22,'text-anchor':'end','font-size':13,fill:'currentColor'},l.name.length>17?l.name.slice(0,16)+'…':l.name);node('title',{},l.name,name);
+      l.points.forEach((p,i)=>{
+        const v=p?.value,x=L+i*cw,valid=Number.isFinite(v),rect=node('rect',{x:x+2,y:yy+2,width:cw-4,height:ch-4,rx:4,fill:valid?fill(v):'#f1f3f5',stroke:valid?'none':'#d7dce2'});
+        node('title',{},l.name+' · '+(p?.period||rank.periods[i])+' · '+(valid?'第'+v+'名 / TOP '+p.top:p?.status||'无对应记录'),rect);
+        node('text',{x:x+cw/2,y:yy+22,'text-anchor':'middle','font-size':14,fill:valid&&v<=3?'#fff':'#334155','pointer-events':'none'},valid?v:p?.status==='榜单缺失'?'×':'—');
+      });
+    });
+    node('text',{x:10,y:H-25,'font-size':13,fill:'currentColor'},'深蓝：前3名  ·  蓝色：4–10名  ·  浅蓝：11名以后  ·  × 榜单缺失  ·  — 无排名记录');
+    host.append(svg);
+  }
   function trackerRankChart(scope,curves,periods){
     const rankOf=(w,key)=>{const r=w.map.get(key),v=Number(r?.[col.rank]);return Number.isSafeInteger(v)&&v>0?v:null;};
     return {periods,lines:curves.map(o=>{
@@ -342,9 +426,9 @@
     const note=document.createElement('p');note.className='mini';note.textContent='原始榜单排名，不因筛选重新排名；无记录留空，不插补。各期榜单规模可能不同，排名不代表全市场排名。';host.append(note);
   }
   let trackerPublicationChart=null;
-  function renderTracker(){try{renderTrackerContent();}catch(err){trackerPublicationChart=null;$('trackerExport').disabled=true;reportResearchError(err);throw err;}finally{if(researchView==='model')saveResearchPreferences();}}
+  function renderTracker(){try{renderTrackerContent();}catch(err){trackerPublicationChart=null;trendSnapshot=null;trendExport.disabled=true;$('trackerExport').disabled=true;reportResearchError(err);throw err;}finally{if(researchView==='model')saveResearchPreferences();}}
   function renderTrackerContent(){
-    trackerPublicationChart=null;
+    trackerPublicationChart=null;trendSnapshot=null;trendExport.disabled=true;
     const scope=currentScope(), chart=$('trackerChart'), legend=$('trackerLegend'), table=$('trackerRows');
     chart.replaceChildren();legend.replaceChildren();table.replaceChildren();
     $('trackerExport').disabled=!scope||!scope.models.some(m=>trackerSelected.has(m.key)&&matchesAttributes(m.key));
@@ -365,13 +449,16 @@
     }
     const rankChart=trackerRankChart(scope,curves,trackerPublicationChart.periods);
     const addHeading=text=>{const h=document.createElement('h3');h.textContent=text;h.style.margin='16px 0 4px';chart.append(h);};
-    if(trackerView.value!=='rank'){
+    if(trackerView.value==='both'||trackerView.value==='sales'){
       addHeading(metric==='cumulative_wan'?'累计销量增量走势':'周销量走势');
       ResearchCharts.svgLine(chart,legend,trackerPublicationChart,'热销机型销量折线图',4);
     }else{
       for(const l of trackerPublicationChart.lines){const span=document.createElement('span');span.style.color=l.color;span.textContent='● '+l.name;legend.append(span);}
     }
-    if(trackerView.value!=='sales'){addHeading('榜单排名走势');renderTrackerRank(chart,rankChart);}
+    if(trackerView.value==='both'||trackerView.value==='rank'){addHeading('榜单排名走势');renderTrackerRank(chart,rankChart);}
+    if(trackerView.value==='matrix'){addHeading('历史排名矩阵');renderTrackerMatrix(chart,rankChart);}
+    captureTrend(chart,scope,metric);
+    if(trackerView.value!=='matrix')linkTrackerPlots(chart,trackerPublicationChart,rankChart);
     for(const o of curves){
       const last=o.rows[o.rows.length-1], n=o.rows.filter(r=>r[c.is_imputed]==='1').length;
       const show=v=>v===''?'—':Number(v).toFixed(2);

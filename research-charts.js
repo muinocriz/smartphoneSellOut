@@ -162,6 +162,25 @@ function drawResearchHeatmap(ctx,chart,box,p,note=''){
 }
 const ResearchCharts=(()=>{
  const COLORS=['#2563eb','#ea580c','#059669','#9333ea','#db2777','#0891b2','#92400e','#64748b','#be123c','#4d7c0f','#0369a1','#7c3aed'];
+ const MARKERS=['○','▲','■','◆','▽','⬟','●','△','□','◇','▼','⬠','⬢','⬡','◀','▷','▶','◁'];
+ function markerAt(i){return MARKERS[i%MARKERS.length];}
+ function markerGeometry(marker,x,y,r){
+  const m=marker||'●',hollow='○△□◇▽⬠⬡▷◁'.includes(m);
+  const sides='▲△▼▽◀◁▶▷'.includes(m)?3:'■□◆◇'.includes(m)?4:'⬟⬠'.includes(m)?5:'⬢⬡'.includes(m)?6:0;
+  const rotation='■□'.includes(m)?Math.PI/4:'▼▽'.includes(m)?Math.PI/2:'◀◁'.includes(m)?Math.PI:'▶▷'.includes(m)?0:-Math.PI/2;
+  return {hollow,vertices:sides?Array.from({length:sides},(_,i)=>[x+r*Math.cos(rotation+i*2*Math.PI/sides),y+r*Math.sin(rotation+i*2*Math.PI/sides)]):null};
+ }
+ function svgMarker(marker,x,y,r,color,estimated=false,title=''){
+  const {hollow,vertices}=markerGeometry(marker,x,y,r);
+  const tag=vertices?'polygon':'circle',geometry=vertices?'points="'+vertices.map(v=>v.join(',')).join(' ')+'"':'cx="'+x+'" cy="'+y+'" r="'+r+'"';
+  return '<'+tag+' '+geometry+' stroke="'+color+'" stroke-width="1.8" fill="'+(estimated||hollow?'white':color)+'">'+title+'</'+tag+'>';
+ }
+ function canvasMarker(ctx,marker,x,y,r,color,estimated=false){
+  const {hollow,vertices}=markerGeometry(marker,x,y,r);
+  ctx.save();ctx.beginPath();
+  if(vertices){vertices.forEach(([a,b],i)=>i?ctx.lineTo(a,b):ctx.moveTo(a,b));ctx.closePath();}else ctx.arc(x,y,r,0,Math.PI*2);
+  ctx.fillStyle=estimated||hollow?'#ffffff':color;ctx.strokeStyle=color;ctx.lineWidth=1.8;ctx.fill();ctx.stroke();ctx.restore();
+ }
  function lineScale(chart,box){
   const n=chart.periods.length,max=chart.lines.reduce((m,l)=>l.values.reduce((a,v)=>Number.isFinite(v)?Math.max(a,v):a,m),1);
   const step=Math.pow(10,Math.floor(Math.log10(max)))/2,top=chart.limit||Math.ceil(max/step)*step;
@@ -171,7 +190,7 @@ const ResearchCharts=(()=>{
   chart.lines.forEach((l,j)=>{const color=l.color||COLORS[j%COLORS.length];l.values.forEach((v,i)=>{
    if(!Number.isFinite(v))return;
    const prev=i>0&&Number.isFinite(l.values[i-1]),estimated=!!l.imputed?.[i];
-   visit({name:l.name,period:chart.periods[i],value:v,color,x:scale.x(i),y:scale.y(v),estimated,previous:prev?{x:scale.x(i-1),y:scale.y(l.values[i-1]),dashed:estimated||!!l.imputed?.[i-1]}:null});
+   visit({name:l.name,period:chart.periods[i],value:v,color,marker:l.marker,x:scale.x(i),y:scale.y(v),estimated,previous:prev?{x:scale.x(i-1),y:scale.y(l.values[i-1]),dashed:estimated||!!l.imputed?.[i-1]}:null});
   });});
  }
  function svgLine(host,legend,chart,label,precision=2){
@@ -183,14 +202,14 @@ const ResearchCharts=(()=>{
   for(let i=0;i<=4;i++){const v=top*i/4;content+='<line x1="'+L+'" x2="'+R+'" y1="'+y(v)+'" y2="'+y(v)+'" stroke="currentColor" opacity=".14"/><text x="'+(L-8)+'" y="'+(y(v)+4)+'" text-anchor="end" fill="currentColor" font-size="11">'+Number(v.toFixed(2))+'</text>';}
   const stride=Math.max(1,Math.ceil(n/15));chart.periods.forEach((w,i)=>{if(i%stride===0||i===n-1)content+='<text x="'+x(i)+'" y="'+(B+20)+'" text-anchor="middle" fill="currentColor" font-size="10">'+esc(w)+'</text>';});
   points(chart,scale,p=>{const color=esc(p.color);if(p.previous)content+='<line x1="'+p.previous.x+'" y1="'+p.previous.y+'" x2="'+p.x+'" y2="'+p.y+'" stroke="'+color+'" stroke-width="2.5" '+(p.previous.dashed?'stroke-dasharray="6 4"':'')+'/>';
-   content+='<circle cx="'+p.x+'" cy="'+p.y+'" r="3.5" stroke="'+color+'" stroke-width="2" fill="'+(p.estimated?'white':color)+'"><title>'+esc(p.name+' · '+p.period+' · '+p.value.toFixed(precision)+' '+chart.unit+(p.estimated?'（含插补）':''))+'</title></circle>';
+   content+=svgMarker(p.marker,p.x,p.y,4.5,color,p.estimated,'<title>'+esc(p.name+' · '+p.period+' · '+p.value.toFixed(precision)+' '+chart.unit+(p.estimated?'（含插补）':''))+'</title>');
   });
-  chart.lines.forEach((l,i)=>{const span=document.createElement('span');span.style.color=l.color||COLORS[i%COLORS.length];span.textContent='● '+l.name;legend.append(span);});
+  chart.lines.forEach((l,i)=>{const span=document.createElement('span');span.style.color=l.color||COLORS[i%COLORS.length];span.textContent=(l.marker||'●')+' '+l.name;legend.append(span);});
   const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox','0 0 '+W+' '+H);svg.setAttribute('role','img');svg.setAttribute('aria-label',label);svg.style.cssText='width:100%;min-width:560px';svg.innerHTML=content;host.append(svg);
  }
  function canvasLine(ctx,chart,scale){
   points(chart,scale,p=>{if(p.previous){ctx.save();ctx.strokeStyle=p.color;ctx.lineWidth=4;ctx.setLineDash(p.previous.dashed?[11,8]:[]);ctx.beginPath();ctx.moveTo(p.previous.x,p.previous.y);ctx.lineTo(p.x,p.y);ctx.stroke();ctx.restore();}
-   ctx.beginPath();ctx.arc(p.x,p.y,chart.periods.length>35?3.5:5,0,Math.PI*2);ctx.fillStyle=p.estimated?'#ffffff':p.color;ctx.strokeStyle=p.color;ctx.lineWidth=2.5;ctx.fill();ctx.stroke();
+   canvasMarker(ctx,p.marker,p.x,p.y,chart.periods.length>35?3.5:5,p.color,p.estimated);
   });
  }
  function renderComposition(host,chart,label){
@@ -203,5 +222,5 @@ const ResearchCharts=(()=>{
   if(chart.kind==='heatmap')drawResearchHeatmap(ctx,chart,box,p);else if(chart.kind==='scatter'||chart.kind==='bars')drawHeadStaticPoster(ctx,p,{chart,chartNote:''},box);else drawBrandComposition(ctx,chart,box,p,'');
   host.append(canvas);
  }
- return Object.freeze({lineScale,svgLine,canvasLine,renderComposition});
+ return Object.freeze({lineScale,svgLine,canvasLine,renderComposition,markerAt,svgMarker,canvasMarker});
 })();

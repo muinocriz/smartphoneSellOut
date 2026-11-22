@@ -319,7 +319,7 @@ function drawTrackerTrendPoster(ctx,p,s,box){
   note();return;
  }
  const cols=count<=2?count:count<=6?2:count<=12?3:4,rows=Math.ceil(count/cols),step=Math.min(34,height*.23/rows),cell=width/cols;
- lines.forEach((l,i)=>{const x=left+i%cols*cell,y=top+(Math.floor(i/cols)+.8)*step;ctx.fillStyle=l.color;ctx.fillRect(x,y-10,16,5);posterFitText(ctx,l.name,x+22,y,Math.min(22,step*.75),p.ink,'600','left',cell-26);});
+ lines.forEach((l,i)=>{const x=left+i%cols*cell,y=top+(Math.floor(i/cols)+.8)*step;ResearchCharts.canvasMarker(ctx,l.marker,x+8,y-6,6,l.color);posterFitText(ctx,l.name,x+22,y,Math.min(22,step*.75),p.ink,'600','left',cell-26);});
  const plotTop=top+rows*step+12,plotBottom=bottom-noteHeight,gap=both?32:0,part=(plotBottom-plotTop-gap)/(both?2:1);
  if(!auditPlot(ctx,width-100,part-55,'机型追踪绘图区',260,both?95:150))return;
  function plot(isRank,yStart){
@@ -357,7 +357,7 @@ function drawResearchPosterContent(ctx,L,p,s){
   const cols=count<=2?Math.max(1,count):count<=6?2:count<=12?3:4;
   const legendRows=Math.ceil(count/cols),legendStep=Math.min(36,height*.29/Math.max(1,legendRows));
   const cellW=width/cols,colors=['#2563eb','#ea580c','#059669','#9333ea','#db2777','#0891b2','#92400e','#64748b','#be123c','#4d7c0f','#0369a1','#7c3aed'];
-  lines.forEach((l,i)=>{const x=left+(i%cols)*cellW,y=start+(Math.floor(i/cols)+.77)*legendStep,color=l.color||colors[i%colors.length];ctx.fillStyle=color;ctx.fillRect(x,y-12,17,5);posterFitText(ctx,l.name,x+23,y,Math.min(24,legendStep*.78),p.ink,'600','left',cellW-28);});
+  lines.forEach((l,i)=>{const x=left+(i%cols)*cellW,y=start+(Math.floor(i/cols)+.77)*legendStep,color=l.color||colors[i%colors.length];if(l.marker)ResearchCharts.canvasMarker(ctx,l.marker,x+8,y-8,6,color);else{ctx.fillStyle=color;ctx.fillRect(x,y-12,17,5);}posterFitText(ctx,l.name,x+23,y,Math.min(24,legendStep*.78),p.ink,'600','left',cellW-28);});
   const x0=left+68,x1=right-32,y0=start+legendRows*legendStep+34,y1=bottom-88;
   if(!auditPlot(ctx,x1-x0,y1-y0,'折线图绘图区',260,150))return;
   const scale=ResearchCharts.lineScale(s.chart,{left:x0,right:x1,top:y0,bottom:y1}),{top,x,y}=scale;

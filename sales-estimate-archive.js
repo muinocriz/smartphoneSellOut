@@ -317,13 +317,15 @@
   function renderTrackerRank(host,rank){
     const n=rank.periods.length;if(!n)return;
     const W=Math.max(720,n*48+110),H=310,L=56,R=W-55,T=25,B=265;
-    const max=Math.max(2,...rank.lines.flatMap(l=>l.points.map(p=>p?.value||0)));
-    const x=i=>n===1?(L+R)/2:L+i*(R-L)/(n-1),y=v=>T+(v-1)*(B-T)/(max-1);
+    const ranks=rank.lines.flatMap(l=>l.points.map(p=>p?.value)).filter(Number.isFinite);
+    if(!ranks.length){const empty=document.createElement('p');empty.className='mini';empty.textContent='当前区间无原始排名记录。';host.append(empty);return;}
+    const min=Math.min(...ranks),max=Math.max(...ranks),span=max-min;
+    const x=i=>n===1?(L+R)/2:L+i*(R-L)/(n-1),y=v=>span===0?(T+B)/2:T+(v-min)*(B-T)/span;
     const ns='http://www.w3.org/2000/svg',svg=document.createElementNS(ns,'svg');
-    svg.setAttribute('viewBox','0 0 '+W+' '+H);svg.setAttribute('role','img');svg.setAttribute('aria-label','原始榜单排名走势，第1名在顶部');svg.style.cssText='width:100%;min-width:560px';
+    svg.setAttribute('viewBox','0 0 '+W+' '+H);svg.setAttribute('role','img');svg.setAttribute('aria-label','原始榜单排名走势，较高名次在顶部');svg.style.cssText='width:100%;min-width:560px';
     function node(tag,attrs,txt,parent=svg){const el=document.createElementNS(ns,tag);for(const [k,v] of Object.entries(attrs))el.setAttribute(k,v);if(txt!=null)el.textContent=txt;parent.append(el);return el;}
-    const step=Math.max(1,Math.ceil((max-1)/8));
-    for(const v of [...new Set([...Array.from({length:Math.floor((max-1)/step)+1},(_,i)=>1+i*step),max])]){
+    const step=Math.max(1,Math.ceil(span/8));
+    for(const v of [...new Set([...Array.from({length:Math.floor(span/step)+1},(_,i)=>min+i*step),max])]){
       node('line',{x1:L,x2:R,y1:y(v),y2:y(v),stroke:'currentColor',opacity:.14});
       node('text',{x:L-8,y:y(v)+4,'text-anchor':'end',fill:'currentColor','font-size':11},v);
     }
@@ -338,7 +340,6 @@
     }));
     host.append(svg);
     const note=document.createElement('p');note.className='mini';note.textContent='原始榜单排名，不因筛选重新排名；无记录留空，不插补。各期榜单规模可能不同，排名不代表全市场排名。';host.append(note);
-    if(!rank.lines.some(l=>l.points.some(p=>Number.isFinite(p?.value)))){const empty=document.createElement('p');empty.className='mini';empty.textContent='当前区间无原始排名记录。';host.append(empty);}
   }
   let trackerPublicationChart=null;
   function renderTracker(){try{renderTrackerContent();}catch(err){trackerPublicationChart=null;$('trackerExport').disabled=true;reportResearchError(err);throw err;}finally{if(researchView==='model')saveResearchPreferences();}}

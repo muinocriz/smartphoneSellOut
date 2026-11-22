@@ -6,6 +6,23 @@
 
 ## 2026-11-22
 
+### 模块 3 机型销量与原始排名联合追踪
+
+- [0e55546](https://github.com/muinocriz/smartphoneSellOut/commit/0e55546) / [f62d30f](https://github.com/muinocriz/smartphoneSellOut/commit/f62d30f) / [396a194](https://github.com/muinocriz/smartphoneSellOut/commit/396a194) 新增原始榜单排名折线、销量与排名双图、历史排名矩阵，排名轴按所选实际名次范围自适应，较高名次在上；双图联动查看同周销量及名次。排名不插补、不因筛选重排，缺榜与无排名记录区分。当前图表支持带工作台水印的独立 PNG 导出，不应用安全区裁切。
+- [0925e7c](https://github.com/muinocriz/smartphoneSellOut/commit/0925e7c) / [c534803](https://github.com/muinocriz/smartphoneSellOut/commit/c534803) / [bc1ed3e](https://github.com/muinocriz/smartphoneSellOut/commit/bc1ed3e) 四种追踪视图接入图文工作台冻结快照；组合图的图表 CSV 与发布清单同时保留显示销量、原始排名及对应统计口径。
+- [8cf1766](https://github.com/muinocriz/smartphoneSellOut/commit/8cf1766) 机型折线统一母品牌识别色，按已知机型身份排序分配12档深浅变化；不随当前勾选顺序重新配色。
+- [a77d2b0](https://github.com/muinocriz/smartphoneSellOut/commit/a77d2b0) / [5cb9171](https://github.com/muinocriz/smartphoneSellOut/commit/5cb9171) / [ba9d390](https://github.com/muinocriz/smartphoneSellOut/commit/ba9d390) 新增18种数据点形状及空心/实心组合，按当前机型顺序分配、超出循环；同一选择下销量与排名共用标记。原生 SVG/Canvas 共用几何逻辑，网页图例、独立 PNG、工作台图卡图例同步适配；虚线仍表达销量插补，空心不再单独代表插补。标记并非永久机型属性，选机变化可能重新分配。
+- 本轮新增追踪与标记功能未做浏览器或导出验收；研究配置仍为 v8、发布方案 v10、视觉配置 v2。
+
+### 模块 3 图卡文案、布局及来源导航
+
+- [7e44e50](https://github.com/muinocriz/smartphoneSellOut/commit/7e44e50) 存档字段标签简化为“系列（区分同周期不同口径）”。
+- [6b097a1](https://github.com/muinocriz/smartphoneSellOut/commit/6b097a1) 对比图 A/B 标签改为“参考机型／对比机型”；空/null 角标水印隐藏，双空回收顶部72px。该提交此前完成语法及模拟布局检查，未做浏览器实测或部署验证。
+- [2ad0f38](https://github.com/muinocriz/smartphoneSellOut/commit/2ad0f38) / [a814b61](https://github.com/muinocriz/smartphoneSellOut/commit/a814b61) / [9900dd5](https://github.com/muinocriz/smartphoneSellOut/commit/9900dd5) 研究图表内附注与页脚免责说明独立编辑，空文案隐藏并回收空间；展示编辑不改变冻结统计口径。
+- [e776cb0](https://github.com/muinocriz/smartphoneSellOut/commit/e776cb0) / [aea29de](https://github.com/muinocriz/smartphoneSellOut/commit/aea29de) / [036c6a7](https://github.com/muinocriz/smartphoneSellOut/commit/036c6a7) 新增独立图表主标题、副标题编辑，默认主标题为统计区间、副标题为空，保存编辑并移除硬编码图表头部；空行不占空间。
+- [ee5d8c8](https://github.com/muinocriz/smartphoneSellOut/commit/ee5d8c8) / [a2f44ae](https://github.com/muinocriz/smartphoneSellOut/commit/a2f44ae) / [2030ba4](https://github.com/muinocriz/smartphoneSellOut/commit/2030ba4) 统一历史榜单生成图卡入口；工作台新增返回来源操作，根据当前发布来源返回历史榜单或专题研究，不重置冻结发布内容与来源控件。
+- 文案及导航改动未做浏览器或线上验收。
+
 ### 模块1跨期累计观测研究
 
 - 新增原始/线性/趋势约束模式，最近3/4/6/8个断更前连续真实周增量估计趋势，以新累计端点守恒；不足或趋势不明显退回线性，累计下降不估算。真实与估算在图表及 PNG 区分，原始 CSV 不变。
@@ -22,6 +39,13 @@
 - 取消合并项价格和 RAM/ROM 排除，使用主数据代表性数值，统一价格带筛选及统计。研究配置 v7、发布方案 v9 不迁移旧值，视觉偏好不变。未运行构建或测试。
 
 ## 2026-11-21
+
+### 模块 1 里程碑下限与导出修正
+
+- [795928e](https://github.com/muinocriz/smartphoneSellOut/commit/795928e) data.csv 新增 2026W46，华为 Mate 80 系列填入 1000 万台里程碑下限，其他未提供 W46 的机型留空。
+- [76190f9](https://github.com/muinocriz/smartphoneSellOut/commit/76190f9) / [3396e73](https://github.com/muinocriz/smartphoneSellOut/commit/3396e73) / [6a8a468](https://github.com/muinocriz/smartphoneSellOut/commit/6a8a468) 正数恰为50万台整数倍视为虚拟累计下限，与间隔无关；允许作为估算区间任一端点（含两端均为虚拟点），不参与真实周增量及历史趋势样本；含虚拟左端点的差额仅为参考。
+- [b9cb8f2](https://github.com/muinocriz/smartphoneSellOut/commit/b9cb8f2) PNG 副标题按宽度自动换行并预留绘图区顶部空间，保留估算及里程碑说明；[375452d](https://github.com/muinocriz/smartphoneSellOut/commit/375452d) 删除桌面及手机 PNG 底部网址水印。
+- 未运行测试或构建。
 
 ### 模块 3 研究发布收尾（P5）
 

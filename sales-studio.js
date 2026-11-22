@@ -197,15 +197,20 @@ function researchChartRows(s){
   const indices=[0,1,2,3,7],labels=['机型','观测周','最长连续','末周连续','上榜合计/万台'];
   return [['专题','图表类型','显示顺序',...labels,'所选区间','有效自然周','主数据版本'],...t.rows.slice(0,10).map((r,i)=>[s.title,'table',i+1,...indices.map(k=>r[k]??''),...tail])];
  }
- for(let i=0;i<chart.periods.length;i++)for(const line of chart.lines){
+ const trackerRank=['trackerRank','trackerMatrix'].includes(chart.kind),combined=chart.kind==='trackerBoth';
+ if(trackerRank||combined)meta.push('原始榜单规模');
+ const sets=combined?[{lines:chart.lines,metric:chart.salesLabel||'销量',unit:'万台',rank:false},{lines:chart.rankLines,metric:'原始榜单排名',unit:'名',rank:true}]:[{lines:chart.lines,metric:s.displayMetric,unit:chart.unit||'',rank:trackerRank}];
+ for(const set of sets)for(let i=0;i<chart.periods.length;i++)for(const line of set.lines){
   const v=line.values[i],valid=Number.isFinite(v),sourcePeriod=line.sourcePeriods?.[i]||(/^\d{4}-W\d{2}$/.test(chart.periods[i])?chart.periods[i]:(chart.calendarPeriods?.length===1?chart.calendarPeriods[0]:''));
-  const unit=chart.kind==='scatter'?(line.name||''):chart.unit||'';
-  rows.push([...base,unit,chart.periods[i],line.name,valid?v:'',!valid?'缺失或不适用':line.imputed?.[i]?'含插补':'有效显示值',sourcePeriod,...tail]);
+  const unit=chart.kind==='scatter'?(line.name||''):set.unit;
+  const row=[base[0],base[1],set.metric,unit,chart.periods[i],line.name,valid?v:'',set.rank?(line.statuses?.[i]||(valid?'原始榜单观测':'无排名记录')):!valid?'缺失或不适用':line.imputed?.[i]?'含插补':'有效显示值',sourcePeriod,...tail];
+  if(trackerRank||combined)row.push(set.rank?line.boardSizes?.[i]||'':'');
+  rows.push(row);
  }
  return rows;
 }
 function researchManifest(s,pub){
- return {schema_version:1,snapshot_schema:s.schemaVersion,topic:s.key,title:s.title,subtitle:s.subtitle,display_metric:s.displayMetric,source:s.source,range:s.range,effective_periods:s.effectivePeriods,configuration:s.config,chart:s.chart?{kind:s.chart.kind||'line',axis:s.chart.axis||null,unit:s.chart.unit||null,periods:s.chart.periods,series:s.chart.lines.map(l=>l.name)}:{kind:'table',rows_displayed:Math.min(10,s.table?.rows.length||0)},poster:{ratio:pub.state.ratio,width:pub.width,height:pub.height,theme:pub.state.theme,safe_enabled:pub.state.safeEnabled,safe_right:pub.state.safeRight,safe_bottom:pub.state.safeBottom},limitations:[s.note,s.chartNote],fingerprint:StudioPref.fingerprint([s.config,s.chart,s.csv])};
+ return {schema_version:1,snapshot_schema:s.schemaVersion,topic:s.key,title:s.title,subtitle:s.subtitle,display_metric:s.displayMetric,source:s.source,range:s.range,effective_periods:s.effectivePeriods,configuration:s.config,chart:s.chart?{kind:s.chart.kind||'line',axis:s.chart.axis||null,unit:s.chart.unit||null,periods:s.chart.periods,series:s.chart.lines.map(l=>l.name),...(s.chart.kind==='trackerBoth'?{metrics:[{label:s.chart.salesLabel,unit:'万台'},{label:'原始榜单排名',unit:'名'}]}:{})}:{kind:'table',rows_displayed:Math.min(10,s.table?.rows.length||0)},poster:{ratio:pub.state.ratio,width:pub.width,height:pub.height,theme:pub.state.theme,safe_enabled:pub.state.safeEnabled,safe_right:pub.state.safeRight,safe_bottom:pub.state.safeBottom},limitations:[s.note,s.chartNote],fingerprint:StudioPref.fingerprint([s.config,s.chart,s.csv])};
 }
 function capturePublication(types,o){
  const state=Object.fromEntries(['template','ratio','theme','duelA','duelB','safeEnabled','safeRight','safeBottom'].map(k=>[k,socialState[k]]));

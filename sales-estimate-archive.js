@@ -252,6 +252,33 @@
   let trackerData = {header:[],rows:[],scopes:[]};
   let trackerSelected = new Set();
   const trackerPalette = ['#2563eb','#ea580c','#059669','#9333ea','#db2777','#0891b2','#92400e','#64748b'];
+  // Keep parent-brand hues consistent with the shared brand charts. Assign shades
+  // against the full known model catalog, not the currently checked subset.
+  function trackerBrandColors(scope){
+    const groups=new Map(),colors=new Map(),brandUtils=window.BrandUtils;
+    const known=knownModels(scope);
+    for(const m of scope.models){if(!known.has(m.key))known.set(m.key,m);}
+    for(const [key,m] of known){
+      const master=masterCatalog?.get(key)||m.master;
+      const brand=brandUtils.classify(master?.model_name||m.name,master?.brand_group)||'其他';
+      if(!groups.has(brand))groups.set(brand,[]);
+      groups.get(brand).push(key);
+    }
+    const shade=(hex,factor)=>{
+      const rgb=[1,3,5].map(i=>parseInt(hex.slice(i,i+2),16));
+      // Mix toward black for dark shades, or white for lighter shades.
+      return '#'+rgb.map(v=>Math.round(factor<0?v*(1+factor):v+(255-v)*factor).toString(16).padStart(2,'0')).join('');
+    };
+    for(const [brand,keys] of groups){
+      const base=brandUtils.color(brand)||'#64748b';
+      keys.sort((a,b)=>String(a).localeCompare(String(b),'en'));
+      keys.forEach((key,i)=>{
+        const index=i%12,order=[0,-.28,.24,-.44,.38,-.15,.12,-.36,.49,-.21,.31,-.49];
+        colors.set(key,shade(base,order[index]));
+      });
+    }
+    return colors;
+  }
   function currentScope(){return trackerData.scopes.find(s=>s.id===$('trackerScope').value);}
   function defaultTrackerSelection(scope){
     const last=scope.weeks.filter(w=>w.hasBoard).at(-1);
@@ -436,7 +463,8 @@
     const c=Object.fromEntries(trackerData.header.map((h,i)=>[h,i]));
     const models=scope.models.filter(m=>trackerSelected.has(m.key)&&matchesAttributes(m.key));
     const metric=$('trackerMode').value;
-    const curves=models.map((m,i)=>({m,color:trackerPalette[i%trackerPalette.length],rows:scope.rows.filter(r=>r[c.sequence_id]===m.key)}));
+    const brandColors=trackerBrandColors(scope);
+    const curves=models.map(m=>({m,color:brandColors.get(m.key)||'#64748b',rows:scope.rows.filter(r=>r[c.sequence_id]===m.key)}));
     $('trackerStatus').textContent=scope.weeks.length+' 周 / '+scope.models.length+' 款长期追踪机型 · 已选且符合属性筛选 '+models.length+' 款 · 插补 '+curves.reduce((n,o)=>n+o.rows.filter(r=>r[c.is_imputed]==='1').length,0)+' 条';
     if(!curves.length){$('trackerStatus').textContent+=' · 请勾选符合当前参数的机型；必要时降低覆盖率。';return;}
     if(lifeMode()){

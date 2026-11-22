@@ -14,9 +14,9 @@ A smartphone data dashboard and social-poster toolkit deployed on Cloudflare Wor
 
 | Module | What it does | Open |
 | --- | --- | --- |
-| **01 · Sales Tracking** | Explore cumulative sales, weekly changes and full ISO sales-week trends; default to recent 12-week launches, filter models, save custom lists and export desktop/mobile PNGs. | [Sales Tracking](https://smartphonesellout.zirconium.workers.dev/) |
+| **01 · Sales Tracking** | Explore cumulative sales, weekly changes and full ISO sales-week trends; default to recent 12-week launches, filter models, save custom lists, track interval-confirmed milestones and export desktop/mobile PNGs. | [Sales Tracking](https://smartphonesellout.zirconium.workers.dev/) |
 | **02 · Market Share** | Auto-load weekly brand shares from `market-share.csv`; compare adjacent ISO weeks, import a local CSV, manually edit values, and export five chart types (including market-scale stacked charts) in six themes as high-resolution 3:4 PNGs. | [Market Share](https://smartphonesellout.zirconium.workers.dev/#market-share) |
-| **03 · Ranking Estimator & Poster Studio** | Calibrate ranking screenshots against known sales or create posters directly from archived rankings and fourteen research topics; merge CSV history and export high-resolution 3:4/9:16 PNGs and ZIP bundles. | [Ranking Estimator](https://smartphonesellout.zirconium.workers.dev/#sales-estimator) |
+| **03 · Ranking Estimator & Poster Studio** | Calibrate ranking screenshots against known sales or create posters directly from archived rankings and fourteen research topics; track sales and original ranks together, view rank matrices, merge CSV history and export high-resolution 3:4/9:16 PNGs and ZIP bundles. | [Ranking Estimator](https://smartphonesellout.zirconium.workers.dev/#sales-estimator) |
 
 ## Getting started
 
@@ -38,6 +38,8 @@ Each module uses a separate CSV with a distinct statistical definition. Commit t
 - **Module 3:** Import a ranking screenshot from the left panel, enter model names and the period, and calibrate with known sales for the **same period and definition**. Export the merged full history and commit the downloaded `sales-estimates.csv`. Rankings of different sizes need no zero padding; back up uncommitted data before refreshing. Select an archived ranking to create posters without recalibration. Only final estimates are archived, not the original screenshot or full calibration workspace. The protected `model-master.csv` catalog now powers permanent research sequence IDs, alias matching and automatic grouping. Unmatched models retain separate identities; price-band, brand-positioning, chipset, product-age and multidimensional research are available. Topic ZIPs include PNG, copy, headlines, complete analytical CSV, plotted-data CSV, methodology and a JSON manifest.
 
 Both poster studios offer four PNG export resolutions, defaulting to 2160px wide. With safe-area avoidance enabled, both studios can export safe-area and full-layout variants (default right margin 13%, bottom 10%). Module 3 presents estimated sales to one decimal place in units of 10,000 phones, retaining CSV precision.
+
+Module 3 uses parent-brand color families and distinct point markers, shared across sales and rank charts for the current selection. Original ranks are never imputed or recalculated after filtering. The studio supports independent chart headings, notes and footer edits, and returning to the source without resetting the publication.
 
 For the full CSV schema, full-sales-week definitions, poster specifications, design principles, deployment details and implementation notes, see the [Maintenance & Design Guide (Chinese)](docs/MAINTAINER_GUIDE.md).
 

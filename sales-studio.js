@@ -14,6 +14,11 @@ const researchContentFields=['title','subtitle','tagLabel','disclaimer','chartNo
 function isResearchTemplate(type=socialState.template){return String(type).startsWith('research:');}
 function researchStudioActive(){return isResearchTemplate()&&!!socialResearchSnapshot;}
 function socialData(){return socialArchiveDataset?deriveDataset(socialArchiveDataset,socialArchiveDataset.archiveFit):derivedData()}
+function syncStudioSourceActions(){
+ const research=researchStudioActive(),archive=!research&&!!socialArchiveDataset,back=$('studioReturnSource'),current=$('studioUseCurrent');
+ back.hidden=!(research||archive);back.textContent=research?'返回热销机型追踪':'返回历史榜单';
+ current.hidden=!(research||archive);
+}
 function calibrationCount(o){return o.d.archiveRows?o.d.archiveCalibrationCount:o.d.calibrations.length}
 function rejectedCount(o){return o.d.archiveRows?o.d.archiveCalibrationCount-o.d.archiveAcceptedCount:o.fit.statuses.filter(v=>v==='outlier').length}
 function socialSourceName(o){return o.d.archiveSource||'RD观测'}
@@ -130,7 +135,7 @@ function updateSocial(rewriteStory=true){if(researchStudioActive()){updateResear
  if(unknown)flag+=` ${unknown} 个条目品牌无法识别：${formatModelRows(unknownModels)}。品牌分析及整套打包需先补全标准品牌前缀。`;
  guard.className='msg warn';
  guard.hidden=!flag.trim();
- $('copyChartNoteField').hidden=true;$('copyChartHeaderFields').hidden=true;$('copyDisclaimerLabel').textContent='免责附注（支持换行↙）';$('exportChartData').hidden=true;$('studioSource').textContent=o.d.archiveRows?'图文数据源：历史榜单 · '+o.d.archiveDisplayLabel:'图文数据源：当前标定榜单 · '+o.d.label;$('studioUseCurrent').hidden=!o.d.archiveRows;
+ $('copyChartNoteField').hidden=true;$('copyChartHeaderFields').hidden=true;$('copyDisclaimerLabel').textContent='免责附注（支持换行↙）';$('exportChartData').hidden=true;$('studioSource').textContent=o.d.archiveRows?'图文数据源：历史榜单 · '+o.d.archiveDisplayLabel:'图文数据源：当前标定榜单 · '+o.d.label;syncStudioSourceActions();
  guard.textContent=flag;$('downloadCard').disabled=publicationJob.busy||!canDownloadSocial(o,socialState.template);$('downloadAllCards').disabled=publicationJob.busy||!canDownloadSocial(o,'bundle');
  $('duelSetup').hidden=socialState.template!=='versus';$('previewSize').textContent=socialState.ratio==='3:4'?'1080 × 1440':'1080 × 1920';
  $('insightSummary').innerHTML=renderInsightSummary(o);updateSafeLabels();syncPaletteChooser();syncPosterCopyUI(socialState.template,o);drawPoster(socialState.template,$('posterCanvas'),o,true);if(rewriteStory){const pack=generateHeadlinePack(socialState.template,o);$('storyText').value=generateStory(socialState.template,o);$('xhsTitle').value=pack.xhs;$('dyTitle').value=pack.dy;$('carouselText').value=pack.carousel;}
@@ -179,7 +184,7 @@ function updateResearchStudio(rewriteStory){
  const s=socialResearchSnapshot,o=socialData();
  const guard=$('qualityGuard');guard.className='msg warn';guard.hidden=!!s.ready&&s.config?.masterStatus!=='unavailable';guard.textContent=!s.ready?'当前研究专题无有效数据，暂不能导出。':s.config?.masterStatus==='unavailable'?'当前快照使用未匹配身份，未取得机型主数据；请核对后发布。':'';
  $('copyChartNoteField').hidden=false;$('copyChartHeaderFields').hidden=false;$('copyDisclaimerLabel').textContent='图卡底部附注（可清空，支持换行）';$('exportChartData').hidden=false;
- $('studioSource').textContent='图文数据源：冻结研究快照 · '+s.title+' · '+s.context;$('studioUseCurrent').hidden=false;
+ $('studioSource').textContent='图文数据源：冻结研究快照 · '+s.title+' · '+s.context;syncStudioSourceActions();
  $('downloadCard').disabled=publicationJob.busy||!s.ready;$('downloadAllCards').disabled=publicationJob.busy||!s.ready;
  $('downloadAllCards').textContent='打包专题 PNG + 文案 + 数据 + 清单';
  $('duelSetup').hidden=true;$('previewSize').textContent=socialState.ratio==='3:4'?'1080 × 1440':'1080 × 1920';
@@ -374,6 +379,7 @@ function initPublicationPreferences(){
 }
 
 function initSocial(){PosterWatermark.mount(()=>watermarkState,()=>updateSocial(false));
+ $('studioReturnSource').onclick=()=>window.SalesEstimateArchive?.returnToStudioSource();
  $('studioUseCurrent').onclick=()=>{if(researchStudioActive())leaveResearchStudio('top');setSocialArchiveDataset(null);};
  $('templateChooser').addEventListener('click',ev=>{const b=ev.target.closest('[data-template]');if(!b)return;if(isResearchTemplate(b.dataset.template)){window.SalesEstimateArchive?.sendResearchToStudio(b.dataset.template.slice(9));return;}leaveResearchStudio(b.dataset.template);updateSocial(true)});
  updatePosterExportOptions();

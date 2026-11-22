@@ -1475,7 +1475,14 @@
     } catch (err) { notify('导出失败：' + err.message); }
   };
 
-  window.SalesEstimateArchive = Object.freeze({buildRows,sendResearchToStudio,updateControls,header:HEADER.slice()});
+  function returnToStudioSource(){
+    const key=researchStudioActive()?'tracker':socialArchiveDataset?'history':null;
+    if(!key)return;
+    // Navigation only: preserve the frozen publication and the live source controls.
+    activateModuleTab(key);
+    modulePanes[key].scrollIntoView({behavior:'smooth',block:'start'});
+  }
+  window.SalesEstimateArchive = Object.freeze({buildRows,sendResearchToStudio,returnToStudioSource,updateControls,header:HEADER.slice()});
   async function loadRepository() {
     loading = true;
     showHistory('正在读取仓库历史数据…');

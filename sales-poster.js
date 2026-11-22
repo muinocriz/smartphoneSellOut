@@ -266,7 +266,7 @@ function drawPoster(type,canvas,o=socialData(),showGuides=false,pixelRatio=1,pub
  if(type==='top')drawTop(ctx,L,o,p);
  else if(type==='versus')drawDuel(ctx,L,o,p,state);
  else if(type==='brands')drawBrands(ctx,L,o,p);
- else if(isResearchTemplate(type))drawResearchPosterContent(ctx,L,p,{...research,chartNote:(publication?.copy||getPosterCopy(type,o)).chartNote??research?.chartNote??''});
+ else if(isResearchTemplate(type)){const copy=publication?.copy||getPosterCopy(type,o);drawResearchPosterContent(ctx,L,p,{...research,chartNote:copy.chartNote??research?.chartNote??'',chartHeader:copy.chartHeader??research?.range??'',chartSubheader:copy.chartSubheader??''});}
  else drawLeader(ctx,L,o,p);
  drawPosterFooter(ctx,L,p);
  }
@@ -343,9 +343,9 @@ function drawResearchPosterContent(ctx,L,p,s){
  const {cardX,cardWidth,bodyTop,bodyBottom,bodyHeight}=L;
  drawDataCard(ctx,cardX,bodyTop,cardWidth,bodyHeight,p);
  const left=cardX+26,right=cardX+cardWidth-26,width=right-left;
- const intro=Math.min(88,bodyHeight*.17),start=bodyTop+intro;
- posterFitText(ctx,s.range+' · '+s.source,left,bodyTop+intro*.37,26,p.sub,'650','left',width);
- posterFitText(ctx,s.displayMetric+' · '+s.modeLabel+(s.key==='head'?' · 共同有效 '+s.effectivePeriods.length+' 周':''),left,bodyTop+intro*.83,27,p.ink,'700','left',width);
+ const headers=[{text:s.chartHeader??s.range??'',color:p.sub,weight:'650'},{text:s.chartSubheader??'',color:p.ink,weight:'700'}].filter(row=>String(row.text).trim());
+ const rowStep=36,intro=12+headers.length*rowStep,start=bodyTop+intro;
+ headers.forEach((row,i)=>posterFitText(ctx,row.text,left,bodyTop+32+i*rowStep,25,row.color,row.weight,'left',width));
  const bottom=bodyBottom-14,height=bottom-start;
  if(!auditPlot(ctx,width,height,'研究图表内容区',360,230))return;
  if(['trackerBoth','trackerRank','trackerMatrix'].includes(s.chart?.kind)){drawTrackerTrendPoster(ctx,p,s,{left,right,top:start,bottom,width,height});return;}

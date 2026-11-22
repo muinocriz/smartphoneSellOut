@@ -91,24 +91,29 @@ function getPosterLayout(W,H,type,o,right,bottom,copy=getPosterCopy(type,o)){
  const footSize=Math.min(23,lineStep*.76);
  const footerHeight=footerLines.length?24+footerLines.length*lineStep+20:0;
  const footerY=safeBottom-Math.max(48,footerHeight);
- const bodyTop=316,bodyBottom=footerLines.length||brandNote?footerY-(brandNote?44:20):safeBottom-64;
- return {W,H,safeRight,safeBottom,left,right:rightEdge,width:rightEdge-left,cardX,cardRight,cardWidth:cardRight-cardX,bodyTop,bodyBottom,bodyHeight:bodyBottom-bodyTop,footerY,footerLines,brandNote,lineStep,footSize,copy};
+ // Empty corner labels release the entire header row for the content below.
+ const markLeft=String(copy.markLeft??'').trim(),markRight=String(copy.markRight??'').trim();
+ const headerOffset=markLeft||markRight?0:72;
+ const bodyTop=316-headerOffset,bodyBottom=footerLines.length||brandNote?footerY-(brandNote?44:20):safeBottom-64;
+ return {W,H,safeRight,safeBottom,left,right:rightEdge,width:rightEdge-left,cardX,cardRight,cardWidth:cardRight-cardX,bodyTop,bodyBottom,bodyHeight:bodyBottom-bodyTop,footerY,footerLines,brandNote,lineStep,footSize,copy,markLeft,markRight,headerOffset};
 }
 function posterFrame(ctx,L,o,p){
- const {copy,left,right,width}=L;
- const markW=Math.min(162,width*.38);
- rounded(ctx,left,55,markW,42,13,p.panel2);
- posterFitText(ctx,copy.markLeft,left+17,84,25,p.accent,'800','left',markW-34);
- posterFitText(ctx,copy.markRight,right,84,22,p.sub,'600','right',width-markW-20);
- posterFitText(ctx,copy.title,left,178,72,p.ink,'850','left',width);
- posterFitText(ctx,copy.subtitle,left+2,230,29,p.sub,'550','left',width-2);
+ const {copy,left,right,width,markLeft,markRight,headerOffset}=L;
+ const markW=markLeft?Math.min(162,width*.38):0;
+ if(markLeft){
+  rounded(ctx,left,55,markW,42,13,p.panel2);
+  posterFitText(ctx,markLeft,left+17,84,25,p.accent,'800','left',markW-34);
+ }
+ if(markRight)posterFitText(ctx,markRight,right,84,22,p.sub,'600','right',width-(markLeft?markW+20:0));
+ posterFitText(ctx,copy.title,left,178-headerOffset,72,p.ink,'850','left',width);
+ posterFitText(ctx,copy.subtitle,left+2,230-headerOffset,29,p.sub,'550','left',width-2);
  const tag=String(copy.tagLabel||'').trim();
  if(tag){
   const tagWidth=Math.min(width,Math.max(250,Math.ceil(measureMixedCanvas(ctx,tag,26,'760').width+42)));
-  rounded(ctx,left,247,tagWidth,43,15,p.panel2);
-  posterFitText(ctx,tag,left+21,277,26,p.accent,'760','left',tagWidth-42);
+  rounded(ctx,left,247-headerOffset,tagWidth,43,15,p.panel2);
+  posterFitText(ctx,tag,left+21,277-headerOffset,26,p.accent,'760','left',tagWidth-42);
  }
- posterRule(ctx,left,right,300,p);
+ posterRule(ctx,left,right,300-headerOffset,p);
 }
 function drawPosterFooter(ctx,L,p){
  const {left,right,width,footerY,footerLines,lineStep,footSize,brandNote}=L;
@@ -157,7 +162,7 @@ function drawDuel(ctx,L,o,p,state=socialState){
  [[a,0],[b,1]].forEach(([m,i])=>{
   const x=left+i*(w+gap),ix=x+22,iw=w-44;
   drawDataCard(ctx,x,y,w,panelH,p);
-  posterFitText(ctx,'对阵 '+(i?'B':'A')+' · 第 '+m.rank+' 名',ix,y+panelH*.13,Math.min(27,panelH*.085),p.accent,'800','left',iw);
+  posterFitText(ctx,(i?'对比机型':'参考机型')+' · 第 '+m.rank+' 名',ix,y+panelH*.13,Math.min(27,panelH*.085),p.accent,'800','left',iw);
   const model=chooseDuelModelLabel(ctx,m.name,iw,Math.min(43,panelH*.12));
   posterFitText(ctx,model.text,ix,y+panelH*.32,model.size,p.ink,'800','left',iw);
   posterRule(ctx,ix,ix+iw,y+panelH*.40,p);

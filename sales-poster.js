@@ -266,7 +266,7 @@ function drawPoster(type,canvas,o=socialData(),showGuides=false,pixelRatio=1,pub
  if(type==='top')drawTop(ctx,L,o,p);
  else if(type==='versus')drawDuel(ctx,L,o,p,state);
  else if(type==='brands')drawBrands(ctx,L,o,p);
- else if(isResearchTemplate(type))drawResearchPosterContent(ctx,L,p,research);
+ else if(isResearchTemplate(type))drawResearchPosterContent(ctx,L,p,{...research,chartNote:(publication?.copy||getPosterCopy(type,o)).chartNote??research?.chartNote??''});
  else drawLeader(ctx,L,o,p);
  drawPosterFooter(ctx,L,p);
  }
@@ -298,10 +298,12 @@ function drawTrackerTrendPoster(ctx,p,s,box){
  const rankLines=both?chart.rankLines:lines;
  const ranks=rankLines.flatMap(l=>l.values.filter(Number.isFinite));
  const min=ranks.length?Math.min(...ranks):0,max=ranks.length?Math.max(...ranks):0,span=max-min;
- const note=(v,y)=>posterFitText(ctx,v,left,y,19,p.sub,'550','left',width);
+ const notes=String(s.chartNote??'').split(/\r?\n/).filter(v=>v.trim());
+ const noteHeight=notes.length?notes.length*24+8:0;
+ const note=()=>notes.forEach((v,i)=>posterFitText(ctx,v,left,bottom-8-(notes.length-1-i)*24,19,p.sub,'550','left',width));
  if(!n||!count)return;
  if(matrix){
-  const labelW=Math.min(width*.31,210),cw=(width-labelW)/n,ch=Math.min(56,(height-94)/count);
+  const labelW=Math.min(width*.31,210),cw=(width-labelW)/n,ch=Math.min(56,(height-42-noteHeight)/count);
   if(cw<20||ch<20){auditIssue(ctx,'排名矩阵过密，请缩短区间、减少机型或使用9:16图卡',true);return;}
   chart.periods.forEach((v,i)=>posterFitText(ctx,v,left+labelW+(i+.5)*cw,top+23,Math.min(18,cw*.45),p.sub,'600','center',cw-3));
   lines.forEach((l,j)=>{
@@ -314,12 +316,11 @@ function drawTrackerTrendPoster(ctx,p,s,box){
     posterFitText(ctx,valid?String(v):l.statuses?.[i]==='榜单缺失'?'×':'—',x+cw/2,y+ch*.66,Math.min(23,ch*.56,cw*.53),valid&&v<=3?'#fff':'#334155','700','center',cw-6);
    });
   });
-  note('深蓝：前3名 · 蓝色：4–10名 · 浅蓝：11名以后',bottom-35);
-  note('× 榜单缺失 · — 无排名记录 · 排名不插补',bottom-8);return;
+  note();return;
  }
  const cols=count<=2?count:count<=6?2:count<=12?3:4,rows=Math.ceil(count/cols),step=Math.min(34,height*.23/rows),cell=width/cols;
  lines.forEach((l,i)=>{const x=left+i%cols*cell,y=top+(Math.floor(i/cols)+.8)*step;ctx.fillStyle=l.color;ctx.fillRect(x,y-10,16,5);posterFitText(ctx,l.name,x+22,y,Math.min(22,step*.75),p.ink,'600','left',cell-26);});
- const plotTop=top+rows*step+12,plotBottom=bottom-56,gap=both?32:0,part=(plotBottom-plotTop-gap)/(both?2:1);
+ const plotTop=top+rows*step+12,plotBottom=bottom-noteHeight,gap=both?32:0,part=(plotBottom-plotTop-gap)/(both?2:1);
  if(!auditPlot(ctx,width-100,part-55,'机型追踪绘图区',260,both?95:150))return;
  function plot(isRank,yStart){
   const x0=left+68,x1=right-32,y0=yStart+27,y1=yStart+part-34;
@@ -334,8 +335,7 @@ function drawTrackerTrendPoster(ctx,p,s,box){
   ResearchCharts.canvasLine(ctx,{...chart,lines:series},scale);
  }
  if(both){plot(false,plotTop);plot(true,plotTop+part+gap);}else plot(rankOnly,plotTop);
- note(rankOnly?'原始排名 · 无记录断线 · 不插补':'销量虚线/空心点：含插补 · 原始排名不插补',bottom-31);
- note('仅所选榜单样本；排名不代表全市场，缺失不等于零。',bottom-7);
+ note();
 }
 
 function drawResearchPosterContent(ctx,L,p,s){

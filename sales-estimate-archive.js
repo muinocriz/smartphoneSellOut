@@ -1253,7 +1253,9 @@
   function attrBrand(x,level){return x.model?.[level]||(level==='brand_group'?window.BrandUtils.classify('',x.brand)||Product.UNKNOWN:Product.UNKNOWN);}
   function attrPlot(chart,label){researchPublicationChart=chart;if(chart.kind)ResearchCharts.renderComposition($('researchChart'),chart,label);else ResearchCharts.svgLine($('researchChart'),$('researchLegend'),chart,label);}
   function setAttributeInfo(metricLabel,periods,note,detail){
-    attributePublicationInfo={metricLabel,range:periods.length?periods[0]+'—'+periods.at(-1):'',effectivePeriods:periods,note,detail};
+    const adjacent=researchPublicationChart?.kind==='brandStack'&&researchPublicationChart.connectAdjacentBands;
+    const ribbonNote=adjacent?'相邻有效周之间使用同类别半透明色带，缺失周断开；色带不是销量迁移。':'';
+    attributePublicationInfo={metricLabel,range:periods.length?periods[0]+'—'+periods.at(-1):'',effectivePeriods:periods,note:[note,ribbonNote].filter(Boolean).join('；'),detail};
   }
   function attrRows(per,labels,classify,knownField){
     const out=[];

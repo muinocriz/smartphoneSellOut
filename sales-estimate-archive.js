@@ -1230,7 +1230,7 @@
       const keys=con==='cr'?['cr1','cr3','cr5']:['hhi'];
       researchPlot(weeks,keys.map(k=>({name:k.toUpperCase(),values:per.map(r=>r[k])})),con==='cr'?'销量集中度 / %':'HHI',con==='cr'?100:10000);
     }else if(view==='line')researchPlot(weeks,linesFor(per),brandMetricLabels[metric]+' / '+unit,metric==='volume'?undefined:100);
-    else plotBrandComposition({kind:view==='stack'?'brandStack':'brandRibbon',connectAdjacentBrands:view==='stack',periods:records.map(r=>r.period),lines:linesFor(records),unit,limit:metric==='volume'?null:100});
+    else plotBrandComposition({kind:view==='stack'?'brandStack':'brandRibbon',connectAdjacentBands:view==='stack',periods:records.map(r=>r.period),lines:linesFor(records),unit,limit:metric==='volume'?null:100});
   }
   for(const id of ['brandView','brandMetric','brandBase','brandCompare','brandCon'])$(id).onchange=renderResearch;
 
@@ -1266,7 +1266,7 @@
   const attrHeaders=['周期','样本状态','筛选后入榜统计项数','样本销量/万台','类别','类别入榜统计项数','类别销量/万台','类别销量占比/%','未知属性销量/万台','已知属性销量覆盖率/%'];
   function attrTrend(per,labels,classify,metric,view){
     const maps=per.map(w=>Product.aggregate(w.entries,classify)),unit=attrUnit(metric);
-    return {kind:view==='stack'?'brandStack':undefined,periods:per.map(w=>w.period),calendarPeriods:per.filter(w=>nonempty(w)&&(metric!=='share'||w.total>0)).map(w=>w.period),unit,limit:metric==='share'?100:undefined,lines:labels.map((name,i)=>({name,color:attrColor(name,i),values:per.map((w,j)=>nonempty(w)?attrValue(maps[j].get(name),metric,w.total):null)}))};
+    return {kind:view==='stack'?'brandStack':undefined,connectAdjacentBands:view==='stack',periods:per.map(w=>w.period),calendarPeriods:per.filter(w=>nonempty(w)&&(metric!=='share'||w.total>0)).map(w=>w.period),unit,limit:metric==='share'?100:undefined,lines:labels.map((name,i)=>({name,color:attrColor(name,i),values:per.map((w,j)=>nonempty(w)?attrValue(maps[j].get(name),metric,w.total):null)}))};
   }
   function attrMatrix(last,rows,columns,rowOf,colOf,metric){
     const maps=new Map(rows.map(k=>[k,Product.aggregate(last.entries.filter(x=>rowOf(x)===k),colOf)]));
@@ -1335,7 +1335,7 @@
     const key=researchView,notice=$('researchNotice'),cfg=attributeSettings(key);
     const per=Product.observed(weeks,masterCatalog,col,filters()),last=per.at(-1),valid=per.filter(nonempty),periods=valid.map(w=>w.period);
     const sample=topKValue()===null?'原始榜单全量':'固定 TOP'+topKValue();
-    const general='先按原始排名确定有效榜单，再限定属性筛选；仅原始观测，不插补。占比以筛选后全部入榜样本销量为分母，未知属性仍计入分母；非全市场。';
+    const general='先按原始排名确定有效榜单，再限定属性筛选；仅原始观测，不插补。占比以筛选后全部入榜样本销量为分母，未知属性仍计入分母；非全市场。历史堆叠图相邻有效周以半透明色带连接同一类别，缺失周断连；色带不代表用户或销量转移。';
     const suffix=' · '+sample+' · '+valid.length+'/'+weeks.length+' 周有筛选后样本';
     if(!masterCatalog){notice.textContent='机型主数据未加载，产品属性专题暂不可用；其他销量研究不受影响。';return;}
     if(key==='cross'){renderCrossStudy(per,weeks,cfg,general,sample);return;}

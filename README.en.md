@@ -18,6 +18,8 @@ A smartphone data dashboard and social-poster toolkit deployed on Cloudflare Wor
 | **02 · Market Share** | Auto-load weekly brand shares from `market-share.csv`; compare adjacent ISO weeks, import a local CSV, manually edit values, and export five chart types (including market-scale stacked charts) in six themes as high-resolution 3:4 PNGs. | [Market Share](https://smartphonesellout.zirconium.workers.dev/#market-share) |
 | **03 · Ranking Estimator & Poster Studio** | Calibrate ranking screenshots against known sales or create posters directly from archived rankings and sixteen research topics; track sales and original ranks together, view rank matrices, merge CSV history and export high-resolution 3:4/9:16 PNGs and ZIP bundles. | [Ranking Estimator](https://smartphonesellout.zirconium.workers.dev/#sales-estimator) |
 
+The module-3 cross-module TOP30 vs whole-market study offers a two-week ribbon comparison and a multiweek stacked-flow mode, with translucent same-brand ribbons drawn only between adjacent valid weeks. The ranking-ecosystem brand-structure multiweek stacked chart now also uses these ribbons for brand sales share, model-count share, and sales volume; missing weeks break the connections, and the multiweek cross-module view omits the pp-change column.
+
 ## Getting started
 
 Use the live site above (modules 1 and 2 are public; module 3 requires authorization). Maintainers with private repository access can download or clone it and serve it locally:

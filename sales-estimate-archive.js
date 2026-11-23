@@ -1009,8 +1009,8 @@
           topMap=new Map(topWeeks.map(w=>[w.period,w])),
           marketMap=new Map(marketCache.map(m=>[m.week.replace('W','-W'),m]));
     const panels=[
-      {key:'top',title:'TOP30 榜单品牌结构流向',subtitle:'原始榜单排名1–30名 · 样本销量占比'},
-      {key:'market',title:'全市场品牌份额流向',subtitle:'同周全市场数据 · 品牌份额'}
+      {key:'top',title:'TOP30 榜单品牌份额变化',subtitle:'榜单前30名 · 样本销量占比'},
+      {key:'market',title:'全市场品牌份额变化',subtitle:'全市场品牌份额'}
     ].map(panel=>{
       const weeks=periods.map(period=>{
         const t=topMap.get(period),m=marketMap.get(period);
@@ -1080,10 +1080,10 @@
       series:valid?groups.map(g=>({key:g.key,label:g.label,color:g.color,
         base:extract(g,base),compare:extract(g,compare)})):[]
     });
-    const topPanel=dataset('top',topValid,'TOP30 榜单品牌结构流向','原始榜单排名1–30名 · 样本销量占比',
+    const topPanel=dataset('top',topValid,'TOP30 榜单品牌份额变化','榜单前30名 · 样本销量占比',
       !topA?.valid?'基准周TOP30不完整：'+(topA?.status||'未收录'):!topB?.valid?'对比周TOP30不完整：'+(topB?.status||'未收录'):'TOP30销量不可计算',
       (g,period)=>{const r=topMap.get(period);return 100*r.sales[g.key]/r.total;});
-    const marketPanel=dataset('market',marketValid,'全市场品牌份额流向','同周全市场数据 · 品牌份额',
+    const marketPanel=dataset('market',marketValid,'全市场品牌份额变化','全市场品牌份额',
       !marketA?'缺少基准周全市场份额':!marketB?'缺少对比周全市场份额':'全市场份额不可计算',
       (g,period)=>marketMap.get(period).brands[g.id]);
     const panels=[topPanel,marketPanel],lines=[];
@@ -1639,7 +1639,7 @@
   $('researchStreak').oninput=renderResearch;$('researchTailView').onchange=renderResearch;$('researchNewWeeks').onchange=renderResearch;
   $('researchExport').onclick=()=>exportCSVBlob(researchExportRows,'sales-research-'+researchView+'.csv');
 
-  const researchSubtitles={model:'重点机型周销量与累计增量变化',series:'样本机型的销量合计与变化',generation:'新旧两代样本机型销量占比变化',structure:'不同产品分组样本销量贡献',tier:'同产品档位新旧机型销量对比',tail:'连续上榜纪录与销量长尾表现',flow:'新入、退出及留榜机型的变化',brand:'品牌结构、双周变化、集中度趋势',head:'头部榜单与全市场的品牌结构、富集与单品强度',dual:'TOP30与全市场品牌结构的双周流向对照',coverage:'苹果锚点总销量、SKU推导区间与多周一致性',price:'首发价位的销量结构、趋势及品牌竞争',position:'销量加权首发价与高价位贡献',chip:'供应商及具体芯片平台的样本销量竞争',age:'各上市年龄段销量结构及品牌新品贡献',cross:'双属性交叉矩阵与销量结构'};
+  const researchSubtitles={model:'重点机型销量走势与排名',series:'热门系列销量变化',generation:'新老两代机型销量对比',structure:'不同产品类型的销量表现',tier:'同价位新旧机型销量对比',tail:'哪些机型持续上榜？',flow:'哪些机型进入或退出榜单？',brand:'各品牌上榜表现与集中度',head:'热门榜单和整体市场有何不同？',dual:'TOP30样本与整体市场品牌结构对比',coverage:'TOP30销量与市场规模估算',price:'各首发价位的销量表现',position:'品牌首发价位与销量分布',chip:'各芯片平台的上榜表现',age:'新品与老机型销量占比',cross:'不同产品属性的销量分布'};
   const researchSend=document.createElement('button');researchSend.type='button';researchSend.className='primary';researchSend.textContent='用当前专题生成图卡';
   researchSend.style.margin='8px 0';researchNav.after(researchSend);
   researchSend.onclick=()=>sendResearchToStudio(researchView);

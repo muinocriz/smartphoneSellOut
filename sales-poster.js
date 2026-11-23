@@ -1,5 +1,5 @@
 /* Poster geometry, safety zones, watermark and template renderers. */
-function posterHeading(type){const titles={top:'热销机型 TOP10',versus:'同榜机型 销量 PK',brands:'品牌上榜实力',leader:'榜首究竟有多强？'};const subs={top:'入榜机型 · 估算销量排名',versus:'相同统计周期 · 销量估算对比',brands:'仅限当前榜单的入榜样本',leader:'头部差距与集中度分析'};return {title:titles[type],sub:subs[type]}}
+function posterHeading(type){const titles={top:'热销机型 TOP10',versus:'同榜机型 销量 PK',brands:'品牌上榜实力',leader:'榜首究竟有多强？'};const subs={top:'本榜单前十名 · 销量估算',versus:'同一榜单 · 销量差距',brands:'各品牌入榜销量与占比',leader:'榜首差距与样本销量占比'};return {title:titles[type],sub:subs[type]}}
 // 与市场份额模块统一为浅灰蓝画布 + 白色圆角海报卡片。
 // Theme-colored exterior + white editorial content card.
 function drawPosterBackdrop(ctx,W,H,p){
@@ -37,7 +37,7 @@ function drawDataCard(ctx,x,y,w,h,p,r=Math.round(1080*window.PosterThemes.layout
 /* Independent-axis poster layout. All geometry remains in original 1080px
  * design coordinates; only output pixel density changes the Canvas transform.
  * Right reserve sets width, bottom reserve sets height independently. */
-const BRAND_FOOTER_NOTE='系列归并：小米+REDMI｜OPPO+一加+realme｜vivo+iQOO';
+const BRAND_FOOTER_NOTE='品牌合并：小米/REDMI · OPPO/一加/realme · vivo/iQOO';
 // A per-render audit uses the actual sizes and plot dimensions used by the renderer.
 // It never alters the user's safety margins, chart data, or export resolution.
 const posterAudits=new WeakMap();

@@ -472,7 +472,7 @@ const ResearchCharts=(()=>{
   canvas.setAttribute('role','img');canvas.setAttribute('aria-label',label+'；完整数值见数据表');
   const ctx=canvas.getContext('2d');ctx.setTransform(density,0,0,density,0,0);ctx.fillStyle='#fff';ctx.fillRect(0,0,W,H);
   const box={left:16,right:W-16,top:16,bottom:H-16,width:W-32,height:H-32},p={ink:'#17263c',sub:'#64748b',hair:'#e4e9f0',accent:'#c93630',bar:'#265a87'};
-  if(chart.kind==='dualBrandFlowMulti')drawDualBrandFlowMulti(ctx,chart,box,p,'六大品牌 · 保留原始分母，其他未绘制 · 仅相邻有效周连接同品牌');else if(chart.kind==='dualBrandFlow')drawDualBrandFlow(ctx,chart,box,p,'六大品牌 · 各自原始分母，其他不重算；色带仅连接同品牌');else if(chart.kind==='heatmap')drawResearchHeatmap(ctx,chart,box,p);else if(chart.kind==='scatter'||chart.kind==='bars')drawHeadStaticPoster(ctx,p,{chart,chartNote:''},box);else drawBrandComposition(ctx,chart,box,p,'');
+  if(chart.kind==='dualBrandFlowMulti')drawDualBrandFlowMulti(ctx,chart,box,p,'上图为TOP30样本，下图为全市场份额 · 色带只表示同品牌变化');else if(chart.kind==='dualBrandFlow')drawDualBrandFlow(ctx,chart,box,p,'上下图统计范围不同 · 色带只表示同品牌变化');else if(chart.kind==='heatmap')drawResearchHeatmap(ctx,chart,box,p);else if(chart.kind==='scatter'||chart.kind==='bars')drawHeadStaticPoster(ctx,p,{chart,chartNote:''},box);else drawBrandComposition(ctx,chart,box,p,'');
   host.append(canvas);
  }
  return Object.freeze({lineScale,svgLine,canvasLine,renderComposition,markerAt,svgMarker,canvasMarker});

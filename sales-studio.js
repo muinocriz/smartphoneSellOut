@@ -52,31 +52,109 @@ function syncPaletteChooser(){
   btn.querySelectorAll('.ui-swatches i').forEach((dot,i)=>{dot.style.background=colors[i]||'#ffffff'});
  });
 }
-function defaultPosterTag(o){if(o.d.archiveRows)return o.d.label;if(!o.models.length)return '';return String(o.d.label||'').replace(/\.(?:png|jpe?g|webp)$/i,'').trim()}
-function researchNoteDefaults(s){
- const kind=s.chart?.kind,rankOnly=kind==='trackerRank'||kind==='trackerMatrix';
- let lead='';
- if(kind==='trackerMatrix')lead='× 榜单缺失 · — 无排名记录';
- else if(kind==='dualBrandFlowMulti')lead='多周原始份额 · 其他未绘制 · 相邻有效周色带仅连接同品牌';
- else if(kind==='dualBrandFlow')lead='六大品牌 · pp为百分点；两图分母不同 · 其他未绘制';
- else if(s.table&&!s.chart)lead='展示前 '+Math.min(10,s.table.rows.length)+' / '+s.table.rows.length+' 款 · 完整结果见专题 CSV';
- else if(kind==='coverageTrend')lead='断线：缺少完整TOP30或同周苹果份额；异常圈仅标记量化趋势与可行区间冲突';
- else if(s.chart&&!['trackerRank','trackerBoth','bars','scatter','heatmap','brandStack','brandRibbon'].includes(kind))
-  lead=['head','coverage'].includes(s.key)?'仅共同有效周；断线表示缺少可比较数据':s.chart.imputed?'空心点 / 虚线：含插补；断线：缺少可用数据':'实线：观测数据；断线：缺少可比数据';
- const tail=rankOnly?'':s.key==='model'?(s.chart?.imputed?'虚线 / 空心点：含插补':''):s.chartNote||'';
- const chartNote=[lead,tail].filter(Boolean).join('\n');
- const footer=s.key==='model'?('来源：'+s.source+'｜仅榜单样本，非全市场'+(rankOnly?'':'；销量为估算值')):(s.footer||s.note||'');
- return {chartNote,disclaimer:footer};
+// Public-facing chart copy: intentionally separate from research method notes and CSV metadata.
+const publicResearchHeadings={
+ model:['机型销量趋势','重点机型销量走势'],
+ series:['系列销量趋势','热门系列销量变化'],
+ generation:['新旧机型销量对比','新老两代销量变化'],
+ structure:['产品结构分析','不同产品类型的销量表现'],
+ tier:['同档代际对比','同价位新旧机型销量比较'],
+ tail:['长尾韧性分析','哪些机型持续上榜？'],
+ flow:['榜单流动分析','哪些机型进入或退出榜单？'],
+ brand:['榜单品牌结构与集中度','各品牌上榜表现与集中度'],
+ head:['榜单品牌与全市场对比','热门榜单和整体市场有何不同？'],
+ dual:['TOP30与全市场品牌结构','样本榜单与整体市场品牌份额'],
+ coverage:['TOP30与市场规模估算','样本销量及市场总销量估算'],
+ price:['价格带竞争分析','不同首发价位的销量表现'],
+ position:['品牌产品定位分析','各品牌首发价位与销量分布'],
+ chip:['芯片平台竞争分析','不同芯片平台的上榜表现'],
+ age:['新老产品结构分析','新品与老机型销量占比'],
+ cross:['多维产品竞争分析','不同产品属性的销量分布']
+};
+function publicResearchTag(s){
+ let tag=String(s.range||'').replace(/\s*→\s*/g,' vs ').replace(/（完整销售周）/g,' · 上市后周次').trim();
+ if(!tag)return '';
+ if(['coverage','dual'].includes(s.key)&&!tag.includes('TOP30'))tag+=' · TOP30';
+ return tag;
 }
-function posterCopyDefaults(type,o){if(isResearchTemplate(type)&&socialResearchSnapshot){const s=socialResearchSnapshot;return {title:s.title,subtitle:s.subtitle,tagLabel:s.range||'',markLeft:'',markRight:'',...researchNoteDefaults(s)};}const hd=posterHeading(type);return {title:hd.title,subtitle:hd.sub,tagLabel:defaultPosterTag(o),markLeft:'',markRight:'',disclaimer:`${socialSourceName(o)}榜单截图 · 销量为估算值
-仅统计本次入榜样本，不代表全市场销量或品牌市场份额
-合并展示的机型按一条榜单记录统计`}}
+function publicResearchChartNote(s){
+ const key=s.key,kind=s.chart?.kind||'',imputed=!!s.chart?.imputed;
+ if(key==='model'){
+  if(kind==='trackerRank'||kind==='trackerMatrix')return '未上榜不代表停销；排名仅代表当前榜单';
+  if(kind==='trackerBoth')return '销量为估算值；榜单排名并非全市场排名';
+  if(imputed)return '空心点代表补充估算，不能当作实测销量';
+  return '';
+ }
+ if(key==='generation')return '两代机型销量变化不等于用户实际换机';
+ if(key==='tail')return '未出现在榜单中不代表机型已停销';
+ if(key==='flow')return '进入或退出榜单，不等于上市或停销';
+ if(key==='brand'&&['brandStack','brandRibbon'].includes(kind))return '浅色连接仅表示同品牌份额变化，不代表销量转移';
+ if(key==='head')return '榜单机型占比与全市场品牌份额的范围不同';
+ if(key==='dual')return '上下图统计范围不同；色带仅连接同一品牌';
+ if(key==='coverage'){
+  if(kind==='coverageTrend')return s.chart?.skuEnabled?
+   '紫线是情景区间中点；浅色带是市场总销量估算范围':
+   '紫线仅为市场总销量下界，不能视作完整市场销量';
+  return '市场规模和覆盖率均为条件性估算';
+ }
+ if(key==='price')return '价格按首发起售价划分，并非实际成交价';
+ if(key==='position')return '价格为首发价，不代表实际成交均价';
+ if(key==='age')return '新品按开售时间划分，不以首次上榜为准';
+ if(key==='tier')return '只对比所选机型，不代表同价位全部产品';
+ if(key==='cross')return '仅比较所选产品属性及入榜机型';
+ if(imputed)return '空心点代表补充估算，不能当作实测销量';
+ return '';
+}
+function publicResearchCopy(s){
+ const names=publicResearchHeadings[s.key]||[s.title,s.subtitle],tagLabel=publicResearchTag(s);
+ let title=names[0],subtitle=names[1];
+ if(s.key==='model'){
+  const kind=s.chart?.kind;
+  if(kind==='trackerRank'||kind==='trackerMatrix'){title='机型榜单排名走势';subtitle='重点机型在榜单中的排名变化';}
+  else if(kind==='trackerBoth'){title='机型销量与榜单排名';subtitle='销量与排名一起看';}
+  else if(s.chart?.axis==='lifecycle')subtitle='上市后各周销量变化';
+ }
+ if(s.key==='coverage'){
+  const view=s.config?.topic?.view;
+  if(view==='coverage')subtitle='TOP30样本销量占整体市场多少？';
+  else if(view==='mom')subtitle='市场环比变化对比';
+  else if(view==='gap')subtitle='市场环比走势差异';
+ }
+ const source=[s.config?.source,s.config?.series].filter(Boolean).join(' / ')||s.source||'历史销量榜';
+ const cross=['head','dual','coverage'].includes(s.key);
+ let disclaimer='来源：'+source+(cross?'；对照：全市场品牌份额数据':' · 榜单销量为估算值');
+ if(s.key==='dual')disclaimer+='\nTOP30仅代表入榜样本；下图为整体市场份额';
+ else if(s.key==='head')disclaimer+='\n榜单样本占比不等于整体市场品牌份额';
+ else if(s.key==='coverage')disclaimer+='\n市场总销量为条件性估算，不是官方统计';
+ else if(s.key==='model'&&['trackerRank','trackerMatrix'].includes(s.chart?.kind))disclaimer+='\n排名只代表所选榜单，不是全市场排名';
+ else disclaimer+='\n仅统计入榜样本，不代表全市场销量或份额';
+ return {title,subtitle,tagLabel,chartNote:publicResearchChartNote(s),disclaimer};
+}
+function defaultPosterTag(o){
+ if(o.d.archiveRows)return String(o.d.label||'').replace(/（实收(\d+)条）/g,' · 实收$1条');
+ if(!o.models.length)return '';
+ const filename=String(o.d.label||'').replace(/\.(?:png|jpe?g|webp)$/i,'').trim();
+ // An upload filename without a recognizable period is not a useful public label.
+ return /(?:20\d{2}[-/]?W\d{1,2}|\d{1,2}月\d{1,2}日|第\d{1,2}周|W\d{1,2})/i.test(filename)?filename:'本期入榜样本';
+}
+function researchNoteDefaults(s){
+ const publicCopy=publicResearchCopy(s);
+ return {chartNote:publicCopy.chartNote,disclaimer:publicCopy.disclaimer};
+}
+function posterCopyDefaults(type,o){
+ if(isResearchTemplate(type)&&socialResearchSnapshot)return {
+  ...publicResearchCopy(socialResearchSnapshot),markLeft:'',markRight:''
+ };
+ const hd=posterHeading(type);
+ return {title:hd.title,subtitle:hd.sub,tagLabel:defaultPosterTag(o),markLeft:'',markRight:'',
+  disclaimer:'来源：'+socialSourceName(o)+' · 榜单销量为估算值\n仅统计本次榜单样本，不代表全市场销量或份额'};
+}
 function syncPosterCopyUI(type,o,force=false){const defs=posterCopyDefaults(type,o);const bind={title:'copyTitle',subtitle:'copySubtitle',tagLabel:'copyTagLabel',markLeft:'copyMarkLeft',markRight:'copyMarkRight',disclaimer:'copyDisclaimer',chartNote:'copyChartNote',chartHeader:'copyChartHeader',chartSubheader:'copyChartSubheader'};for(const [key,id] of Object.entries(bind)){if(force||!socialCopyDirty[key])socialCopyState[key]=defs[key]??'';if($(id) && $(id).value!==socialCopyState[key])$(id).value=socialCopyState[key];}}
 function getPosterCopy(type,o){const defs=posterCopyDefaults(type,o);const copy={title:socialCopyDirty.title?socialCopyState.title:defs.title,subtitle:socialCopyDirty.subtitle?socialCopyState.subtitle:defs.subtitle,tagLabel:socialCopyDirty.tagLabel?socialCopyState.tagLabel:defs.tagLabel,markLeft:socialCopyDirty.markLeft?socialCopyState.markLeft:defs.markLeft,markRight:socialCopyDirty.markRight?socialCopyState.markRight:defs.markRight,disclaimer:socialCopyDirty.disclaimer?socialCopyState.disclaimer:defs.disclaimer};for(const k of ['chartNote'])copy[k]=socialCopyDirty[k]?socialCopyState[k]:(defs[k]??'');return copy;}
 function resetPosterCopy(force=false){if(researchStudioActive()){for(const k of researchContentFields)socialCopyDirty[k]=false;syncPosterCopyUI(socialState.template,socialData());if(!force)updateSocial(false);return;}for(const k of Object.keys(socialCopyDirty))socialCopyDirty[k]=false;const o=socialData();syncPosterCopyUI(socialState.template,o,true);if(!force)updateSocial(false)}
 function activeColumnMode(){if(researchStudioActive())return 'research';const chosen=$('contentColumn')?.value||'auto';if(chosen!=='auto')return chosen;return({top:'weekly',versus:'duel',brands:'brands',leader:'leader'})[socialState.template]||'weekly'}
 function columnModeLabel(mode=activeColumnMode()){if(mode==='research')return socialResearchSnapshot?.title||'研究专题';return({weekly:'每周 TOP10 栏目',duel:'双机销量 PK 栏目',brands:'品牌上榜实力栏目',leader:'榜首断层分析栏目'})[mode]||'自动栏目'}
-function generateHeadlinePack(type,o){if(isResearchTemplate(type)&&socialResearchSnapshot){const s=socialResearchSnapshot;return {xhs:s.title+'｜'+s.range,dy:s.title+'\n'+s.range,carousel:['P1 封面：'+s.title+' · '+s.range,'P2 图表：'+s.displayMetric,'P3 统计口径：'+s.context,'P4 观察：'+s.summary,'P5 限制：'+s.note].join('\n')};}if(o.models.length<2)return {xhs:'',dy:'',carousel:''};const top=o.models[0],second=o.models[1],period=o.d.label,mode=activeColumnMode();let xhs='',dy='',carousel='';if(mode==='weekly'){xhs=`${period}销量TOP10出炉｜${top.name}排第一，${displayTimes(o.ratio)}断层领先`;dy=`${period.replace(' · ',' ')}
+function generateHeadlinePack(type,o){if(isResearchTemplate(type)&&socialResearchSnapshot){const p=publicResearchCopy(socialResearchSnapshot);return {xhs:p.title+'｜'+p.tagLabel,dy:p.title+'\n'+p.tagLabel,carousel:['P1 封面：'+p.title+' · '+p.tagLabel,'P2 图表：'+p.subtitle,'P3 阅读提示：'+(p.chartNote||'根据图表观察销量及占比变化'),'P4 说明：'+p.disclaimer.replace(/\n/g,'；')].join('\n')};}if(o.models.length<2)return {xhs:'',dy:'',carousel:''};const top=o.models[0],second=o.models[1],period=defaultPosterTag(o),mode=activeColumnMode();let xhs='',dy='',carousel='';if(mode==='weekly'){xhs=`${period}销量TOP10｜${top.name}排第一，领先第二名${displayTimes(o.ratio)}`;dy=`${period.replace(' · ',' ')}
 TOP10谁卖得最好？
 ${top.name}冲到第一`;carousel=`P1 封面：${period}手机销量TOP10
 P2 榜首信息：${top.name}约${displaySale(top.sale)}，领先第二名 ${displayTimes(o.ratio)}
@@ -150,8 +228,8 @@ function updateSocial(rewriteStory=true){if(researchStudioActive()){updateResear
  $('insightSummary').innerHTML=renderInsightSummary(o);updateSafeLabels();syncPaletteChooser();syncPosterCopyUI(socialState.template,o);drawPoster(socialState.template,$('posterCanvas'),o,true);if(rewriteStory){const pack=generateHeadlinePack(socialState.template,o);$('storyText').value=generateStory(socialState.template,o);$('xhsTitle').value=pack.xhs;$('dyTitle').value=pack.dy;$('carouselText').value=pack.carousel;}
 }
 function renderInsightSummary(o){if(!o.models.length)return '<p>尚无数据。</p>';const p=o.models[0],two=o.models[1];let cards=[['上榜条目',o.models.length+' 条'],['榜首 / 第二名',displayTimes(o.ratio)],['TOP3样本占比',displayPct(o.top3)],['识别品牌',o.brands.length+' 个']];if(o.fit.k!==null)cards[0]=['上榜样本估算合计',displayWan(o.models.reduce((sum,m)=>sum+m.sale,0))+' 万台'];return '<div class="insight-grid">'+cards.map(c=>`<div class="insight-cell"><div class="lab">${e(c[0])}</div><b>${e(c[1])}</b></div>`).join('')+'</div><div class="insight-note">'+e(`${p.name} 的柱长为 ${p.pixels}px；${two?two.name+' 为 '+two.pixels+'px；':''}品牌系列仅统计当前入榜条目；小米/REDMI、一加/OPPO、vivo/iQOO分别归并，不能据此推算全市场份额。`)+'</div>'}
-function generateStory(type,o){if(isResearchTemplate(type)&&socialResearchSnapshot){const s=socialResearchSnapshot;return [s.title+'｜'+s.range,'【统计口径】\n'+s.context,'【研究观察】\n'+s.summary,'【方法与限制】\n'+[s.description,s.chartNote,s.note].filter(Boolean).join('\n'),'【详细配置】\n'+s.detail].join('\n\n');}if(o.models.length<2)return '请先导入至少两条有效柱状图数据。';if(!o.canPublish)return `【待标定 / 暂不可发布】\n${o.d.label} 已识别 ${o.models.length} 条柱长。第一名：${o.models[0].name}（${o.models[0].pixels} px）；第二名：${o.models[1].name}（${o.models[1].pixels} px）。柱长比为 ${displayTimes(o.ratio)}。\n\n请在上方输入同一榜单至少一组已知销量，解决可能存在的标定冲突后，再生成可发布的估算销量文案。\n\n注意：像素长度本身不是销量数值。`;
- const top=o.models[0],second=o.models[1],period=o.d.label,share=`仅统计这张${period}截图中列出的 ${o.models.length} 条上榜记录，不是全市场销量或品牌市场份额。`,note=`数据来源：${socialSourceName(o)}排行榜截图；销量通过已知数据对柱长进行比例拟合，均为估算值，非官方销量。${o.fit.fitMode==='robust'?'部分偏离标定已剔除；请进一步核实。':''} 图中合并机型行按一个条目统计。`;
+function generateStory(type,o){if(isResearchTemplate(type)&&socialResearchSnapshot){const p=publicResearchCopy(socialResearchSnapshot);return [p.title+'｜'+p.tagLabel,'【看点】\n'+p.subtitle,p.chartNote?'【阅读提示】\n'+p.chartNote:'','【来源与说明】\n'+p.disclaimer].filter(Boolean).join('\n\n');}if(o.models.length<2)return '请先导入至少两条有效柱状图数据。';if(!o.canPublish)return `【待标定 / 暂不可发布】\n${o.d.label} 已识别 ${o.models.length} 条柱长。第一名：${o.models[0].name}（${o.models[0].pixels} px）；第二名：${o.models[1].name}（${o.models[1].pixels} px）。柱长比为 ${displayTimes(o.ratio)}。\n\n请在上方输入同一榜单至少一组已知销量，解决可能存在的标定冲突后，再生成可发布的估算销量文案。\n\n注意：像素长度本身不是销量数值。`;
+ const top=o.models[0],second=o.models[1],period=defaultPosterTag(o),share=`仅统计本期榜单的 ${o.models.length} 条上榜记录，不代表全市场销量或品牌份额。`,note=`来源：${socialSourceName(o)}手机销量榜；销量为估算值，非官方统计。`;
  const titleSuffix=' #手机销量 #数码观察 #手机排行';
  if(type==='top'){
   const rows=o.models.slice(0,10).map(m=>`第${m.rank}名：${m.name}，约${displaySale(m.sale)}`).join('\n');

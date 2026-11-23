@@ -61,6 +61,7 @@ CSV 字段、完整销售周口径、设计约定、部署和维护方法见 [�
 
 - [CHANGELOG.md](CHANGELOG.md)：功能更新与问题修复记录。
 - [维护与设计指南](docs/MAINTAINER_GUIDE.md)：数据格式、图卡规格、设计原则和开发维护说明。
+- [公开图卡文案规范](docs/PUBLIC_POSTER_COPY_GUIDE.md)：四类基础图卡与16个研究专题的标题、副标题、标签、图内提示和底部说明。
 - [模块3架构与派生数据](docs/MODULE3_ARCHITECTURE.md)：研究数据引擎、版本化配置、初始化隔离与生成物。
 
 **致谢**：感谢 [@zhoulin12138](https://github.com/zhoulin12138) 提供的思路、辅导与支持。

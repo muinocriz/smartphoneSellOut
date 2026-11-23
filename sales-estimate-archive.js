@@ -1000,7 +1000,7 @@
     if(!valid.length)return;
     const x=records.map(r=>({period:r.period}));
     if(mode==='coverage'){
-      researchPlot(x,[{name:'理论上限（苹果100%入榜）',color:'#2563eb',values:records.map(r=>r.upper)},...rates.map((rate,i)=>({name:'入榜率'+rate+'%情景',color:trackerPalette[(i+1)%trackerPalette.length],values:records.map(r=>r.scenarios?.[i]??null)}))],'% ',100);
+      researchPlot(x,[{name:'理论上限（苹果100%入榜）',color:'#2563eb',values:records.map(r=>r.upper)},...rates.map((rate,i)=>({name:'入榜率'+rate+'%情景',color:trackerPalette[(i+1)%trackerPalette.length],values:records.map(r=>r.scenarios?.[i]??null)}))],'%',100);
     }else if(mode==='mom'){
       researchPlot(x,[{name:'苹果锚点环比指数',color:'#2563eb',values:records.map(r=>r.gap===null?null:100+r.modelGrowth)},{name:'模块2趋势指数',color:'#ea580c',values:records.map(r=>r.gap===null?null:100+r.reportedGrowth)}],'前周=100的环比规模指数');
     }else{

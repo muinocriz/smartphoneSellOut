@@ -134,6 +134,100 @@ function drawBrandComposition(ctx,chart,box,p,note=''){
 }
 
 
+
+/* Multiweek TOP30 / market stacked columns with ribbons BETWEEN adjacent valid weeks.
+ * Missing observations stay blank and sever ribbons; no pp column or extreme highlights. */
+function drawDualBrandFlowMulti(ctx,chart,box,p,note=''){
+ const {left,right,top,bottom,width,height}=box,panels=chart.panels||[],periods=chart.periods||[];
+ if(panels.length!==2||!periods.length)return;
+ if(!auditPlot(ctx,width,height,'TOP30与全市场多周堆叠流向图',380,380))return;
+ const f=Math.min(1.12,width/1050,height/1010),gap=Math.max(12,20*f),
+       subtitleSize=Math.max(10,Math.min(17,15*f)),labelSize=Math.max(10,Math.min(19,17*f)),
+       titleSize=Math.max(14,Math.min(27,23*f)),legendH=Math.max(28,39*f),
+       noteH=note?Math.max(22,30*f):0,
+       panelH=(height-legendH-noteH-gap*2)/2;
+ if(panelH<165){auditIssue(ctx,'多周堆叠流向图空间不足，可使用9:16图卡',true);return;}
+ const brands=window.BrandUtils.groups.filter(g=>g.id!=='other');
+ const draw=(s,x,y,size,color=p.ink,weight='600',align='left',max=Infinity)=>
+  posterFitText(ctx,s,x,y,size,color,weight,align,max);
+ function drawPanel(panel,y){
+  const x=left,w=width,h=panelH;
+  rounded(ctx,x+1,y+1,w-2,h-2,Math.max(6,10*f),'#ffffff');
+  ctx.save();ctx.strokeStyle=p.hair;ctx.lineWidth=Math.max(1,1.2*f);
+  ctx.beginPath();ctx.roundRect(x+1,y+1,w-2,h-2,Math.max(6,10*f));ctx.stroke();ctx.restore();
+  const chipW=Math.max(68,84*f),chipX=x+Math.max(9,17*f),chipY=y+Math.max(9,12*f),
+        chipH=Math.max(21,28*f);
+  rounded(ctx,chipX,chipY,chipW,chipH,chipH/2,'#3b82f6');
+  draw(panel.key==='top'?'TOP30':'全市场',chipX+chipW/2,chipY+chipH*.73,labelSize,'#ffffff','800','center',chipW-6);
+  draw(panel.title||'',chipX+chipW+Math.max(10,15*f),chipY+chipH*.75,titleSize,p.ink,'800','left',w-chipW-55);
+  draw(panel.subtitle||'',chipX,y+Math.max(57,64*f),subtitleSize,p.sub,'500','left',w-30);
+  const x0=x+Math.max(54,62*f),x1=x+w-Math.max(11,20*f),
+        y0=y+Math.max(76,89*f),y1=y+h-Math.max(33,42*f),
+        plotW=x1-x0,plotH=y1-y0,slot=plotW/periods.length,
+        bw=Math.min(Math.max(30,88*f),slot*.62),barXs=periods.map((_,i)=>x0+slot*(i+.5));
+  if(plotH<=80||slot<=8){auditIssue(ctx,'周次过多或图幅过窄，堆叠柱无法清晰显示',true);return;}
+  if(slot<55)auditIssue(ctx,'多周数据较密集，可缩短统计区间或改用较宽的图卡');
+  for(let k=0;k<=4;k++){
+   const pct=k*25,gy=y1-plotH*pct/100;
+   ctx.save();ctx.strokeStyle=p.hair;ctx.lineWidth=Math.max(.7,1*f);ctx.beginPath();ctx.moveTo(x0,gy);ctx.lineTo(x1,gy);ctx.stroke();ctx.restore();
+   draw(pct+'%',x0-Math.max(5,7*f),gy+subtitleSize*.33,subtitleSize,p.sub,'550','right',x0-x-9);
+  }
+  const geometries=panel.weeks.map(week=>{
+   if(!week.valid)return null;
+   let acc=0;
+   return week.series.map(s=>{
+    const bottomPct=acc;acc+=s.share;
+    const sy1=y1-bottomPct/100*plotH,sy0=y1-acc/100*plotH;
+    return {key:s.key,color:s.color,label:s.label,value:s.share,top:sy0,bottom:sy1,
+      mid:(sy0+sy1)/2,h:sy1-sy0};
+   });
+  });
+  // Ribbons are painted behind the bars, solely between immediately adjacent
+  // valid weeks. Never bridge or interpolate a missing/invalid natural week.
+  for(let i=0;i<geometries.length-1;i++){
+   const a=geometries[i],b=geometries[i+1];
+   if(!a||!b)continue;
+   const xl=barXs[i]+bw/2,xr=barXs[i+1]-bw/2;
+   if(xr<=xl)continue;
+   const c1=xl+(xr-xl)*.43,c2=xl+(xr-xl)*.57;
+   a.forEach((seg,j)=>{
+    const next=b[j];if(seg.h<=0&&next.h<=0)return;
+    ctx.save();ctx.fillStyle=seg.color;ctx.globalAlpha=.19;
+    ctx.beginPath();ctx.moveTo(xl,seg.top);ctx.bezierCurveTo(c1,seg.top,c2,next.top,xr,next.top);
+    ctx.lineTo(xr,next.bottom);ctx.bezierCurveTo(c2,next.bottom,c1,seg.bottom,xl,seg.bottom);
+    ctx.closePath();ctx.fill();ctx.restore();
+   });
+  }
+  geometries.forEach((segs,i)=>{
+   const cx=barXs[i],bx=cx-bw/2;
+   if(!segs){
+    ctx.save();ctx.strokeStyle=p.hair;ctx.lineWidth=Math.max(1,1.4*f);ctx.setLineDash([4,4]);
+    ctx.strokeRect(bx,y0,bw,plotH);ctx.restore();
+    draw('缺失',cx,y0+plotH/2,labelSize,p.sub,'650','center',bw-3);
+   }else segs.forEach(seg=>{
+    if(seg.h<=0)return;
+    rounded(ctx,bx,seg.top,bw,Math.max(.1,seg.h-Math.min(.9,seg.h*.08)),
+      Math.min(3*f,seg.h/2),seg.color);
+    if(seg.h>=labelSize+4&&bw>=37)
+      draw(seg.value.toFixed(1)+'%',cx,seg.mid+labelSize*.34,labelSize,'#fff','800','center',bw-3);
+   });
+   const full=periods[i],label=periods.length<=8?full:
+     periods.every(v=>v.slice(0,4)===periods[0].slice(0,4))?full.slice(5):
+     full.slice(2);
+   draw(label,cx,y1+Math.max(17,20*f),subtitleSize,p.sub,'650','center',Math.max(8,slot*.93));
+  });
+ }
+ drawPanel(panels[0],top);
+ drawPanel(panels[1],top+panelH+gap);
+ const legendY=top+panelH*2+gap*1.5,cellW=width/brands.length;
+ brands.forEach((g,i)=>{
+  const x=left+i*cellW,sw=Math.max(10,17*f);
+  rounded(ctx,x,legendY-sw*.72,sw,sw*.69,2,g.color);
+  draw(g.label,x+sw+Math.max(3,5*f),legendY,subtitleSize,p.ink,'650','left',cellW-sw-6);
+ });
+ if(note)draw(note,left,bottom-Math.max(4,7*f),subtitleSize,p.sub,'500','left',width);
+}
+
 /* Dual TOP30 / whole-market flow, sharing identical geometry in the preview and poster.
  * Only the far-right delta cells receive extreme-value backgrounds; ties use displayed 0.1pp. */
 function drawDualBrandFlow(ctx,chart,box,p,note=''){
@@ -300,13 +394,13 @@ const ResearchCharts=(()=>{
   });
  }
  function renderComposition(host,chart,label){
-  const W=chart.kind==='dualBrandFlow'?1080:chart.kind==='heatmap'?Math.max(850,chart.lines.length*94+210):chart.kind==='brandStack'?Math.max(780,chart.periods.length*78+120):850,H=chart.kind==='dualBrandFlow'?1070:chart.kind==='heatmap'?Math.max(510,chart.periods.length*42+135):chart.kind==='scatter'?560:510;
+  const W=chart.kind==='dualBrandFlowMulti'?Math.max(1150,chart.periods.length*125+140):chart.kind==='dualBrandFlow'?1080:chart.kind==='heatmap'?Math.max(850,chart.lines.length*94+210):chart.kind==='brandStack'?Math.max(780,chart.periods.length*78+120):850,H=chart.kind==='dualBrandFlowMulti'?1080:chart.kind==='dualBrandFlow'?1070:chart.kind==='heatmap'?Math.max(510,chart.periods.length*42+135):chart.kind==='scatter'?560:510;
   const canvas=document.createElement('canvas'),density=Math.min(2,window.devicePixelRatio||1);
   canvas.width=Math.round(W*density);canvas.height=Math.round(H*density);canvas.style.cssText='display:block;width:100%;min-width:620px;background:#fff;border-radius:10px';
   canvas.setAttribute('role','img');canvas.setAttribute('aria-label',label+'；完整数值见数据表');
   const ctx=canvas.getContext('2d');ctx.setTransform(density,0,0,density,0,0);ctx.fillStyle='#fff';ctx.fillRect(0,0,W,H);
   const box={left:16,right:W-16,top:16,bottom:H-16,width:W-32,height:H-32},p={ink:'#17263c',sub:'#64748b',hair:'#e4e9f0',accent:'#c93630',bar:'#265a87'};
-  if(chart.kind==='dualBrandFlow')drawDualBrandFlow(ctx,chart,box,p,'六大品牌 · 各自原始分母，其他不重算；色带仅连接同品牌');else if(chart.kind==='heatmap')drawResearchHeatmap(ctx,chart,box,p);else if(chart.kind==='scatter'||chart.kind==='bars')drawHeadStaticPoster(ctx,p,{chart,chartNote:''},box);else drawBrandComposition(ctx,chart,box,p,'');
+  if(chart.kind==='dualBrandFlowMulti')drawDualBrandFlowMulti(ctx,chart,box,p,'六大品牌 · 保留原始分母，其他未绘制 · 仅相邻有效周连接同品牌');else if(chart.kind==='dualBrandFlow')drawDualBrandFlow(ctx,chart,box,p,'六大品牌 · 各自原始分母，其他不重算；色带仅连接同品牌');else if(chart.kind==='heatmap')drawResearchHeatmap(ctx,chart,box,p);else if(chart.kind==='scatter'||chart.kind==='bars')drawHeadStaticPoster(ctx,p,{chart,chartNote:''},box);else drawBrandComposition(ctx,chart,box,p,'');
   host.append(canvas);
  }
  return Object.freeze({lineScale,svgLine,canvasLine,renderComposition,markerAt,svgMarker,canvasMarker});

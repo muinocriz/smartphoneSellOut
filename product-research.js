@@ -12,8 +12,26 @@ function value(m,field){
  if(field==='chip_model')return m.chip_model&&m.chip_vendor?m.chip_vendor+' / '+normalize(m.chip_model):UNKNOWN;
  return m[field]||UNKNOWN;
 }
+// Custom launch-price filters use the original numeric price, not the default display buckets.
+// 以下/以上/区间 include the stated endpoints.
+function priceFilterError(filters={}){
+ const mode=filters.price_mode;
+ if(!mode)return '';
+ if(!['below','above','between'].includes(mode))return '请选择有效的首发价筛选条件。';
+ const valid=n=>/^[1-9]\d*$/.test(String(n??''))&&Number.isSafeInteger(Number(n))&&Number(n)<=1000000;
+ if(mode!=='below'&&!valid(filters.price_lower))return '请输入1–1000000元的整数价格下限。';
+ if(mode!=='above'&&!valid(filters.price_upper))return '请输入1–1000000元的整数价格上限。';
+ if(mode==='between'&&Number(filters.price_lower)>Number(filters.price_upper))return '首发价下限不能高于上限。';
+ return '';
+}
 function matches(m,filters={}){
+ if(priceFilterError(filters))return false;
  for(const [field] of FIELDS)if(filters[field]&&value(m,field)!==filters[field])return false;
+ if(filters.price_mode){
+  const price=validPrice(m);if(price===null)return false;
+  if(filters.price_mode!=='below'&&price<Number(filters.price_lower))return false;
+  if(filters.price_mode!=='above'&&price>Number(filters.price_upper))return false;
+ }
  if(filters.sale_from||filters.sale_to){const d=m?.sale_start_date;if(!d||(filters.sale_from&&d<filters.sale_from)||(filters.sale_to&&d>filters.sale_to))return false;}
  return true;
 }
@@ -116,5 +134,5 @@ function matrixValue(matrix,r,c,metric){
  const denominator=metric==='row_share'?(matrix.rows.get(r)?.sales||0):metric==='col_share'?(matrix.cols.get(c)?.sales||0):matrix.total;
  return denominator>0?100*v.sales/denominator:null;
 }
-root.ProductResearch=Object.freeze({FIELDS,UNKNOWN,PRICE_BANDS,value,matches,options,groups,lifecycle,aligned,lifecycleAxis,retention,entryType,DEFAULT_CUTS,parseCuts,bandLabels,validPrice,priceBand,observed,aggregate,priceStats,rankGroups,AGE_CUTS,AGE_FIELDS,ageLabels,ageBand,dimension,cross,rankedKeys,displayDimension,matrixValue});
+root.ProductResearch=Object.freeze({FIELDS,UNKNOWN,PRICE_BANDS,value,matches,priceFilterError,options,groups,lifecycle,aligned,lifecycleAxis,retention,entryType,DEFAULT_CUTS,parseCuts,bandLabels,validPrice,priceBand,observed,aggregate,priceStats,rankGroups,AGE_CUTS,AGE_FIELDS,ageLabels,ageBand,dimension,cross,rankedKeys,displayDimension,matrixValue});
 })(typeof globalThis!=='undefined'?globalThis:this);

@@ -219,7 +219,7 @@
   function onProductFilterChange(){syncPriceFilterInputs();updateProductInfo(currentScope());trackerOptions();syncResearchEditors();renderTracker();renderResearch();}
   for(const n of Object.values(productControls))n.onchange=onProductFilterChange;
   $('productFilterReset').onclick=()=>{for(const n of Object.values(productControls))n.value='';onProductFilterChange();};
-  const researchControlIds=['trackerCoverage','trackerCoverageBase','trackerDataMode','trackerImputeRule','trackerMaxGap','trackerMissingBoard','trackerTrailing','trackerMode','trackerTrendView','researchStreak','dualView','dualBase','dualCompare','coverageView','coverageRates','headView','headBrand','headTrendMetric','headConcentration','brandView','brandMetric','brandCon','researchGroupField','researchGroupMode','researchGenerationLevel','trackerAxis','researchTailView','researchNewWeeks','priceCuts','priceView','priceMetric','priceBrandLevel','positionView','positionBrandLevel','positionHigh','chipDimension','chipView','chipMetric','chipLimit','ageView','ageMetric','ageBrandLevel','crossRow','crossColumn','crossMetric','crossRange','crossLimit',...filterIds];
+  const researchControlIds=['trackerCoverage','trackerCoverageBase','trackerDataMode','trackerImputeRule','trackerMaxGap','trackerMissingBoard','trackerTrailing','trackerMode','trackerTrendView','researchStreak','dualView','dualBase','dualCompare','coverageView','coverageRates','headView','headBrand','headTrendMetric','headConcentration','brandView','brandMetric','brandCon','researchGroupField','researchGroupMode','researchGenerationLevel','trackerAxis','researchTailView','researchNewWeeks','priceCuts','priceView','priceMetric','priceBrandLevel','positionView','positionBrandLevel','positionHigh','chipDimension','chipView','chipMetric','chipLimit','ageView','ageMetric','ageBrandLevel','crossRow','crossColumn','crossMetric','crossRange','crossLimit','crossPriceCuts',...filterIds];
   const safeEntries=value=>Array.isArray(value)?value.filter(v=>Array.isArray(v)&&v.length===2&&typeof v[0]==='string'):[];
   let catalog=[],activeScopeId='',restoringScope=false;
   const scopeSettings=new Map(safeEntries(storedResearch.scopes));
@@ -614,6 +614,7 @@
     '<div><label class="lbl" for="crossRange">统计范围</label><select id="crossRange" class="field ui-field"><option value="last">所选末周</option><option value="range">所选区间有效周汇总</option></select></div>'+
     '<div><label class="lbl" for="crossMetric">矩阵指标</label><select id="crossMetric" class="field ui-field"><option value="volume">累计样本销量（万台）</option><option value="count">入榜统计项/机型周次</option><option value="share">全样本销量占比</option><option value="row_share">行内销量占比</option><option value="col_share">列内销量占比</option></select></div>'+
     '<div><label class="lbl" for="crossLimit">每轴主要已知类别（1–8）</label><input id="crossLimit" class="field ui-field" type="number" min="1" max="8" step="1" value="6"></div><div style="align-self:end"><button id="crossSwap" type="button" class="secondary">交换行列</button></div></div>'+
+    '<div id="crossPriceWrap" style="margin-top:10px"><label class="lbl" for="crossPriceCuts">价格分界线（元，升序逗号分隔）</label><div style="display:flex;gap:8px;flex-wrap:wrap"><input id="crossPriceCuts" class="field ui-field" style="flex:1;min-width:200px" value="'+Product.DEFAULT_CUTS.join(',')+'"><button id="crossResetCuts" type="button" class="secondary">恢复默认价格带</button></div><p class="mini">行或列选择「首发价格带」时生效；沿用价格带竞争分析的分界线规则。未知价格独立统计。</p></div>'+
     '<div id="researchNotice" class="msg" aria-live="polite"></div><div id="researchChart" style="overflow:auto"></div><div id="researchLegend" style="display:flex;flex-wrap:wrap;gap:8px 16px"></div>'+
     '<div class="tablewrap"><table class="ranktable"><thead id="researchHead"></thead><tbody id="researchRows"></tbody></table></div>'+
     '<button type="button" class="secondary" id="researchExport" style="margin-top:10px" disabled>导出当前专题 CSV</button>';
@@ -1263,7 +1264,7 @@
     if(key==='price')return {cuts:$('priceCuts').value,view:$('priceView').value,metric:$('priceMetric').value,brandLevel:$('priceBrandLevel').value};
     if(key==='position')return {view:$('positionView').value,brandLevel:$('positionBrandLevel').value,high:$('positionHigh').value};
     if(key==='age')return {view:$('ageView').value,metric:$('ageMetric').value,brandLevel:$('ageBrandLevel').value,ageCuts:Product.AGE_CUTS};
-    if(key==='cross')return {row:$('crossRow').value,column:$('crossColumn').value,metric:$('crossMetric').value,range:$('crossRange').value,limit:$('crossLimit').value,ageCuts:Product.AGE_CUTS,priceCuts:Product.DEFAULT_CUTS};
+    if(key==='cross')return {row:$('crossRow').value,column:$('crossColumn').value,metric:$('crossMetric').value,range:$('crossRange').value,limit:$('crossLimit').value,ageCuts:Product.AGE_CUTS,priceCuts:$('crossPriceCuts').value};
     return {dimension:$('chipDimension').value,view:$('chipView').value,metric:$('chipMetric').value,limit:$('chipLimit').value};
   }
   const attrMetricLabel=metric=>metric==='share'?'样本销量占比':metric==='count'?'入榜统计项数':'样本销量';
@@ -1308,20 +1309,32 @@
   const crossHeaders=['统计区间','有效自然周','有效周数','行类别','列类别','入榜统计项次','样本销量/万台','全样本销量占比/%','行内销量占比/%','列内销量占比/%','全部样本销量/万台','行属性覆盖率/%','列属性覆盖率/%','双属性覆盖率/%'];
   function renderCrossStudy(per,weeks,cfg,general,sample){
     const notice=$('researchNotice'),fields=new Map(Product.AGE_FIELDS),limit=Number(cfg.limit);
+    const hasPrice=cfg.row==='price_band'||cfg.column==='price_band';
+    visible($('crossPriceWrap'),hasPrice);
     $('researchDesc').textContent=general+' 可交叉两个不同属性；区间汇总是有效榜单的样本销量之和，不是完整市场累计。同一机型每周入榜计一次；上市年龄按当周计算。行内/列内占比的分母包含该行/列未知类别。';
     if(cfg.row===cfg.column||!fields.has(cfg.row)||!fields.has(cfg.column)){notice.textContent='请选择两个不同的有效属性。';return;}
     if(!Number.isSafeInteger(limit)||limit<1||limit>8){notice.textContent='每轴主要已知类别须为1–8之间的整数。';return;}
+    const cuts=hasPrice?Product.parseCuts(cfg.priceCuts):Product.DEFAULT_CUTS;
+    if(hasPrice&&!cuts){notice.textContent='请输入1–8个严格递增的正整数价格分界线（不超过1000000元）。';return;}
     const selected=cfg.range==='last'?[per.at(-1)]:per,usable=selected.filter(nonempty),periods=usable.map(w=>w.period);
     if(!usable.length){notice.textContent=cfg.range==='last'?'所选末周无有效样本，不自动换周。':'所选区间无有效筛选后样本。';return;}
-    const entries=usable.flatMap(w=>w.entries),rowOf=x=>Product.dimension(x,cfg.row),colOf=x=>Product.dimension(x,cfg.column),matrix=Product.cross(entries,rowOf,colOf);
-    const rows=Product.rankedKeys(matrix.rows),cols=Product.rankedKeys(matrix.cols),r=Product.displayDimension(matrix.rows,limit),c=Product.displayDimension(matrix.cols,limit);
+    const dimension=(entry,field)=>field==='price_band'?Product.priceBand(entry.model,cuts):Product.dimension(entry,field);
+    const entries=usable.flatMap(w=>w.entries),rowOf=x=>dimension(x,cfg.row),colOf=x=>dimension(x,cfg.column),matrix=Product.cross(entries,rowOf,colOf);
+    // Keep price bands in numeric order even though non-price attributes are ranked by sales.
+    const priceLabels=Product.bandLabels(cuts),priceIndex=new Map(priceLabels.map((label,i)=>[label,i]));
+    priceIndex.set('其他已知类别（合并）',priceLabels.length);
+    priceIndex.set(Product.UNKNOWN,priceLabels.length+1);
+    const ordered=(keys,field)=>field==='price_band'?[...keys].sort((a,b)=>(priceIndex.get(a)??Infinity)-(priceIndex.get(b)??Infinity)):keys;
+    const rows=ordered(Product.rankedKeys(matrix.rows),cfg.row),cols=ordered(Product.rankedKeys(matrix.cols),cfg.column);
+    const r=Product.displayDimension(matrix.rows,limit),c=Product.displayDimension(matrix.cols,limit);
+    r.labels=ordered(r.labels,cfg.row);c.labels=ordered(c.labels,cfg.column);
     const collapsed=Product.cross(entries,x=>r.collapse(rowOf(x)),x=>c.collapse(colOf(x))),rowLabel=fields.get(cfg.row),colLabel=fields.get(cfg.column);
     const range=selected[0].period+'—'+selected.at(-1).period,metricLabel=({volume:'样本销量（万台）',count:'入榜统计项次',share:'全样本销量占比',row_share:'行内销量占比',col_share:'列内销量占比'})[cfg.metric];
     researchTable(crossHeaders.map((h,i)=>i===3?rowLabel:i===4?colLabel:h),crossRecords(matrix,rows,cols,range,periods));
     const chart=crossHeatmap(collapsed,r.labels,c.labels,cfg.metric,periods,rowLabel,colLabel);
     if(chart.lines.some(l=>l.values.some(Number.isFinite)))attrPlot(chart,rowLabel+' × '+colLabel);
-    const coverage=pct(matrix.knownBoth,matrix.total);
-    setAttributeInfo(rowLabel+' × '+colLabel+' · '+metricLabel,periods,'未知独立；次要类别合并；颜色按数值统一标尺；非全市场','所选区间 '+range+'；实际有效 '+periods.length+'/'+selected.length+' 周；完整 '+rows.length+'×'+cols.length+' 矩阵见 CSV；合并后图表 '+r.labels.length+'×'+c.labels.length+'；双属性销量覆盖率 '+(coverage===null?'—':coverage.toFixed(2)+'%')+'；'+general);
+    const coverage=pct(matrix.knownBoth,matrix.total),priceDetail=hasPrice?'价格分界线 '+cuts.join(' / ')+' 元；':'';
+    setAttributeInfo(rowLabel+' × '+colLabel+' · '+metricLabel,periods,'未知独立；次要类别合并；颜色按数值统一标尺；非全市场',priceDetail+'所选区间 '+range+'；实际有效 '+periods.length+'/'+selected.length+' 周；完整 '+rows.length+'×'+cols.length+' 矩阵见 CSV；合并后图表 '+r.labels.length+'×'+c.labels.length+'；双属性销量覆盖率 '+(coverage===null?'—':coverage.toFixed(2)+'%')+'；'+general);
     notice.textContent=sample+' · '+metricLabel+' · '+periods.length+'/'+selected.length+' 周有样本 · 完整 '+rows.length+'×'+cols.length+'，图表 '+r.labels.length+'×'+c.labels.length+' · 双属性覆盖率 '+(coverage===null?'—':coverage.toFixed(2)+'%');
   }
   function renderAgeStudy(per,weeks,cfg,general,sample){
@@ -1429,9 +1442,10 @@
     const unknown=last?.entries.filter(x=>classify(x)===Product.UNKNOWN).reduce((s,x)=>s+x.units,0)||0;
     notice.textContent=metricLabel+suffix+' · 末周属性覆盖率 '+(last?.total>0?pct(last.total-unknown,last.total).toFixed(2)+'%':'—')+(one&&!nonempty(last)?' · 末周无有效样本':'')+' · 全部类别 '+all.length+' 个，图表保留 '+shown.length+' 组';
   }
-  for(const id of ['priceCuts','priceView','priceMetric','priceBrandLevel','positionView','positionBrandLevel','positionHigh','chipDimension','chipView','chipMetric','chipLimit','ageView','ageMetric','ageBrandLevel','crossRow','crossColumn','crossMetric','crossRange','crossLimit'])$(id).onchange=renderResearch;
+  for(const id of ['priceCuts','priceView','priceMetric','priceBrandLevel','positionView','positionBrandLevel','positionHigh','chipDimension','chipView','chipMetric','chipLimit','ageView','ageMetric','ageBrandLevel','crossRow','crossColumn','crossMetric','crossRange','crossLimit','crossPriceCuts'])$(id).onchange=renderResearch;
   $('crossSwap').onclick=()=>{const a=$('crossRow'),b=$('crossColumn'),v=a.value;a.value=b.value;b.value=v;renderResearch();};
   $('priceResetCuts').onclick=()=>{$('priceCuts').value=Product.DEFAULT_CUTS.join(',');renderResearch();};
+  $('crossResetCuts').onclick=()=>{$('crossPriceCuts').value=Product.DEFAULT_CUTS.join(',');renderResearch();};
 
   function renderResearch(){try{renderResearchContent();}catch(err){researchPublicationChart=null;researchPublicationTable=null;researchExportRows=[];$('researchExport').disabled=true;reportResearchError(err);throw err;}finally{saveResearchPreferences();}}
   function renderResearchContent(){

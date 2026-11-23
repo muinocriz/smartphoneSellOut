@@ -266,7 +266,7 @@ function drawPoster(type,canvas,o=socialData(),showGuides=false,pixelRatio=1,pub
  if(type==='top')drawTop(ctx,L,o,p);
  else if(type==='versus')drawDuel(ctx,L,o,p,state);
  else if(type==='brands')drawBrands(ctx,L,o,p);
- else if(isResearchTemplate(type)){const copy=publication?.copy||getPosterCopy(type,o);drawResearchPosterContent(ctx,L,p,{...research,chartNote:copy.chartNote??research?.chartNote??'',chartHeader:copy.chartHeader??research?.range??'',chartSubheader:copy.chartSubheader??''});}
+ else if(isResearchTemplate(type)){const copy=publication?.copy||getPosterCopy(type,o);drawResearchPosterContent(ctx,L,p,{...research,chartNote:copy.chartNote??research?.chartNote??''});}
  else drawLeader(ctx,L,o,p);
  drawPosterFooter(ctx,L,p);
  }
@@ -343,24 +343,26 @@ function drawResearchPosterContent(ctx,L,p,s){
  const {cardX,cardWidth,bodyTop,bodyBottom,bodyHeight}=L;
  drawDataCard(ctx,cardX,bodyTop,cardWidth,bodyHeight,p);
  const left=cardX+26,right=cardX+cardWidth-26,width=right-left;
- const headers=[{text:s.chartHeader??s.range??'',color:p.sub,weight:'650'},{text:s.chartSubheader??'',color:p.ink,weight:'700'}].filter(row=>String(row.text).trim());
- const rowStep=36,intro=12+headers.length*rowStep,start=bodyTop+intro;
- headers.forEach((row,i)=>posterFitText(ctx,row.text,left,bodyTop+32+i*rowStep,25,row.color,row.weight,'left',width));
- const bottom=bodyBottom-14,height=bottom-start;
- if(!auditPlot(ctx,width,height,'研究图表内容区',360,230))return;
- if(['trackerBoth','trackerRank','trackerMatrix'].includes(s.chart?.kind)){drawTrackerTrendPoster(ctx,p,s,{left,right,top:start,bottom,width,height});return;}
- if(s.chart?.kind==='heatmap'){drawResearchHeatmap(ctx,s.chart,{left,right,top:start,bottom,width,height},p,s.chartNote);return;}
- if(s.chart?.kind==='dualBrandFlowMulti'){drawDualBrandFlowMulti(ctx,s.chart,{left,right,top:start,bottom,width,height},p,'多周原始份额 · 其他未绘制 · 相邻有效周色带仅连接同品牌');return;}
-  if(s.chart?.kind==='dualBrandFlow'){drawDualBrandFlow(ctx,s.chart,{left,right,top:start,bottom,width,height},p,'六大品牌 · pp为百分点；两图分母不同 · 其他未绘制');return;}
- if(s.chart?.kind==='brandStack'||s.chart?.kind==='brandRibbon'){drawBrandComposition(ctx,s.chart,{left,right,top:start,bottom,width,height},p,s.chartNote);return;}
- if(s.chart?.kind==='bars'||s.chart?.kind==='scatter'){drawHeadStaticPoster(ctx,p,s,{left,right,top:start,bottom,width,height});return;}
+ const start=bodyTop+16,bottom=bodyBottom-14;
+ const notes=String(s.chartNote??'').split(/\r?\n/).filter(v=>v.trim());
+ const noteHeight=notes.length?notes.length*25+10:0,chartBottom=bottom-noteHeight;
+ const chartBox={left,right,top:start,bottom:chartBottom,width,height:chartBottom-start};
+ const drawNotes=()=>notes.forEach((line,i)=>posterFitText(ctx,line,left,bottom-8-(notes.length-1-i)*25,20,p.sub,'550','left',width));
+ if(notes.length>6)auditIssue(ctx,'图表内附注超过6行，建议精简');
+ if(!auditPlot(ctx,width,chartBox.height,'研究图表内容区',360,230))return;
+ if(['trackerBoth','trackerRank','trackerMatrix'].includes(s.chart?.kind)){drawTrackerTrendPoster(ctx,p,{...s,chartNote:''},chartBox);drawNotes();return;}
+ if(s.chart?.kind==='heatmap'){drawResearchHeatmap(ctx,s.chart,chartBox,p,'');drawNotes();return;}
+ if(s.chart?.kind==='dualBrandFlowMulti'){drawDualBrandFlowMulti(ctx,s.chart,chartBox,p,'');drawNotes();return;}
+  if(s.chart?.kind==='dualBrandFlow'){drawDualBrandFlow(ctx,s.chart,chartBox,p,'');drawNotes();return;}
+ if(s.chart?.kind==='brandStack'||s.chart?.kind==='brandRibbon'){drawBrandComposition(ctx,s.chart,chartBox,p,'');drawNotes();return;}
+ if(s.chart?.kind==='bars'||s.chart?.kind==='scatter'){drawHeadStaticPoster(ctx,p,{...s,chartNote:''},chartBox);drawNotes();return;}
  if(s.chart){
   const {periods,lines,unit}=s.chart,n=periods.length,count=lines.length;
   const cols=count<=2?Math.max(1,count):count<=6?2:count<=12?3:4;
-  const legendRows=Math.ceil(count/cols),legendStep=Math.min(36,height*.29/Math.max(1,legendRows));
+  const legendRows=Math.ceil(count/cols),legendStep=Math.min(36,chartBox.height*.29/Math.max(1,legendRows));
   const cellW=width/cols,colors=['#2563eb','#ea580c','#059669','#9333ea','#db2777','#0891b2','#92400e','#64748b','#be123c','#4d7c0f','#0369a1','#7c3aed'];
   lines.forEach((l,i)=>{const x=left+(i%cols)*cellW,y=start+(Math.floor(i/cols)+.77)*legendStep,color=l.color||colors[i%colors.length];if(l.marker)ResearchCharts.canvasMarker(ctx,l.marker,x+8,y-8,6,color);else{ctx.fillStyle=color;ctx.fillRect(x,y-12,17,5);}posterFitText(ctx,l.name,x+23,y,Math.min(24,legendStep*.78),p.ink,'600','left',cellW-28);});
-  const x0=left+68,x1=right-32,y0=start+legendRows*legendStep+34,y1=bottom-88;
+  const x0=left+68,x1=right-32,y0=start+legendRows*legendStep+34,y1=chartBottom-48;
   if(!auditPlot(ctx,x1-x0,y1-y0,'折线图绘图区',260,150))return;
   const scale=ResearchCharts.lineScale(s.chart,{left:x0,right:x1,top:y0,bottom:y1}),{top,x,y}=scale;
   posterFitText(ctx,unit,x0,y0-12,19,p.sub,'600','left',width-100);
@@ -368,18 +370,16 @@ function drawResearchPosterContent(ctx,L,p,s){
   const ticks=Math.max(2,Math.min(7,Math.floor((x1-x0)/88))),stride=Math.max(1,Math.ceil((n-1)/(ticks-1)));
   periods.forEach((period,i)=>{if(i===0||i===n-1||(i%stride===0&&n-1-i>=stride*.65))posterFitText(ctx,period,x(i),y1+26,18,p.sub,'550','center',Math.min(104,(x1-x0)/Math.max(1,ticks-1)));});
   ResearchCharts.canvasLine(ctx,s.chart,scale);
-  posterFitText(ctx,['head','coverage'].includes(s.key)?'仅共同有效周；断线表示缺少可比较数据':s.chart.imputed?'空心点 / 虚线：含插补；断线：缺少可用数据':'实线：观测数据；断线：缺少可比数据',left,bottom-35,21,p.sub,'560','left',width);
-  posterFitText(ctx,s.chartNote,left,bottom-8,21,p.sub,'550','left',width);
+  drawNotes();
  }else if(s.table){
   const rows=s.table.rows,indices=[0,1,2,3,7],labels=['机型','观测周','最长连续','末周连续','上榜合计/万台'];
   const widths=[.36,.14,.14,.14,.22].map(f=>f*width),headY=start+23;
   let off=left;labels.forEach((label,i)=>{posterFitText(ctx,label,off+(i?widths[i]-8:0),headY,22,p.sub,'650',i?'right':'left',widths[i]-12);off+=widths[i];});
-  const maxRows=Math.min(10,rows.length),step=Math.min(78,(bottom-headY-65)/Math.max(1,maxRows));
+  const maxRows=Math.min(10,rows.length),step=Math.min(78,(chartBottom-headY-22)/Math.max(1,maxRows));
   if(!auditPlot(ctx,width,step,'研究表格行',360,32))return;
   if(step<17){auditIssue(ctx,'研究表格行过小，无法完整显示',true);return;}
   rows.slice(0,maxRows).forEach((row,i)=>{const yy=headY+(i+1)*step;let xx=left;posterRule(ctx,left,right,yy+Math.min(10,step*.18),p);indices.forEach((k,j)=>{posterFitText(ctx,row[k]??'',xx+(j?widths[j]-8:0),yy,Math.min(24,step*.57),p.ink,j?'600':'700',j?'right':'left',widths[j]-12);xx+=widths[j];});});
-  posterFitText(ctx,'展示前 '+maxRows+' / '+rows.length+' 款 · 完整结果见专题 CSV',left,bottom-35,21,p.sub,'550','left',width);
-  posterFitText(ctx,s.chartNote,left,bottom-8,21,p.sub,'550','left',width);
+  drawNotes();
  }
 }
 

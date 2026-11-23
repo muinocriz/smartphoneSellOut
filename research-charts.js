@@ -118,6 +118,28 @@ function drawBrandComposition(ctx,chart,box,p,note=''){
   for(let i=0;i<=4;i++){const v=cap*i/4,y=y1-plotH*i/4;line(x0,y,x1,y);drawText(Number(v.toFixed(2))+(pct?'%':''),x0-6,y+small*.3,small,p.sub,'550','right',x0-left-7);}
   drawText(unit,x0,top+small*.7,small,p.sub,'600');
   const stride=Math.max(1,Math.ceil(n/Math.max(1,Math.floor((x1-x0)/(65*Math.max(.8,f))))));
+  // Brand ecology's multiweek stacked columns use the same subtle same-brand
+  // connectors as the TOP30/whole-market study. Draw behind bars and labels.
+  // Never cross an incomplete week; the connector is not a brand-to-brand flow.
+  if(chart.kind==='brandStack'&&chart.connectAdjacentBrands){
+   for(let i=0;i<n-1;i++){
+    if(!valid(i)||!valid(i+1))continue;
+    const lhs=x0+slot*(i+.5)+bw/2,rhs=x0+slot*(i+1.5)-bw/2;
+    if(rhs<=lhs)continue;
+    const a=segments(i,y1,plotH),b=segments(i+1,y1,plotH),
+          c1=lhs+(rhs-lhs)*.43,c2=lhs+(rhs-lhs)*.57;
+    a.forEach((s,j)=>{
+     const t=b[j];
+     if(s.h<=0&&t.h<=0)return;
+     ctx.save();ctx.fillStyle=s.color;ctx.globalAlpha=.19;
+     ctx.beginPath();ctx.moveTo(lhs,s.top);
+     ctx.bezierCurveTo(c1,s.top,c2,t.top,rhs,t.top);
+     ctx.lineTo(rhs,t.bottom);
+     ctx.bezierCurveTo(c2,t.bottom,c1,s.bottom,lhs,s.bottom);
+     ctx.closePath();ctx.fill();ctx.restore();
+    });
+   }
+  }
   periods.forEach((period,i)=>{
    const x=x0+slot*(i+.5);
    if(valid(i)){

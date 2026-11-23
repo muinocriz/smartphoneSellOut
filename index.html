@@ -36,7 +36,8 @@ h1{font-size:22px;font-weight:700;margin:0;text-wrap:balance}
 .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
 .controls{display:grid;gap:14px}
 .row{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px}
-#exportDisclaimer{flex:1 1 20em;min-width:0;max-width:100%;box-sizing:border-box;resize:vertical;font:inherit;color:inherit;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:6px 10px}
+.disclaimer-input{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px;flex:1 1 20em;min-width:0}
+#exportDisclaimer{width:100%;min-width:0;box-sizing:border-box;resize:vertical;font:inherit;color:inherit;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:6px 10px}
 .lbl{font-size:12px;color:var(--muted);letter-spacing:.06em;min-width:3.5em}
 select,button{font:inherit;color:var(--fg);background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:5px 10px}
 button{cursor:pointer}
@@ -179,7 +180,11 @@ td.bad{color:var(--warn)}
     </div>
     <div class="row">
       <label class="lbl" for="exportDisclaimer">免责附注（支持换行）</label>
-      <textarea id="exportDisclaimer" rows="2"></textarea>
+      <div class="disclaimer-input">
+        <textarea id="exportDisclaimer" rows="2">数据来源于微博等平台，仅供参考
+具体数字与走势为估算结果，不作为购买建议</textarea>
+        <button class="mini" id="resetExportDisclaimer" type="button">恢复默认文案</button>
+      </div>
     </div>
   </section>
 
@@ -953,6 +958,20 @@ chart.on("mouseout",{componentType:"series"},()=>{
 let lastW=0;
 window.addEventListener("resize",()=>{const w=$("chart").clientWidth;if(w===lastW)return;lastW=w;
   chart.resize();if(CUR)draw(true)});
+const disclaimerInput=$("exportDisclaimer");
+const disclaimerStorageKey="phoneSales.exportDisclaimer";
+try{
+  const savedDisclaimer=localStorage.getItem(disclaimerStorageKey);
+  if(savedDisclaimer!==null)disclaimerInput.value=savedDisclaimer;
+}catch(e){}
+function saveDisclaimer(){
+  try{localStorage.setItem(disclaimerStorageKey,disclaimerInput.value)}catch(e){}
+}
+disclaimerInput.addEventListener("input",saveDisclaimer);
+$("resetExportDisclaimer").onclick=()=>{
+  disclaimerInput.value=disclaimerInput.defaultValue;
+  saveDisclaimer();
+};
 $("expDesk").onclick=()=>exportPNG(false);
 $("expMob").onclick=()=>exportPNG(true);
 // ===== 日间 / 深色切换：默认跟随系统；点一下切到另一种并记住（保存在本浏览器）=====

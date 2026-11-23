@@ -217,7 +217,7 @@ function researchChartRows(s){
  }
  const trackerRank=['trackerRank','trackerMatrix'].includes(chart.kind),combined=chart.kind==='trackerBoth';
  if(trackerRank||combined)meta.push('原始榜单规模');
- if(chart.kind==='coverageTrend')meta.push('SKU约束启用','模块2趋势检查启用','市场总销量下界/万台','SKU总销量上界/万台','苹果推导入榜率下限/%','苹果推导入榜率上限/%','自动检查状态');
+ if(chart.kind==='coverageTrend')meta.push('SKU约束启用','全市场趋势检查启用','市场总销量下界/万台','SKU总销量上界/万台','苹果推导入榜率下限/%','苹果推导入榜率上限/%','自动检查状态');
  const sets=combined?[{lines:chart.lines,metric:chart.salesLabel||'销量',unit:'万台',rank:false},{lines:chart.rankLines,metric:'原始榜单排名',unit:'名',rank:true}]:[{lines:chart.lines,metric:s.displayMetric,unit:chart.unit||'',rank:trackerRank}];
  for(const set of sets)for(let i=0;i<chart.periods.length;i++)for(const line of set.lines){
   const v=line.values[i],valid=Number.isFinite(v),sourcePeriod=line.sourcePeriods?.[i]||(/^\d{4}-W\d{2}$/.test(chart.periods[i])?chart.periods[i]:(chart.calendarPeriods?.length===1?chart.calendarPeriods[0]:''));

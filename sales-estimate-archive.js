@@ -587,21 +587,21 @@
     '<div id="brandBaseControl"><label class="lbl" for="brandBase">基准周</label><select id="brandBase" class="field ui-field"></select></div>'+
     '<div id="brandCompareControl"><label class="lbl" for="brandCompare">对比周</label><select id="brandCompare" class="field ui-field"></select></div>'+
     '<div id="brandConControl"><label class="lbl" for="brandCon">集中度指标（按销量）</label><select id="brandCon" class="field ui-field"><option value="cr">CR1 / CR3 / CR5（%）</option><option value="hhi">HHI（0–10000）</option></select></div></div>'+
-    '<p class="mini">母品牌归并，与模块2颜色一致。份额图按当周样本归一至100%；绝对销量图按共同纵轴绘制；不使用插补。色带仅连接同一品牌，不表示用户流向。</p></div>'+
-    '<div id="researchHeadControls"><p class="mini">动态关联模块2 market-share.csv；OPPO（含一加、realme）、vivo（含 iQOO）、小米（含 REDMI）。六大集团之外为其他，不重复累加、不强制归一化。</p>'+
+    '<p class="mini">母品牌归并，沿用统一品牌配色。份额图按当周样本归一至100%；绝对销量图按共同纵轴绘制；不使用插补。色带仅连接同一品牌，不表示用户流向。</p></div>'+
+    '<div id="researchHeadControls"><p class="mini">读取全市场品牌份额数据；OPPO（含一加、realme）、vivo（含 iQOO）、小米（含 REDMI）。六大集团之外为其他，不重复累加、不强制归一化。</p>'+
     '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px"><div><label class="lbl" for="headView">研究视图</label><select id="headView" class="field ui-field"><option value="distribution">品牌销量分布对比</option><option value="enrichment">头部销量富集指数</option><option value="strength">单品销量强度指数</option><option value="matrix">品牌双指标四象限</option><option value="trend">头部效应历史趋势</option><option value="concentration">品牌集中度差异</option></select></div>'+
     '<div id="headBrandControl"><label class="lbl" for="headBrand">趋势研究品牌</label><select id="headBrand" class="field ui-field"><option>Apple</option><option>华为</option><option>小米系</option><option>OPPO系</option><option>vivo系</option><option>荣耀</option><option>其他</option></select></div>'+
     '<div id="headTrendControl"><label class="lbl" for="headTrendMetric">趋势指标</label><select id="headTrendMetric" class="field ui-field"><option value="share">榜单与市场份额</option><option value="index">头部富集与单品强度</option></select></div>'+
     '<div id="headConcentrationControl"><label class="lbl" for="headConcentration">集中度指标</label><select id="headConcentration" class="field ui-field"><option value="cr3">CR3（%）</option><option value="hhi">HHI（共同品牌组）</option></select></div></div>'+
     '<button type="button" class="secondary" id="headReload">重新读取全市场 CSV</button><p id="headDataInfo" class="mini" aria-live="polite"></p></div>'+
-    '<div id="researchDualControls"><p class="mini">固定完整TOP30与模块2同周市场份额；上下双图沿用六大集团颜色及顺序，不对隐藏的“其他”重新归一化。色带仅连接同一品牌，不表示用户流向。双周模式只在变化(pp)数字背后高亮最大涨跌，多周模式不显示变化(pp)列。</p>'+
+    '<div id="researchDualControls"><p class="mini">固定完整TOP30与同周全市场品牌份额；上下双图沿用六大集团颜色及顺序，不对隐藏的“其他”重新归一化。色带仅连接同一品牌，不表示用户流向。双周模式只在变化(pp)数字背后高亮最大涨跌，多周模式不显示变化(pp)列。</p>'+
     '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px"><div><label class="lbl" for="dualView">图表方式</label><select id="dualView" class="field ui-field"><option value="pair">双周品牌结构流向</option><option value="multi">多周堆叠流向图</option></select></div><div id="dualBaseWrap"><label class="lbl" for="dualBase">基准周</label><select id="dualBase" class="field ui-field"></select></div><div id="dualCompareWrap"><label class="lbl" for="dualCompare">对比周</label><select id="dualCompare" class="field ui-field"></select></div></div>'+
     '<p class="mini" id="dualRangeHint">多周模式采用页面上方的统计起始周、结束周，不插补；仅连接相邻两期都有效的同一品牌。缺失周保留空位。</p>'+
     '<button type="button" class="secondary" id="dualReload" style="margin-top:8px">重新读取全市场 CSV</button><p id="dualDataInfo" class="mini" aria-live="polite"></p></div>'+
-    '<div id="researchCoverageControls"><p class="mini">以完整TOP30及模块2同周苹果份额估算市场规模；苹果入榜率由模型推导。榜外SKU数量与市场趋势是两个独立可开关的约束，不自动修正原始数据。</p>'+
+    '<div id="researchCoverageControls"><p class="mini">以完整TOP30及同周苹果市场份额估算市场规模；苹果入榜率由模型推导。榜外SKU数量与市场趋势是两个独立可开关的约束，不自动修正原始数据。</p>'+
     '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px"><div><label class="lbl" for="coverageView">图表视图</label><select id="coverageView" class="field ui-field"><option value="sales">TOP30与市场总销量（情景带）</option><option value="coverage">TOP30市场覆盖率区间</option><option value="mom">市场环比规模指数对比</option><option value="gap">环比偏差绝对值</option></select></div>'+
     '<div><label class="lbl"><input id="coverageSkuEnabled" type="checkbox" checked> 启用苹果榜外SKU数量约束</label><label class="lbl" for="coverageMissingSku">苹果榜外机型数量上限（款）</label><input id="coverageMissingSku" type="number" min="0" max="20" step="1" value="2" class="field ui-field"></div>'+
-    '<div><label class="lbl"><input id="coverageTrendEnabled" type="checkbox" checked> 启用模块2量化环比趋势检查</label><label class="lbl" for="coverageTrendTolerance">趋势偏差容差（百分点）</label><input id="coverageTrendTolerance" type="number" min="0" max="100" step="0.5" value="5" class="field ui-field"></div></div>'+
+    '<div><label class="lbl"><input id="coverageTrendEnabled" type="checkbox" checked> 启用全市场量化环比趋势检查</label><label class="lbl" for="coverageTrendTolerance">趋势偏差容差（百分点）</label><input id="coverageTrendTolerance" type="number" min="0" max="100" step="0.5" value="5" class="field ui-field"></div></div>'+
     '<p class="mini">每周使用对应原始CSV第30名销量作为单款榜外机型的销量上限；这里只配置机型数量上限（默认2款）。有SKU约束时紫线为区间算术中点，无SKU约束时紫线仅表示市场规模下界。连续3个相邻可比周出现区间趋势冲突才标记连续异常。 注意：榜外苹果销量占TOP30全榜的比例，不等于全市场销量估算的误差率；应以苹果榜内销量和苹果份额计算规模区间。</p>'+
     '<button type="button" class="secondary" id="coverageReload" style="margin-top:8px">重新读取全市场 CSV</button><p id="coverageDataInfo" class="mini" aria-live="polite"></p><p id="coverageCheckSummary" class="mini" aria-live="polite"></p></div>'+
     '<div id="researchTailControls"><label class="lbl" for="researchStreak">最少连续上榜周数（最长连续纪录）</label><input type="number" id="researchStreak" class="field ui-field" min="1" step="1" value="12"><label class="lbl" for="researchTailView">展示方式</label><select id="researchTailView" class="field ui-field"><option value="table">韧性指标表</option><option value="scatter">末周上市年龄 × 销量（最多12款）</option></select></div>'+
@@ -679,7 +679,7 @@
   let researchExportRows=[],researchPublicationChart=null,researchPublicationTable=null;
   function researchTable(headers,rows){
     researchPublicationTable={headers:[...headers],rows:rows.map(r=>[...r])};
-    const p=readTrackerParams();const rawView=isRawResearch(researchView);const meta=['榜单口径','统计起始周','统计结束周','最低覆盖率%','覆盖率分母','数据模式','插补方法','最大缺失周','允许整周插补','允许末周估算'];const values=[p.scopeId,p.start,p.end,rawView?'不适用':p.coverage,rawView?'不适用':p.coverageBase,rawView?'raw':p.dataMode,rawView||p.dataMode==='raw'?'不适用':p.method,rawView||p.dataMode==='raw'?'不适用':p.maxGap,rawView||p.dataMode==='raw'?'不适用':String(p.missingBoard),rawView||p.dataMode==='raw'?'不适用':String(p.trailing)];const scope=currentScope(),isTop=usesTopK(researchView),isGroup=['series','generation','structure'].includes(researchView);meta.push('时间序列算法版本','机型主数据版本指纹','榜单样本模式','固定TOP K','机型分组定义','产品属性筛选','成员统计口径');values.push(Series.VERSION,masterCatalog?.revision||'',isTop?(topKValue()===null?'all':'fixed'):'不适用',isTop&&topKValue()!==null?String(topKValue()):'',isGroup&&scope?JSON.stringify(activeGroups(scope)):'',filterTopics.has(researchView)?JSON.stringify(filters()):'',isGroup?(observedGroups(researchView)?'当期原始入榜':'固定成员'):'');if(researchView==='brand'){meta.push('品牌研究视图','品牌统计维度','基准周','对比周','集中度指标');const view=$('brandView').value;values.push(view,view==='concentration'?'sales':$('brandMetric').value,view==='ribbon'?$('brandBase').value:'',view==='ribbon'?$('brandCompare').value:'',view==='concentration'?$('brandCon').value:'');}if(researchView==='flow'){meta.push('新品完整周门槛');values.push($('researchNewWeeks').value);}if(researchView==='tier'){meta.push('对齐横轴');values.push(lifeMode()?'lifecycle':'calendar');}if(researchView==='tail'){meta.push('长尾展示方式','最少连续上榜周');values.push($('researchTailView').value,$('researchStreak').value);}if(attributeTopics.has(researchView)){meta.push('属性专题配置');values.push(JSON.stringify(attributeSettings(researchView)));}if(researchView==='dual'){const multi=$('dualView').value==='multi';meta.push('双图榜单口径','双图展示方式','双图基准周','双图对比周','其他品牌处理','pp极值判定');values.push('原始排名固定TOP30',multi?'多周堆叠流向图':'双周流向图',multi?'':$('dualBase').value,multi?'':$('dualCompare').value,'两图保持原始分母，其他不绘制',multi?'不显示pp及极值高亮':'显示一位小数，允许并列');}if(researchView==='coverage'){meta.push('覆盖率榜单口径','SKU约束启用','假定苹果榜外SKU上限','模块2趋势启用','趋势容差/pp','连续异常条件');values.push('原始排名TOP30',String($('coverageSkuEnabled').checked),$('coverageSkuEnabled').checked?$('coverageMissingSku').value:'未启用',String($('coverageTrendEnabled').checked),$('coverageTrendEnabled').checked?$('coverageTrendTolerance').value:'未启用','连续3个区间冲突的相邻可比周');}researchExportRows=[[...meta,...headers],...rows.map(r=>[...values,...r])];
+    const p=readTrackerParams();const rawView=isRawResearch(researchView);const meta=['榜单口径','统计起始周','统计结束周','最低覆盖率%','覆盖率分母','数据模式','插补方法','最大缺失周','允许整周插补','允许末周估算'];const values=[p.scopeId,p.start,p.end,rawView?'不适用':p.coverage,rawView?'不适用':p.coverageBase,rawView?'raw':p.dataMode,rawView||p.dataMode==='raw'?'不适用':p.method,rawView||p.dataMode==='raw'?'不适用':p.maxGap,rawView||p.dataMode==='raw'?'不适用':String(p.missingBoard),rawView||p.dataMode==='raw'?'不适用':String(p.trailing)];const scope=currentScope(),isTop=usesTopK(researchView),isGroup=['series','generation','structure'].includes(researchView);meta.push('时间序列算法版本','机型主数据版本指纹','榜单样本模式','固定TOP K','机型分组定义','产品属性筛选','成员统计口径');values.push(Series.VERSION,masterCatalog?.revision||'',isTop?(topKValue()===null?'all':'fixed'):'不适用',isTop&&topKValue()!==null?String(topKValue()):'',isGroup&&scope?JSON.stringify(activeGroups(scope)):'',filterTopics.has(researchView)?JSON.stringify(filters()):'',isGroup?(observedGroups(researchView)?'当期原始入榜':'固定成员'):'');if(researchView==='brand'){meta.push('品牌研究视图','品牌统计维度','基准周','对比周','集中度指标');const view=$('brandView').value;values.push(view,view==='concentration'?'sales':$('brandMetric').value,view==='ribbon'?$('brandBase').value:'',view==='ribbon'?$('brandCompare').value:'',view==='concentration'?$('brandCon').value:'');}if(researchView==='flow'){meta.push('新品完整周门槛');values.push($('researchNewWeeks').value);}if(researchView==='tier'){meta.push('对齐横轴');values.push(lifeMode()?'lifecycle':'calendar');}if(researchView==='tail'){meta.push('长尾展示方式','最少连续上榜周');values.push($('researchTailView').value,$('researchStreak').value);}if(attributeTopics.has(researchView)){meta.push('属性专题配置');values.push(JSON.stringify(attributeSettings(researchView)));}if(researchView==='dual'){const multi=$('dualView').value==='multi';meta.push('双图榜单口径','双图展示方式','双图基准周','双图对比周','其他品牌处理','pp极值判定');values.push('原始排名固定TOP30',multi?'多周堆叠流向图':'双周流向图',multi?'':$('dualBase').value,multi?'':$('dualCompare').value,'两图保持原始分母，其他不绘制',multi?'不显示pp及极值高亮':'显示一位小数，允许并列');}if(researchView==='coverage'){meta.push('覆盖率榜单口径','SKU约束启用','假定苹果榜外SKU上限','全市场趋势检查启用','趋势容差/pp','连续异常条件');values.push('原始排名TOP30',String($('coverageSkuEnabled').checked),$('coverageSkuEnabled').checked?$('coverageMissingSku').value:'未启用',String($('coverageTrendEnabled').checked),$('coverageTrendEnabled').checked?$('coverageTrendTolerance').value:'未启用','连续3个区间冲突的相邻可比周');}researchExportRows=[[...meta,...headers],...rows.map(r=>[...values,...r])];
     $('researchHead').innerHTML='<tr>'+headers.map(h=>'<th>'+e(h)+'</th>').join('')+'</tr>';
     $('researchRows').innerHTML=rows.length?rows.map(r=>'<tr>'+r.map(v=>'<td>'+e(v)+'</td>').join('')+'</tr>').join(''):'<tr><td colspan="'+headers.length+'">暂无符合条件的数据</td></tr>';
     $('researchExport').disabled=!rows.length;
@@ -930,7 +930,7 @@
     $('headBrandControl').hidden=mode!=='trend';$('headTrendControl').hidden=mode!=='trend';$('headConcentrationControl').hidden=mode!=='concentration';
     $('researchDesc').textContent='同一 ISO 自然周、同一母品牌口径比较；仅双方有效的周纳入平均。不使用插补。榜单占比与市场份额来源不同，指数为相对代表性，不是品牌榜外实际销量。';
     if(!marketCache){
-      info.textContent=marketError||'正在读取模块2全市场份额…';
+      info.textContent=marketError||'正在读取全市场品牌份额数据…';
       notice.textContent=marketError?'请修正数据或点击重新读取。':'等待全市场 CSV';
       if(!marketPending&&!marketError)ensureMarketData();
       return;
@@ -963,7 +963,7 @@
     }
     const metricLabel=headViews[mode]+(mode==='trend'?' · '+$('headBrand').value+' · '+($('headTrendMetric').value==='index'?'指数':'份额'):mode==='concentration'?' · '+$('headConcentration').value.toUpperCase():'');
     const note=mode==='concentration'?'其他品牌合为一组，CR3/HHI为共同七组口径，不是逐品牌精确市场集中度。':mode==='matrix'?'横轴：头部富集指数；纵轴：单品强度；1 为基准，象限不直接判断品牌策略。':mode==='enrichment'?'头部富集 = 榜单销量占比 ÷ 全市场份额；1 为基准。':mode==='strength'?'单品强度 = 榜单销量占比 ÷ 上榜条目占比；1 为基准。':'仅共同有效周；榜单样本份额不等于全市场份额。';
-    headPublicationInfo={range,effectivePeriods:common,metricLabel,note,detail:info.textContent+'；'+note+'；全市场数据沿用模块2母品牌口径。'};
+    headPublicationInfo={range,effectivePeriods:common,metricLabel,note,detail:info.textContent+'；'+note+'；全市场数据采用统一母品牌口径。'};
     $('researchDesc').textContent+=' '+note+' 其他品牌为合并组；指数分母为零时留空，四象限不显示无有效双指标的品牌。';
   }
   for(const id of ['headView','headBrand','headTrendMetric','headConcentration'])$(id).onchange=renderResearch;
@@ -998,10 +998,10 @@
   function renderDualMarketMulti(scope){
     const info=$('dualDataInfo'),notice=$('researchNotice'),groups=window.BrandUtils.groups.filter(g=>g.id!=='other');
     const periods=scope.weeks.map(w=>w.period);
-    $('researchDesc').textContent='多周堆叠流向：上下分别为TOP30原始榜单和模块2全市场份额，每周一根柱，相邻有效周以同品牌半透明带连接。不展示变化(pp)列，未绘出的其他品牌仍保留在分母中；缺失周留空且连接中断。';
+    $('researchDesc').textContent='多周堆叠流向：上下分别为TOP30原始榜单和全市场品牌份额，每周一根柱，相邻有效周以同品牌半透明带连接。不展示变化(pp)列，未绘出的其他品牌仍保留在分母中；缺失周留空且连接中断。';
     if(!marketCache){
-      info.textContent=marketError||'正在读取模块2全市场份额…';
-      notice.textContent=marketError?'全市场CSV读取失败，可点击重新读取。':'等待模块2市场份额CSV';
+      info.textContent=marketError||'正在读取全市场品牌份额数据…';
+      notice.textContent=marketError?'全市场CSV读取失败，可点击重新读取。':'等待全市场品牌份额数据';
       if(!marketPending&&!marketError)ensureMarketData();
       return;
     }
@@ -1010,7 +1010,7 @@
           marketMap=new Map(marketCache.map(m=>[m.week.replace('W','-W'),m]));
     const panels=[
       {key:'top',title:'TOP30 榜单品牌结构流向',subtitle:'原始榜单排名1–30名 · 样本销量占比'},
-      {key:'market',title:'全市场品牌份额流向',subtitle:'模块2 market-share.csv · 品牌份额'}
+      {key:'market',title:'全市场品牌份额流向',subtitle:'同周全市场数据 · 品牌份额'}
     ].map(panel=>{
       const weeks=periods.map(period=>{
         const t=topMap.get(period),m=marketMap.get(period);
@@ -1057,14 +1057,14 @@
     visible($('dualRangeHint'),multi);
     if(multi){renderDualMarketMulti(scope);return;}
     const base=$('dualBase').value,compare=$('dualCompare').value;
-    $('researchDesc').textContent='上图：原始排名完整TOP30的品牌销量占比；下图：模块2全市场品牌份额。相同母品牌、顺序和颜色；六大品牌之外的“其他”未绘制且不重新归一化。变化单位为百分点，淡红/淡绿仅标识本图最大上涨/最大下跌（显示值并列则都标识）。';
+    $('researchDesc').textContent='上图：原始排名完整TOP30的品牌销量占比；下图：全市场品牌份额。相同母品牌、顺序和颜色；六大品牌之外的“其他”未绘制且不重新归一化。变化单位为百分点，淡红/淡绿仅标识本图最大上涨/最大下跌（显示值并列则都标识）。';
     if(!base||!compare||base===compare){
       notice.textContent='请选择两个不同的自然周作为基准周和对比周。';
       info.textContent='须选择两周';return;
     }
     if(!marketCache){
-      info.textContent=marketError||'正在读取模块2全市场份额…';
-      notice.textContent=marketError?'全市场CSV读取失败，可点击重新读取。':'等待模块2市场份额CSV';
+      info.textContent=marketError||'正在读取全市场品牌份额数据…';
+      notice.textContent=marketError?'全市场CSV读取失败，可点击重新读取。':'等待全市场品牌份额数据';
       if(!marketPending&&!marketError)ensureMarketData();
       return;
     }
@@ -1083,7 +1083,7 @@
     const topPanel=dataset('top',topValid,'TOP30 榜单品牌结构流向','原始榜单排名1–30名 · 样本销量占比',
       !topA?.valid?'基准周TOP30不完整：'+(topA?.status||'未收录'):!topB?.valid?'对比周TOP30不完整：'+(topB?.status||'未收录'):'TOP30销量不可计算',
       (g,period)=>{const r=topMap.get(period);return 100*r.sales[g.key]/r.total;});
-    const marketPanel=dataset('market',marketValid,'全市场品牌份额流向','模块2 market-share.csv · 品牌份额',
+    const marketPanel=dataset('market',marketValid,'全市场品牌份额流向','同周全市场数据 · 品牌份额',
       !marketA?'缺少基准周全市场份额':!marketB?'缺少对比周全市场份额':'全市场份额不可计算',
       (g,period)=>marketMap.get(period).brands[g.id]);
     const panels=[topPanel,marketPanel],lines=[];
@@ -1150,7 +1150,7 @@
     let cfg;
     try{cfg=coverageCheckOptions();}catch(err){info.textContent=err.message;notice.textContent='请修正已启用约束的参数。';return;}
     if(!marketCache){
-      info.textContent=marketError||'正在读取模块2全市场份额…';
+      info.textContent=marketError||'正在读取全市场品牌份额数据…';
       notice.textContent=marketError?'请检查CSV或重新读取全市场数据。':'等待全市场 CSV';
       if(!marketPending&&!marketError)ensureMarketData();
       return;
@@ -1189,7 +1189,7 @@
       if(!r.valid||!prev?.valid||!r.market||!prev.market||r.market.monday-prev.market.monday!==604800000){
         r.check='缺少相邻有效自然周';streak=0;continue;
       }
-      if(r.reportedGrowth===null){r.check='模块2趋势未量化';streak=0;continue;}
+      if(r.reportedGrowth===null){r.check='全市场趋势未量化';streak=0;continue;}
       if(cfg.skuEnabled&&(!r.interval||!prev.interval)){r.check='SKU区间不可行或数据不足';streak=0;continue;}
       const current=cfg.skuEnabled?r.center:r.low,previous=cfg.skuEnabled?prev.center:prev.low;
       r.modelGrowth=100*(current/previous-1);r.gap=r.modelGrowth-r.reportedGrowth;
@@ -1207,10 +1207,10 @@
     }
     const fmt=numberText;
     const headers=['周期','原始实收条数','使用条数','数据状态','TOP30样本销量/万台','苹果榜内销量/万台',
-      '该周第30名销量/万台','模块2苹果市场份额/%','苹果锚点总销量下界/万台','必要市场下界/万台',
+      '该周第30名销量/万台','苹果全市场份额/%','苹果锚点总销量下界/万台','必要市场下界/万台',
       'SKU假设市场上界/万台','情景区间中点/万台','推导苹果入榜率下限/%','推导苹果入榜率上限/%',
       '中点隐含苹果入榜率/%','TOP30市场覆盖率下限/%','TOP30市场覆盖率上限/%',
-      '模块2趋势原文','模块2量化环比/%','中点或下界参考环比/%','参考环比偏差/pp',
+      '全市场趋势原文','全市场量化环比/%','中点或下界参考环比/%','参考环比偏差/pp',
       '区间可行环比下限/%','区间可行环比上限/%','自动一致性检查','连续区间冲突周次'];
     researchTable(headers,records.map(r=>[
       r.period,r.originalCount??'',r.count??'',r.status,fmt(r.total,4),fmt(r.A,4),
@@ -1264,7 +1264,7 @@
       researchPlot(x,[
         {name:cfg.skuEnabled?'市场中点环比指数':'市场下界环比参考指数',color:'#2563eb',
           values:records.map(r=>r.gap===null?null:100+r.modelGrowth)},
-        {name:'模块2量化趋势指数',color:'#ea580c',
+        {name:'全市场量化趋势指数',color:'#ea580c',
           values:records.map(r=>r.gap===null?null:100+r.reportedGrowth)}
       ],'前周=100的环比规模指数');
     }else{
@@ -1684,7 +1684,7 @@
     if(key==='dual')detail=dualPublicationInfo?.detail||detail;
     if(key==='brand')detail=brandPublicationInfo?.detail||detail;
     if(attributeTopics.has(key))detail=[attributePublicationInfo?.detail, $('researchTopInfo').textContent,'属性筛选：'+JSON.stringify(filters()),'专题配置：'+JSON.stringify(attributeSettings(key))].filter(Boolean).join('；');
-    const note=(key==='dual'?'两图分别使用TOP30榜单样本与模块2全市场份额；仅为结构对比，不推断品牌间销量流向。':key==='coverage'?'苹果入榜率按榜内苹果销量、同周模块2市场份额和可选SKU上界推导；末位销量取每周原始CSV第30名；情景带不是统计置信区间，缺失不补零。':key==='head'?'头部榜单为估算样本；全市场份额来自模块2独立数据源；缺失不等于零。':'数据为历史榜单估算样本，不代表全市场销量或份额；缺失不等于零。')+(chart?.imputed?'图中含插补值。':'');
+    const note=(key==='dual'?'两图分别使用TOP30榜单样本与全市场品牌份额；仅为结构对比，不推断品牌间销量流向。':key==='coverage'?'苹果入榜率按榜内苹果销量、同周全市场份额和可选SKU上界推导；末位销量取每周原始CSV第30名；情景带不是统计置信区间，缺失不补零。':key==='head'?'头部榜单为估算样本；全市场份额来自独立数据源；缺失不等于零。':'数据为历史榜单估算样本，不代表全市场销量或份额；缺失不等于零。')+(chart?.imputed?'图中含插补值。':'');
     const chartNote=rankOnly?'原始排名，不插补；各期榜单规模可能不同。':combined?'销量按当前统计口径；排名只取原始榜单，不插补。':attributeTopics.has(key)?attributePublicationInfo?.note||'仅原始榜单样本':chart?.axis==='lifecycle'?'完整销售周 W1 起；不含 P0；累计缺 W1 或中断留空':chart?.axis==='age'?'末周实收样本；按销量最多12款，完整记录见 CSV':key==='dual'?(dualPublicationInfo?.note||'双周样本与市场份额对比'):key==='coverage'?(coveragePublicationInfo?.note||'完整TOP30、SKU数量情景与量化趋势检查'):key==='head'?(headPublicationInfo?.note||'仅共同有效周'):key==='brand'?(brandPublicationInfo?.note||'仅榜单样本'):key==='flow'?'相邻可比较周 · 进入/退出不代表上市/停销':key==='tail'?'连续上榜只计原始观测 · 未入榜不等于零销量':key==='generation'||key==='structure'?'仅分组样本占比 · 不代表市场份额':'估算销量 · 仅所选样本，非上市以来累计';
     const summary=key==='model'?(rankOnly?'原始排名 · '+chart.lines.length+' 款机型 · '+effectivePeriods.length+' 个有效自然周' : $('trackerStatus').textContent):$('researchNotice').textContent;
     const description=rankOnly?'所选机型的原始榜单排名，无记录不等于停销；不根据筛选重排。':combined?'所选机型销量与原始排名共享时间轴；销量插补不用于排名。':key==='model'?(chart?.axis==='lifecycle'?'按正式开售日对齐完整销售周；累计从 W1 连续有效起算，不含 P0。':'选中机型在当前统计区间的销量趋势。'):$('researchDesc').textContent;
@@ -1692,9 +1692,9 @@
     if(!baseCsv.length||baseCsv.length<2)return null;
     const effectiveText=effectivePeriods.length+' 周'+(effectivePeriods.length?'（'+effectivePeriods[0]+'—'+effectivePeriods[effectivePeriods.length-1]+'）':'');
     const csv=baseCsv.map((r,i)=>i===0?[...r,'发布所选区间','发布图表区间','发布有效周次']: [...r,selectedRange,chartRange,effectivePeriods.join(' / ')]);
-    const footer=[['head','coverage','dual'].includes(key)?'来源：'+scope.source+' / '+scope.series+' + 模块2市场份额':'来源：'+scope.source+' / '+scope.series+' · 历史榜单估算样本',key==='dual'?($('dualView').value==='multi'?'TOP30与全市场保留原始分母；相邻有效周色带仅连接同品牌，多周模式不显示变化pp列。':'TOP30与全市场两图分母不同，颜色带不是品牌间销量迁移；仅在变化pp列突出涨跌极值。'):key==='coverage'?'苹果入榜率由可行规模区间反推，SKU假设上界使用各周第30名真实销量；趋势检查独立启用，不校正数据；非统计置信区间。':key==='head'?'榜单样本占比非市场份额；跨数据源比较，不推断榜外销量。':'仅所选榜单样本，不代表全市场销量或品牌市场份额；缺失不等于零。'].join('\n');
+    const footer=[['head','coverage','dual'].includes(key)?'来源：'+scope.source+' / '+scope.series+' · 对照：全市场品牌份额':'来源：'+scope.source+' / '+scope.series+' · 历史榜单估算样本',key==='dual'?($('dualView').value==='multi'?'TOP30与全市场保留原始分母；相邻有效周色带仅连接同品牌，多周模式不显示变化pp列。':'TOP30与全市场两图分母不同，颜色带不是品牌间销量迁移；仅在变化pp列突出涨跌极值。'):key==='coverage'?'苹果入榜率由可行规模区间反推，SKU假设上界使用各周第30名真实销量；趋势检查独立启用，不校正数据；非统计置信区间。':key==='head'?'榜单样本占比非市场份额；跨数据源比较，不推断榜外销量。':'仅所选榜单样本，不代表全市场销量或品牌市场份额；缺失不等于零。'].join('\n');
     const config={scopeId:scope.id,selectedRange,chartRange,source:scope.source,series:scope.series,algorithm:Series.VERSION,masterRevision:masterCatalog?.revision||null,masterStatus:masterCatalog?'loaded':'unavailable',parameters:rawView?{start:p.start,end:p.end,dataMode:'raw'}:{...p},topK:top,filters:filterTopics.has(key)?filters():{},topic:attributeTopics.has(key)?attributeSettings(key):key==='tier'?{axis:lifeMode()?'lifecycle':'calendar',metric,pairs:activePairs(scope),focus:Number($('researchPairFocus').value)}:key==='model'?{axis:lifeMode()?'lifecycle':'calendar',metric,trendMode,selected:[...trackerSelected].filter(matchesAttributes)}:['series','generation','structure'].includes(key)?{memberMode:observedGroups(key)?'observed':'fixed',groups:activeGroups(scope),metric}:key==='brand'?{view:$('brandView').value,metric:$('brandMetric').value,base:$('brandBase').value,compare:$('brandCompare').value,concentration:$('brandCon').value}:key==='dual'?{top:30,view:$('dualView').value,base:$('dualView').value==='pair'?$('dualBase').value:null,compare:$('dualView').value==='pair'?$('dualCompare').value:null,brandGroups:'six',showOther:false,extremeRule:$('dualView').value==='multi'?'none':'rounded-0.1pp-with-ties',connectAdjacentValidOnly:true}:key==='coverage'?{top:30,view:$('coverageView').value,skuEnabled:coverageCheckOptions().skuEnabled,missingAppleSkuLimit:coverageCheckOptions().sku,weeklyCutoffSource:'original-rank-30',trendEnabled:coverageCheckOptions().trendEnabled,trendTolerancePp:coverageCheckOptions().tolerance,appleCaptureRate:'derived-from-feasible-market-bounds',centerRule:'interval-arithmetic-midpoint-only',automaticCorrection:false}:key==='head'?{view:$('headView').value,brand:$('headBrand').value,trend:$('headTrendMetric').value,concentration:$('headConcentration').value}:key==='tail'?{minimum:$('researchStreak').value,view:$('researchTailView').value}:key==='flow'?{newWeeks:$('researchNewWeeks').value}:{},chartKind};
-    const snapshot={schemaVersion:2,config,ready:true,key,title:researchViews[key],subtitle:key==='model'&&(rankOnly||combined)?displayMetric:attributeTopics.has(key)?attributePublicationInfo?.metricLabel||researchSubtitles[key]:key==='brand'?(brandPublicationInfo?.metricLabel||researchSubtitles[key]):key==='head'?(headPublicationInfo?.metricLabel||researchSubtitles[key]):key==='coverage'?(coveragePublicationInfo?.metricLabel||researchSubtitles[key]):key==='dual'?(dualPublicationInfo?.metricLabel||researchSubtitles[key]):researchSubtitles[key],range,effectivePeriods,footer,source:scope.source+' / '+scope.series+(['head','coverage','dual'].includes(key)?' + 模块2 市场份额':''),context:scope.source+' / '+scope.series+' · 图表 '+chartRange+' · 所选 '+selectedRange+' · '+(['head','coverage','dual'].includes(key)?'共同有效':'有效观测')+' '+effectiveText+' · '+modeLabel+(top===null?'':' · 固定 TOP'+top),modeLabel,displayMetric,chart,table,summary,description,detail,note,chartNote,csv};
+    const snapshot={schemaVersion:2,config,ready:true,key,title:researchViews[key],subtitle:key==='model'&&(rankOnly||combined)?displayMetric:attributeTopics.has(key)?attributePublicationInfo?.metricLabel||researchSubtitles[key]:key==='brand'?(brandPublicationInfo?.metricLabel||researchSubtitles[key]):key==='head'?(headPublicationInfo?.metricLabel||researchSubtitles[key]):key==='coverage'?(coveragePublicationInfo?.metricLabel||researchSubtitles[key]):key==='dual'?(dualPublicationInfo?.metricLabel||researchSubtitles[key]):researchSubtitles[key],range,effectivePeriods,footer,source:scope.source+' / '+scope.series+(['head','coverage','dual'].includes(key)?' · 全市场品牌份额':''),context:scope.source+' / '+scope.series+' · 图表 '+chartRange+' · 所选 '+selectedRange+' · '+(['head','coverage','dual'].includes(key)?'共同有效':'有效观测')+' '+effectiveText+' · '+modeLabel+(top===null?'':' · 固定 TOP'+top),modeLabel,displayMetric,chart,table,summary,description,detail,note,chartNote,csv};
     return JSON.parse(JSON.stringify(snapshot));
   }
   async function sendResearchToStudio(key=researchView){

@@ -357,11 +357,11 @@ function drawResearchPosterContent(ctx,L,p,s){
  if(s.chart?.kind==='brandStack'||s.chart?.kind==='brandRibbon'){drawBrandComposition(ctx,s.chart,chartBox,p,'');drawNotes();return;}
  if(s.chart?.kind==='bars'||s.chart?.kind==='scatter'){drawHeadStaticPoster(ctx,p,{...s,chartNote:''},chartBox);drawNotes();return;}
  if(s.chart){
-  const {periods,lines,unit}=s.chart,n=periods.length,count=lines.length;
+  const {periods,lines,unit}=s.chart,n=periods.length,bands=s.chart.bands||[],legendItems=[...lines.map(l=>({...l,legendBand:false})),...bands.map(b=>({...b,legendBand:true}))],count=legendItems.length;
   const cols=count<=2?Math.max(1,count):count<=6?2:count<=12?3:4;
   const legendRows=Math.ceil(count/cols),legendStep=Math.min(36,chartBox.height*.29/Math.max(1,legendRows));
   const cellW=width/cols,colors=['#2563eb','#ea580c','#059669','#9333ea','#db2777','#0891b2','#92400e','#64748b','#be123c','#4d7c0f','#0369a1','#7c3aed'];
-  lines.forEach((l,i)=>{const x=left+(i%cols)*cellW,y=start+(Math.floor(i/cols)+.77)*legendStep,color=l.color||colors[i%colors.length];if(l.marker)ResearchCharts.canvasMarker(ctx,l.marker,x+8,y-8,6,color);else{ctx.fillStyle=color;ctx.fillRect(x,y-12,17,5);}posterFitText(ctx,l.name,x+23,y,Math.min(24,legendStep*.78),p.ink,'600','left',cellW-28);});
+  legendItems.forEach((l,i)=>{const x=left+(i%cols)*cellW,y=start+(Math.floor(i/cols)+.77)*legendStep,color=l.color||colors[i%colors.length];if(l.legendBand){ctx.save();ctx.fillStyle=color;ctx.globalAlpha=.45;ctx.fillRect(x,y-15,17,10);ctx.restore();}else if(l.marker)ResearchCharts.canvasMarker(ctx,l.marker,x+8,y-8,6,color);else{ctx.fillStyle=color;ctx.fillRect(x,y-12,17,5);}posterFitText(ctx,l.name,x+23,y,Math.min(24,legendStep*.78),p.ink,'600','left',cellW-28);});
   const x0=left+68,x1=right-32,y0=start+legendRows*legendStep+34,y1=chartBottom-48;
   if(!auditPlot(ctx,x1-x0,y1-y0,'折线图绘图区',260,150))return;
   const scale=ResearchCharts.lineScale(s.chart,{left:x0,right:x1,top:y0,bottom:y1}),{top,x,y}=scale;

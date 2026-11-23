@@ -60,6 +60,7 @@ function researchNoteDefaults(s){
  else if(kind==='dualBrandFlowMulti')lead='多周原始份额 · 其他未绘制 · 相邻有效周色带仅连接同品牌';
  else if(kind==='dualBrandFlow')lead='六大品牌 · pp为百分点；两图分母不同 · 其他未绘制';
  else if(s.table&&!s.chart)lead='展示前 '+Math.min(10,s.table.rows.length)+' / '+s.table.rows.length+' 款 · 完整结果见专题 CSV';
+ else if(kind==='coverageTrend')lead='断线：缺少完整TOP30或同周苹果份额；异常圆环仅提示一致性问题';
  else if(s.chart&&!['trackerRank','trackerBoth','bars','scatter','heatmap','brandStack','brandRibbon'].includes(kind))
   lead=['head','coverage'].includes(s.key)?'仅共同有效周；断线表示缺少可比较数据':s.chart.imputed?'空心点 / 虚线：含插补；断线：缺少可用数据':'实线：观测数据；断线：缺少可比数据';
  const tail=rankOnly?'':s.key==='model'?(s.chart?.imputed?'虚线 / 空心点：含插补':''):s.chartNote||'';
@@ -216,18 +217,28 @@ function researchChartRows(s){
  }
  const trackerRank=['trackerRank','trackerMatrix'].includes(chart.kind),combined=chart.kind==='trackerBoth';
  if(trackerRank||combined)meta.push('原始榜单规模');
+ if(chart.kind==='coverageTrend')meta.push('苹果中心入榜率/%','苹果情景最小入榜率/%','原始情景下界/万台','原始情景上界/万台','SKU可行下界/万台','SKU可行上界/万台','自动检查状态');
  const sets=combined?[{lines:chart.lines,metric:chart.salesLabel||'销量',unit:'万台',rank:false},{lines:chart.rankLines,metric:'原始榜单排名',unit:'名',rank:true}]:[{lines:chart.lines,metric:s.displayMetric,unit:chart.unit||'',rank:trackerRank}];
  for(const set of sets)for(let i=0;i<chart.periods.length;i++)for(const line of set.lines){
   const v=line.values[i],valid=Number.isFinite(v),sourcePeriod=line.sourcePeriods?.[i]||(/^\d{4}-W\d{2}$/.test(chart.periods[i])?chart.periods[i]:(chart.calendarPeriods?.length===1?chart.calendarPeriods[0]:''));
   const unit=chart.kind==='scatter'?(line.name||''):set.unit;
   const row=[base[0],base[1],set.metric,unit,chart.periods[i],line.name,valid?v:'',set.rank?(line.statuses?.[i]||(valid?'原始榜单观测':'无排名记录')):!valid?'缺失或不适用':line.imputed?.[i]?'含插补':'有效显示值',sourcePeriod,...tail];
   if(trackerRank||combined)row.push(set.rank?line.boardSizes?.[i]||'':'');
+  if(chart.kind==='coverageTrend'){
+   const outer=chart.bands?.[0],bounded=chart.bands?.[1],scenario=!!line.scenario;
+   row.push(chart.captureRate??'',chart.minimumCaptureRate??'',
+    scenario&&Number.isFinite(outer?.lower?.[i])?outer.lower[i]:'',
+    scenario&&Number.isFinite(outer?.upper?.[i])?outer.upper[i]:'',
+    scenario&&Number.isFinite(bounded?.lower?.[i])?bounded.lower[i]:'',
+    scenario&&Number.isFinite(bounded?.upper?.[i])?bounded.upper[i]:'',
+    scenario?chart.alertReasons?.[i]||'':'');
+  }
   rows.push(row);
  }
  return rows;
 }
 function researchManifest(s,pub){
- return {schema_version:1,snapshot_schema:s.schemaVersion,topic:s.key,title:s.title,subtitle:s.subtitle,display_metric:s.displayMetric,source:s.source,range:s.range,effective_periods:s.effectivePeriods,configuration:s.config,chart:s.chart?{kind:s.chart.kind||'line',axis:s.chart.axis||null,unit:s.chart.unit||null,periods:s.chart.periods,series:s.chart.lines.map(l=>l.name),...(s.chart.kind==='trackerBoth'?{metrics:[{label:s.chart.salesLabel,unit:'万台'},{label:'原始榜单排名',unit:'名'}]}:{})}:{kind:'table',rows_displayed:Math.min(10,s.table?.rows.length||0)},poster:{ratio:pub.state.ratio,width:pub.width,height:pub.height,theme:pub.state.theme,safe_enabled:pub.state.safeEnabled,safe_right:pub.state.safeRight,safe_bottom:pub.state.safeBottom},limitations:[s.note,s.chartNote],fingerprint:StudioPref.fingerprint([s.config,s.chart,s.csv])};
+ return {schema_version:1,snapshot_schema:s.schemaVersion,topic:s.key,title:s.title,subtitle:s.subtitle,display_metric:s.displayMetric,source:s.source,range:s.range,effective_periods:s.effectivePeriods,configuration:s.config,chart:s.chart?{kind:s.chart.kind||'line',axis:s.chart.axis||null,unit:s.chart.unit||null,periods:s.chart.periods,series:s.chart.lines.map(l=>l.name),...(s.chart.kind==='coverageTrend'?{apple_anchor_scenario:{capture_rate_percent:s.chart.captureRate,minimum_capture_rate_percent:s.chart.minimumCaptureRate,max_missing_apple_skus:s.chart.maxMissingAppleSkus,market_trend_tolerance_pp:s.chart.trendTolerancePp,bands:s.chart.bands,alerts:s.chart.alerts,alert_reasons:s.chart.alertReasons,automatic_correction:false,confidence_interval:false}}:{}),...(s.chart.kind==='trackerBoth'?{metrics:[{label:s.chart.salesLabel,unit:'万台'},{label:'原始榜单排名',unit:'名'}]}:{})}:{kind:'table',rows_displayed:Math.min(10,s.table?.rows.length||0)},poster:{ratio:pub.state.ratio,width:pub.width,height:pub.height,theme:pub.state.theme,safe_enabled:pub.state.safeEnabled,safe_right:pub.state.safeRight,safe_bottom:pub.state.safeBottom},limitations:[s.note,s.chartNote],fingerprint:StudioPref.fingerprint([s.config,s.chart,s.csv])};
 }
 function capturePublication(types,o){
  const state=Object.fromEntries(['template','ratio','theme','duelA','duelB','safeEnabled','safeRight','safeBottom'].map(k=>[k,socialState[k]]));

@@ -350,6 +350,7 @@ function drawResearchPosterContent(ctx,L,p,s){
  if(!auditPlot(ctx,width,height,'研究图表内容区',360,230))return;
  if(['trackerBoth','trackerRank','trackerMatrix'].includes(s.chart?.kind)){drawTrackerTrendPoster(ctx,p,s,{left,right,top:start,bottom,width,height});return;}
  if(s.chart?.kind==='heatmap'){drawResearchHeatmap(ctx,s.chart,{left,right,top:start,bottom,width,height},p,s.chartNote);return;}
+ if(s.chart?.kind==='dualBrandFlow'){drawDualBrandFlow(ctx,s.chart,{left,right,top:start,bottom,width,height},p,'六大品牌 · pp为百分点；两图分母不同 · 其他未绘制');return;}
  if(s.chart?.kind==='brandStack'||s.chart?.kind==='brandRibbon'){drawBrandComposition(ctx,s.chart,{left,right,top:start,bottom,width,height},p,s.chartNote);return;}
  if(s.chart?.kind==='bars'||s.chart?.kind==='scatter'){drawHeadStaticPoster(ctx,p,s,{left,right,top:start,bottom,width,height});return;}
  if(s.chart){

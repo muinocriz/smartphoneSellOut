@@ -63,6 +63,28 @@ function drawHeadStaticPoster(ctx,p,s,box){
  posterFitText(ctx,s.chartNote,left,noteY,21,p.sub,'550','left',width);
 }
 
+
+/* Shared ribbon geometry for every chronological multiweek stacked chart.
+ * Each column supplies a left/right edge plus stable category keys; null columns
+ * break the connection. This paints behind the bars without changing any values. */
+function drawAdjacentStackRibbons(ctx,columns){
+ for(let i=0;i<columns.length-1;i++){
+  const previous=columns[i],next=columns[i+1];
+  if(!previous||!next||!Number.isFinite(previous.right)||!Number.isFinite(next.left)||next.left<=previous.right)continue;
+  const lhs=previous.right,rhs=next.left,c1=lhs+(rhs-lhs)*.43,c2=lhs+(rhs-lhs)*.57;
+  const following=new Map(next.segments.map(s=>[s.key,s]));
+  for(const seg of previous.segments){
+   const target=following.get(seg.key);
+   if(!target||!(seg.h>0||target.h>0))continue;
+   if(![seg.top,seg.bottom,target.top,target.bottom].every(Number.isFinite))continue;
+   ctx.save();ctx.fillStyle=seg.color;ctx.globalAlpha=.19;
+   ctx.beginPath();ctx.moveTo(lhs,seg.top);ctx.bezierCurveTo(c1,seg.top,c2,target.top,rhs,target.top);
+   ctx.lineTo(rhs,target.bottom);ctx.bezierCurveTo(c2,target.bottom,c1,seg.bottom,lhs,seg.bottom);
+   ctx.closePath();ctx.fill();ctx.restore();
+  }
+ }
+}
+
 /* Module 2 style stacked bands; shared by live research canvas and PNG poster.
  * Geometry derives from the independently reserved horizontal and vertical bounds. */
 function drawBrandComposition(ctx,chart,box,p,note=''){
@@ -118,27 +140,16 @@ function drawBrandComposition(ctx,chart,box,p,note=''){
   for(let i=0;i<=4;i++){const v=cap*i/4,y=y1-plotH*i/4;line(x0,y,x1,y);drawText(Number(v.toFixed(2))+(pct?'%':''),x0-6,y+small*.3,small,p.sub,'550','right',x0-left-7);}
   drawText(unit,x0,top+small*.7,small,p.sub,'600');
   const stride=Math.max(1,Math.ceil(n/Math.max(1,Math.floor((x1-x0)/(65*Math.max(.8,f))))));
-  // Brand ecology's multiweek stacked columns use the same subtle same-brand
-  // connectors as the TOP30/whole-market study. Draw behind bars and labels.
-  // Never cross an incomplete week; the connector is not a brand-to-brand flow.
-  if(chart.kind==='brandStack'&&chart.connectAdjacentBrands){
-   for(let i=0;i<n-1;i++){
-    if(!valid(i)||!valid(i+1))continue;
-    const lhs=x0+slot*(i+.5)+bw/2,rhs=x0+slot*(i+1.5)-bw/2;
-    if(rhs<=lhs)continue;
-    const a=segments(i,y1,plotH),b=segments(i+1,y1,plotH),
-          c1=lhs+(rhs-lhs)*.43,c2=lhs+(rhs-lhs)*.57;
-    a.forEach((s,j)=>{
-     const t=b[j];
-     if(s.h<=0&&t.h<=0)return;
-     ctx.save();ctx.fillStyle=s.color;ctx.globalAlpha=.19;
-     ctx.beginPath();ctx.moveTo(lhs,s.top);
-     ctx.bezierCurveTo(c1,s.top,c2,t.top,rhs,t.top);
-     ctx.lineTo(rhs,t.bottom);
-     ctx.bezierCurveTo(c2,t.bottom,c1,s.bottom,lhs,s.bottom);
-     ctx.closePath();ctx.fill();ctx.restore();
-    });
-   }
+  // Chronological category stacks (brands, price bands, chips, ages) use
+  // exactly the same ribbon geometry as the cross-module dual multiweek view.
+  // Non-time-axis matrices deliberately omit connectAdjacentBands.
+  if(chart.kind==='brandStack'&&(chart.connectAdjacentBands||chart.connectAdjacentBrands)){
+   const columns=periods.map((_,i)=>{
+    if(!valid(i))return null;
+    const cx=x0+slot*(i+.5);
+    return {left:cx-bw/2,right:cx+bw/2,segments:segments(i,y1,plotH).map((seg,j)=>({...seg,key:lines[j].name}))};
+   });
+   drawAdjacentStackRibbons(ctx,columns);
   }
   periods.forEach((period,i)=>{
    const x=x0+slot*(i+.5);
@@ -204,22 +215,11 @@ function drawDualBrandFlowMulti(ctx,chart,box,p,note=''){
       mid:(sy0+sy1)/2,h:sy1-sy0};
    });
   });
-  // Ribbons are painted behind the bars, solely between immediately adjacent
-  // valid weeks. Never bridge or interpolate a missing/invalid natural week.
-  for(let i=0;i<geometries.length-1;i++){
-   const a=geometries[i],b=geometries[i+1];
-   if(!a||!b)continue;
-   const xl=barXs[i]+bw/2,xr=barXs[i+1]-bw/2;
-   if(xr<=xl)continue;
-   const c1=xl+(xr-xl)*.43,c2=xl+(xr-xl)*.57;
-   a.forEach((seg,j)=>{
-    const next=b[j];if(seg.h<=0&&next.h<=0)return;
-    ctx.save();ctx.fillStyle=seg.color;ctx.globalAlpha=.19;
-    ctx.beginPath();ctx.moveTo(xl,seg.top);ctx.bezierCurveTo(c1,seg.top,c2,next.top,xr,next.top);
-    ctx.lineTo(xr,next.bottom);ctx.bezierCurveTo(c2,next.bottom,c1,seg.bottom,xl,seg.bottom);
-    ctx.closePath();ctx.fill();ctx.restore();
-   });
-  }
+  // Identical ribbons for all multiweek stacks. Incomplete weeks are null,
+  // so no colored band crosses a missing week or changes categories.
+  drawAdjacentStackRibbons(ctx,geometries.map((segments,i)=>segments?{
+   left:barXs[i]-bw/2,right:barXs[i]+bw/2,segments
+  }:null));
   geometries.forEach((segs,i)=>{
    const cx=barXs[i],bx=cx-bw/2;
    if(!segs){

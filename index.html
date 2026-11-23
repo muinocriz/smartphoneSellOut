@@ -36,6 +36,7 @@ h1{font-size:22px;font-weight:700;margin:0;text-wrap:balance}
 .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
 .controls{display:grid;gap:14px}
 .row{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px}
+#exportDisclaimer{flex:1 1 20em;min-width:0;max-width:100%;box-sizing:border-box;resize:vertical;font:inherit;color:inherit;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:6px 10px}
 .lbl{font-size:12px;color:var(--muted);letter-spacing:.06em;min-width:3.5em}
 select,button{font:inherit;color:var(--fg);background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:5px 10px}
 button{cursor:pointer}
@@ -176,13 +177,17 @@ td.bad{color:var(--warn)}
       <label id="fitWindowWrap" hidden>历史窗口 <select id="fitWindow" aria-label="断更前连续真实周增量数"><option value="3">3周</option><option value="4">4周</option><option value="6" selected>6周</option><option value="8">8周</option></select></label>
       <span class="note">整50万台正数为里程碑下限（≥）；可作估算左右端点，虚线及 ≈ 非实际销量。</span>
     </div>
+    <div class="row">
+      <label class="lbl" for="exportDisclaimer">免责附注（支持换行）</label>
+      <textarea id="exportDisclaimer" rows="2"></textarea>
+    </div>
   </section>
 
   <section class="panel">
     <div class="chart-head">
       <span class="note">导出 PNG</span>
-      <button class="mini ico" id="expDesk" title="导出桌面端 PNG（16:9，2400×1350）" aria-label="导出桌面端 PNG">🖥️</button>
-      <button class="mini ico" id="expMob" title="导出移动端 PNG（4:5 竖图，1200×1500，适合手机查看）" aria-label="导出移动端 PNG">📱</button>
+      <button class="mini ico" id="expDesk" title="导出桌面端 PNG（2400×1350，附注按需增高）" aria-label="导出桌面端 PNG">🖥️</button>
+      <button class="mini ico" id="expMob" title="导出移动端 PNG（1200×1500 竖图，附注按需增高）" aria-label="导出移动端 PNG">📱</button>
     </div>
     <div id="chart" role="img" aria-label="所选机型周销量折线图"></div>
     <ol class="rank" id="rank" hidden aria-label="按最新值排序的机型列表"></ol>
@@ -466,6 +471,21 @@ function mobileList(o,t){
   });
   return g;
 }
+function exportFooter(width){
+  const note=$("exportDisclaimer").value.trim();
+  if(!note)return {height:0,graphic:[]};
+  const lines=[],pad=16,lineHeight=17;
+  for(const paragraph of note.split("\n")){
+    let line="";
+    for(const char of paragraph){
+      if(line&&textW(line+char,12)>width-2*pad){lines.push(line);line=""}
+      line+=char;
+    }
+    lines.push(line);
+  }
+  return {height:lines.length*lineHeight+8,graphic:[{type:"text",left:pad,bottom:8,silent:true,
+    style:{text:lines.join("\n"),lineHeight,fill:theme().mu,font:`12px ${FONT()}`}}]};
+}
 function buildOption(sel,cats,datas,o){
   const t=theme(),f=spec(o),W=o.W;
   // 右侧留出线尾名字的宽度（超过上限则截断名字）
@@ -509,7 +529,7 @@ function buildOption(sel,cats,datas,o){
     animation:!o.exp,animationDuration:400,
     textStyle:{fontFamily:FONT()},
     grid:{left:o.mobile?8:12,right:Math.ceil(endW)+(o.mobile?18:22),
-      top:o.exp?(o.mobile?78:80):36,bottom:o.exp?(o.mobile?36+o.listH:40):(o.mobile?50:84),containLabel:true},
+      top:o.exp?(o.mobile?78:80):36,bottom:o.exp?o.footerHeight+(o.mobile?36+o.listH:40):(o.mobile?50:84),containLabel:true},
     xAxis:{type:"category",data:catT,boundaryGap:false,
       axisLine:{lineStyle:{color:t.ln}},axisLabel:{color:t.mu,fontSize:f.ax,hideOverlap:true},axisTick:{show:false}},
     yAxis:{type:S.log?"log":"value",name:o.exp?"":(S.val==="cum"?"累计销量（万台）":"周环比增量（万台）"),nameTextStyle:{color:t.mu,fontSize:f.ax},
@@ -650,7 +670,7 @@ function placeLabels(inst,ctx,lo,hi){
         lineStyle:{color:t.mu,width:1,opacity:.35},itemStyle:{color:t.mu,opacity:.35}}:{z:3});
       if(o.overlayIndices)for(const [index,{i,virtual}] of o.overlayIndices)updates[index]=u.has(i)?(virtual?{z:1,showSymbol:true,label:{show:true,color:t.mu},itemStyle:{borderColor:t.mu}}:{z:1,showSymbol:false,label:{show:false},lineStyle:{type:"dashed",color:t.mu,width:1,opacity:.35}}):{z:3};
       inst.setOption({series:updates});
-      if(!o.mobile)base.push({type:"text",right:20,bottom:14,silent:true,
+      if(!o.mobile)base.push({type:"text",right:20,bottom:14+o.footerHeight,silent:true,
         style:{text:`另有 ${un.length} 个机型未标注（灰线）`,fill:t.mu,font:`12px ${FONT()}`}})}}
   ctx.labels=L;
   inst.setOption({graphic:[...base,...g]},{replaceMerge:["graphic"]});
@@ -712,6 +732,7 @@ async function exportPNG(mobile){
   try{
     if(document.fonts&&document.fonts.ready)await document.fonts.ready;
     const W=mobile?400:1200,H=mobile?500:675,dpr=mobile?3:2;
+    const footer=exportFooter(W),imageHeight=H+footer.height;
     const lo=S.from,hi=S.to;
     const cats=CUR.cats.slice(lo,hi+1),datas=CUR.datas.map(d=>d.slice(lo,hi+1));
     const keep=CUR.sel.map((r,i)=>datas[i].some(v=>v!=null));
@@ -719,12 +740,12 @@ async function exportPNG(mobile){
     if(!sel.length){alert("当前周期范围内所选机型没有数据");return}
     setBrandMode(sel);
     const div=document.createElement("div");
-    div.style.cssText=`position:fixed;left:-10000px;top:0;width:${W}px;height:${H}px`;
+    div.style.cssText=`position:fixed;left:-10000px;top:0;width:${W}px;height:${imageHeight}px`;
     document.body.appendChild(div);
-    const inst=echarts.init(div,null,{renderer:"canvas",devicePixelRatio:dpr,width:W,height:H});
-    const o={exp:true,mobile,W,H,lo:0,hi:cats.length-1};
+    const inst=echarts.init(div,null,{renderer:"canvas",devicePixelRatio:dpr,width:W,height:imageHeight});
+    const o={exp:true,mobile,W,H,footerHeight:footer.height,lo:0,hi:cats.length-1};
     inst.setOption(buildOption(sel,cats,ds,o));
-    placeLabels(inst,{sel,datas:ds,o,base:mobile?mobileList(o,theme()):[]},0,cats.length-1);
+    placeLabels(inst,{sel,datas:ds,o,base:[...(mobile?mobileList(o,theme()):[]),...footer.graphic]},0,cats.length-1);
     const url=inst.getDataURL({type:"png",pixelRatio:dpr,backgroundColor:theme().pn});
     inst.dispose();div.remove();
     const a=document.createElement("a");a.href=url;

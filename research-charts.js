@@ -133,6 +133,93 @@ function drawBrandComposition(ctx,chart,box,p,note=''){
  if(note)drawText(note,left,bottom-3,small,p.sub,'550','left',width);
 }
 
+
+/* Dual TOP30 / whole-market flow, sharing identical geometry in the preview and poster.
+ * Only the far-right delta cells receive extreme-value backgrounds; ties use displayed 0.1pp. */
+function drawDualBrandFlow(ctx,chart,box,p,note=''){
+ const {left,right,top,bottom,width,height}=box,panels=chart.panels||[];
+ if(panels.length!==2||!chart.periods?.length)return;
+ if(!auditPlot(ctx,width,height,'TOP与全市场双流向图',380,380))return;
+ const f=Math.min(1.1,width/960,height/990),textSize=Math.max(11,Math.min(19,17*f)),
+       labelSize=Math.max(11,Math.min(20,18*f)),headingSize=Math.max(14,Math.min(26,23*f)),
+       noteSize=Math.max(10,Math.min(17,15*f)),gap=Math.max(12,19*f),
+       legendHeight=Math.max(32,38*f),noteHeight=note?Math.max(27,34*f):0,
+       panelH=(height-legendHeight-noteHeight-gap*2)/2;
+ if(panelH<160){auditIssue(ctx,'双流向图空间不足，建议改用9:16或缩短标题与注释',true);return;}
+ const fixedGroups=window.BrandUtils.groups.filter(g=>g.id!=='other');
+ const fmt=v=>v.toFixed(1)+'%';
+ function drawText(str,x,y,size,color=p.ink,weight='650',align='left',max=Infinity){
+  posterFitText(ctx,str,x,y,size,color,weight,align,max);
+ }
+ function drawOne(panel,boxY){
+  const x=left,y=boxY,w=width,h=panelH;
+  rounded(ctx,x+1,y+1,w-2,h-2,Math.max(6,11*f),'#ffffff');
+  ctx.save();ctx.strokeStyle=p.hair;ctx.lineWidth=Math.max(1,1.3*f);
+  ctx.beginPath();ctx.roundRect(x+1,y+1,w-2,h-2,Math.max(6,11*f));ctx.stroke();ctx.restore();
+  rounded(ctx,x+Math.max(12,20*f),y+Math.max(10,14*f),Math.max(70,84*f),Math.max(22,29*f),16,'#3b82f6');
+  drawText(panel.key==='top'?'TOP30':'全市场',x+Math.max(47,62*f),y+Math.max(28,34*f),labelSize,'#ffffff','800','center',Math.max(61,75*f));
+  drawText(panel.title||'',x+Math.max(102,120*f),y+Math.max(29,35*f),headingSize,p.ink,'800','left',w-Math.max(130,155*f));
+  drawText(panel.subtitle||'',x+Math.max(12,20*f),y+Math.max(54,67*f),noteSize,p.sub,'500','left',w-38);
+  const labelW=Math.max(59,w*.092),barW=Math.min(240,w*.22),deltaW=Math.max(77,w*.108);
+  const lx=x+labelW+Math.max(11,16*f),rx=x+w-deltaW-barW-Math.max(13,20*f),dx=rx+barW+Math.max(4,7*f);
+  const yHead=y+Math.max(83,94*f),plotTop=yHead+Math.max(29,35*f),plotBottom=y+h-Math.max(14,22*f),plotH=plotBottom-plotTop;
+  drawText('基准周',lx+barW/2,yHead,Math.max(12,17*f),p.ink,'750','center',barW+12);
+  drawText(chart.periods[0],lx+barW/2,yHead+Math.max(15,19*f),noteSize,p.sub,'600','center',barW+12);
+  drawText('对比周',rx+barW/2,yHead,Math.max(12,17*f),p.ink,'750','center',barW+12);
+  drawText(chart.periods[1],rx+barW/2,yHead+Math.max(15,19*f),noteSize,p.sub,'600','center',barW+12);
+  drawText('变化',dx+deltaW*.47,yHead,Math.max(12,17*f),p.ink,'750','center',deltaW-5);
+  drawText('(pp)',dx+deltaW*.47,yHead+Math.max(15,19*f),noteSize,p.sub,'550','center',deltaW-5);
+  if(panel.status!=='ok'){
+   drawText(panel.message||'数据不完整，无法绘制',x+w/2,plotTop+plotH/2,headingSize,p.sub,'600','center',w-60);
+   return;
+  }
+  const data=panel.series||[],diffs=data.map(row=>Math.round((row.compare-row.base)*10)/10);
+  const maxUp=Math.max(0,...diffs),minDown=Math.min(0,...diffs);
+  const segments=(field)=>{
+   let cursor=plotBottom;
+   return data.map(row=>{
+    const val=row[field],length=Math.max(0,val/100*plotH);
+    const seg={...row,v:val,top:cursor-length,bottom:cursor,h:length,mid:cursor-length/2};
+    cursor-=length;return seg;
+   });
+  };
+  const base=segments('base'),compare=segments('compare'),pathL=lx+barW,pathR=rx,
+        c1=pathL+(pathR-pathL)*.43,c2=pathL+(pathR-pathL)*.57;
+  base.forEach((a,i)=>{
+   const b=compare[i];if(a.h<=0&&b.h<=0)return;
+   ctx.save();ctx.globalAlpha=.18;ctx.fillStyle=a.color;
+   ctx.beginPath();ctx.moveTo(pathL,a.top);ctx.bezierCurveTo(c1,a.top,c2,b.top,pathR,b.top);
+   ctx.lineTo(pathR,b.bottom);ctx.bezierCurveTo(c2,b.bottom,c1,a.bottom,pathL,a.bottom);
+   ctx.closePath();ctx.fill();ctx.restore();
+  });
+  base.forEach((a,i)=>{
+   const b=compare[i],d=diffs[i],rise=maxUp>0&&d===maxUp,fall=minDown<0&&d===minDown,
+         cy=b.mid,delta=(d>0?'+':'')+d.toFixed(1)+'pp';
+   for(const [seg,bx] of [[a,lx],[b,rx]]){
+    if(seg.h<=0)continue;
+    rounded(ctx,bx,seg.top,barW,Math.max(.1,seg.h-Math.min(1,seg.h*.09)),Math.min(6,seg.h/2),seg.color);
+    if(seg.h>=textSize+3)drawText(fmt(seg.v),bx+barW/2,seg.mid+textSize*.34,textSize,'#ffffff','800','center',barW-6);
+   }
+   if(a.h>=labelSize+1)drawText(a.label,lx-Math.max(5,7*f),a.mid+labelSize*.34,labelSize,p.ink,'700','right',labelW-5);
+   // Highlight ONLY the numerical change field: no shading or callouts on the bars.
+   if(rise||fall){
+    const bg=rise?'rgba(239,68,68,0.13)':'rgba(34,197,94,0.13)';
+    rounded(ctx,dx-2,cy-textSize*.82,Math.max(36,x+w-dx-7),textSize*1.55,Math.max(2,4*f),bg);
+   }
+   drawText(delta,dx+Math.max(3,5*f),cy+textSize*.35,textSize,d>0?'#c93630':d<0?'#265a87':p.sub,'800','left',Math.max(24,x+w-dx-13));
+  });
+ }
+ drawOne(panels[0],top);
+ drawOne(panels[1],top+panelH+gap);
+ const legendY=top+panelH*2+gap*1.5,cellW=width/fixedGroups.length;
+ fixedGroups.forEach((g,i)=>{
+  const xx=left+i*cellW;
+  rounded(ctx,xx,legendY-Math.max(8,11*f),Math.max(10,17*f),Math.max(9,11*f),2,g.color);
+  drawText(g.label,xx+Math.max(15,22*f),legendY,noteSize,p.ink,'650','left',cellW-Math.max(17,25*f));
+ });
+ if(note)drawText(note,left,bottom-Math.max(4,7*f),noteSize,p.sub,'550','left',width);
+}
+
 // Shared heatmap rendering for live canvas and poster. Cell values are already normalized by the research engine.
 function drawResearchHeatmap(ctx,chart,box,p,note=''){
  const {left,right,top,bottom,width,height}=box,rows=chart.periods,cols=chart.lines;
@@ -213,13 +300,13 @@ const ResearchCharts=(()=>{
   });
  }
  function renderComposition(host,chart,label){
-  const W=chart.kind==='heatmap'?Math.max(850,chart.lines.length*94+210):chart.kind==='brandStack'?Math.max(780,chart.periods.length*78+120):850,H=chart.kind==='heatmap'?Math.max(510,chart.periods.length*42+135):chart.kind==='scatter'?560:510;
+  const W=chart.kind==='dualBrandFlow'?1080:chart.kind==='heatmap'?Math.max(850,chart.lines.length*94+210):chart.kind==='brandStack'?Math.max(780,chart.periods.length*78+120):850,H=chart.kind==='dualBrandFlow'?1070:chart.kind==='heatmap'?Math.max(510,chart.periods.length*42+135):chart.kind==='scatter'?560:510;
   const canvas=document.createElement('canvas'),density=Math.min(2,window.devicePixelRatio||1);
   canvas.width=Math.round(W*density);canvas.height=Math.round(H*density);canvas.style.cssText='display:block;width:100%;min-width:620px;background:#fff;border-radius:10px';
   canvas.setAttribute('role','img');canvas.setAttribute('aria-label',label+'；完整数值见数据表');
   const ctx=canvas.getContext('2d');ctx.setTransform(density,0,0,density,0,0);ctx.fillStyle='#fff';ctx.fillRect(0,0,W,H);
   const box={left:16,right:W-16,top:16,bottom:H-16,width:W-32,height:H-32},p={ink:'#17263c',sub:'#64748b',hair:'#e4e9f0',accent:'#c93630',bar:'#265a87'};
-  if(chart.kind==='heatmap')drawResearchHeatmap(ctx,chart,box,p);else if(chart.kind==='scatter'||chart.kind==='bars')drawHeadStaticPoster(ctx,p,{chart,chartNote:''},box);else drawBrandComposition(ctx,chart,box,p,'');
+  if(chart.kind==='dualBrandFlow')drawDualBrandFlow(ctx,chart,box,p,'六大品牌 · 各自原始分母，其他不重算；色带仅连接同品牌');else if(chart.kind==='heatmap')drawResearchHeatmap(ctx,chart,box,p);else if(chart.kind==='scatter'||chart.kind==='bars')drawHeadStaticPoster(ctx,p,{chart,chartNote:''},box);else drawBrandComposition(ctx,chart,box,p,'');
   host.append(canvas);
  }
  return Object.freeze({lineScale,svgLine,canvasLine,renderComposition,markerAt,svgMarker,canvasMarker});

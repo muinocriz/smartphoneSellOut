@@ -1,5 +1,5 @@
 /* Poster geometry, safety zones, watermark and template renderers. */
-function posterHeading(type){const titles={top:'热销机型 TOP10',versus:'同榜机型 销量 PK',brands:'品牌上榜实力',leader:'榜首究竟有多强？'};const subs={top:'入榜机型 · 估算销量排名',versus:'相同统计周期 · 像素标定对比',brands:'仅限当前榜单的入榜样本',leader:'头部差距与集中度分析'};return {title:titles[type],sub:subs[type]}}
+function posterHeading(type){const titles={top:'热销机型 TOP10',versus:'同榜机型 销量 PK',brands:'品牌上榜实力',leader:'榜首究竟有多强？'};const subs={top:'入榜机型 · 估算销量排名',versus:'相同统计周期 · 销量估算对比',brands:'仅限当前榜单的入榜样本',leader:'头部差距与集中度分析'};return {title:titles[type],sub:subs[type]}}
 // 与市场份额模块统一为浅灰蓝画布 + 白色圆角海报卡片。
 // Theme-colored exterior + white editorial content card.
 function drawPosterBackdrop(ctx,W,H,p){

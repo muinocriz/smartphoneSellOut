@@ -1250,7 +1250,8 @@
       const chart={kind:'coverageTrend',periods:records.map(r=>r.period),unit:'万台',
         calendarPeriods:valid.map(r=>r.period),captureRate:centerRate,minimumCaptureRate:minRate,
         maxMissingAppleSkus:settings.sku,trendTolerancePp:settings.tolerance,
-        alerts:records.map(r=>r.alert),alertReasons:records.map(r=>r.growthCheck),
+        alerts:records.map(r=>r.alert||(r.skuStatus==='中心情景超出榜外SKU假设'?'warning':'')),
+        alertReasons:records.map(r=>r.growthCheck+(r.skuStatus==='中心情景超出榜外SKU假设'?'；苹果中心情景超出假定SKU上限':'')),
         lines:[
           {name:'TOP30样本销量',color:'#2563eb',values:records.map(r=>r.total),imputed:[]},
           {name:'市场总销量 · 苹果'+centerRate+'%入榜',color:'#7c3aed',scenario:true,values:records.map(r=>r.center),imputed:[]}
@@ -1715,6 +1716,8 @@
   importCurrent.onclick=()=>sendResearchToStudio(researchView);chooser.after(importCurrent);
 
   Pref.apply(storedResearch.controls,researchControlIds);
+  // Legacy default selected the coverage-only view; open the new sales view once.
+  if(storedResearch.controls?.coverageView==='coverage'&&storedResearch.controls?.coverageMissingSku===undefined)$('coverageView').value='sales';
   syncPriceFilterInputs();
   for(const [target,saved] of [[headTopState,storedResearch.headTop],[otherTopState,storedResearch.otherTop]]){if(['all','10','20','30','custom'].includes(saved?.mode))target.mode=saved.mode;if(Number(saved?.custom)>=1&&Number(saved.custom)<=10000)target.custom=String(saved.custom);}
   Pref.setControl($('researchTopMode'),otherTopState.mode);Pref.setControl($('researchTopK'),otherTopState.custom);

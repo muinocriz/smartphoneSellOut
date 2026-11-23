@@ -385,7 +385,7 @@ const ResearchCharts=(()=>{
   ctx.fillStyle=estimated||hollow?'#ffffff':color;ctx.strokeStyle=color;ctx.lineWidth=1.8;ctx.fill();ctx.stroke();ctx.restore();
  }
  function lineScale(chart,box){
-  const n=chart.periods.length,max=chart.lines.reduce((m,l)=>l.values.reduce((a,v)=>Number.isFinite(v)?Math.max(a,v):a,m),1);
+  const n=chart.periods.length,max=(chart.bands||[]).reduce((m,b)=>(b.upper||[]).reduce((a,v)=>Number.isFinite(v)?Math.max(a,v):a,m),chart.lines.reduce((m,l)=>l.values.reduce((a,v)=>Number.isFinite(v)?Math.max(a,v):a,m),1));
   const step=Math.pow(10,Math.floor(Math.log10(max)))/2,top=chart.limit||Math.ceil(max/step)*step;
   return {top,x:i=>n===1?(box.left+box.right)/2:box.left+i*(box.right-box.left)/Math.max(1,n-1),y:v=>box.bottom-v/top*(box.bottom-box.top)};
  }
@@ -396,6 +396,17 @@ const ResearchCharts=(()=>{
    visit({name:l.name,period:chart.periods[i],value:v,color,marker:l.marker,x:scale.x(i),y:scale.y(v),estimated,previous:prev?{x:scale.x(i-1),y:scale.y(l.values[i-1]),dashed:estimated||!!l.imputed?.[i-1]}:null});
   });});
  }
+ // Missing values split the shaded band instead of bridging absent weeks.
+ function bandRuns(chart,band){
+  const runs=[];let run=[];
+  chart.periods.forEach((_,i)=>{
+   const lo=band.lower?.[i],hi=band.upper?.[i];
+   if(Number.isFinite(lo)&&Number.isFinite(hi)&&hi>=lo)run.push(i);
+   else if(run.length){runs.push(run);run=[];}
+  });
+  if(run.length)runs.push(run);
+  return runs;
+ }
  function svgLine(host,legend,chart,label,precision=2){
   const n=chart.periods.length;if(!n||!chart.lines.length)return;
   const W=Math.max(720,n*48+110),H=310,L=56,R=W-55,T=25,B=265;
@@ -404,13 +415,36 @@ const ResearchCharts=(()=>{
   let content='<text x="'+L+'" y="13" font-size="11" fill="currentColor">'+esc(chart.unit)+'</text>';
   for(let i=0;i<=4;i++){const v=top*i/4;content+='<line x1="'+L+'" x2="'+R+'" y1="'+y(v)+'" y2="'+y(v)+'" stroke="currentColor" opacity=".14"/><text x="'+(L-8)+'" y="'+(y(v)+4)+'" text-anchor="end" fill="currentColor" font-size="11">'+Number(v.toFixed(2))+'</text>';}
   const stride=Math.max(1,Math.ceil(n/15));chart.periods.forEach((w,i)=>{if(i%stride===0||i===n-1)content+='<text x="'+x(i)+'" y="'+(B+20)+'" text-anchor="middle" fill="currentColor" font-size="10">'+esc(w)+'</text>';});
+  for(const band of chart.bands||[])for(const run of bandRuns(chart,band)){
+   const color=esc(band.color||'#7c3aed');
+   if(run.length===1){
+    const i=run[0];content+='<rect x="'+(x(i)-5)+'" y="'+y(band.upper[i])+'" width="10" height="'+(y(band.lower[i])-y(band.upper[i]))+'" fill="'+color+'" opacity=".20"/>';
+   }else{
+    const upper=run.map((i,j)=>(j?'L':'M')+x(i)+','+y(band.upper[i])).join(' ');
+    const lower=[...run].reverse().map(i=>'L'+x(i)+','+y(band.lower[i])).join(' ');
+    content+='<path d="'+upper+' '+lower+' Z" fill="'+color+'" opacity=".18"/>';
+   }
+  }
   points(chart,scale,p=>{const color=esc(p.color);if(p.previous)content+='<line x1="'+p.previous.x+'" y1="'+p.previous.y+'" x2="'+p.x+'" y2="'+p.y+'" stroke="'+color+'" stroke-width="2.5" '+(p.previous.dashed?'stroke-dasharray="6 4"':'')+'/>';
    content+=svgMarker(p.marker,p.x,p.y,4.5,color,p.estimated,'<title>'+esc(p.name+' · '+p.period+' · '+p.value.toFixed(precision)+' '+chart.unit+(p.estimated?'（含插补）':''))+'</title>');
   });
   chart.lines.forEach((l,i)=>{const span=document.createElement('span');span.style.color=l.color||COLORS[i%COLORS.length];span.textContent=(l.marker||'●')+' '+l.name;legend.append(span);});
+  for(const band of chart.bands||[]){const span=document.createElement('span');span.style.color=band.color||'#7c3aed';span.textContent='▰ '+(band.name||'情景区间');legend.append(span);}
   const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox','0 0 '+W+' '+H);svg.setAttribute('role','img');svg.setAttribute('aria-label',label);svg.style.cssText='width:100%;min-width:560px';svg.innerHTML=content;host.append(svg);
  }
  function canvasLine(ctx,chart,scale){
+  for(const band of chart.bands||[])for(const run of bandRuns(chart,band)){
+   ctx.save();ctx.fillStyle=band.color||'#7c3aed';ctx.globalAlpha=.18;
+   if(run.length===1){
+    const i=run[0];ctx.fillRect(scale.x(i)-6,scale.y(band.upper[i]),12,scale.y(band.lower[i])-scale.y(band.upper[i]));
+   }else{
+    ctx.beginPath();
+    run.forEach((i,j)=>j?ctx.lineTo(scale.x(i),scale.y(band.upper[i])):ctx.moveTo(scale.x(i),scale.y(band.upper[i])));
+    [...run].reverse().forEach(i=>ctx.lineTo(scale.x(i),scale.y(band.lower[i])));
+    ctx.closePath();ctx.fill();
+   }
+   ctx.restore();
+  }
   points(chart,scale,p=>{if(p.previous){ctx.save();ctx.strokeStyle=p.color;ctx.lineWidth=4;ctx.setLineDash(p.previous.dashed?[11,8]:[]);ctx.beginPath();ctx.moveTo(p.previous.x,p.previous.y);ctx.lineTo(p.x,p.y);ctx.stroke();ctx.restore();}
    canvasMarker(ctx,p.marker,p.x,p.y,chart.periods.length>35?3.5:5,p.color,p.estimated);
   });

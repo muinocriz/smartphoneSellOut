@@ -366,7 +366,7 @@ function drawResearchPosterContent(ctx,L,p,s){
   const ticks=Math.max(2,Math.min(7,Math.floor((x1-x0)/88))),stride=Math.max(1,Math.ceil((n-1)/(ticks-1)));
   periods.forEach((period,i)=>{if(i===0||i===n-1||(i%stride===0&&n-1-i>=stride*.65))posterFitText(ctx,period,x(i),y1+26,18,p.sub,'550','center',Math.min(104,(x1-x0)/Math.max(1,ticks-1)));});
   ResearchCharts.canvasLine(ctx,s.chart,scale);
-  posterFitText(ctx,s.key==='head'?'仅共同有效周；断线表示缺少可比较数据':s.chart.imputed?'空心点 / 虚线：含插补；断线：缺少可用数据':'实线：观测数据；断线：缺少可比数据',left,bottom-35,21,p.sub,'560','left',width);
+  posterFitText(ctx,['head','coverage'].includes(s.key)?'仅共同有效周；断线表示缺少可比较数据':s.chart.imputed?'空心点 / 虚线：含插补；断线：缺少可用数据':'实线：观测数据；断线：缺少可比数据',left,bottom-35,21,p.sub,'560','left',width);
   posterFitText(ctx,s.chartNote,left,bottom-8,21,p.sub,'550','left',width);
  }else if(s.table){
   const rows=s.table.rows,indices=[0,1,2,3,7],labels=['机型','观测周','最长连续','末周连续','上榜合计/万台'];

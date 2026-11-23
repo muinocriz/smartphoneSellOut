@@ -167,13 +167,33 @@
   productPanel.innerHTML='<h3 style="margin:0 0 8px">产品属性筛选</h3><div id="productFilterGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:8px"></div><button type="button" class="secondary" id="productFilterReset" style="margin-top:8px">清空属性筛选</button><p class="mini" id="productFilterInfo" aria-live="polite"></p>';
   parameterPanel.after(productPanel);
   const productGrid=$('productFilterGrid'),productControls={};
-  for(const [field,label] of [...Product.FIELDS,['sale_from','开售日期自'],['sale_to','开售日期至']]){
-    const wrap=document.createElement('div'),date=field.startsWith('sale_'),input=document.createElement(date?'input':'select');
-    input.id='productFilter_'+field;input.className='field ui-field';if(date)input.type='date';
+  const productFields=Product.FIELDS.flatMap(([field,label])=>field==='price_band'?
+    [['price_mode','首发价条件'],['price_lower','价格下限（元）'],['price_upper','价格上限（元）']]:[[field,label]]);
+  for(const [field,label] of [...productFields,['sale_from','开售日期自'],['sale_to','开售日期至']]){
+    const wrap=document.createElement('div'),date=field.startsWith('sale_'),amount=field==='price_lower'||field==='price_upper',input=document.createElement(date||amount?'input':'select');
+    input.id='productFilter_'+field;input.className='field ui-field';
+    if(date)input.type='date';
+    if(amount){input.type='number';input.min='1';input.max='1000000';input.step='1';input.placeholder='输入金额';input.inputMode='numeric';}
+    if(field==='price_mode'){
+      for(const [value,title] of [['','全部价格'],['below','XXXX元以下（含）'],['above','XXXX元以上（含）'],['between','XXXX–XXXX元（含两端）']]){
+        const option=document.createElement('option');option.value=value;option.textContent=title;input.append(option);
+      }
+    }
     const lab=document.createElement('label');lab.className='lbl';lab.htmlFor=input.id;lab.textContent=label;wrap.append(lab,input);productGrid.append(wrap);productControls[field]=input;
   }
+  function syncPriceFilterInputs(){
+    const mode=productControls.price_mode.value;
+    productControls.price_lower.parentElement.hidden=mode!=='above'&&mode!=='between';
+    productControls.price_upper.parentElement.hidden=mode!=='below'&&mode!=='between';
+  }
   const filterIds=Object.values(productControls).map(n=>n.id);
-  const filters=()=>Object.fromEntries(Object.entries(productControls).map(([k,n])=>[k,n.value]).filter(([,v])=>v));
+  const filters=()=>{
+    const result=Object.fromEntries(Object.entries(productControls).map(([k,n])=>[k,n.value]).filter(([,v])=>v));
+    if(result.price_mode==='below')delete result.price_lower;
+    else if(result.price_mode==='above')delete result.price_upper;
+    else if(result.price_mode!=='between'){delete result.price_lower;delete result.price_upper;}
+    return result;
+  };
   const matchesAttributes=key=>Product.matches(masterCatalog?.get(key),filters());
   const attributeTopics=new Set(['price','position','chip','age','cross']);
   const filterTopics=new Set(['model','series','structure','generation','tier','tail',...attributeTopics]);
@@ -183,6 +203,7 @@
   function refreshProductFilters(scope){
     const vals=scope?[...knownModels(scope).keys()].map(k=>masterCatalog?.get(k)||null):[];
     for(const [field] of Product.FIELDS){
+      if(field==='price_band')continue;
       const sel=productControls[field],prior=sel.value||(!productOptionsReady?storedResearch.controls?.[sel.id]:'')||'';
       sel.replaceChildren();const all=document.createElement('option');all.value='';all.textContent='全部';sel.append(all);
       const opts=Product.options(vals,field);if(prior&&!opts.includes(prior))opts.push(prior);
@@ -193,9 +214,9 @@
   function updateProductInfo(scope){
     const known=scope?knownModels(scope):new Map(),n=[...known.keys()].filter(matchesAttributes).length,f=filters();
     const hint=researchView==='model'?'只绘制符合条件的已选机型，保留原选择。':(researchView==='tail'||attributeTopics.has(researchView))?'筛选限定原始观测机型；TOP K 仍按原始排名。':observedGroups(researchView)?'筛选限定当期实际入榜样本。':'筛选用于候选池和自动生成；已有固定组及配对不自动缩减。';
-    $('productFilterInfo').textContent=(f.sale_from&&f.sale_to&&f.sale_from>f.sale_to?'开售日期范围无效。':'')+n+' / '+known.size+' 个历史机型符合属性条件。'+hint+(!masterCatalog?' 主数据不可用。':'');
+    $('productFilterInfo').textContent=(Product.priceFilterError(f)?Product.priceFilterError(f)+' ':'')+(f.sale_from&&f.sale_to&&f.sale_from>f.sale_to?'开售日期范围无效。':'')+n+' / '+known.size+' 个历史机型符合属性条件。'+hint+(!masterCatalog?' 主数据不可用。':'');
   }
-  function onProductFilterChange(){updateProductInfo(currentScope());trackerOptions();syncResearchEditors();renderTracker();renderResearch();}
+  function onProductFilterChange(){syncPriceFilterInputs();updateProductInfo(currentScope());trackerOptions();syncResearchEditors();renderTracker();renderResearch();}
   for(const n of Object.values(productControls))n.onchange=onProductFilterChange;
   $('productFilterReset').onclick=()=>{for(const n of Object.values(productControls))n.value='';onProductFilterChange();};
   const researchControlIds=['trackerCoverage','trackerCoverageBase','trackerDataMode','trackerImputeRule','trackerMaxGap','trackerMissingBoard','trackerTrailing','trackerMode','trackerTrendView','researchStreak','dualView','dualBase','dualCompare','coverageView','coverageRates','headView','headBrand','headTrendMetric','headConcentration','brandView','brandMetric','brandCon','researchGroupField','researchGroupMode','researchGenerationLevel','trackerAxis','researchTailView','researchNewWeeks','priceCuts','priceView','priceMetric','priceBrandLevel','positionView','positionBrandLevel','positionHigh','chipDimension','chipView','chipMetric','chipLimit','ageView','ageMetric','ageBrandLevel','crossRow','crossColumn','crossMetric','crossRange','crossLimit',...filterIds];
@@ -1420,6 +1441,7 @@
     $('researchTitle').textContent=researchViews[researchView];$('researchDesc').textContent='';
     $('researchChart').replaceChildren();$('researchLegend').replaceChildren();researchTable([],[]);notice.textContent='';
     if(!scope){notice.textContent='暂无周榜数据';return;}
+    if(filterTopics.has(researchView)&&Product.priceFilterError(filters())){notice.textContent=Product.priceFilterError(filters());return;}
     const c=Object.fromEntries(trackerData.header.map((h,i)=>[h,i]));
     let weeks=scope.weeks;
     if(researchView==='tier'){renderTierComparison(scope,c);return;}
@@ -1589,6 +1611,7 @@
   importCurrent.onclick=()=>sendResearchToStudio(researchView);chooser.after(importCurrent);
 
   Pref.apply(storedResearch.controls,researchControlIds);
+  syncPriceFilterInputs();
   for(const [target,saved] of [[headTopState,storedResearch.headTop],[otherTopState,storedResearch.otherTop]]){if(['all','10','20','30','custom'].includes(saved?.mode))target.mode=saved.mode;if(Number(saved?.custom)>=1&&Number(saved.custom)<=10000)target.custom=String(saved.custom);}
   Pref.setControl($('researchTopMode'),otherTopState.mode);Pref.setControl($('researchTopK'),otherTopState.custom);
   setResearchView(Object.prototype.hasOwnProperty.call(researchViews,storedResearch.view)?storedResearch.view:'model');

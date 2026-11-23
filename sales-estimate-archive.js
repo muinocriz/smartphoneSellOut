@@ -1203,7 +1203,7 @@
     const brands=boardBrandOrder.filter(k=>k!=='其他'||per.some(r=>r.valid&&r.counts[k]>0));
     const linesFor=records=>brands.map(k=>({name:boardBrandLabel(k),color:boardBrandColors[k],values:records.map(r=>value(r,k,boardBrandOrder.indexOf(k))),imputed:[]}));
     const notice=$('researchNotice');
-    $('researchDesc').textContent='按母品牌归并原始榜单：小米含 REDMI、OPPO含一加/realme、vivo含 iQOO。榜单样本并非全市场；固定 TOP K 缺名次整周留空。不使用覆盖率筛选与插补。CR/HHI 按销量计算，其他品牌合为一组。';
+    $('researchDesc').textContent='按母品牌归并原始榜单：小米含 REDMI、OPPO含一加/realme、vivo含 iQOO。榜单样本并非全市场；固定 TOP K 缺名次整周留空。不使用覆盖率筛选与插补。多周堆叠柱相邻有效周间以半透明色带连接同一品牌，缺失周断开；色带不表示实际销量迁移。CR/HHI 按销量计算，其他品牌合为一组。';
     let records=per,range=weeks[0].period+'—'+weeks[weeks.length-1].period;
     if(view==='ribbon'){
       const base=per.find(r=>r.period===$('brandBase').value),compare=per.find(r=>r.period===$('brandCompare').value);
@@ -1219,7 +1219,7 @@
     }
     researchTable(headers,rows);
     const metricLabel=view==='concentration'?(con==='cr'?'CR1 / CR3 / CR5':'HHI')+' · 销量集中度':brandMetricLabels[metric]+' · '+brandViewLabels[view];
-    const note=(view==='ribbon'?'色带连接同一品牌，非用户流向；':view==='concentration'?'销量集中度；其他品牌合并为一组；':'缺失周留空；')+sample+' · 仅榜单样本，非全市场';
+    const note=(view==='ribbon'?'色带连接同一品牌，非用户流向；':view==='stack'?'相邻有效周之间以半透明色带连接同一品牌，缺失周断开；':view==='concentration'?'销量集中度；其他品牌合并为一组；':'缺失周留空；')+sample+' · 仅榜单样本，非全市场';
     brandPublicationInfo={metricLabel,range,note,detail:sample+'；'+metricLabel+'；'+range};
     const good=view==='concentration'?records.filter(r=>r.cr1!==null):records.filter(validMetric);
     brandPublicationInfo.effectivePeriods=good.map(r=>r.period);
@@ -1230,7 +1230,7 @@
       const keys=con==='cr'?['cr1','cr3','cr5']:['hhi'];
       researchPlot(weeks,keys.map(k=>({name:k.toUpperCase(),values:per.map(r=>r[k])})),con==='cr'?'销量集中度 / %':'HHI',con==='cr'?100:10000);
     }else if(view==='line')researchPlot(weeks,linesFor(per),brandMetricLabels[metric]+' / '+unit,metric==='volume'?undefined:100);
-    else plotBrandComposition({kind:view==='stack'?'brandStack':'brandRibbon',periods:records.map(r=>r.period),lines:linesFor(records),unit,limit:metric==='volume'?null:100});
+    else plotBrandComposition({kind:view==='stack'?'brandStack':'brandRibbon',connectAdjacentBrands:view==='stack',periods:records.map(r=>r.period),lines:linesFor(records),unit,limit:metric==='volume'?null:100});
   }
   for(const id of ['brandView','brandMetric','brandBase','brandCompare','brandCon'])$(id).onchange=renderResearch;
 

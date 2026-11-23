@@ -164,9 +164,17 @@
   $('trackerScope').parentElement.parentElement.after(parameterPanel);
   const Pref=window.StudioPreferences,storedResearch=Pref.read('research'),Product=window.ProductResearch;
   const productPanel=document.createElement('section');productPanel.style.cssText=parameterPanel.style.cssText;
-  productPanel.innerHTML='<h3 style="margin:0 0 8px">产品属性筛选</h3><div id="productFilterGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:8px"></div><button type="button" class="secondary" id="productFilterReset" style="margin-top:8px">清空属性筛选</button><p class="mini" id="productFilterInfo" aria-live="polite"></p>';
+  productPanel.innerHTML='<h3 style="margin:0 0 8px">产品属性筛选</h3>'+
+    '<h4 style="margin:10px 0 8px;font-size:14px">常规属性</h4>'+
+    '<div id="productFilterGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:8px"></div>'+
+    '<div style="border-top:1px solid var(--ui-border,#dbe2ea);margin:16px 0 12px"></div>'+
+    '<h4 style="margin:0 0 8px;font-size:14px">首发价筛选</h4>'+
+    '<div id="productPriceFilterGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px"></div>'+
+    '<button type="button" class="secondary" id="productFilterReset" style="margin-top:12px">清空属性筛选</button><p class="mini" id="productFilterInfo" aria-live="polite"></p>';
   parameterPanel.after(productPanel);
-  const productGrid=$('productFilterGrid'),productControls={};
+  const productGrid=$('productFilterGrid'),priceGrid=$('productPriceFilterGrid'),productControls={};
+  // Keep price controls in a dedicated row. Every slot retains its footprint when inactive.
+  const priceFields=new Set(['price_mode','price_lower','price_upper']);
   const productFields=Product.FIELDS.flatMap(([field,label])=>field==='price_band'?
     [['price_mode','首发价条件'],['price_lower','价格下限（元）'],['price_upper','价格上限（元）']]:[[field,label]]);
   for(const [field,label] of [...productFields,['sale_from','开售日期自'],['sale_to','开售日期至']]){
@@ -179,12 +187,18 @@
         const option=document.createElement('option');option.value=value;option.textContent=title;input.append(option);
       }
     }
-    const lab=document.createElement('label');lab.className='lbl';lab.htmlFor=input.id;lab.textContent=label;wrap.append(lab,input);productGrid.append(wrap);productControls[field]=input;
+    const lab=document.createElement('label');lab.className='lbl';lab.htmlFor=input.id;lab.textContent=label;
+    wrap.append(lab,input);
+    (priceFields.has(field)?priceGrid:productGrid).append(wrap);
+    productControls[field]=input;
   }
   function syncPriceFilterInputs(){
     const mode=productControls.price_mode.value;
-    productControls.price_lower.parentElement.hidden=mode!=='above'&&mode!=='between';
-    productControls.price_upper.parentElement.hidden=mode!=='below'&&mode!=='between';
+    for(const [field,active] of [['price_lower',mode==='above'||mode==='between'],['price_upper',mode==='below'||mode==='between']]){
+      const input=productControls[field];
+      input.parentElement.style.visibility=active?'visible':'hidden';
+      input.disabled=!active;
+    }
   }
   const filterIds=Object.values(productControls).map(n=>n.id);
   const filters=()=>{

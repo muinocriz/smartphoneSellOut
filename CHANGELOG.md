@@ -6,6 +6,32 @@
 
 ## 2026-11-24
 
+### 模块 3 共用扩展销量研究（新数据层）
+
+- [ad52cbe](https://github.com/muinocriz/smartphoneSellOut/commit/ad52cbe) / [ea79e61](https://github.com/muinocriz/smartphoneSellOut/commit/ea79e61) / [93af1ac](https://github.com/muinocriz/smartphoneSellOut/commit/93af1ac)：主数据升级至 V3.3（110 条、20 列，新增 tracking_group），解析器升级 model-master-v2；由当时 data.csv 迁移 2026W34–W46 的 480 条累计销量记录至 sales-long.csv 八列长表，55 个跟踪产品、234 个空白单元格不生成记录，Mate 80系列 W46 的 1000 万台旧里程碑不迁移，待人工补录。保留宽表及原榜单 CSV，二者不随长表自动同步。
+- [46bab4a](https://github.com/muinocriz/smartphoneSellOut/commit/46bab4a) / [62800f0](https://github.com/muinocriz/smartphoneSellOut/commit/62800f0) / [89f7e6f](https://github.com/muinocriz/smartphoneSellOut/commit/89f7e6f)：新增统一累计/周增量计算及融合引擎。直接精确周增量优先、可靠累计差分其次、完整前30名榜单估算补充；覆盖范围去重，合计项不拆分，缺失不补零，特殊运算符作为约束或近似观测而非精确值。先接入机型销量趋势。
+- [f42066a](https://github.com/muinocriz/smartphoneSellOut/commit/f42066a) / [31c8edf](https://github.com/muinocriz/smartphoneSellOut/commit/31c8edf) / [47c6408](https://github.com/muinocriz/smartphoneSellOut/commit/47c6408) / [3463487](https://github.com/muinocriz/smartphoneSellOut/commit/3463487)：融合升级 fusion-v2，缓存按输入数据对象及榜单来源管理，公共口径切换覆盖14专题中的10项（机型销量、代际、产品结构、同档、价格带、品牌定位、芯片、新老产品、多维、品牌结构）。默认原始榜单；原始排名/矩阵、长尾、流动、跨市场品牌竞争及TOP30覆盖率不使用融合结果。固定组要求完整覆盖，重叠提示调整；自动属性组仅按有效去重样本汇总。扩展模式禁用插补、覆盖率淘汰和固定TOP K筛选，统计项计数不等于SKU数。
+- [07475d9](https://github.com/muinocriz/smartphoneSellOut/commit/07475d9)：同步工作台、专题 CSV 与发布快照的扩展口径、来源及公众说明；机型 CSV 保留逐条来源和覆盖成员，聚合专题记录所选区间筛选前来源概况。完整融合核查明细界面尚未实现。模块1、2、4业务逻辑未随本阶段融合改动。
+
+### 模块 4 手机销量数据处理工具 V3.3
+
+- [fd5b2fb](https://github.com/muinocriz/smartphoneSellOut/commit/fd5b2fb)–[b8d83f9](https://github.com/muinocriz/smartphoneSellOut/commit/b8d83f9)：新增公开独立页面 sales-data-editor.html，首页在模块3右侧增加「销量数据处理」标签（#sales-data-editor），iframe 隔离，不改变原模块的业务逻辑。
+- [e2fc7ea](https://github.com/muinocriz/smartphoneSellOut/commit/e2fc7ea) / [b85df84](https://github.com/muinocriz/smartphoneSellOut/commit/b85df84)：默认读取项目 data.csv 和 model-master.csv，本地草稿优先恢复，保留手动导入/重新读取。累计及周增量分开编辑，旧宽表可选清除隐式整50里程碑，支持特殊运算符、自动推导预览、检查、主数据补录合并、Excel 粘贴、撤销/重做、本地草稿和长表/主数据导出。无服务器写入权限，正式更新须维护者提交 Git。
+- 按维护者要求根路径 model-master.csv 公开；sales-long.csv、sales-estimates.csv、融合引擎和模块3研究仍仅按 /studio/ 白名单发布。详见部署指南。
+
+### 模块 1 临时数据编辑与完整导出
+
+- [ce874e2](https://github.com/muinocriz/smartphoneSellOut/commit/ce874e2)：累计模式双击或 Enter 编辑原始累计单元格；支持临时新增最多52周、撤销单元格修改及重置全部临时数据。同一标签页 sessionStorage 恢复；正式源观测变化时不恢复旧覆盖值。不改写仓库数据。
+- [2841d9a](https://github.com/muinocriz/smartphoneSellOut/commit/2841d9a)：临时数据默认追加「含本标签页临时数据，仅供参考」，允许编辑，正式附注与临时附注分开保存。
+- [1558e45](https://github.com/muinocriz/smartphoneSellOut/commit/1558e45)：导出完整原始宽表 data.csv，合并显式临时修改与新增周列，保留全部产品、原列顺序及未修改值，不导出插补或拟合结果。
+
+### 数据维护
+
+- [7711030](https://github.com/muinocriz/smartphoneSellOut/commit/7711030)：维护者更正小米自研芯片供应商名称为玄戒，后续 V3.3 主数据保留该归类。
+- [b21baa7](https://github.com/muinocriz/smartphoneSellOut/commit/b21baa7)：data.csv 补录 2026W46 累计销量：Pura 90系列 188.47、小米17 Ultra 27.04、小米18系列 48.46、荣耀Magic 9系列 61.72（万台）。
+- 本组更新未运行测试、构建或线上验收。记录按 UTC 提交日期；新架构维护章节使用新加坡本地日期 2026-11-25。
+
+
 - 统一模块3普通主次操作按钮、顶部模块页签及研究专题导航的字体与基础尺寸；工作台返回/切回来源、直接PNG/生成图卡等并列按钮保持同高同字号，模块页签选中仅变色。未执行测试或构建。
 
 - 模块3研究专题导航使用独立按钮样式，选中只切换背景、文字和边框颜色，统一字号、字重、行高与尺寸，消除切换专题时布局跳动；其他操作按钮不变。未执行测试或构建。

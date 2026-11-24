@@ -38,7 +38,7 @@ python3 -m http.server 8000
 - **模块 2**：编辑 `market-share.csv`，每个 ISO 周追加一行份额与大盘趋势；OPPO 集团已包含一加与 realme，vivo 集团已包含 iQOO，不重复相加。页面自动读取，也支持本地导入、历史周选择与手动修改。
 - **模块 3**：在左侧导入榜单截图，补全机型名称、统计周期及同口径标定销量；点击“合并本期并导出完整历史 CSV”，提交下载的 `sales-estimates.csv`。不同榜单规模无需补零；刷新前备份未提交数据。历史榜单可直接选择出图，无需再次标定。仅存档正式估算结果，不保存原图或完整标定工作区。 `model-master.csv` 已接入研究身份关联与自动分组（同时供公开模块4读取）；机型别名复用永久 ID，未匹配保留独立标识，已新增价格带、品牌定位、芯片平台、新老产品结构及多维竞争研究。专题发布包包含 PNG、文案、标题与轮播、完整统计 CSV、图表显示数据 CSV、统计口径及 JSON 发布清单。
 
-- **模块 4**：首次打开自动读取 `data.csv` 和 `model-master.csv`（已有本地草稿优先恢复）；可手动导入 `sales-long.csv` 继续编辑已维护的长表。分别导出 `sales-long.csv`、`model-master.csv` 后由维护者提交。模块1宽表仍独立维护；每周先导入现存长表，点击「从项目宽表增量同步」，预览并确认新增与精确数值冲突，再导出提交长表；不自动双向同步。
+- **模块 4**：首次打开自动读取 `sales-long.csv` 和 `model-master.csv`（已有本地草稿优先恢复）；可直接重新读取项目长表或手动导入本地 CSV。分别导出 `sales-long.csv`、`model-master.csv` 后由维护者提交。模块1宽表仍独立维护；每周以现存项目长表为底稿，点击「从 data.csv 增量同步」，预览并确认新增与精确数值冲突，再导出提交长表；不自动双向同步。
 
 模块3默认原始榜单，14个专题中10个支持统一扩展销量模式：精确周增量优先、可靠累计差分其次、完整原始TOP30估算补充，按覆盖范围去重，不插补、不拆分合计项。原始排名、长尾、流动及跨市场研究仍使用原始口径。
 
@@ -62,7 +62,7 @@ CSV 字段、完整销售周口径、设计约定、部署和维护方法见 [�
 
 ## Cloudflare 分模块部署
 
-生产站点已迁移至 Cloudflare Workers；GitHub 源仓库为 Private，原 GitHub Pages 已由维护者关闭。模块 1／2／4 公开（含 `data.csv`、`market-share.csv` 和 `model-master.csv`），模块 3 须使用获准邮箱通过 Cloudflare Access 一次性验证码认证；其页面、历史 CSV、销量长表、融合引擎和衍生数据位于 `/studio/`，由 Worker 服务端校验 Access JWT。模块 2 的公开资源在根目录提供，构建保留 `/studio/market-share.csv` 等兼容副本供跨模块研究使用。部署仅发布白名单资产，私有仓库的 `master` 分支继续作为部署来源。本地开发入口不应用访问控制。验收范围和维护事项详见[部署指南](docs/CLOUDFLARE_DEPLOYMENT.md)。
+生产站点已迁移至 Cloudflare Workers；GitHub 源仓库为 Private，原 GitHub Pages 已由维护者关闭。模块 1／2／4 公开（含 `data.csv`、`market-share.csv`、`model-master.csv` 和 `sales-long.csv`），模块 3 须使用获准邮箱通过 Cloudflare Access 一次性验证码认证；其页面、原始榜单历史 CSV、融合引擎和衍生数据位于 `/studio/`；销量长表及主数据同时保留授权路径副本，由 Worker 服务端校验 Access JWT。模块 2 的公开资源在根目录提供，构建保留 `/studio/market-share.csv` 等兼容副本供跨模块研究使用。部署仅发布白名单资产，私有仓库的 `master` 分支继续作为部署来源。本地开发入口不应用访问控制。验收范围和维护事项详见[部署指南](docs/CLOUDFLARE_DEPLOYMENT.md)。
 
 ## 更多文档
 

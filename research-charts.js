@@ -447,6 +447,86 @@ function drawGenerationDualAxis(ctx,chart,box,p,preview=false){
  });
 }
 
+// Cross-module composition views share the poster palette, system UI axis font,
+// and the existing line/band geometry. All six growth panels use one signed scale.
+function crossAxisText(ctx,value,x,y,size,color,align='left',maxWidth=Infinity,weight='400'){
+ const font=getComputedStyle(document.body).getPropertyValue('--ui-font-body').trim()||'system-ui,sans-serif';
+ const str=String(value??'');ctx.save();ctx.font=weight+' '+size+'px '+font;
+ const measured=ctx.measureText(str).width;
+ if(measured>maxWidth&&maxWidth>0)ctx.font=weight+' '+Math.max(1,size*maxWidth/measured)+'px '+font;
+ ctx.fillStyle=color;ctx.textAlign=align;ctx.textBaseline='alphabetic';if(maxWidth>0)ctx.fillText(str,x,y);ctx.restore();
+}
+function crossRule(ctx,x0,y0,x1,y1,color,width=1){
+ ctx.save();ctx.strokeStyle=color;ctx.lineWidth=width;ctx.beginPath();ctx.moveTo(x0,y0);ctx.lineTo(x1,y1);ctx.stroke();ctx.restore();
+}
+function crossPeriodTicks(ctx,periods,x,y,plotWidth,font,p){
+ const n=periods.length,maxTicks=Math.max(2,Math.floor(plotWidth/(font*6))),stride=Math.max(1,Math.ceil((n-1)/(maxTicks-1)));
+ periods.forEach((period,i)=>{
+  if(i===0||i===n-1||(i%stride===0&&n-1-i>=stride*.65))
+   crossAxisText(ctx,period,x(i),y,font,p.sub,'center',Math.min(font*6,plotWidth/Math.max(1,n)*stride*.93));
+ });
+}
+function drawCoverageLayers(ctx,chart,box,p,preview=false){
+ const {left,right,top,bottom,width,height}=box,n=chart.periods.length;
+ if(!n)return;
+ const f=Math.max(.65,Math.min(1.25,width/850,height/750)),font=(preview?13:18)*f,head=(preview?17:23)*f;
+ const x0=left+Math.max(44,62*f),x1=right-22*f,plotW=x1-x0,slot=plotW/n,x=i=>x0+(i+.5)*slot;
+ const panelH=(height-18*f)/2,secondTop=top+panelH+18*f;
+ const labels=chart.lines.filter(l=>l.panel==='scale'),layers=chart.lines.filter(l=>l.panel==='layers');
+ const upper={...chart,lines:labels},topY=top+head+28*f,bottomY=top+panelH-33*f;
+ const lowerY=secondTop+head+28*f,lowerBottom=bottom-33*f;
+ if(!auditPlot(ctx,plotW,Math.min(bottomY-topY,lowerBottom-lowerY),'市场规模与销量分层绘图区',250,110))return;
+ crossAxisText(ctx,'市场规模（万台）',left,top+head,head,p.ink,'left',width,'600');
+ const bandItems=(chart.bands||[]).length?['区间范围']:[];
+ const legend=[...labels.map(l=>({name:l.name,color:l.color})),...bandItems.map(name=>({name,color:'#a78bfa',band:true}))];
+ legend.forEach((l,i)=>{const lx=left+i*width/legend.length,ly=top+head+15*f;ctx.save();ctx.fillStyle=l.color;ctx.globalAlpha=l.band?.25:1;ctx.fillRect(lx,ly-7*f,13*f,5*f);ctx.restore();crossAxisText(ctx,l.name,lx+18*f,ly,font,p.sub,'left',width/legend.length-21*f);});
+ const scale=ResearchCharts.lineScale(upper,{left:x0,right:x1,top:topY,bottom:bottomY});
+ const y=scale.y;
+ for(let i=0;i<=4;i++){const v=scale.top*i/4,yy=y(v);crossRule(ctx,x0,yy,x1,yy,p.hair);crossAxisText(ctx,Number(v.toFixed(2)),x0-8*f,yy+4*f,font,p.sub,'right',x0-left-9*f);}
+ ResearchCharts.canvasLine(ctx,upper,{...scale,x});
+ crossPeriodTicks(ctx,chart.periods,x,bottomY+font+7*f,plotW,font,p);
+ crossAxisText(ctx,'市场销量分层（%）',left,secondTop+head,head,p.ink,'left',width,'600');
+ layers.forEach((l,i)=>{const lx=left+i*width/layers.length,ly=secondTop+head+15*f;ctx.save();ctx.fillStyle=l.color;ctx.globalAlpha=i===3?.65:1;ctx.fillRect(lx,ly-8*f,13*f,8*f);ctx.restore();crossAxisText(ctx,l.name,lx+18*f,ly,font,p.sub,'left',width/layers.length-21*f);});
+ const yp=v=>lowerBottom-v/100*(lowerBottom-lowerY);
+ for(const v of [0,25,50,75,100]){const yy=yp(v);crossRule(ctx,x0,yy,x1,yy,p.hair);crossAxisText(ctx,v+'%',x0-8*f,yy+4*f,font,p.sub,'right',x0-left-9*f);}
+ const bw=Math.min(slot*.63,76*f);
+ let count=0;
+ chart.periods.forEach((_,i)=>{
+  if(!layers.length||!layers.every(l=>Number.isFinite(l.values[i])))return;
+  count++;let accumulated=0;
+  layers.forEach((l,j)=>{const v=l.values[i];ctx.save();ctx.fillStyle=l.color;ctx.globalAlpha=j===3?.65:1;ctx.fillRect(x(i)-bw/2,yp(accumulated+v),bw,yp(accumulated)-yp(accumulated+v));ctx.restore();accumulated+=v;});
+ });
+ if(!count)crossAxisText(ctx,'无可行市场区间，分层暂不绘制',x0+plotW/2,(lowerY+lowerBottom)/2,font,p.sub,'center',plotW-8*f);
+ crossPeriodTicks(ctx,chart.periods,x,lowerBottom+font+7*f,plotW,font,p);
+}
+function drawBrandGrowth(ctx,chart,box,p,preview=false){
+ const {left,right,top,bottom,width,height}=box,n=chart.periods.length;
+ if(!n)return;
+ const groups=window.BrandUtils.groups.filter(g=>g.id!=='other');
+ const f=Math.max(.6,Math.min(1.2,width/850,height/760)),font=(preview?12:17)*f,head=(preview?17:23)*f;
+ const gap=18*f,legendH=35*f,cellW=(width-gap)/2,cellH=(height-legendH-gap*2)/3;
+ if(!auditPlot(ctx,cellW-45*f,cellH-head-35*f,'六品牌增长贡献子图',120,68))return;
+ const peak=chart.lines.reduce((m,l)=>l.values.reduce((a,v)=>Number.isFinite(v)?Math.max(a,Math.abs(v)):a,m),0),target=peak>0?peak*1.08:1;
+ const mag=Math.pow(10,Math.floor(Math.log10(target))),cap=([1,2,2.5,5,10].find(v=>v>=target/mag)||10)*mag;
+ const entries=[['榜内环比','#64748b','bar'],['榜外环比','#64748b','light'],['品牌总销量环比',p.ink,'line']];
+ entries.forEach(([label,color,role],i)=>{const lx=left+i*width/3,ly=top+font;ctx.save();ctx.fillStyle=color;ctx.globalAlpha=role==='light'?.34:1;if(role==='line')crossRule(ctx,lx,ly-4*f,lx+18*f,ly-4*f,color,2*f);else ctx.fillRect(lx,ly-9*f,16*f,10*f);ctx.restore();crossAxisText(ctx,label,lx+22*f,ly,font,p.sub,'left',width/3-24*f);});
+ groups.forEach((g,j)=>{
+  const lines=chart.lines.filter(l=>l.brandKey===g.key),listed=lines.find(l=>l.role==='listed'),tail=lines.find(l=>l.role==='tail'),total=lines.find(l=>l.role==='total');
+  const xx=left+(j%2)*(cellW+gap),yy=top+legendH+Math.floor(j/2)*(cellH+gap);
+  crossAxisText(ctx,g.label,xx,yy+head,head,p.ink,'left',cellW*.6,'600');
+  crossAxisText(ctx,'万台',xx+cellW,yy+head,font,p.sub,'right',cellW*.3);
+  const x0=xx+Math.max(29,40*f),x1=xx+cellW-6*f,y0=yy+head+10*f,y1=yy+cellH-font-10*f,slot=(x1-x0)/n,bw=Math.min(slot*.28,18*f),x=i=>x0+(i+.5)*slot,y=v=>y1-(v+cap)/(2*cap)*(y1-y0);
+  for(const v of [-cap,-cap/2,0,cap/2,cap]){const ypos=y(v);crossRule(ctx,x0,ypos,x1,ypos,v===0?p.sub:p.hair,v===0?1.3:1);crossAxisText(ctx,Number(v.toPrecision(8)),x0-5*f,ypos+4*f,font,p.sub,'right',x0-xx-6*f);}
+  if(!listed||!tail||!total)return;
+  for(let i=0;i<n;i++)for(const [l,offset,alpha] of [[listed,-bw*.55,1],[tail,bw*.55,.34]]){
+   const v=l.values[i];if(!Number.isFinite(v)||v===0)continue;ctx.save();ctx.fillStyle=g.color;ctx.globalAlpha=alpha;ctx.fillRect(x(i)+offset-bw/2,Math.min(y(v),y(0)),bw,Math.abs(y(v)-y(0)));ctx.restore();
+  }
+  ResearchCharts.canvasLine(ctx,{periods:chart.periods,lines:[{...total,color:p.ink,marker:'○'}]},{x,y});
+  if(!lines.some(l=>l.values.some(Number.isFinite)))crossAxisText(ctx,'无相邻有效周',(x0+x1)/2,(y0+y1)/2,font,p.sub,'center',x1-x0-4*f);
+  crossPeriodTicks(ctx,chart.periods,x,y1+font+5*f,x1-x0,font,p);
+ });
+}
+
 const ResearchCharts=(()=>{
  const COLORS=['#2563eb','#ea580c','#059669','#9333ea','#db2777','#0891b2','#92400e','#64748b','#be123c','#4d7c0f','#0369a1','#7c3aed'];
  const MARKERS=['○','▲','■','◆','▽','⬟','●','△','□','◇','▼','⬠','⬢','⬡','◀','▷','▶','◁'];
@@ -550,13 +630,13 @@ const ResearchCharts=(()=>{
   });
  }
  function renderComposition(host,chart,label){
-  const W=chart.kind==='generationDualAxis'?Math.max(780,chart.periods.length*56+120):chart.kind==='dualBrandFlowMulti'?Math.max(1150,chart.periods.length*125+140):chart.kind==='dualBrandFlow'?1080:chart.kind==='heatmap'?Math.max(850,chart.lines.length*94+210):chart.kind==='brandStack'?Math.max(780,chart.periods.length*78+120):850,H=chart.kind==='dualBrandFlowMulti'?1080:chart.kind==='dualBrandFlow'?1070:chart.kind==='heatmap'?Math.max(510,chart.periods.length*42+135):chart.kind==='scatter'?560:510;
+  const W=['coverageLayers','brandGrowth'].includes(chart.kind)?Math.max(chart.kind==='brandGrowth'?1080:900,chart.periods.length*(chart.kind==='brandGrowth'?52:48)+130):chart.kind==='generationDualAxis'?Math.max(780,chart.periods.length*56+120):chart.kind==='dualBrandFlowMulti'?Math.max(1150,chart.periods.length*125+140):chart.kind==='dualBrandFlow'?1080:chart.kind==='heatmap'?Math.max(850,chart.lines.length*94+210):chart.kind==='brandStack'?Math.max(780,chart.periods.length*78+120):850,H=chart.kind==='brandGrowth'?1120:chart.kind==='coverageLayers'?920:chart.kind==='dualBrandFlowMulti'?1080:chart.kind==='dualBrandFlow'?1070:chart.kind==='heatmap'?Math.max(510,chart.periods.length*42+135):chart.kind==='scatter'?560:510;
   const canvas=document.createElement('canvas'),density=Math.min(2,window.devicePixelRatio||1);
   canvas.width=Math.round(W*density);canvas.height=Math.round(H*density);canvas.style.cssText='display:block;width:100%;min-width:620px;background:#fff;border-radius:10px';
   canvas.setAttribute('role','img');canvas.setAttribute('aria-label',label+'；完整数值见数据表');
   const ctx=canvas.getContext('2d');ctx.setTransform(density,0,0,density,0,0);ctx.fillStyle='#fff';ctx.fillRect(0,0,W,H);
   const box={left:16,right:W-16,top:16,bottom:H-16,width:W-32,height:H-32},p={ink:'#17263c',sub:'#64748b',hair:'#e4e9f0',accent:'#c93630',bar:'#265a87'};
-  if(chart.kind==='generationDualAxis')drawGenerationDualAxis(ctx,chart,box,p,true);else if(chart.kind==='dualBrandFlowMulti')drawDualBrandFlowMulti(ctx,chart,box,p,'上图为TOP30样本，下图为全市场份额 · 色带只表示同品牌变化');else if(chart.kind==='dualBrandFlow')drawDualBrandFlow(ctx,chart,box,p,'上下图统计范围不同 · 色带只表示同品牌变化');else if(chart.kind==='heatmap')drawResearchHeatmap(ctx,chart,box,p);else if(chart.kind==='scatter'||chart.kind==='bars')drawHeadStaticPoster(ctx,p,{chart,chartNote:''},box);else drawBrandComposition(ctx,chart,box,p,'');
+  if(chart.kind==='coverageLayers')drawCoverageLayers(ctx,chart,box,p,true);else if(chart.kind==='brandGrowth')drawBrandGrowth(ctx,chart,box,p,true);else if(chart.kind==='generationDualAxis')drawGenerationDualAxis(ctx,chart,box,p,true);else if(chart.kind==='dualBrandFlowMulti')drawDualBrandFlowMulti(ctx,chart,box,p,'上图为TOP30样本，下图为全市场份额 · 色带只表示同品牌变化');else if(chart.kind==='dualBrandFlow')drawDualBrandFlow(ctx,chart,box,p,'上下图统计范围不同 · 色带只表示同品牌变化');else if(chart.kind==='heatmap')drawResearchHeatmap(ctx,chart,box,p);else if(chart.kind==='scatter'||chart.kind==='bars')drawHeadStaticPoster(ctx,p,{chart,chartNote:''},box);else drawBrandComposition(ctx,chart,box,p,'');
   host.append(canvas);
   // Canvas is not automatically repainted when web fonts finish loading.
   if(chart.kind==='generationDualAxis'&&document.fonts){

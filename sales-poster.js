@@ -55,7 +55,7 @@ function auditPosterGeometry(ctx,L,type,research){
  if(L.footerLines.length>5)auditIssue(ctx,'免责附注超过5行，建议精简');
  if(L.footerLines.length&&L.footSize<16)auditIssue(ctx,'附注字号偏小');
  if(type==='top'&&(L.bodyHeight-28)/10<55)auditIssue(ctx,'TOP10 行高偏小');
- if(research?.chart?.lines?.length>12&&!['brandStack','brandRibbon','bars','scatter','heatmap'].includes(research.chart.kind))auditIssue(ctx,'曲线较多，建议减少机型或分组');
+ if(research?.chart?.lines?.length>12&&!['brandStack','brandRibbon','bars','scatter','heatmap','brandGrowth'].includes(research.chart.kind))auditIssue(ctx,'曲线较多，建议减少机型或分组');
  if(research?.chart?.kind==='heatmap'&&(research.chart.periods.length>8||research.chart.lines.length>8))auditIssue(ctx,'热力矩阵类别较多，建议降低每轴类别上限或使用9:16');
  return true;
 }
@@ -351,6 +351,8 @@ function drawResearchPosterContent(ctx,L,p,s){
  if(notes.length>6)auditIssue(ctx,'图表内附注超过6行，建议精简');
  if(!auditPlot(ctx,width,chartBox.height,'研究图表内容区',360,230))return;
  if(['trackerBoth','trackerRank','trackerMatrix'].includes(s.chart?.kind)){drawTrackerTrendPoster(ctx,p,{...s,chartNote:''},chartBox);drawNotes();return;}
+ if(s.chart?.kind==='coverageLayers'){drawCoverageLayers(ctx,s.chart,chartBox,p);drawNotes();return;}
+ if(s.chart?.kind==='brandGrowth'){drawBrandGrowth(ctx,s.chart,chartBox,p);drawNotes();return;}
  if(s.chart?.kind==='generationDualAxis'){drawGenerationDualAxis(ctx,s.chart,chartBox,p);drawNotes();return;}
  if(s.chart?.kind==='heatmap'){drawResearchHeatmap(ctx,s.chart,chartBox,p,'');drawNotes();return;}
  if(s.chart?.kind==='dualBrandFlowMulti'){drawDualBrandFlowMulti(ctx,s.chart,chartBox,p,'');drawNotes();return;}

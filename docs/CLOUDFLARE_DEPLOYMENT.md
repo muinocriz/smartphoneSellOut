@@ -36,7 +36,7 @@
 
 ## 3. 完整验收清单（维护者自行完成）
 
-- 无痕窗口访问根网址：模块 1／2／4 均无需登录，/data.csv、/market-share.html、/market-share.csv、/sales-data-editor.html、/model-master.csv 和公开依赖正常返回；确认模块 2 自动读取 CSV、图表和导出功能正常。模块 3 显示授权入口；直接匿名访问 /studio/sales-estimator.html、/studio/sales-estimates.csv、/studio/model-master.csv、/studio/weekly-sales-panel.csv、/studio/weekly-sales-panel.meta.json 、/studio/sales-long.csv、/studio/sales-tracking.js、/studio/sales-fusion.js 及其他私有 JS 不得返回私有内容；根路径 /sales-estimator.html、/sales-estimates.csv、/sales-long.csv、/sales-tracking.js、/sales-fusion.js 和衍生数据也不得返回；根路径 /model-master.csv 是模块 4 有意公开的资源。/studio/market-share.csv 仍要求认证，而根路径 /market-share.csv 有意公开。
+- 无痕窗口访问根网址：模块 1／2／4 均无需登录，/data.csv、/market-share.html、/market-share.csv、/sales-data-editor.html、/model-master.csv、/sales-long.csv 和公开依赖正常返回；确认模块 2 自动读取 CSV、图表和导出功能正常。模块 3 显示授权入口；直接匿名访问 /studio/sales-estimator.html、/studio/sales-estimates.csv、/studio/model-master.csv、/studio/weekly-sales-panel.csv、/studio/weekly-sales-panel.meta.json 、/studio/sales-long.csv、/studio/sales-tracking.js、/studio/sales-fusion.js 及其他私有 JS 不得返回私有内容；根路径 /sales-estimator.html、/sales-estimates.csv、/sales-tracking.js、/sales-fusion.js 和衍生数据也不得返回；根路径 /model-master.csv 和 /sales-long.csv 是模块 4 有意公开的资源。/studio/market-share.csv 仍要求认证，而根路径 /market-share.csv 有意公开。
 - 通过授权邮箱顶层登录：返回模块 3，允许加载 iframe 及完整历史数据；确认跨模块市场份额研究可以读取 /studio/market-share.csv。会话有效期内从公开模块切回模块 3 不重复登录；未授权邮箱不得通过。检查会话过期后再次进入模块 3 是否需要登录，且模块 1／2 不受影响。
 - 配置和实际部署未验收前不能声称数据已私有。新增文件时审查构建白名单及 Worker 路由，不能将私有资产加入公开路径。
 
@@ -46,6 +46,6 @@
 
 ### 模块 3 扩展销量接入
 
-`/studio/sales-long.csv`、`/studio/sales-tracking.js`、`/studio/sales-fusion.js` 仅部署在授权路径，不发布根路径副本。`model-master.csv` 已升级至 20 列（含 `tracking_group`），仍按模块 4 的要求公开根路径副本；`data.csv` 和 `sales-estimates.csv` 不变。机型销量趋势默认原始榜单，切换扩展销量后使用精确周增量、累计差分及 TOP30 估算补充，保留原始排名；不启用插补，不代表全市场。其余适用销量专题也已共用融合引擎；原始排名／矩阵、长尾韧性、榜单流动、TOP30覆盖率及榜内与全市场研究保持原始口径。维护者重新部署后需验收上述访问权限、两种模式切换及导出来源说明；本次未执行构建或测试。
+`/studio/sales-tracking.js`、`/studio/sales-fusion.js` 仅部署在授权路径，不发布根路径副本。用户已允许 `sales-long.csv` 公开，构建将同一源文件复制到公开 `/sales-long.csv` 与授权 `/studio/sales-long.csv`。`model-master.csv` 已升级至 20 列（含 `tracking_group`），仍按模块 4 的要求公开根路径副本；`data.csv` 和 `sales-estimates.csv` 不变。机型销量趋势默认原始榜单，切换扩展销量后使用精确周增量、累计差分及 TOP30 估算补充，保留原始排名；不启用插补，不代表全市场。其余适用销量专题也已共用融合引擎；原始排名／矩阵、长尾韧性、榜单流动、TOP30覆盖率及榜内与全市场研究保持原始口径。维护者重新部署后需验收上述访问权限、两种模式切换及导出来源说明；本次未执行构建或测试。
 
-- 模块4默认加载宽表而非受保护长表；维护者需通过授权渠道取得现存 sales-long.csv 并手动导入继续维护。生产部署后确认模块4本地编辑不影响模块1或仓库，模块3的原始模式、扩展模式、固定原始口径专题及发布导出均正常。以上为维护者待执行验收项，本次文档更新未改变访问控制代码。
+- 模块4默认加载公开正式长表及主数据；无需手动下载长表，已有草稿优先恢复，宽表通过「从 data.csv 增量同步」按需读取。生产部署后确认模块4本地编辑不影响模块1或仓库，模块3的原始模式、扩展模式、固定原始口径专题及发布导出均正常。以上为维护者待执行验收项，本次仅扩充公开资源白名单，不修改 Worker 授权逻辑；待维护者验收。

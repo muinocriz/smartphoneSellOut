@@ -16,9 +16,9 @@
 <body><main>
 <header><div><h1>手机销量数据处理工具 V3.3</h1><p class="muted">公开工具 · 自动读取项目 CSV · 编辑及草稿仅保存在本地</p></div><div class="muted">单位：万台 / ISO 自然周</div></header>
 <section class="panel" aria-label="导入与导出">
-<div class="toolbar"><button class="primary" id="projectSales">读取项目 sales-long.csv</button><button id="syncProject">从 data.csv 增量同步</button><label class="file-btn" for="file">导入本地 CSV</label><input id="file" class="sr-only" type="file" accept=".csv,text/csv"><button id="newData">新建空表</button><button id="undoBtn" disabled>撤销</button><button id="redoBtn" disabled>重做</button><span class="spacer"></span><button id="longExport" disabled>导出长表 CSV</button></div>
+<div class="toolbar"><button class="primary" id="projectSales">读取项目 sales-long.csv</button><button id="syncProject">从项目宽表同步</button><button id="syncLocal">从本地宽表同步</button><input id="syncFile" class="sr-only" type="file" accept=".csv,text/csv"><label class="file-btn" for="file">导入本地 CSV</label><input id="file" class="sr-only" type="file" accept=".csv,text/csv"><button id="newData">新建空表</button><button id="undoBtn" disabled>撤销</button><button id="redoBtn" disabled>重做</button><span class="spacer"></span><button id="longExport" disabled>导出长表 CSV</button></div>
 <div class="import-options"><label class="check muted">无年份周列使用年份 <input id="defaultYear" type="number" min="1900" max="9999" step="1" value="2026"></label></div>
-<p class="muted" style="margin-top:7px">默认读取项目 sales-long.csv（已有本地草稿优先恢复）。点击「从 data.csv 增量同步」预览并确认宽表新增和冲突记录；保留已有独立周增量和特殊记录。支持手动导入本地宽表或长表 CSV。</p>
+<p class="muted" style="margin-top:7px">默认读取项目 sales-long.csv（已有本地草稿优先恢复）。可从项目 data.csv 或模块1导出的本地宽表增量同步，预览并确认新增和冲突记录；保留已有独立周增量和特殊记录。「导入本地 CSV」则替换当前销量工作区。</p>
 <div class="toolbar" style="margin-top:10px"><label class="check"><input type="checkbox" id="autoDraft" checked>本地自动保存草稿</label><button id="clearDraft" class="subtle">清除本地草稿</button><span id="draftStatus" class="muted"></span></div><div id="status" class="status" role="status" aria-live="polite">正在准备读取项目 sales-long.csv…</div>
 </section>
 <div class="summary" aria-label="记录统计"><div class="metric"><span>跟踪产品</span><b id="countModels">0</b></div><div class="metric"><span>自然周</span><b id="countWeeks">0</b></div><div class="metric"><span>精确记录</span><b id="countExact">0</b><small id="countByMetric"></small></div><div class="metric"><span>特殊记录</span><b id="countSpecial">0</b></div></div>
@@ -36,7 +36,7 @@
 <dialog id="modelDialog"><form id="modelForm"><div class="dialog-head"><h2>新增机型</h2><button type="button" data-close="modelDialog" aria-label="关闭">×</button></div><div class="field"><label for="newBrand">品牌</label><input id="newBrand" required></div><div class="field"><label for="newModel">机型</label><input id="newModel" required></div><div class="field"><label for="newCategory">类别（可选）</label><input id="newCategory"></div><div class="field"><label for="newDate">正式开售日期（可选）</label><input id="newDate" placeholder="例如 2026/11/24" title="优先填写正式开售日；无法查证时暂用正式发布日期"></div><p id="modelError" class="error-text"></p><div class="dialog-actions"><button type="button" data-close="modelDialog">取消</button><button class="primary" type="submit">添加机型</button></div></form></dialog>
 
 <dialog id="masterDialog"><form id="masterForm"><div class="dialog-head"><h2>编辑机型主数据</h2><button type="button" data-close="masterDialog">×</button></div><p class="muted" style="margin-bottom:10px">新机型 ID 根据品牌与标准名称自动生成，保存后保持不变。系列合计不是一个单机型，请为实际成员建立主数据。</p><div class="master-fields" id="masterFields"></div><p class="error-text" id="masterError"></p><div class="dialog-actions"><button type="button" data-close="masterDialog">取消</button><button class="primary" type="submit">保存主数据</button></div></form></dialog>
-<dialog id="syncDialog" style="width:min(1050px,calc(100% - 24px));max-height:88vh;overflow:auto"><div class="dialog-head"><h2>项目宽表增量同步</h2><button type="button" data-close="syncDialog" aria-label="关闭">×</button></div><p id="syncSummary" role="status"></p><p class="muted" style="margin:8px 0">默认追加缺失的精确累计记录；精确数值冲突可逐条勾选使用宽表值。特殊记录及元数据差异仅列出供人工处理。已有周增量及宽表空白对应的长表记录全部保留。确认前不修改长表。</p><div class="check-wrap"><table><thead><tr><th>处理方式</th><th>品牌 / 机型</th><th>周次</th><th>当前长表</th><th>项目宽表</th><th>说明 / 确认</th></tr></thead><tbody id="syncRows"></tbody></table></div><div class="dialog-actions"><button type="button" data-close="syncDialog">取消</button><button id="syncApply" class="primary" type="button">应用同步</button></div></dialog>
+<dialog id="syncDialog" style="width:min(1050px,calc(100% - 24px));max-height:88vh;overflow:auto"><div class="dialog-head"><h2>宽表增量同步</h2><button type="button" data-close="syncDialog" aria-label="关闭">×</button></div><p id="syncSource" class="muted"></p><p id="syncSummary" role="status"></p><p class="muted" style="margin:8px 0">默认追加缺失的精确累计记录；精确数值冲突可逐条勾选使用宽表值。特殊记录及元数据差异仅列出供人工处理。已有周增量及宽表空白对应的长表记录全部保留。确认前不修改长表。</p><div class="check-wrap"><table><thead><tr><th>处理方式</th><th>品牌 / 机型</th><th>周次</th><th>当前长表</th><th>来源宽表</th><th>说明 / 确认</th></tr></thead><tbody id="syncRows"></tbody></table></div><div class="dialog-actions"><button type="button" data-close="syncDialog">取消</button><button id="syncApply" class="primary" type="button">应用同步</button></div></dialog>
 <script>
 'use strict';
 const $=id=>document.getElementById(id), META=['brand','model','category','date'], LONG=[...META,'period','metric','value_wan','operator'];
@@ -253,7 +253,7 @@ function buildSyncPlan(wide){
  return plan;
 }
 function renderSyncPlan(plan){
- const rows=$('syncRows');rows.replaceChildren();
+ $('syncSource').textContent='来源：'+plan.sourceName;const rows=$('syncRows');rows.replaceChildren();
  const counts=()=>{const selected=plan.items.filter(x=>x.kind==='conflict'&&x.chosen).length;$('syncSummary').textContent='新增 '+plan.add+' 条 · 相同 '+plan.same+' 条 · 数值冲突 '+plan.conflict+' 条（已选择 '+selected+' 条） · 待人工核查 '+plan.blocked+' 项';$('syncApply').disabled=plan.add+selected===0;$('syncApply').textContent='应用同步（'+(plan.add+selected)+' 条）';};
  const labels={add:'追加',conflict:'数值冲突',blocked:'人工核查'};
  for(const item of plan.items){
@@ -263,23 +263,31 @@ function renderSyncPlan(plan){
  if(!plan.items.length){const tr=node('tr'),td=node('td','无需同步：已有记录一致，宽表空白不触发删除。');td.colSpan=6;tr.append(td);rows.append(tr);}
  counts();$('syncDialog').showModal();
 }
-$('syncProject').onclick=async()=>{
- const button=$('syncProject');if(button.disabled)return;
+function requireLongBaseline(){
+ flush();
+ if(!state.ready||!state.isLong)throw Error('请先点击「读取项目 sales-long.csv」载入长表底稿，或导入本地长表，再增量同步。当前宽表工作区不能代替已有长表。');
+}
+async function previewWideSync(read,sourceName){
+ if($('syncProject').disabled||$('syncLocal').disabled||$('syncDialog').open)return;
  try{
-  flush();if(!state.ready||!state.isLong)throw Error('请先点击「读取项目 sales-long.csv」载入长表底稿，或导入本地长表，再增量同步。当前宽表工作区不能代替已有长表。');
-  button.disabled=true;const base=salesSnapshot();
-  const txt=await readProject('data.csv');
+  requireLongBaseline();
+  $('syncProject').disabled=$('syncLocal').disabled=true;
+  const base=salesSnapshot(),txt=await read();
+  flush();
   if(base!==salesSnapshot())throw Error('读取期间销量数据已变化，请重新同步。');
   const oldSerial=serial;let wide;try{wide=parseFile(txt);}finally{serial=oldSerial;}
-  if(wide.isLong)throw Error('项目 data.csv 不是旧宽表。');
-  pendingSync=buildSyncPlan(wide);renderSyncPlan(pendingSync);
+  if(wide.isLong)throw Error('所选来源是长表，请使用宽表 data.csv 进行增量同步；如需替换底稿，请使用「导入本地 CSV」。');
+  pendingSync=buildSyncPlan(wide);pendingSync.sourceName=sourceName;renderSyncPlan(pendingSync);
  }catch(err){pendingSync=null;status('增量同步失败：'+err.message,true);}
- finally{button.disabled=false;}
-};
+ finally{$('syncProject').disabled=$('syncLocal').disabled=false;}
+}
+$('syncProject').onclick=()=>previewWideSync(()=>readProject('data.csv'),'项目 data.csv');
+$('syncLocal').onclick=()=>{try{requireLongBaseline();$('syncFile').click();}catch(err){status('增量同步失败：'+err.message,true);}};
+$('syncFile').onchange=async e=>{const file=e.target.files[0];e.target.value='';if(file)await previewWideSync(()=>readLocal(file),'本地 '+file.name);};
 $('syncApply').onclick=()=>{
  const plan=pendingSync;if(!plan)return;
  try{
-  if(plan.base!==salesSnapshot())throw Error('当前销量数据已变化，请取消后重新同步。');
+  flush();if(plan.base!==salesSnapshot())throw Error('当前销量数据已变化，请取消后重新同步。');
   const edits=plan.items.filter(x=>x.kind==='add'||x.kind==='conflict'&&x.chosen);if(!edits.length)return;
   captureChange();const rows=new Map(state.rows.map(r=>[rowKey(r.brand,r.model),r]));
   for(const item of edits){const m=item.source,k=rowKey(m.brand,m.model);let row=rows.get(k);if(!row){row=newRow(META.map(field=>m[field]));rows.set(k,row);state.rows.push(row);}row.values.set(item.period,{...item.incoming});addWeek(item.period);}

@@ -364,6 +364,7 @@ function saveTempData(){
     if(!tempEdits.size&&tempEnd==null)sessionStorage.removeItem(TEMP_KEY);
     else sessionStorage.setItem(TEMP_KEY,JSON.stringify({end:tempEnd,edits:[...tempEdits.values()]}));
   }catch(_){/* Memory remains usable if browser storage is blocked. */}
+  window.dispatchEvent(new Event("tracking-data-change"));
 }
 function applyTempData(){
   WEEKS=tempBase.weeks.slice();WMON=tempBase.mondays.slice();
@@ -447,9 +448,8 @@ $("tempAdd").onclick=()=>{
   tempEnd=m;refreshTemp();
 };
 // Export the source schema and all source rows, patching observations only.
-function exportTempCSV(){
-  if(!tempBase)return;
-  if($("tbl").querySelector("input.temp-input")){alert("请先确认或取消当前单元格编辑，再导出 CSV。");return;}
+function buildTrackingCSV(){
+  if(!tempBase)return null;
   const {csv,ib,im,weekCols}=tempBase;
   const header=csv[0].slice(),columns=new Map(weekCols);
   // Preserve existing columns, even their original names and ordering.
@@ -477,6 +477,17 @@ function exportTempCSV(){
   });
   const quote=v=>{const t=String(v??"");return /[",\r\n]/.test(t)?'"'+t.replace(/"/g,'""')+'"':t;};
   const text=[header,...rows].map(row=>row.map(quote).join(",")).join("\r\n")+"\r\n";
+  return text;
+}
+// The embedded editor reads the same session-local observations used for CSV export.
+// No temporary modifications (including added weeks) means no tracking import.
+function getTrackingUpdatedCSV(){
+  return tempBase&&(tempEdits.size||tempEnd!=null)?buildTrackingCSV():null;
+}
+function exportTempCSV(){
+  if(!tempBase)return;
+  if($("tbl").querySelector("input.temp-input")){alert("请先确认或取消当前单元格编辑，再导出 CSV。");return;}
+  const text=buildTrackingCSV();
   const url=URL.createObjectURL(new Blob(["\uFEFF",text],{type:"text/csv;charset=utf-8"}));
   const a=document.createElement("a");a.href=url;a.download="data.csv";
   document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);

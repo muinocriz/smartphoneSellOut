@@ -590,7 +590,7 @@
   function setResearchView(key){
     researchView=key;
     updateParamControls();
-    for(const [id,b] of Object.entries(researchButtons)){b.className=id===key?'primary':'secondary';b.setAttribute('aria-pressed',String(id===key));}
+    for(const [id,b] of Object.entries(researchButtons))b.setAttribute('aria-pressed',String(id===key));
     for(const n of modelNodes)visible(n,key==='model');
     visible(productPanel,filterTopics.has(key));updateProductInfo(currentScope());
     visible(metricNode,key==='model'||key==='tier');visible(axisNode,key==='model'||key==='tier');
@@ -613,7 +613,7 @@
   for(const category of researchCategories){
     const grid=topicSection(researchNav,category.label,'research-topic-grid');
     for(const id of category.keys){
-      const b=document.createElement('button');b.type='button';b.textContent=researchViews[id];b.className='secondary';b.setAttribute('aria-pressed','false');b.onclick=()=>setResearchView(id);researchButtons[id]=b;grid.append(b);
+      const b=document.createElement('button');b.type='button';b.textContent=researchViews[id];b.className='research-topic-button';b.setAttribute('aria-pressed','false');b.onclick=()=>setResearchView(id);researchButtons[id]=b;grid.append(b);
     }
   }
   let researchExportRows=[],researchPublicationChart=null,researchPublicationTable=null;

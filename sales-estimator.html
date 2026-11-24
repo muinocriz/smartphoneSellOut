@@ -109,6 +109,13 @@
 .studio-controls > #watermarkControls{margin-top:16px;margin-bottom:16px}
 
 .topic-category-title{font-size:var(--ui-text-small,14px);font-weight:700;color:var(--ui-text-muted,#526982);margin:4px 0 8px}
+/* Research navigation: selection changes colors only, never button geometry. */
+.research-topic-grid .research-topic-button{box-sizing:border-box;min-width:0;min-height:40px;padding:9px 13px;border:1px solid #d9e2ef;border-radius:9px;background:#fff;color:#45617f;font-family:var(--ui-font-body);font-size:var(--ui-text-small,12px);font-weight:600;line-height:1.5;text-align:center;overflow-wrap:anywhere}
+.research-topic-grid .research-topic-button[aria-pressed="true"]{background:var(--blue);border-color:var(--blue);color:#fff}
+.research-topic-grid .research-topic-button[aria-pressed="false"]:hover{background:#f7f9fd;border-color:#a9c2ed}
+.research-topic-grid .research-topic-button[aria-pressed="true"]:hover{background:#1b4dbd;border-color:#1b4dbd}
+.research-topic-grid .research-topic-button:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+
 .studio-topic-groups,.studio-research-topics{display:grid;gap:12px}
 .studio-research-topics{border-top:1px solid var(--ui-border,#dbe2ea);padding-top:12px}
 .studio-research-topics>section>.topic-category-title{font-weight:550}

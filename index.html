@@ -207,7 +207,7 @@ td.bad{color:var(--warn)}
   </section>
 
   <section class="panel tbl">
-    <div class="temp-toolbar"><span id="tempStatus" class="note">累计销量模式下双击单元格编辑</span><button id="tempAdd" disabled>新增周次</button><button id="tempReset" disabled>重置临时数据</button></div>
+    <div class="temp-toolbar"><span id="tempStatus" class="note">累计销量模式下双击单元格编辑</span><button id="tempAdd" disabled>新增周次</button><button id="tempReset" disabled>重置临时数据</button><button id="tempExport" disabled title="导出全部机型的累计销量 CSV，合并临时修改，不含估算值">导出 CSV</button></div>
     <table id="tbl"></table>
   </section>
   </div>
@@ -278,7 +278,7 @@ function load(text){
       vals:ordered.map(x=>{const v=(c[x.i]||"").trim().replace(/,/g,"");return v===""||!Number.isFinite(+v)?null:+v}),
       offs:WMON.map(m=>lifecycleWeekIndex(m,w1m)),
       p0:p0?{days:p0.days,isoMonday:p0.isoMonday}:null}});
-  captureTempBase();
+  captureTempBase(t,ib,im,weekCols);
   assignColors();
   BRANDS=["全部",...new Set(ROWS.map(r=>r.brand))];
   if(!BRANDS.includes(S.brand))S.brand=BRANDS[1]||"全部";
@@ -330,8 +330,9 @@ const gapCache=new WeakMap();
 const TEMP_KEY="phoneSales.module1.temp.v1", WEEK_STEP=7*IsoSalesWeek.DAY;
 let tempBase=null,tempEdits=new Map(),tempEnd=null;
 const tempKey=(r,m)=>JSON.stringify([r.brand,r.model,m]);
-function captureTempBase(){
-  tempBase={weeks:WEEKS.slice(),mondays:WMON.slice(),values:new Map(ROWS.map(r=>[key(r),r.vals.slice()]))};
+function captureTempBase(csv,ib,im,weekCols){
+  tempBase={weeks:WEEKS.slice(),mondays:WMON.slice(),values:new Map(ROWS.map(r=>[key(r),r.vals.slice()])),
+    csv:csv.map(row=>row.slice()),ib,im,weekCols:new Map([...weekCols].map(([m,x])=>[m,x.i]))};
   tempEdits=new Map();tempEnd=null;
   try{
     const saved=JSON.parse(sessionStorage.getItem(TEMP_KEY)||"null");
@@ -387,6 +388,7 @@ function tempToolbar(){
     (tempEdits.size||added?" · 临时修改 "+tempEdits.size+" 项 / 新增 "+added+" 周":"");
   $("tempAdd").disabled=!tempBase||S.val!=="cum";
   $("tempReset").disabled=!tempEdits.size&&tempEnd==null;
+  $("tempExport").disabled=!tempBase;
 }
 function tempCell(r,idx,v,flag){
   const m=WMON[idx],editable=S.val==="cum"&&idx>=0&&Number.isFinite(m);
@@ -439,6 +441,42 @@ $("tempAdd").onclick=()=>{
   if(m-tempBase.mondays.at(-1)>52*WEEK_STEP){alert("最多临时新增52周");return;}
   tempEnd=m;refreshTemp();
 };
+// Export the source schema and all source rows, patching observations only.
+function exportTempCSV(){
+  if(!tempBase)return;
+  if($("tbl").querySelector("input.temp-input")){alert("请先确认或取消当前单元格编辑，再导出 CSV。");return;}
+  const {csv,ib,im,weekCols}=tempBase;
+  const header=csv[0].slice(),columns=new Map(weekCols);
+  // Preserve existing columns, even their original names and ordering.
+  // Append new weeks and any previously implicit missing weeks that were edited.
+  const editedWeeks=new Set([...tempEdits.values()].map(e=>e.m));
+  const appended=[];
+  WMON.forEach((m,i)=>{
+    if(!columns.has(m)&&(m>tempBase.mondays.at(-1)||editedWeeks.has(m))){
+      columns.set(m,header.length);header.push(WEEKS[i]);appended.push(m);
+    }
+  });
+  const rows=csv.slice(1).map(source=>{
+    const row=source.slice(),brand=(source[ib]||"").trim(),model=(source[im]||"").trim();
+    // Keep source fields verbatim unless a user explicitly changed a value.
+    if(appended.length){while(row.length<csv[0].length)row.push("");row.splice(csv[0].length,0,...appended.map(()=>""));}
+    for(const m of editedWeeks){
+      const edit=tempEdits.get(tempKey({brand,model},m));
+      if(!edit)continue;
+      const col=columns.get(m);
+      if(col==null)continue;
+      while(row.length<=col)row.push("");
+      row[col]=String(edit.value);
+    }
+    return row;
+  });
+  const quote=v=>{const t=String(v??"");return /[",\r\n]/.test(t)?'"'+t.replace(/"/g,'""')+'"':t;};
+  const text=[header,...rows].map(row=>row.map(quote).join(",")).join("\r\n")+"\r\n";
+  const url=URL.createObjectURL(new Blob(["\uFEFF",text],{type:"text/csv;charset=utf-8"}));
+  const a=document.createElement("a");a.href=url;a.download="data.csv";
+  document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+$("tempExport").onclick=exportTempCSV;
 $("tempReset").onclick=()=>{
   if(!confirm("清除全部临时销量和新增周次？原始 CSV 与当前图表设置不受影响。"))return;
   tempEdits.clear();tempEnd=null;refreshTemp();

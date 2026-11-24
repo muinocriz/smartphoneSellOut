@@ -6,6 +6,10 @@
 
 ## 2026-11-24
 
+### 模块4 增量同步
+
+- [ba083f2](https://github.com/muinocriz/smartphoneSellOut/commit/ba083f2)：新增「从项目宽表增量同步」，先导入已有长表，预览新增、相同、冲突、旧里程碑及人工核查项，确认后追加缺失精确累计记录，精确冲突仅在逐条勾选后覆盖。保留周增量、特殊记录、空白对应历史值；名称或元数据冲突不自动处理。支持撤销、草稿和长表导出；不自动上传，不改变模块1/2/3及访问边界。未运行测试或构建。
+
 ### 模块 3 共用扩展销量研究（新数据层）
 
 - [ad52cbe](https://github.com/muinocriz/smartphoneSellOut/commit/ad52cbe) / [ea79e61](https://github.com/muinocriz/smartphoneSellOut/commit/ea79e61) / [93af1ac](https://github.com/muinocriz/smartphoneSellOut/commit/93af1ac)：主数据升级至 V3.3（110 条、20 列，新增 tracking_group），解析器升级 model-master-v2；由当时 data.csv 迁移 2026W34–W46 的 480 条累计销量记录至 sales-long.csv 八列长表，55 个跟踪产品、234 个空白单元格不生成记录，Mate 80系列 W46 的 1000 万台旧里程碑不迁移，待人工补录。保留宽表及原榜单 CSV，二者不随长表自动同步。

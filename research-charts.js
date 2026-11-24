@@ -363,18 +363,21 @@ function drawResearchHeatmap(ctx,chart,box,p,note=''){
  posterFitText(ctx,'最大 '+fmt(max),left+48+5*sw,ly+10,12,p.sub,'550','left',width*.55);
  if(note)posterFitText(ctx,note,left,bottom-5,Math.min(16,font),p.sub,'550','left',width);
 }
+// Shared research-poster axis typography (the live preview uses its own UI scale).
+const RESEARCH_POSTER_AXIS=Object.freeze({title:19,tick:19,period:18,titleWeight:'600',tickWeight:'550'});
 /* Dual-axis generation study. Bars and line share week centers; reference
  * guides use the percentage axis, not the dynamically scaled volume axis. */
-function drawGenerationDualAxis(ctx,chart,box,p){
+function drawGenerationDualAxis(ctx,chart,box,p,preview=false){
  const {left,right,top,bottom,width,height}=box,{periods,lines}=chart;
  if(!periods.length||lines.length!==2)return;
  const [volume,rate]=lines,n=periods.length;
  const barColor=volume.color||'#2563eb',rateColor=rate.color||'#7c3aed';
  const f=Math.max(.65,Math.min(1.4,width/780,height/466));
  const font=14*f,small=12*f;
+ const axis=preview?{...RESEARCH_POSTER_AXIS,title:12,tick:12,period:12}:RESEARCH_POSTER_AXIS;
  const legendStep=Math.max(22,30*f),legendY=top+font+3;
- const x0=left+Math.max(45,62*f),x1=right-Math.max(47,61*f);
- const y0=top+legendStep+Math.max(23,31*f),y1=bottom-Math.max(27,36*f);
+ const x0=left+Math.max(preview?45:68,62*f),x1=right-Math.max(preview?47:68,61*f);
+ const y0=top+legendStep+Math.max(axis.title+14,31*f),y1=bottom-Math.max(axis.period+14,36*f);
  if(!auditPlot(ctx,x1-x0,y1-y0,'代际替代双轴绘图区',260,150))return;
  const slot=(x1-x0)/n,bw=Math.min(slot*.62,76*f);
  if(bw<3){auditIssue(ctx,'代际替代图周次过多，柱宽不足',true);return;}
@@ -399,14 +402,14 @@ function drawGenerationDualAxis(ctx,chart,box,p){
  rule(lx,legendY-font*.4,lx+20*f,legendY-font*.4,rateColor,2.5*f);
  ResearchCharts.canvasMarker(ctx,'○',lx+10*f,legendY-font*.4,3.5*f,rateColor);
  text(rate.name,lx+26*f,legendY,font,p.ink,'600','left',half-28*f);
- text('合计周增量 / 万台',x0,y0-10*f,font,p.sub,'600','left',(x1-x0)/2);
- text('替代率 / %',x1,y0-10*f,font,p.sub,'600','right',(x1-x0)/2);
+ text('合计周增量 / 万台',x0,y0-12,axis.title,p.sub,axis.titleWeight,'left',(x1-x0)/2);
+ text('替代率 / %',x1,y0-12,axis.title,p.sub,axis.titleWeight,'right',(x1-x0)/2);
  for(let i=0;i<=intervals;i++){
   const v=step*i,yy=y(v),fraction=i/intervals;
   if(![.5,.8].some(ref=>Math.abs(fraction-ref)<1e-9))rule(x0,yy,x1,yy,p.hair,1.2*f);
-  text(Number(v.toPrecision(12)),x0-8*f,yy+small*.35,small,p.sub,'550','right',x0-left-10*f);
+  text(Number(v.toPrecision(12)),x0-10,yy+5,axis.tick,p.sub,axis.tickWeight,'right',x0-left-12);
  }
- for(const v of [0,20,40,50,60,80,100])text(v+'%',x1+8*f,yp(v)+small*.35,small,p.sub,'550','left',right-x1-9*f);
+ for(const v of [0,20,40,50,60,80,100])text(v+'%',x1+10,yp(v)+5,axis.tick,p.sub,axis.tickWeight,'left',right-x1-12);
  rule(x0,y0,x0,y1,p.hair,1.2*f);
  rule(x1,y0,x1,y1,p.hair,1.2*f);
  periods.forEach((period,i)=>{
@@ -425,10 +428,10 @@ function drawGenerationDualAxis(ctx,chart,box,p){
  rate.values.forEach((v,i)=>{
   if(Number.isFinite(v))ResearchCharts.canvasMarker(ctx,'○',x(i),yp(v),Math.min(4.4*f,slot*.23),rateColor,!!rate.imputed?.[i]);
  });
- const tickCount=Math.max(2,Math.floor((x1-x0)/(76*f))),stride=Math.max(1,Math.ceil((n-1)/(tickCount-1)));
+ const tickCount=Math.max(2,Math.floor((x1-x0)/Math.max(76*f,axis.period*4.8))),stride=Math.max(1,Math.ceil((n-1)/(tickCount-1)));
  periods.forEach((period,i)=>{
   if(i===0||i===n-1||(i%stride===0&&n-1-i>=stride*.65))
-   text(period,x(i),y1+small+7*f,small,p.sub,'550','center',Math.min(104*f,slot*stride*.95));
+   text(period,x(i),y1+axis.period+8,axis.period,p.sub,axis.tickWeight,'center',Math.min(Math.max(104*f,axis.period*5.8),slot*stride*.95));
  });
 }
 
@@ -541,8 +544,16 @@ const ResearchCharts=(()=>{
   canvas.setAttribute('role','img');canvas.setAttribute('aria-label',label+'；完整数值见数据表');
   const ctx=canvas.getContext('2d');ctx.setTransform(density,0,0,density,0,0);ctx.fillStyle='#fff';ctx.fillRect(0,0,W,H);
   const box={left:16,right:W-16,top:16,bottom:H-16,width:W-32,height:H-32},p={ink:'#17263c',sub:'#64748b',hair:'#e4e9f0',accent:'#c93630',bar:'#265a87'};
-  if(chart.kind==='generationDualAxis')drawGenerationDualAxis(ctx,chart,box,p);else if(chart.kind==='dualBrandFlowMulti')drawDualBrandFlowMulti(ctx,chart,box,p,'上图为TOP30样本，下图为全市场份额 · 色带只表示同品牌变化');else if(chart.kind==='dualBrandFlow')drawDualBrandFlow(ctx,chart,box,p,'上下图统计范围不同 · 色带只表示同品牌变化');else if(chart.kind==='heatmap')drawResearchHeatmap(ctx,chart,box,p);else if(chart.kind==='scatter'||chart.kind==='bars')drawHeadStaticPoster(ctx,p,{chart,chartNote:''},box);else drawBrandComposition(ctx,chart,box,p,'');
+  if(chart.kind==='generationDualAxis')drawGenerationDualAxis(ctx,chart,box,p,true);else if(chart.kind==='dualBrandFlowMulti')drawDualBrandFlowMulti(ctx,chart,box,p,'上图为TOP30样本，下图为全市场份额 · 色带只表示同品牌变化');else if(chart.kind==='dualBrandFlow')drawDualBrandFlow(ctx,chart,box,p,'上下图统计范围不同 · 色带只表示同品牌变化');else if(chart.kind==='heatmap')drawResearchHeatmap(ctx,chart,box,p);else if(chart.kind==='scatter'||chart.kind==='bars')drawHeadStaticPoster(ctx,p,{chart,chartNote:''},box);else drawBrandComposition(ctx,chart,box,p,'');
   host.append(canvas);
+  // Canvas is not automatically repainted when web fonts finish loading.
+  if(chart.kind==='generationDualAxis'&&document.fonts){
+   Promise.all([document.fonts.load('500 12px "IBM Plex Mono"'),document.fonts.load('600 12px "IBM Plex Mono"'),document.fonts.ready]).then(()=>{
+    if(!canvas.isConnected)return;
+    ctx.fillStyle='#fff';ctx.fillRect(0,0,W,H);
+    drawGenerationDualAxis(ctx,chart,box,p,true);
+   }).catch(()=>{});
+  }
  }
  return Object.freeze({lineScale,svgLine,canvasLine,renderComposition,markerAt,svgMarker,canvasMarker});
 })();

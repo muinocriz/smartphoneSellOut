@@ -366,10 +366,10 @@ function drawResearchPosterContent(ctx,L,p,s){
   const x0=left+68,x1=right-32,y0=start+legendRows*legendStep+34,y1=chartBottom-48;
   if(!auditPlot(ctx,x1-x0,y1-y0,'折线图绘图区',260,150))return;
   const scale=ResearchCharts.lineScale(s.chart,{left:x0,right:x1,top:y0,bottom:y1}),{top,x,y}=scale;
-  posterFitText(ctx,unit,x0,y0-12,19,p.sub,'600','left',width-100);
-  for(let i=0;i<=4;i++){const v=top*i/4;ctx.strokeStyle=p.hair;ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(x0,y(v));ctx.lineTo(x1,y(v));ctx.stroke();posterFitText(ctx,Number(v.toFixed(2)),x0-10,y(v)+5,19,p.sub,'550','right',56);}
+  posterFitText(ctx,unit,x0,y0-12,RESEARCH_POSTER_AXIS.title,p.sub,RESEARCH_POSTER_AXIS.titleWeight,'left',width-100);
+  for(let i=0;i<=4;i++){const v=top*i/4;ctx.strokeStyle=p.hair;ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(x0,y(v));ctx.lineTo(x1,y(v));ctx.stroke();posterFitText(ctx,Number(v.toFixed(2)),x0-10,y(v)+5,RESEARCH_POSTER_AXIS.tick,p.sub,RESEARCH_POSTER_AXIS.tickWeight,'right',56);}
   const ticks=Math.max(2,Math.min(7,Math.floor((x1-x0)/88))),stride=Math.max(1,Math.ceil((n-1)/(ticks-1)));
-  periods.forEach((period,i)=>{if(i===0||i===n-1||(i%stride===0&&n-1-i>=stride*.65))posterFitText(ctx,period,x(i),y1+26,18,p.sub,'550','center',Math.min(104,(x1-x0)/Math.max(1,ticks-1)));});
+  periods.forEach((period,i)=>{if(i===0||i===n-1||(i%stride===0&&n-1-i>=stride*.65))posterFitText(ctx,period,x(i),y1+26,RESEARCH_POSTER_AXIS.period,p.sub,RESEARCH_POSTER_AXIS.tickWeight,'center',Math.min(104,(x1-x0)/Math.max(1,ticks-1)));});
   ResearchCharts.canvasLine(ctx,s.chart,scale);
   drawNotes();
  }else if(s.table){

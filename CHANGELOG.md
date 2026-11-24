@@ -6,6 +6,8 @@
 
 ## 2026-11-24
 
+- [c0ad1bb](https://github.com/muinocriz/smartphoneSellOut/commit/c0ad1bb)：模块4新增本地宽表增量同步，项目与本地共用预览及应用逻辑，显示来源，保留现有长表冲突保护；一次确认同步支持整体撤销/重做，无需先上传 data.csv。未执行测试。
+
 ### 模块4正式长表读取
 
 - [9c2fc6f](https://github.com/muinocriz/smartphoneSellOut/commit/9c2fc6f) / [7f6a30d](https://github.com/muinocriz/smartphoneSellOut/commit/7f6a30d)：经用户授权公开根路径 sales-long.csv，保留 /studio/ 授权副本。模块4默认读取项目长表和主数据，手动重读长表取代原宽表读取按钮；宽表仅用于手动增量同步或本地导入。草稿优先，旧宽表草稿提示备份后切换；读取失败不自动退回宽表。模块3及原始榜单访问权限不变，模块间独立，无自动上传。未执行测试、构建或部署验收。

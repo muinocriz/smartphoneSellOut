@@ -162,7 +162,7 @@ dataset_id,source,series,period_type,period,period_start,period_end,top_n,actual
 - **共享操作台 CSS（单一来源）**：模块2、3均以 `<link rel="stylesheet" href="studio-ui.css">` 加载 `studio-ui.css`。它统一 4 个 `--ui-text-*` 字号变量、字体栈、颜色、间距和 `.ui-panel`／`.ui-section-title`／`.ui-field`／`.ui-palette-grid`／`.ui-palette-card`／`.ui-swatches`／`.ui-watermark-card` 等控件。添加相同功能的控件，先复用 `ui-*` 类，不在模块内部重新写同名色卡／水印 CSS；模块特有布局可保留在各自 HTML。
 - **操作台字体统一（全控件）**：`studio-ui.css` 中 `--ui-font-body` 采用系统 UI 字体栈，模块2／3的标题、英文标识、按钮、表单、表格、说明、色卡和水印设置均使用它；首页顶部导航也引用该变量，但首页 ECharts 继续使用原有 `--f-body` 做文本测量和导出，不能改动。独立纯数值使用 `--ui-font-number`（IBM Plex Mono）。模块2加载的 Noto Sans SC 等网络字体仅用于有独立字体规则的 SVG/海报；模块3 Canvas 海报文字同样独立，不因操作台字体统一而改动。操作台 CSS 字重使用 400／500／600／700／800，避免 650／750／780／850 等额外字重。页面主标题统一为 24px、800 字重，较长标题允许窄屏换行。
 - **维护边界**：`studio-ui.css` 管理模块 2／3 共用的操作台组件；`market-share.css` 管理模块 2 特有的控制台布局、数据编辑表格、开关和安全区模拟层。模块 2 已移除 Tailwind CDN 和工具类，不再新增 Tailwind 或复制一套原子工具类；优先为真实控件设置简明的语义 CSS 类。两份 CSS 均不覆盖海报 SVG、Canvas、`poster-themes.js` 或第三方 ECharts。模块3主题按钮在 `syncPaletteChooser()` 中切换 `is-selected`，模块2在 `renderPaletteButtons()` 中设置该类与 `aria-pressed`。
-- **研究专题导航按钮**：模块3使用独立 `research-topic-button` 样式，以 `aria-pressed` 表示选中状态；选中与未选中使用相同字号、字重、行高、内边距、最小高度、边框宽度和圆角，仅背景色、文字色、边框色变化，避免切换时布局跳动；不复用主次操作按钮样式。
+- **模块3按钮规格**：普通主次操作按钮 `.primary` / `.secondary`、模块页签 `.module-tab-button`、研究专题导航 `.research-topic-button` 共用基础几何与字体（12px、600字重、1.5行高、40px最小高度、9px 13px内边距、1px边框、9px圆角）。主次操作仅通过颜色区分；页签以 `aria-selected`、研究导航以 `aria-pressed` 表示选中，切换只改变颜色、不替换基础样式。保留禁用、悬停及键盘焦点反馈。专用模板卡片、图文导出控件及其他模块不受此规则影响。
 - **界面简化原则**：以排列整齐、数据清楚、功能正常为目标；不为简单操作界面新增渐变、复杂阴影、动画或装饰性控件。图表预览的安全区模拟层仅作辅助显示，导出 PNG 使用独立 SVG 克隆与 Canvas 序列化，不依赖 Tailwind 样式。
 - **人工验收**：修改共享样式或控件 HTML 后，手动检查两模块主题色卡、水印卡片在桌面／窄屏下的溢出与间距。
 

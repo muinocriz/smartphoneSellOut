@@ -95,7 +95,6 @@
     for(const [id,pane] of Object.entries(modulePanes)){
       const active=id===key;pane.hidden=!active;pane.style.display=active?'':'none';
       moduleButtons[id].setAttribute('aria-selected',String(active));
-      moduleButtons[id].className=active?'primary':'secondary';
     }
   }
   for(const [id,button] of Object.entries(moduleButtons))button.onclick=()=>activateModuleTab(id);

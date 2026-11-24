@@ -6,6 +6,11 @@
 
 ## 2026-11-24
 
+### 跟踪数据正式开售日期校正
+
+- [eac4147](https://github.com/muinocriz/smartphoneSellOut/commit/eac4147) / [9f677b7](https://github.com/muinocriz/smartphoneSellOut/commit/9f677b7)：对照55个跟踪产品与机型主数据，针对差异及部分待核实日期查阅首销报道，修正宽表10行及长表对应99条日期；系列合计按已纳入统计组的首款成员正式开售日期，成员仍保留各自开售日。Pura 90系列 2026/5/9→2026/4/29；小米17系列 2026/3/6→2025/9/27；17 Ultra 2026/3/6→2025/12/27；17T系列 2026/6/8→2026/6/9；OPPO Find X9系列 2025/10/16→2025/10/22；Find X9 Ultra 2026/4/21→2026/4/24；Reno 16系列 2026/5/25→2026/5/29；荣耀 Magic 8系列 2026/1/19→2025/10/23；一加15T 2026/3/24→2026/3/25；iQOO Z11系列 2026/3/26→2026/1/15（Turbo首销）。
+- [1230be1](https://github.com/muinocriz/smartphoneSellOut/commit/1230be1)：同步更正 Find X9 Ultra 和一加15T 主数据日期，并更新相关核实备注及来源。其他45个跟踪产品日期沿用原值，本轮不是全量逐型号独立来源认证。未修改销量、机型统计组、价格、配置或业务代码，未执行测试。
+
 ### 模块4数据核查与日期修正
 
 - [e4013cf](https://github.com/muinocriz/smartphoneSellOut/commit/e4013cf) / [46fb723](https://github.com/muinocriz/smartphoneSellOut/commit/46fb723) / [1e315cf](https://github.com/muinocriz/smartphoneSellOut/commit/1e315cf)：荣耀 WIN 正式开售日统一为2025/12/26（荣耀官方证实12/16为媒体沟通会、12/26发布即开售）；REDMI K100 依据既有核实记录统一为2026/10/31。宽表、长表日期同步，不修改销量。用户确认小米17系列统计组为标准版、Pro、Pro Max，17 Ultra及徕卡版独立；更新主数据备注。保留 Pura X Max 合并榜单别名并记录统计粒度已确认。

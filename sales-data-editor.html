@@ -16,9 +16,9 @@
 <body><main>
 <header><div><h1>手机销量数据处理工具 V3.3</h1><p class="muted">公开工具 · 自动读取项目 CSV · 编辑及草稿仅保存在本地</p></div><div class="muted">单位：万台 / ISO 自然周</div></header>
 <section class="panel" aria-label="导入与导出">
-<div class="toolbar"><button class="primary" id="projectSales">读取项目 data.csv</button><label class="file-btn" for="file">导入本地 CSV</label><input id="file" class="sr-only" type="file" accept=".csv,text/csv"><button id="newData">新建空表</button><button id="undoBtn" disabled>撤销</button><button id="redoBtn" disabled>重做</button><span class="spacer"></span><button class="primary" id="longExport" disabled>导出长表 CSV</button></div>
+<div class="toolbar"><button class="primary" id="projectSales">读取项目 data.csv</button><button id="syncProject">从项目宽表增量同步</button><label class="file-btn" for="file">导入本地 CSV</label><input id="file" class="sr-only" type="file" accept=".csv,text/csv"><button id="newData">新建空表</button><button id="undoBtn" disabled>撤销</button><button id="redoBtn" disabled>重做</button><span class="spacer"></span><button class="primary" id="longExport" disabled>导出长表 CSV</button></div>
 <div class="import-options"><label class="check"><input id="cleanLegacy" type="checkbox" checked>导入旧宽表时删除正数 50 的整数倍（旧规则）</label><label class="check muted">无年份周列使用年份 <input id="defaultYear" type="number" min="1900" max="9999" step="1" value="2026"></label></div>
-<p class="muted" style="margin-top:7px">支持原始 data.csv 及 V3 长表 CSV。旧宽表默认作为累计销量导入。清理只在导入无运算符的旧宽表数值时执行，不修改原始文件；新录入的精确数值不受此规则限制。</p>
+<p class="muted" style="margin-top:7px">支持原始 data.csv 及 V3 长表 CSV。维护已有长表时，先导入最新 sales-long.csv，再点击「从项目宽表增量同步」；直接读取项目宽表会替换当前销量数据。旧宽表默认作为累计销量导入。清理只在导入无运算符的旧宽表数值时执行，不修改原始文件；新录入的精确数值不受此规则限制。</p>
 <div class="toolbar" style="margin-top:10px"><label class="check"><input type="checkbox" id="autoDraft" checked>本地自动保存草稿</label><button id="clearDraft" class="subtle">清除本地草稿</button><span id="draftStatus" class="muted"></span></div><div id="status" class="status" role="status" aria-live="polite">正在准备读取项目 data.csv…</div>
 <details id="audit" class="audit" hidden><summary id="auditTitle"></summary><pre id="auditBody"></pre></details>
 </section>
@@ -30,13 +30,14 @@
 <section class="panel" id="checkPanel"><div class="toolbar"><h2>数据检查与机型主数据</h2><span class="spacer"></span><button id="projectMaster">读取项目 model-master.csv</button><label class="file-btn" for="masterFile">导入本地 model-master.csv</label><input id="masterFile" class="sr-only" type="file" accept=".csv,text/csv"><button id="masterNew">新建主数据</button><label class="file-btn" for="masterPatch">合并主数据补充 CSV</label><input id="masterPatch" class="sr-only" type="file" accept=".csv,text/csv"><button id="masterExport" disabled>导出主数据 CSV</button></div>
 <p class="muted" id="masterStatus" style="margin:8px 0">正在准备读取项目 model-master.csv…</p><div class="toolbar"><button id="checkNow" class="primary">立即检查</button><label class="check"><input type="checkbox" id="autoCheck" checked>编辑后自动检查</label><label class="check"><input type="checkbox" id="showGaps">列出内部缺周</label><span class="spacer"></span><select id="issueFilter" aria-label="检查结果筛选"><option value="issues">异常及待确认</option><option value="all">全部结果</option><option value="master">主数据问题</option><option value="sales">销量问题</option></select></div><div class="check-summary" id="checkSummary"></div><div class="check-wrap"><table><thead><tr><th>状态</th><th>产品 / 周次</th><th>检查结果</th><th>操作</th></tr></thead><tbody id="checkRows"></tbody></table></div><p class="muted" style="margin-top:8px">单机按标准名称及别名匹配；系列优先按品牌及累计统计组精确匹配；未设置统计组时仅按产品系列提供待确认候选。明确统计组不等于已核实采集范围。榜外缺失、上市前和停止跟踪后的空白不视为销量为零。不会自动修改任何数据。</p><details style="margin-top:14px"><summary>机型主数据管理</summary><div class="toolbar" style="margin-top:8px"><input id="masterSearch" type="search" placeholder="搜索主数据 ID / 名称 / 系列"><button id="masterAdd" disabled>＋ 主数据机型</button><span class="muted" id="masterCount"></span></div><div class="check-wrap"><table><thead><tr><th>机型 ID</th><th>标准机型名称</th><th>品牌 / 产品系列</th><th>累计统计组</th><th>别名</th><th>操作</th></tr></thead><tbody id="masterRows"></tbody></table></div></details></section>
 <section class="panel"><div class="toolbar"><h2>长表预览</h2><span class="spacer"></span><span id="previewCount" class="muted">0 条记录</span></div><p class="muted">固定字段：brand, model, category, date, period, metric, value_wan, operator。累计与周增量独立存储；仅导出原始记录，不导出计算值或空白。</p><div class="preview-wrap"><table><thead><tr><th>brand</th><th>model</th><th>category</th><th>date</th><th>period</th><th>metric</th><th>value_wan</th><th>operator</th></tr></thead><tbody id="preview"></tbody></table></div><p class="muted" style="margin-top:8px">仅预览前 12 条；完整长表由「导出长表 CSV」生成。全空机型或周次不进入长表。</p></section>
-<footer class="muted">本工具不连接服务器，不上传文件，不修改 GitHub 项目。</footer>
+<footer class="muted">本工具仅读取公开项目 CSV；文件、编辑和草稿在浏览器本地处理，不上传文件，不修改 GitHub 项目。</footer>
 </main>
 <dialog id="specialDialog"><form id="specialForm"><div class="dialog-head"><h2>添加 / 编辑特殊数据</h2><button type="button" data-close="specialDialog" aria-label="关闭">×</button></div><div class="field"><label for="specialModel">机型</label><select id="specialModel" required></select></div><div class="two"><div class="field"><label for="specialYear">ISO 年</label><input id="specialYear" type="number" min="1900" max="9999" step="1" required></div><div class="field"><label for="specialWeek">ISO 周</label><input id="specialWeek" type="number" min="1" max="53" step="1" required></div></div><div class="field"><span>数据类型</span><div class="op-choice"><label class="lt"><input type="radio" name="op" value="&lt;" required>&lt;</label><label class="ge"><input type="radio" name="op" value="&gt;=" required>≥</label><label class="ap"><input type="radio" name="op" value="≈" required>≈</label></div></div><div class="field"><label for="specialValue" id="specialValueLabel">累计销量 / 参考值（万台）</label><input id="specialValue" inputmode="decimal" placeholder="" required></div><p class="muted" id="specialHint"></p><p id="specialError" class="error-text" role="alert"></p><div class="dialog-actions"><button id="removeSpecial" type="button" class="remove" hidden>删除该记录</button><button type="button" data-close="specialDialog">取消</button><button type="submit" class="primary">保存</button></div></form></dialog>
 <dialog id="weekDialog"><form id="weekForm"><div class="dialog-head"><h2>新增 ISO 自然周</h2><button type="button" data-close="weekDialog" aria-label="关闭">×</button></div><div class="two"><div class="field"><label for="weekYear">ISO 年</label><input id="weekYear" type="number" min="1900" max="9999" step="1" required></div><div class="field"><label for="weekNumber">ISO 周</label><input id="weekNumber" type="number" min="1" max="53" step="1" required></div></div><p id="weekError" class="error-text"></p><div class="dialog-actions"><button type="button" data-close="weekDialog">取消</button><button class="primary" type="submit">添加周次</button></div></form></dialog>
 <dialog id="modelDialog"><form id="modelForm"><div class="dialog-head"><h2>新增机型</h2><button type="button" data-close="modelDialog" aria-label="关闭">×</button></div><div class="field"><label for="newBrand">品牌</label><input id="newBrand" required></div><div class="field"><label for="newModel">机型</label><input id="newModel" required></div><div class="field"><label for="newCategory">类别（可选）</label><input id="newCategory"></div><div class="field"><label for="newDate">发布日期（可选）</label><input id="newDate" placeholder="例如 2026/11/24"></div><p id="modelError" class="error-text"></p><div class="dialog-actions"><button type="button" data-close="modelDialog">取消</button><button class="primary" type="submit">添加机型</button></div></form></dialog>
 
 <dialog id="masterDialog"><form id="masterForm"><div class="dialog-head"><h2>编辑机型主数据</h2><button type="button" data-close="masterDialog">×</button></div><p class="muted" style="margin-bottom:10px">新机型 ID 根据品牌与标准名称自动生成，保存后保持不变。系列合计不是一个单机型，请为实际成员建立主数据。</p><div class="master-fields" id="masterFields"></div><p class="error-text" id="masterError"></p><div class="dialog-actions"><button type="button" data-close="masterDialog">取消</button><button class="primary" type="submit">保存主数据</button></div></form></dialog>
+<dialog id="syncDialog" style="width:min(1050px,calc(100% - 24px));max-height:88vh;overflow:auto"><div class="dialog-head"><h2>项目宽表增量同步</h2><button type="button" data-close="syncDialog" aria-label="关闭">×</button></div><p id="syncSummary" role="status"></p><p class="muted" style="margin:8px 0">默认追加缺失的精确累计记录；精确数值冲突可逐条勾选使用宽表值。特殊记录、旧里程碑及元数据差异仅列出供人工处理。已有周增量及宽表空白对应的长表记录全部保留。确认前不修改长表。</p><div class="check-wrap"><table><thead><tr><th>处理方式</th><th>品牌 / 机型</th><th>周次</th><th>当前长表</th><th>项目宽表</th><th>说明 / 确认</th></tr></thead><tbody id="syncRows"></tbody></table></div><div class="dialog-actions"><button type="button" data-close="syncDialog">取消</button><button id="syncApply" class="primary" type="button">应用同步</button></div></dialog>
 <script>
 'use strict';
 const $=id=>document.getElementById(id), META=['brand','model','category','date'], LONG=[...META,'period','metric','value_wan','operator'];
@@ -72,9 +73,9 @@ function derive(r){const cumulative=new Map(),weekly=new Map(),conflicts=[];cons
  return {cumulative,weekly,conflicts};}
 function refreshDerived(){if(!state.ready)return;const cache=new Map();for(const el of $('grid').querySelectorAll('input.cell[data-period]')){const r=state.rows.find(x=>x.id===+el.dataset.id);if(!r)continue;if(!cache.has(r.id))cache.set(r.id,derive(r));const v=!records(r,el.dataset.metric).has(el.dataset.period)&&cache.get(r.id)[el.dataset.metric].get(el.dataset.period);el.placeholder=v?v.value:'';el.classList.toggle('derived',!!v);el.title=v?'自动计算值（不导出）；输入数值可建立原始记录':'';}}
 function updateMode(){for(const [id,m] of [['modeCum','cumulative'],['modeWeekly','weekly']])$(id).setAttribute('aria-pressed',String(metric===m));$('modeHint').textContent=metric==='weekly'?'直接录入任意周的销量，不要求上周累计；未入榜或断更保持空白。':'直接录入累计销量；有累计锚点与连续精确周增量时可自动推导。';}
-function parseFile(text){const a=parseCSV(text);if(!a.length)throw Error('CSV 为空。');const head=a.shift().map(x=>x.trim().toLowerCase());if(new Set(head).size!==head.length)throw Error('CSV 存在重复列名。');for(const name of META)if(!head.includes(name))throw Error('缺少字段：'+name);const ix=Object.fromEntries(head.map((h,i)=>[h,i]));const rows=[],weeks=new Set(),removed=[],lookup=new Map();const isLong=LONG.every(k=>head.includes(k));if(!isLong&&head.includes('period'))throw Error('仅支持 V3 长表（metric / value_wan）或原始宽表 data.csv。');const metaOf=r=>META.map(k=>(r[ix[k]]||'').trim());function getRow(meta,merge){if(!meta[0]||!meta[1])throw Error('品牌和机型不能为空。');const key=rowKey(meta[0],meta[1]);if(lookup.has(key)){if(!merge)throw Error('重复机型：'+meta[0]+' '+meta[1]);const row=lookup.get(key);if(row.category!==meta[2]||row.date!==meta[3])throw Error('长表同一机型的类别或日期不一致：'+meta[1]);return row;}const row=newRow(meta);lookup.set(key,row);rows.push(row);return row;}
+function parseFile(text,{cleanLegacy=$('cleanLegacy').checked}={}){const a=parseCSV(text);if(!a.length)throw Error('CSV 为空。');const head=a.shift().map(x=>x.trim().toLowerCase());if(new Set(head).size!==head.length)throw Error('CSV 存在重复列名。');for(const name of META)if(!head.includes(name))throw Error('缺少字段：'+name);const ix=Object.fromEntries(head.map((h,i)=>[h,i]));const rows=[],weeks=new Set(),removed=[],lookup=new Map();const isLong=LONG.every(k=>head.includes(k));if(!isLong&&head.includes('period'))throw Error('仅支持 V3 长表（metric / value_wan）或原始宽表 data.csv。');const metaOf=r=>META.map(k=>(r[ix[k]]||'').trim());function getRow(meta,merge){if(!meta[0]||!meta[1])throw Error('品牌和机型不能为空。');const key=rowKey(meta[0],meta[1]);if(lookup.has(key)){if(!merge)throw Error('重复机型：'+meta[0]+' '+meta[1]);const row=lookup.get(key);if(row.category!==meta[2]||row.date!==meta[3])throw Error('长表同一机型的类别或日期不一致：'+meta[1]);return row;}const row=newRow(meta);lookup.set(key,row);rows.push(row);return row;}
 if(isLong){if(head.some(k=>!LONG.includes(k)))throw Error('长表包含本工具不支持的额外字段；为防止丢失，未导入。');for(let i=0;i<a.length;i++){const r=a[i];try{if(r.length>head.length)throw Error('列数超过表头');const row=getRow(metaOf(r),true),p=parsePeriod(r[ix.period],NaN),value=numberText(r[ix.value_wan]??''),op=(r[ix.operator]||'').trim(),m=(r[ix.metric]||'').trim();if(!['=','<','>=','≈'].includes(op)||!['cumulative','weekly'].includes(m)||value===null)throw Error('长表记录缺少有效 metric、数值或运算符');const target=records(row,m);if(target.has(p))throw Error('同一机型、周次和 metric 有重复记录');weeks.add(p);target.set(p,{op,value});}catch(e){throw Error('第 '+(i+2)+' 行：'+e.message);}}}
-else{const year=Number($('defaultYear').value),cols=[];for(let i=0;i<head.length;i++){if(META.includes(head[i]))continue;const p=parsePeriod(head[i],year);if(weeks.has(p))throw Error('重复 ISO 周次：'+p);weeks.add(p);cols.push({i,p});}if(!cols.length)throw Error('没有周次列。');for(let i=0;i<a.length;i++){const r=a[i];try{if(r.length>head.length)throw Error('列数超过表头');const row=getRow(metaOf(r),false);for(const c of cols){const v=decodeCell(r[c.i]);if(!v)continue;if($('cleanLegacy').checked&&!v.explicit&&v.op==='='&&legacy(v.value)){removed.push({brand:row.brand,model:row.model,period:c.p,value:v.value});continue;}row.values.set(c.p,{op:v.op,value:v.value});}}catch(e){throw Error('第 '+(i+2)+' 行：'+e.message);}}}return {rows,weeks:[...weeks].sort(),removed,ready:true,isLong};}
+else{const year=Number($('defaultYear').value),cols=[];for(let i=0;i<head.length;i++){if(META.includes(head[i]))continue;const p=parsePeriod(head[i],year);if(weeks.has(p))throw Error('重复 ISO 周次：'+p);weeks.add(p);cols.push({i,p});}if(!cols.length)throw Error('没有周次列。');for(let i=0;i<a.length;i++){const r=a[i];try{if(r.length>head.length)throw Error('列数超过表头');const row=getRow(metaOf(r),false);for(const c of cols){const v=decodeCell(r[c.i]);if(!v)continue;if(cleanLegacy&&!v.explicit&&v.op==='='&&legacy(v.value)){removed.push({brand:row.brand,model:row.model,period:c.p,value:v.value});continue;}row.values.set(c.p,{op:v.op,value:v.value});}}catch(e){throw Error('第 '+(i+2)+' 行：'+e.message);}}}return {rows,weeks:[...weeks].sort(),removed,ready:true,isLong};}
 function validMeta(){const seen=new Set();for(const r of state.rows){if(!r.brand.trim()||!r.model.trim())throw Error('品牌和机型不能为空。');const k=rowKey(r.brand,r.model);if(seen.has(k))throw Error('存在重复机型：'+r.brand+' '+r.model);seen.add(k);}}
 function commitInput(el){const row=state.rows.find(r=>r.id===+el.dataset.id);if(!row)return true;try{if(el.dataset.field){const k=el.dataset.field,v=el.value.trim();el.setCustomValidity(['brand','model'].includes(k)&&!v?'不能为空':'');if(!el.checkValidity())return false;if(row[k]!==v){row[k]=v;mark();}}else{const p=el.dataset.period,target=records(row,el.dataset.metric),old=target.get(p),v=numberText(el.value);if(v===null){if(old){target.delete(p);mark();}}else if(!old||old.value!==v){target.set(p,{op:'=',value:v});mark();}el.setCustomValidity('');return true;}return true;}catch(e){el.setCustomValidity(e.message);return false;}}
 function flush(){for(const el of $('grid').querySelectorAll('input.cell')){if(!commitInput(el)){el.reportValidity();throw Error('请修正表格中的无效输入。');}}validMeta();}
@@ -189,7 +190,7 @@ async function loadProjectSales(initial=false){
  try{
   const txt=await readProject('data.csv');
   if(initial&&state.ready)return;
-  if(!initial&&state.ready){flush();if(!confirm('重新读取项目 data.csv 并替换当前销量数据？未导出的修改将丢失。'))return;}
+  if(!initial&&state.ready){flush();if(!confirm('重新读取项目 data.csv 并替换当前销量数据？长表独有的周增量、特殊记录及人工修改可能丢失。维护已有长表请改用增量同步。'))return;}
   const next=parseFile(txt);
   // Initial load is a baseline, not a local edit or undo operation.
   if(initial){restoring=true;try{replaceState(next);}finally{restoring=false;}lastSnapshot=snapshot();updateHistory();}
@@ -212,6 +213,72 @@ async function loadProjectMaster(initial=false){
  }catch(e){if(!initial||!master)$('masterStatus').textContent='项目 model-master.csv 读取失败：'+e.message+'；可手动导入。';}
  finally{button.disabled=false;}
 }
+// Incremental import is intentionally one-way: current long-table workspace is authoritative.
+let pendingSync=null;
+function salesSnapshot(){return JSON.stringify({...state,rows:state.rows.map(r=>({...r,values:[...r.values],weekly:[...r.weekly]}))});}
+function syncRecord(v){return v?(v.op==='='?'=':signs[v.op]||v.op)+v.value:'—';}
+function buildSyncPlan(wide){
+ const exact=new Map(state.rows.map(r=>[rowKey(r.brand,r.model),r])),normalized=new Map();
+ const nkey=r=>JSON.stringify([norm(r.brand),norm(r.model)]);
+ for(const r of state.rows){const k=nkey(r);if(!normalized.has(k))normalized.set(k,[]);normalized.get(k).push(r);}
+ const wideNames=new Map();for(const r of wide.rows){const k=nkey(r);wideNames.set(k,(wideNames.get(k)||0)+1);}
+ const plan={items:[],same:0,add:0,conflict:0,blocked:0,legacy:0,base:salesSnapshot()};
+ function item(kind,source,period,old,incoming,reason){plan.items.push({kind,source,period,old,incoming,reason,chosen:false});plan[kind]++;}
+ for(const source of wide.rows){
+  const key=rowKey(source.brand,source.model),target=exact.get(key),aliases=normalized.get(nkey(source))||[];
+  if(!source.values.size)continue;
+  if(wideNames.get(nkey(source))>1||aliases.length>1||(!target&&aliases.length)){
+   item('blocked',source,'—',null,null,'存在规范化名称冲突；请先人工统一品牌 / 机型名称');continue;
+  }
+  if(target&&(target.category!==source.category||target.date!==source.date)){
+   item('blocked',source,'—',null,null,'类别或日期不同：长表 '+target.category+' / '+target.date+'；宽表 '+source.category+' / '+source.date+'。先人工核对，不同步该机型');continue;
+  }
+  for(const [p,incoming] of source.values){
+   const old=target?.values.get(p);
+   if(old&&old.op===incoming.op&&decimalOp(old.value,incoming.value,true)==='0'){plan.same++;continue;}
+   if(incoming.op!=='='||old&&old.op!=='='){item('blocked',source,p,old,incoming,'涉及特殊运算符，保留长表；请在销量表中人工确认');continue;}
+   if(!old){item('add',source,p,null,incoming,'缺失的原始累计记录');continue;}
+   item('conflict',source,p,old,incoming,'默认保留长表；勾选才替换为宽表精确值');
+  }
+ }
+ for(const r of wide.removed){const old=exact.get(rowKey(r.brand,r.model))?.values.get(r.period);item('legacy',r,r.period,old,{op:'=',value:r.value},'旧规则里程碑，不自动解释为精确值；请人工录入明确运算符');}
+ return plan;
+}
+function renderSyncPlan(plan){
+ const rows=$('syncRows');rows.replaceChildren();
+ const counts=()=>{const selected=plan.items.filter(x=>x.kind==='conflict'&&x.chosen).length;$('syncSummary').textContent='新增 '+plan.add+' 条 · 相同 '+plan.same+' 条 · 数值冲突 '+plan.conflict+' 条（已选择 '+selected+' 条） · 待人工核查 '+plan.blocked+' 项 · 旧里程碑 '+plan.legacy+' 项';$('syncApply').disabled=plan.add+selected===0;$('syncApply').textContent='应用同步（'+(plan.add+selected)+' 条）';};
+ const labels={add:'追加',conflict:'数值冲突',blocked:'人工核查',legacy:'旧里程碑'};
+ for(const item of plan.items){
+  const tr=node('tr');tr.append(node('td',labels[item.kind],item.kind==='add'?'issue-ok':'issue-warn'),node('td',item.source.brand+' '+item.source.model),node('td',item.period),node('td',syncRecord(item.old)),node('td',item.kind==='legacy'?item.incoming.value+'（旧规则）':syncRecord(item.incoming)));
+  const td=node('td');if(item.kind==='conflict'){const label=node('label'),cb=node('input');cb.type='checkbox';cb.checked=false;cb.setAttribute('aria-label','使用宽表值 '+item.source.brand+' '+item.source.model+' '+item.period);cb.onchange=()=>{item.chosen=cb.checked;counts();};label.append(cb,document.createTextNode(' 使用宽表值'));td.append(label);}else td.textContent=item.reason;tr.append(td);rows.append(tr);
+ }
+ if(!plan.items.length){const tr=node('tr'),td=node('td','无需同步：已有记录一致，宽表空白不触发删除。');td.colSpan=6;tr.append(td);rows.append(tr);}
+ counts();$('syncDialog').showModal();
+}
+$('syncProject').onclick=async()=>{
+ const button=$('syncProject');if(button.disabled)return;
+ try{
+  flush();if(!state.ready||!state.isLong)throw Error('请先通过「导入本地 CSV」载入最新 sales-long.csv（长表底稿），再增量同步。当前宽表工作区不能代替已有长表。');
+  button.disabled=true;const base=salesSnapshot();
+  const txt=await readProject('data.csv');
+  if(base!==salesSnapshot())throw Error('读取期间销量数据已变化，请重新同步。');
+  const oldSerial=serial;let wide;try{wide=parseFile(txt,{cleanLegacy:true});}finally{serial=oldSerial;}
+  if(wide.isLong)throw Error('项目 data.csv 不是旧宽表。');
+  pendingSync=buildSyncPlan(wide);renderSyncPlan(pendingSync);
+ }catch(err){pendingSync=null;status('增量同步失败：'+err.message,true);}
+ finally{button.disabled=false;}
+};
+$('syncApply').onclick=()=>{
+ const plan=pendingSync;if(!plan)return;
+ try{
+  if(plan.base!==salesSnapshot())throw Error('当前销量数据已变化，请取消后重新同步。');
+  const edits=plan.items.filter(x=>x.kind==='add'||x.kind==='conflict'&&x.chosen);if(!edits.length)return;
+  captureChange();const rows=new Map(state.rows.map(r=>[rowKey(r.brand,r.model),r]));
+  for(const item of edits){const m=item.source,k=rowKey(m.brand,m.model);let row=rows.get(k);if(!row){row=newRow(META.map(field=>m[field]));rows.set(k,row);state.rows.push(row);}row.values.set(item.period,{...item.incoming});addWeek(item.period);}
+  $('syncDialog').close();mark();renderGrid();runChecks();status('增量同步完成：追加 '+edits.filter(x=>x.kind==='add').length+' 条，人工确认替换 '+edits.filter(x=>x.kind==='conflict').length+' 条；保留其余原始记录。请导出 sales-long.csv 后提交。');
+ }catch(err){status('应用同步失败：'+err.message,true);$('syncDialog').close();}
+};
+$('syncDialog').addEventListener('close',()=>{pendingSync=null;});
 $('projectSales').onclick=()=>loadProjectSales();
 $('projectMaster').onclick=()=>loadProjectMaster();
 if(!state.ready)loadProjectSales(true);

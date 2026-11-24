@@ -16,7 +16,7 @@
 | --- | --- | --- |
 | **01 · 销量追踪** | 查看累计销量、周增量及完整销售周趋势；默认选择近12周新机，支持机型筛选、自建列表、跨期里程碑及桌面／手机 PNG 导出。 | [打开销量追踪](https://smartphonesellout.zirconium.workers.dev/) |
 | **02 · 市场份额** | 自动读取 `market-share.csv`，选择连续两周品牌份额，支持本地 CSV 导入与手动编辑；五种图表（含规模比例堆叠图）、六套主题和 3:4 高清 PNG 导出。 | [打开市场份额](https://smartphonesellout.zirconium.workers.dev/#market-share) |
-| **03 · 榜单推算与出图** | 导入截图并标定估算入榜销量，或直接选择历史榜单及十六个研究专题制作图卡；支持销量与原始排名联动追踪、排名矩阵、CSV 存档、3:4／9:16 高清 PNG 和 ZIP 导出。 | [打开榜单推算](https://smartphonesellout.zirconium.workers.dev/#sales-estimator) |
+| **03 · 榜单推算与出图** | 导入截图并标定估算入榜销量，或直接选择历史榜单及十五个研究专题制作图卡；支持销量与原始排名联动追踪、排名矩阵、CSV 存档、3:4／9:16 高清 PNG 和 ZIP 导出。 | [打开榜单推算](https://smartphonesellout.zirconium.workers.dev/#sales-estimator) |
 
 ## 快速使用
 
@@ -61,7 +61,7 @@ CSV 字段、完整销售周口径、设计约定、部署和维护方法见 [�
 
 - [CHANGELOG.md](CHANGELOG.md)：功能更新与问题修复记录。
 - [维护与设计指南](docs/MAINTAINER_GUIDE.md)：数据格式、图卡规格、设计原则和开发维护说明。
-- [公开图卡文案规范](docs/PUBLIC_POSTER_COPY_GUIDE.md)：四类基础图卡与16个研究专题的标题、副标题、标签、图内提示和底部说明。
+- [公开图卡文案规范](docs/PUBLIC_POSTER_COPY_GUIDE.md)：四类基础图卡与15个研究专题的标题、副标题、标签、图内提示和底部说明。
 - [模块3架构与派生数据](docs/MODULE3_ARCHITECTURE.md)：研究数据引擎、版本化配置、初始化隔离与生成物。
 
 **致谢**：感谢 [@zhoulin12138](https://github.com/zhoulin12138) 提供的思路、辅导与支持。

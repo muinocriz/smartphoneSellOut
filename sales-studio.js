@@ -55,7 +55,6 @@ function syncPaletteChooser(){
 // Public-facing chart copy: intentionally separate from research method notes and CSV metadata.
 const publicResearchHeadings={
  model:['机型销量趋势','重点机型销量走势'],
- series:['系列销量趋势','热门系列销量变化'],
  generation:['新旧机型销量对比','两代合计周销量与新代替代率'],
  structure:['产品结构分析','不同产品类型的销量表现'],
  tier:['同档代际对比','同价位新旧机型销量比较'],
@@ -256,7 +255,7 @@ function leaveResearchStudio(next='top'){
  socialResearchSnapshot=null;savedResearchHeader=null;socialState.template=next;markStudioTemplate();
 }
 function applyResearchTopicToStudio(snapshot){
- if(!snapshot?.ready)return false;
+ if(!snapshot?.ready||!Object.prototype.hasOwnProperty.call(publicResearchHeadings,snapshot.key))return false;
  if(!researchStudioActive()){
   savedResearchHeader=Object.fromEntries(researchContentFields.map(k=>[k,{value:socialCopyState[k],dirty:socialCopyDirty[k]}]));
  }
@@ -451,7 +450,9 @@ async function restorePublicationScheme(){
  const saved=StudioPref.read('publication');if(!saved.template){notify('没有已保存的发布方案');return;}
  if(publicationJob.busy)return;
  if(isResearchTemplate(saved.template)){
-  if(!window.SalesEstimateArchive||!await window.SalesEstimateArchive.sendResearchToStudio(saved.template.slice(9))){notify('当前数据无法重建已保存的专题，请检查历史数据');return;}
+  const key=saved.template.slice(9);
+  if(!Object.prototype.hasOwnProperty.call(publicResearchHeadings,key)){notify('已保存的研究专题不再提供，请选择现有专题并重新保存发布方案');return;}
+  if(!window.SalesEstimateArchive||!await window.SalesEstimateArchive.sendResearchToStudio(key)){notify('当前数据无法重建已保存的专题，请检查历史数据');return;}
  }else if(['top','versus','brands','leader'].includes(saved.template)){leaveResearchStudio(saved.template);updateSocial(true);}else return;
  setVisualPreferences(saved.visual);
  const same=publicationIdentity()===saved.signature;

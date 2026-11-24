@@ -378,11 +378,16 @@ function drawGenerationDualAxis(ctx,chart,box,p){
  if(!auditPlot(ctx,x1-x0,y1-y0,'代际替代双轴绘图区',260,150))return;
  const slot=(x1-x0)/n,bw=Math.min(slot*.62,76*f);
  if(bw<3){auditIssue(ctx,'代际替代图周次过多，柱宽不足',true);return;}
- const max=Math.max(1,...volume.values.filter(Number.isFinite));
- const magnitude=Math.pow(10,Math.floor(Math.log10(max/5)));
- const raw=max/5/magnitude;
- const step=([1,2,2.5,5,10].find(v=>v>=raw)||10)*magnitude;
- const cap=step*5,plotH=y1-y0;
+ // Scale only from finite weekly combined volumes; leave 5% headroom.
+ // Select a readable step independently of the axis ceiling so a small
+ // increase in peak volume cannot double the displayed range.
+ const peak=volume.values.reduce((m,v)=>Number.isFinite(v)?Math.max(m,v):m,0);
+ const target=peak>0?peak*1.05:1;
+ const desired=target/4,magnitude=Math.pow(10,Math.floor(Math.log10(desired)));
+ const raw=desired/magnitude;
+ const step=[1,2,2.5,5,10].reduce((best,v)=>v<=raw+1e-10?v:best,1)*magnitude;
+ const intervals=Math.max(1,Math.ceil(target/step-1e-10));
+ const cap=intervals*step,plotH=y1-y0;
  const x=i=>x0+(i+.5)*slot,y=v=>y1-v/cap*plotH,yp=v=>y1-v/100*plotH;
  const text=(v,a,b,size,color=p.sub,weight='550',align='left',maxWidth=width)=>posterFitText(ctx,String(v),a,b,size,color,weight,align,maxWidth);
  const rule=(a,b,c,d,color,lw=1,dash=[])=>{ctx.save();ctx.strokeStyle=color;ctx.lineWidth=lw;ctx.setLineDash(dash);ctx.beginPath();ctx.moveTo(a,b);ctx.lineTo(c,d);ctx.stroke();ctx.restore();};
@@ -396,10 +401,10 @@ function drawGenerationDualAxis(ctx,chart,box,p){
  text(rate.name,lx+26*f,legendY,font,p.ink,'600','left',half-28*f);
  text('合计周增量 / 万台',x0,y0-10*f,font,p.sub,'600','left',(x1-x0)/2);
  text('替代率 / %',x1,y0-10*f,font,p.sub,'600','right',(x1-x0)/2);
- for(let i=0;i<=5;i++){
-  const v=step*i,yy=y(v);
-  if(i!==4)rule(x0,yy,x1,yy,p.hair,1.2*f); // 80% has its own dashed guide.
-  text(Number(v.toFixed(3)),x0-8*f,yy+small*.35,small,p.sub,'550','right',x0-left-10*f);
+ for(let i=0;i<=intervals;i++){
+  const v=step*i,yy=y(v),fraction=i/intervals;
+  if(![.5,.8].some(ref=>Math.abs(fraction-ref)<1e-9))rule(x0,yy,x1,yy,p.hair,1.2*f);
+  text(Number(v.toPrecision(12)),x0-8*f,yy+small*.35,small,p.sub,'550','right',x0-left-10*f);
  }
  for(const v of [0,20,40,50,60,80,100])text(v+'%',x1+8*f,yp(v)+small*.35,small,p.sub,'550','left',right-x1-9*f);
  rule(x0,y0,x0,y1,p.hair,1.2*f);

@@ -6,6 +6,11 @@
 
 ## 2026-11-24
 
+### 模块4数据核查与日期修正
+
+- [e4013cf](https://github.com/muinocriz/smartphoneSellOut/commit/e4013cf) / [46fb723](https://github.com/muinocriz/smartphoneSellOut/commit/46fb723) / [1e315cf](https://github.com/muinocriz/smartphoneSellOut/commit/1e315cf)：荣耀 WIN 正式开售日统一为2025/12/26（荣耀官方证实12/16为媒体沟通会、12/26发布即开售）；REDMI K100 依据既有核实记录统一为2026/10/31。宽表、长表日期同步，不修改销量。用户确认小米17系列统计组为标准版、Pro、Pro Max，17 Ultra及徕卡版独立；更新主数据备注。保留 Pura X Max 合并榜单别名并记录统计粒度已确认。
+- [2d39b10](https://github.com/muinocriz/smartphoneSellOut/commit/2d39b10)：模块4合并/特殊版本名称警告仅在已明确标记「统计粒度已确认」且当前销量表名称直接匹配标准机型时不重复触发，仍保留歧义、重复ID和日期检查。无机型专用算法，未执行测试或构建。旧本地草稿须由维护者按需重新导入最新项目文件，不自动覆盖。
+
 - [ae9e2a0](https://github.com/muinocriz/smartphoneSellOut/commit/ae9e2a0)：模块4取消宽表整50倍数筛除选项及导入、同步、删除统计逻辑；无显式运算符的有效数值均按精确累计记录保留，特殊记录冲突仍需人工确认。模块1里程碑规则和既有CSV不变，未执行测试。
 
 ### 模块4 增量同步

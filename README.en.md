@@ -2,7 +2,7 @@
 
 [简体中文](README.md) · [English](README.en.md)
 
-A smartphone data dashboard and social-poster toolkit deployed on Cloudflare Workers, with three independent modules. The frontend uses static HTML/CSS/JS and requires no local build; the production Worker enforces access control.
+A smartphone data dashboard and social-poster toolkit deployed on Cloudflare Workers, with four independent modules. The frontend uses static HTML/CSS/JS and requires no local build; the production Worker enforces access control.
 
 **[Open the live project](https://smartphonesellout.zirconium.workers.dev/)**
 
@@ -20,9 +20,11 @@ A smartphone data dashboard and social-poster toolkit deployed on Cloudflare Wor
 
 The module-3 in-list and whole-market brand competition study adds a six-brand, three-row by two-column growth-decomposition view (listed and off-list week-over-week changes, plus total changes), and retains a two-week ribbon comparison and a multiweek stacked-flow mode, with translucent same-brand ribbons drawn only between adjacent valid weeks. The TOP30 market coverage study now combines market-size estimates and a 100% rank-layer composition chart; off-list shares are conditional scenario residuals, left blank without a feasible finite market interval. The ranking-ecosystem brand-structure multiweek stacked chart now also uses these ribbons for brand sales share, model-count share, and sales volume; missing weeks break the connections, and the multiweek cross-module view omits the pp-change column.
 
+| **04 · Sales Data Editor V3.3** | Auto-load project sales and model CSVs; edit cumulative and weekly values, manage special observations and model metadata, check data, save local drafts and export CSVs. | [Sales Data Editor](https://smartphonesellout.zirconium.workers.dev/#sales-data-editor) |
+
 ## Getting started
 
-Use the live site above (modules 1 and 2 are public; module 3 requires authorization). Maintainers with private repository access can download or clone it and serve it locally:
+Use the live site above (modules 1, 2 and 4 are public; module 3 requires authorization). Maintainers with private repository access can download or clone it and serve it locally:
 
 ```bash
 python3 -m http.server 8000
@@ -33,11 +35,17 @@ Opening `index.html` directly as a local file may block reading `data.csv`; a lo
 
 ## Updating data
 
-Each module uses a separate CSV with a distinct statistical definition. Commit the corresponding CSV to the repository root to publish permanent data updates.
+Modules 1 and 2 retain their original independent data. Module 3 optionally combines tracked sales with ranking estimates; module 4 edits local copies and exports CSVs without writing to the repository. Commit the corresponding CSV to the repository root to publish permanent data updates.
 
 - **Module 1:** Edit `data.csv` in the repository root. Figures are **cumulative sales in units of 10,000 phones**; weekly sales are derived from adjacent cumulative values. Add a week by appending a column.
 - **Module 2:** Append one row of shares and market trend per ISO week to `market-share.csv`. OPPO includes OnePlus and realme; vivo includes iQOO. Do not double-count subbrands. The page auto-loads the CSV and supports local import, historical weeks and manual edits.
-- **Module 3:** Import a ranking screenshot from the left panel, enter model names and the period, and calibrate with known sales for the **same period and definition**. Export the merged full history and commit the downloaded `sales-estimates.csv`. Rankings of different sizes need no zero padding; back up uncommitted data before refreshing. Select an archived ranking to create posters without recalibration. Only final estimates are archived, not the original screenshot or full calibration workspace. The protected `model-master.csv` catalog now powers permanent research sequence IDs, alias matching and automatic grouping. Unmatched models retain separate identities; price-band, brand-positioning, chipset, product-age and multidimensional research are available. All fourteen research topics also support direct chart PNG export using the current studio theme, watermark and export width, with adaptive chart geometry and no social safe-area clipping. Topic ZIPs include PNG, copy, headlines, complete analytical CSV, plotted-data CSV, methodology and a JSON manifest.
+- **Module 3:** Import a ranking screenshot from the left panel, enter model names and the period, and calibrate with known sales for the **same period and definition**. Export the merged full history and commit the downloaded `sales-estimates.csv`. Rankings of different sizes need no zero padding; back up uncommitted data before refreshing. Select an archived ranking to create posters without recalibration. Only final estimates are archived, not the original screenshot or full calibration workspace. The `model-master.csv` catalog (also public for module 4) now powers permanent research sequence IDs, alias matching and automatic grouping. Unmatched models retain separate identities; price-band, brand-positioning, chipset, product-age and multidimensional research are available. All fourteen research topics also support direct chart PNG export using the current studio theme, watermark and export width, with adaptive chart geometry and no social safe-area clipping. Topic ZIPs include PNG, copy, headlines, complete analytical CSV, plotted-data CSV, methodology and a JSON manifest.
+
+- **Module 4:** Automatically reads `data.csv` and `model-master.csv` unless a local draft is restored. Import an existing `sales-long.csv` manually to continue long-table maintenance. Export `sales-long.csv` and `model-master.csv` and commit them manually. Module 1's wide CSV is maintained separately; there is no automatic synchronization.
+
+Module 3 defaults to original ranking data; ten of fourteen research topics also support the shared expanded sample: exact weekly observations, reliable cumulative differences, then complete original TOP30 estimates as fallback. Overlapping coverage is deduplicated, combined entries are not split, and expanded mode does not interpolate. Original ranks, ranking persistence and flow, and cross-market studies retain original ranking definitions.
+
+Module 1 supports tab-local cumulative edits, temporary weeks, reset, editable temporary-data disclaimers and full wide CSV export without imputed values.
 
 Both poster studios offer four PNG export resolutions, defaulting to 2160px wide. With safe-area avoidance enabled, both studios can export safe-area and full-layout variants (default right margin 13%, bottom 10%). Module 3 presents estimated sales to one decimal place in units of 10,000 phones, retaining CSV precision.
 
@@ -47,11 +55,11 @@ For the full CSV schema, full-sales-week definitions, poster specifications, des
 
 ## Sources and data limitations
 
-Sales-tracking data is manually compiled mainly from public posts by **RD观测** and **数码闲聊站**. It is for reference and personal study, not official reporting. **Module 1 contains a selected model sample, not a market-wide ranking; Module 2 auto-loads an editable market-share CSV (non-official estimates) and reports load failures with a local CSV import option; no built-in sample shares remain; Module 3 describes only the listed models in the corresponding ranking period, not total brand market share.** Verify dates, definitions and underlying data before publication.
+Sales-tracking data is manually compiled mainly from public posts by **RD观测** and **数码闲聊站**. It is for reference and personal study, not official reporting. **Module 1 contains a selected model sample, not a market-wide ranking; Module 2 auto-loads an editable market-share CSV (non-official estimates) and reports load failures with a local CSV import option; no built-in sample shares remain; Module 3's original sample describes the corresponding ranking; its expanded sample also includes deduplicated tracked sales. Neither represents the whole market. Module 4 edits do not automatically update published data.** Verify dates, definitions and underlying data before publication.
 
 ## Cloudflare deployment
 
-Production hosting has migrated to Cloudflare Workers. The source repository is private, and the maintainer has disabled the former GitHub Pages site. Modules 1 and 2 are public, including `data.csv` and `market-share.csv`. Module 3 requires Cloudflare Access authorization via an approved email and one-time PIN. Its page, historical CSV and derived datasets live under `/studio/`, with server-side Access JWT verification by the Worker. Module 2 assets are served at the root; the build retains compatible copies under `/studio/` for cross-module research. Only allowlisted assets are deployed; the private repository's `master` branch remains the deployment source. See the [deployment guide (Chinese)](docs/CLOUDFLARE_DEPLOYMENT.md) for validation scope and maintenance requirements. Local development does not enforce Access.
+Production hosting has migrated to Cloudflare Workers. The source repository is private, and the maintainer has disabled the former GitHub Pages site. Modules 1, 2 and 4 are public, including `data.csv`, `market-share.csv` and `model-master.csv`. Module 3 requires Cloudflare Access authorization via an approved email and one-time PIN. Its page, historical CSV, long-format sales data, fusion engines and derived datasets live under `/studio/`, with server-side Access JWT verification by the Worker. Module 2 assets are served at the root; the build retains compatible copies under `/studio/` for cross-module research. Only allowlisted assets are deployed; the private repository's `master` branch remains the deployment source. See the [deployment guide (Chinese)](docs/CLOUDFLARE_DEPLOYMENT.md) for validation scope and maintenance requirements. Local development does not enforce Access.
 
 ## Documentation
 

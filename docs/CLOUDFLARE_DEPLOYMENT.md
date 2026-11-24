@@ -43,3 +43,7 @@
 参考：[Cloudflare Workers Access 路径保护](https://developers.cloudflare.com/workers/configuration/cloudflare-access/#protect-a-specific-hostname-custom-domain-or-path)、[Access JWT 校验](https://developers.cloudflare.com/cloudflare-one/access-controls/applications/http-apps/authorization-cookie/validating-json/)、[Static Assets 配置](https://developers.cloudflare.com/workers/static-assets/binding/)。
 
 模块 4 新增验收项：重新部署后，匿名访问 `/sales-data-editor.html` 与 `/model-master.csv` 应正常返回；模块 4 应自动读取两个项目 CSV，并在存在本地草稿时优先恢复，保留手动导入及重新读取按钮。匿名访问 `/studio/model-master.csv` 仍必须被拦截，授权访问正常；其内容与公开根路径相同，不再视为秘密。此项尚未执行线上验收。
+
+### 模块 3 扩展销量接入
+
+`/studio/sales-long.csv`、`/studio/sales-tracking.js`、`/studio/sales-fusion.js` 仅部署在授权路径，不发布根路径副本。`model-master.csv` 已升级至 20 列（含 `tracking_group`），仍按模块 4 的要求公开根路径副本；`data.csv` 和 `sales-estimates.csv` 不变。机型销量趋势默认原始榜单，切换扩展销量后使用精确周增量、累计差分及 TOP30 估算补充，保留原始排名；不启用插补，不代表全市场。其他研究专题暂保留原始口径。维护者重新部署后需验收上述访问权限、两种模式切换及导出来源说明；本次未执行构建或测试。

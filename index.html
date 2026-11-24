@@ -82,6 +82,13 @@ th:first-child,td:first-child,th:nth-child(2),td:nth-child(2){text-align:left}
 td.n{font-family:var(--f-num);font-variant-numeric:tabular-nums}
 td.na{color:var(--muted)}
 td.bad{color:var(--warn)}
+.temp-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:8px}
+.temp-toolbar .note{flex:1;min-width:12em}
+#tbl td[data-temp-week]{cursor:text}
+#tbl td[data-temp-week]:hover{background:var(--accent-soft)}
+#tbl td.temp-changed{color:var(--warn);box-shadow:inset 0 -2px var(--warn)}
+#tbl .temp-input{width:7em;font:inherit;text-align:right;color:var(--fg);background:var(--panel);border:1px solid var(--accent);border-radius:4px;padding:3px}
+#tbl .temp-undo{padding:2px 5px;margin-left:4px;color:var(--warn)}
 @media (max-width:600px){#chart{height:400px}}
 .chart-head{display:flex;justify-content:flex-end;align-items:center;gap:6px;margin-bottom:4px}
 .chart-head .note{margin-right:2px}
@@ -199,7 +206,10 @@ td.bad{color:var(--warn)}
     <p class="note" id="note"></p>
   </section>
 
-  <section class="panel tbl"><table id="tbl"></table></section>
+  <section class="panel tbl">
+    <div class="temp-toolbar"><span id="tempStatus" class="note">累计销量模式下双击单元格编辑</span><button id="tempAdd" disabled>新增周次</button><button id="tempReset" disabled>重置临时数据</button></div>
+    <table id="tbl"></table>
+  </section>
   </div>
   <section id="shareView" role="tabpanel" aria-labelledby="tabShare" hidden>
     <iframe id="shareFrame" class="share-frame" title="手机市场份额可视化与海报生成" data-src="market-share.html" loading="lazy" hidden></iframe>
@@ -268,6 +278,7 @@ function load(text){
       vals:ordered.map(x=>{const v=(c[x.i]||"").trim().replace(/,/g,"");return v===""||!Number.isFinite(+v)?null:+v}),
       offs:WMON.map(m=>lifecycleWeekIndex(m,w1m)),
       p0:p0?{days:p0.days,isoMonday:p0.isoMonday}:null}});
+  captureTempBase();
   assignColors();
   BRANDS=["全部",...new Set(ROWS.map(r=>r.brand))];
   if(!BRANDS.includes(S.brand))S.brand=BRANDS[1]||"全部";
@@ -315,6 +326,123 @@ const isExact=v=>Number.isFinite(v)&&!isVirtual(v);
 const VIRTUAL_FLAG=Object.freeze({method:"virtual"});
 // Only internal bounded gaps are estimated. Raw observations are never changed.
 const gapCache=new WeakMap();
+// Module 1 only: immutable CSV snapshot + tab-local cumulative overrides.
+const TEMP_KEY="phoneSales.module1.temp.v1", WEEK_STEP=7*IsoSalesWeek.DAY;
+let tempBase=null,tempEdits=new Map(),tempEnd=null;
+const tempKey=(r,m)=>JSON.stringify([r.brand,r.model,m]);
+function captureTempBase(){
+  tempBase={weeks:WEEKS.slice(),mondays:WMON.slice(),values:new Map(ROWS.map(r=>[key(r),r.vals.slice()]))};
+  tempEdits=new Map();tempEnd=null;
+  try{
+    const saved=JSON.parse(sessionStorage.getItem(TEMP_KEY)||"null");
+    if(saved&&Number.isFinite(saved.end)&&saved.end>WMON.at(-1)&&
+       (saved.end-WMON.at(-1))%WEEK_STEP===0&&saved.end-WMON.at(-1)<=52*WEEK_STEP)tempEnd=saved.end;
+    for(const e of (Array.isArray(saved?.edits)?saved.edits:[])){
+      if(!e||!Number.isFinite(e.value)||e.value<0)continue;
+      const r=ROWS.find(r=>r.brand===e.brand&&r.model===e.model);
+      if(!r||!Number.isFinite(e.m)||e.m<WMON[0]||e.m>(tempEnd??WMON.at(-1))||(e.m-WMON[0])%WEEK_STEP!==0)continue;
+      const original=tempOriginal(r,e.m);
+      // A new official observation supersedes an older temporary edit.
+      if(original!==e.original||original===e.value)continue;
+      tempEdits.set(tempKey(r,e.m),e);
+    }
+  }catch(_){}
+  applyTempData();saveTempData();
+}
+function tempOriginal(r,m){
+  const i=tempBase.mondays.indexOf(m);
+  return i<0?null:(tempBase.values.get(key(r))[i]??null);
+}
+function saveTempData(){
+  try{
+    if(!tempEdits.size&&tempEnd==null)sessionStorage.removeItem(TEMP_KEY);
+    else sessionStorage.setItem(TEMP_KEY,JSON.stringify({end:tempEnd,edits:[...tempEdits.values()]}));
+  }catch(_){/* Memory remains usable if browser storage is blocked. */}
+}
+function applyTempData(){
+  WEEKS=tempBase.weeks.slice();WMON=tempBase.mondays.slice();
+  for(let m=WMON.at(-1)+WEEK_STEP;tempEnd!=null&&m<=tempEnd;m+=WEEK_STEP){
+    const y=new Date(m+3*IsoSalesWeek.DAY).getUTCFullYear();
+    const w=1+Math.round((m-IsoSalesWeek.isoWeek1Monday(y))/WEEK_STEP);
+    WMON.push(m);WEEKS.push(y+"W"+String(w).padStart(2,"0"));
+  }
+  for(const r of ROWS){
+    const dp=r.date.split(/[\/\-.]/).map(Number),w1=utcDate(dp)!=null?firstFullWeekMonday(dp):null;
+    r.vals=WMON.map(m=>tempEdits.get(tempKey(r,m))?.value??tempOriginal(r,m));
+    r.offs=WMON.map(m=>lifecycleWeekIndex(m,w1));
+    gapCache.delete(r);
+  }
+}
+function refreshTemp(){
+  const old=CUR?.cats||[],lo=old[S.from]?.k,hi=old[S.to]?.k,atEnd=S.to===old.length-1;
+  applyTempData();saveTempData();
+  const cats=categories(),find=(k,fallback)=>{const i=cats.findIndex(c=>c.k===k);return i<0?fallback:i};
+  S.from=find(lo,0);S.to=atEnd?Math.max(0,cats.length-1):find(hi,Math.max(0,cats.length-1));
+  $("sub").textContent=WEEKS[0]+"–"+WEEKS.at(-1)+"（"+fmtMD(WMON[0])+" 起）· "+ROWS.length+" 个机型 · 单位：万台";
+  computeMilestones();computeRecent();renderModels();renderLists();draw(true);
+}
+function tempToolbar(){
+  const added=tempBase?WMON.length-tempBase.mondays.length:0;
+  $("tempStatus").textContent=(S.val==="cum"?"双击累计销量编辑（含空值）":"增量模式只读，切回累计销量编辑")+
+    (tempEdits.size||added?" · 临时修改 "+tempEdits.size+" 项 / 新增 "+added+" 周":"");
+  $("tempAdd").disabled=!tempBase||S.val!=="cum";
+  $("tempReset").disabled=!tempEdits.size&&tempEnd==null;
+}
+function tempCell(r,idx,v,flag){
+  const m=WMON[idx],editable=S.val==="cum"&&idx>=0&&Number.isFinite(m);
+  const edit=editable?tempEdits.get(tempKey(r,m)):null;
+  const cls=(v==null?"na":"n"+(v<0?" bad":""))+(edit?" temp-changed":"");
+  const tip=[flag?gapLabel(flag):"",editable?"双击编辑原始累计值（估算值不会直接写入）":"",edit?"临时值；原始值："+(edit.original==null?"—":fmtV(edit.original)):""].filter(Boolean).join("；");
+  return '<td class="'+cls+'"'+(editable?' data-temp-row="'+ROWS.indexOf(r)+'" data-temp-week="'+m+'" tabindex="0"':"")+
+    (tip?' title="'+esc(tip)+'"':"")+">"+(v==null?"—":flagPrefix(flag)+v.toFixed(2))+"</td>";
+}
+function beginTempEdit(cell){
+  if(S.val!=="cum"||cell.querySelector("input"))return;
+  const r=ROWS[+cell.dataset.tempRow],m=+cell.dataset.tempWeek,i=WMON.indexOf(m);
+  if(!r||i<0)return;
+  const k=tempKey(r,m),original=tempOriginal(r,m),old=r.vals[i];
+  const input=document.createElement("input");input.type="text";input.inputMode="decimal";input.className="temp-input";
+  input.value=old==null?"":String(old);input.setAttribute("aria-label","累计销量（万台）");
+  cell.replaceChildren(input);
+  let done=false;
+  function finish(action){
+    if(done)return;
+    if(action==="save"){
+      const raw=input.value.trim(),v=Number(raw);
+      if(!raw){action="reset";}
+      else if(!/^(?:\d+(?:\.\d*)?|\.\d+)$/.test(raw)||!Number.isFinite(v)||v<0){
+        alert("请输入非负有限数值");input.focus();return;
+      }else{
+        const prev=r.vals.slice(0,i).reverse().find(Number.isFinite),next=r.vals.slice(i+1).find(Number.isFinite);
+        if(v!==old&&((prev!=null&&v<prev)||(next!=null&&v>next))&&!confirm("该值会造成累计销量倒挂，仍然保存？")){input.focus();return;}
+        if(v===original)tempEdits.delete(k);
+        else tempEdits.set(k,{brand:r.brand,model:r.model,m,value:v,original});
+      }
+    }
+    if(action==="reset")tempEdits.delete(k);
+    done=true;
+    if(action==="cancel")renderTable(selected());else refreshTemp();
+  }
+  if(tempEdits.has(k)){
+    const undo=document.createElement("button");undo.type="button";undo.className="temp-undo";undo.textContent="↶";undo.title="恢复原始值";undo.setAttribute("aria-label","恢复原始值");
+    undo.addEventListener("mousedown",e=>e.preventDefault());undo.onclick=()=>finish("reset");cell.append(undo);
+  }
+  input.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key==="Escape"){e.preventDefault();finish(e.key==="Enter"?"save":"cancel")}});
+  cell.addEventListener("focusout",e=>{if(!cell.contains(e.relatedTarget))finish("save")});
+  input.focus();input.select();
+}
+$("tbl").addEventListener("dblclick",e=>{const cell=e.target.closest("td[data-temp-week]");if(cell)beginTempEdit(cell)});
+$("tbl").addEventListener("keydown",e=>{if(e.target.matches("td[data-temp-week]")&&e.key==="Enter"){e.preventDefault();beginTempEdit(e.target)}});
+$("tempAdd").onclick=()=>{
+  if(!tempBase||S.val!=="cum")return;
+  const m=WMON.at(-1)+WEEK_STEP;
+  if(m-tempBase.mondays.at(-1)>52*WEEK_STEP){alert("最多临时新增52周");return;}
+  tempEnd=m;refreshTemp();
+};
+$("tempReset").onclick=()=>{
+  if(!confirm("清除全部临时销量和新增周次？原始 CSV 与当前图表设置不受影响。"))return;
+  tempEdits.clear();tempEnd=null;refreshTemp();
+};
 function historicalTrend(vals,left,window){
   const ds=[];
   for(let i=left;i>0&&ds.length<window;i--){
@@ -387,7 +515,7 @@ function categories(){
   if(S.axis==="week")return WEEKS.map((w,i)=>({k:i,t:w+"\n"+fmtMD(WMON[i])}));
   const sel=selected().filter(hasData);if(!sel.length)return [];
   let lo=Infinity,hi=-Infinity;
-  sel.forEach(r=>r.vals.forEach((v,i)=>{if(v!=null&&r.offs[i]!=null){lo=Math.min(lo,r.offs[i]);hi=Math.max(hi,r.offs[i])}}));
+  sel.forEach(r=>r.vals.forEach((v,i)=>{if((v!=null||(tempEnd!=null&&WMON[i]>tempBase.mondays.at(-1)))&&r.offs[i]!=null){lo=Math.min(lo,r.offs[i]);hi=Math.max(hi,r.offs[i])}}));
   const out=[];for(let o=lo;o<=hi;o++)out.push({k:o,t:"第"+o+"周"});return out;
 }
 function syncRange(cats){
@@ -477,7 +605,7 @@ function mobileList(o,t){
   return g;
 }
 function exportFooter(width){
-  const note=$("exportDisclaimer").value.trim();
+  const note=[$("exportDisclaimer").value.trim(),tempEdits.size||tempEnd!=null?"含本标签页临时数据，仅供参考":""].filter(Boolean).join("\n");
   if(!note)return {height:0,graphic:[]};
   const lines=[],pad=16,lineHeight=17;
   for(const paragraph of note.split("\n")){
@@ -785,6 +913,7 @@ function renderNote(sel){
   $("note").innerHTML=(S.axis==="launch"?"「完整销售第 N 周」以所填日期起首个完整7天ISO自然周为W1；不足7天的上市当周P0不纳入W1起的图表，但会在表格单列P0天数与周末累计销量（非P0单周销量）。若填的是发布日期而非开售日，需核实日期口径。":"拖动图下方滑块或修改周期选择可调整显示范围。")+(msgs.length?" "+msgs.join("；")+"。":"");
 }
 function renderTable(sel){ // 列与图表横轴一致，但倒序：最新的周放在最左（紧跟发布日期列）
+  tempToolbar();
   const cats=CUR?CUR.cats:[];
   if(!sel.length||!cats.length){$("tbl").innerHTML="";return}
   const lifecycle=S.axis==="launch";
@@ -797,11 +926,11 @@ function renderTable(sel){ // 列与图表横轴一致，但倒序：最新的�
       const idx=r.p0?WMON.indexOf(r.p0.isoMonday):-1;
       const cum=idx>=0?r.vals[idx]:null;
       p0Cells=r.p0
-        ?`<td class="n">${r.p0.days}天</td>${cum==null?'<td class="na">—</td>':`<td class="n">${isVirtual(cum)?"≥":""}${cum.toFixed(2)}</td>`}`
+        ?`<td class="n">${r.p0.days}天</td>${tempCell(r,idx,cum,isVirtual(cum)?VIRTUAL_FLAG:null)}`
         :'<td class="na">不适用</td><td class="na">—</td>';
     }
     return `<tr><td><span class="dot" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${colorOf(r)};margin-right:6px"></span>${label(r)}</td><td>${r.date}</td>${p0Cells}${
-      vs.map((v,i)=>v==null?`<td class="na">—</td>`:`<td class="n${v<0?" bad":""}"${flags[i]?' title="'+esc(gapLabel(flags[i]))+'"':''}>${flagPrefix(flags[i])}${v.toFixed(2)}</td>`).join("")}</tr>`}).join("");
+      vs.map((v,i)=>{const c=cats[cats.length-1-i],idx=lifecycle?r.offs.indexOf(c.k):c.k;return tempCell(r,idx,v,flags[i])}).join("")}</tr>`}).join("");
   $("tbl").innerHTML=`<thead>${h}</thead><tbody>${b}</tbody>`;
 }
 

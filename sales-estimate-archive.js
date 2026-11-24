@@ -306,8 +306,8 @@
     const known=knownModels(scope);
     for(const m of scope.models){if(!known.has(m.key))known.set(m.key,m);}
     for(const [key,m] of known){
-      const master=masterCatalog?.get(key)||m.master;
-      const brand=brandUtils.classify(master?.model_name||m.name,master?.brand_group)||'其他';
+      const master=scope.expanded?researchModel(key):masterCatalog?.get(key)||m.master;
+      const brand=brandUtils.classify(master?.model_name||(typeof m==='string'?m:m.name),master?.brand_group)||'其他';
       if(!groups.has(brand))groups.set(brand,[]);
       groups.get(brand).push(key);
     }
@@ -466,8 +466,8 @@
     const metric=$('trackerMode').value;
     const brandColors=trackerBrandColors(scope);
     const curves=models.map(m=>({m,color:brandColors.get(m.key)||'#64748b',rows:scope.rows.filter(r=>r[c.sequence_id]===m.key)}));
-    $('trackerStatus').textContent=(scope.expanded?'扩展样本 · 合计条目保持独立 · ':'')+scope.weeks.length+' 周 / '+scope.models.length+' 款长期追踪机型 · 已选且符合属性筛选 '+models.length+' 款 · 插补 '+curves.reduce((n,o)=>n+o.rows.filter(r=>r[c.is_imputed]==='1').length,0)+' 条';
-    if(!curves.length){$('trackerStatus').textContent+=' · 请勾选符合当前参数的机型；必要时降低覆盖率。';return;}
+    $('trackerStatus').textContent=(scope.expanded?'扩展样本 · 合计条目保持独立 · ':'')+scope.weeks.length+' 周 / '+scope.models.length+(scope.expanded?' 个去重统计项 · 已选且符合属性筛选 ':' 款长期追踪机型 · 已选且符合属性筛选 ')+models.length+(scope.expanded?' 项 · 插补 ':' 款 · 插补 ')+curves.reduce((n,o)=>n+o.rows.filter(r=>r[c.is_imputed]==='1').length,0)+' 条';
+    if(!curves.length){$('trackerStatus').textContent+=scope.expanded?' · 请勾选符合当前参数的统计项。':' · 请勾选符合当前参数的机型；必要时降低覆盖率。';return;}
     if(lifeMode()){
       const items=curves.map(o=>({key:o.m.key,name:o.m.name,color:o.color,rows:o.rows})),maps=lifeMaps(scope,items,c,metric);
       trackerPublicationChart=lifeChart(items,maps);

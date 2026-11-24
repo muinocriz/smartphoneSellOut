@@ -14,12 +14,12 @@
 </style>
 </head>
 <body><main>
-<header><div><h1>手机销量数据处理工具 V3.3</h1><p class="muted">公开工具 · 累计 / 周增量双模式 · 数据仅在本地处理（请自行导入销量 CSV 和机型主数据）</p></div><div class="muted">单位：万台 / ISO 自然周</div></header>
+<header><div><h1>手机销量数据处理工具 V3.3</h1><p class="muted">公开工具 · 自动读取项目 CSV · 编辑及草稿仅保存在本地</p></div><div class="muted">单位：万台 / ISO 自然周</div></header>
 <section class="panel" aria-label="导入与导出">
-<div class="toolbar"><label class="file-btn primary" for="file">导入 CSV</label><input id="file" class="sr-only" type="file" accept=".csv,text/csv"><button id="newData">新建空表</button><button id="undoBtn" disabled>撤销</button><button id="redoBtn" disabled>重做</button><span class="spacer"></span><button class="primary" id="longExport" disabled>导出长表 CSV</button></div>
+<div class="toolbar"><button class="primary" id="projectSales">读取项目 data.csv</button><label class="file-btn" for="file">导入本地 CSV</label><input id="file" class="sr-only" type="file" accept=".csv,text/csv"><button id="newData">新建空表</button><button id="undoBtn" disabled>撤销</button><button id="redoBtn" disabled>重做</button><span class="spacer"></span><button class="primary" id="longExport" disabled>导出长表 CSV</button></div>
 <div class="import-options"><label class="check"><input id="cleanLegacy" type="checkbox" checked>导入旧宽表时删除正数 50 的整数倍（旧规则）</label><label class="check muted">无年份周列使用年份 <input id="defaultYear" type="number" min="1900" max="9999" step="1" value="2026"></label></div>
 <p class="muted" style="margin-top:7px">支持原始 data.csv 及 V3 长表 CSV。旧宽表默认作为累计销量导入。清理只在导入无运算符的旧宽表数值时执行，不修改原始文件；新录入的精确数值不受此规则限制。</p>
-<div class="toolbar" style="margin-top:10px"><label class="check"><input type="checkbox" id="autoDraft" checked>本地自动保存草稿</label><button id="clearDraft" class="subtle">清除本地草稿</button><span id="draftStatus" class="muted"></span></div><div id="status" class="status" role="status" aria-live="polite">请选择 CSV 文件，或新建空表。</div>
+<div class="toolbar" style="margin-top:10px"><label class="check"><input type="checkbox" id="autoDraft" checked>本地自动保存草稿</label><button id="clearDraft" class="subtle">清除本地草稿</button><span id="draftStatus" class="muted"></span></div><div id="status" class="status" role="status" aria-live="polite">正在准备读取项目 data.csv…</div>
 <details id="audit" class="audit" hidden><summary id="auditTitle"></summary><pre id="auditBody"></pre></details>
 </section>
 <div class="summary" aria-label="记录统计"><div class="metric"><span>跟踪产品</span><b id="countModels">0</b></div><div class="metric"><span>自然周</span><b id="countWeeks">0</b></div><div class="metric"><span>精确记录</span><b id="countExact">0</b><small id="countByMetric"></small></div><div class="metric"><span>特殊记录</span><b id="countSpecial">0</b></div><div class="metric"><span>导入时删除</span><b id="countRemoved">0</b></div></div>
@@ -27,8 +27,8 @@
 <div class="legend"><span class="tag">= 精确值</span><span class="tag lt">&lt; 小于</span><span class="tag ge">≥ 大于等于</span><span class="tag ap">≈ 估计值</span><span class="tag derived-tag">灰色斜体 · 自动计算</span><span class="muted">普通单元格直接录入；彩色单元格点击编辑。计算值可直接覆盖为原始记录。</span></div>
 <p class="mode-hint" id="modeHint"></p><div class="table-wrap" id="tableWrap"><div id="empty" class="empty">导入 data.csv 后，将显示原来的二维表格。</div><table id="grid" hidden><thead></thead><tbody></tbody></table></div>
 <p class="muted" style="margin-top:9px">录入后按 Enter 跳到同列下一行。筛选仅影响显示，导出始终包含全部机型。可从 Excel 复制多行多列销量，从选中周单元格粘贴；空白跳过，不自动新增周次。草稿保存在本浏览器，仍请定期导出 CSV。</p></section>
-<section class="panel" id="checkPanel"><div class="toolbar"><h2>数据检查与机型主数据</h2><span class="spacer"></span><label class="file-btn" for="masterFile">导入 model-master.csv</label><input id="masterFile" class="sr-only" type="file" accept=".csv,text/csv"><button id="masterNew">新建主数据</button><label class="file-btn" for="masterPatch">合并主数据补充 CSV</label><input id="masterPatch" class="sr-only" type="file" accept=".csv,text/csv"><button id="masterExport" disabled>导出主数据 CSV</button></div>
-<p class="muted" id="masterStatus" style="margin:8px 0">未导入主数据；仍可检查销量数据自身的合法性。</p><div class="toolbar"><button id="checkNow" class="primary">立即检查</button><label class="check"><input type="checkbox" id="autoCheck" checked>编辑后自动检查</label><label class="check"><input type="checkbox" id="showGaps">列出内部缺周</label><span class="spacer"></span><select id="issueFilter" aria-label="检查结果筛选"><option value="issues">异常及待确认</option><option value="all">全部结果</option><option value="master">主数据问题</option><option value="sales">销量问题</option></select></div><div class="check-summary" id="checkSummary"></div><div class="check-wrap"><table><thead><tr><th>状态</th><th>产品 / 周次</th><th>检查结果</th><th>操作</th></tr></thead><tbody id="checkRows"></tbody></table></div><p class="muted" style="margin-top:8px">单机按标准名称及别名匹配；系列优先按品牌及累计统计组精确匹配；未设置统计组时仅按产品系列提供待确认候选。明确统计组不等于已核实采集范围。榜外缺失、上市前和停止跟踪后的空白不视为销量为零。不会自动修改任何数据。</p><details style="margin-top:14px"><summary>机型主数据管理</summary><div class="toolbar" style="margin-top:8px"><input id="masterSearch" type="search" placeholder="搜索主数据 ID / 名称 / 系列"><button id="masterAdd" disabled>＋ 主数据机型</button><span class="muted" id="masterCount"></span></div><div class="check-wrap"><table><thead><tr><th>机型 ID</th><th>标准机型名称</th><th>品牌 / 产品系列</th><th>累计统计组</th><th>别名</th><th>操作</th></tr></thead><tbody id="masterRows"></tbody></table></div></details></section>
+<section class="panel" id="checkPanel"><div class="toolbar"><h2>数据检查与机型主数据</h2><span class="spacer"></span><button id="projectMaster">读取项目 model-master.csv</button><label class="file-btn" for="masterFile">导入本地 model-master.csv</label><input id="masterFile" class="sr-only" type="file" accept=".csv,text/csv"><button id="masterNew">新建主数据</button><label class="file-btn" for="masterPatch">合并主数据补充 CSV</label><input id="masterPatch" class="sr-only" type="file" accept=".csv,text/csv"><button id="masterExport" disabled>导出主数据 CSV</button></div>
+<p class="muted" id="masterStatus" style="margin:8px 0">正在准备读取项目 model-master.csv…</p><div class="toolbar"><button id="checkNow" class="primary">立即检查</button><label class="check"><input type="checkbox" id="autoCheck" checked>编辑后自动检查</label><label class="check"><input type="checkbox" id="showGaps">列出内部缺周</label><span class="spacer"></span><select id="issueFilter" aria-label="检查结果筛选"><option value="issues">异常及待确认</option><option value="all">全部结果</option><option value="master">主数据问题</option><option value="sales">销量问题</option></select></div><div class="check-summary" id="checkSummary"></div><div class="check-wrap"><table><thead><tr><th>状态</th><th>产品 / 周次</th><th>检查结果</th><th>操作</th></tr></thead><tbody id="checkRows"></tbody></table></div><p class="muted" style="margin-top:8px">单机按标准名称及别名匹配；系列优先按品牌及累计统计组精确匹配；未设置统计组时仅按产品系列提供待确认候选。明确统计组不等于已核实采集范围。榜外缺失、上市前和停止跟踪后的空白不视为销量为零。不会自动修改任何数据。</p><details style="margin-top:14px"><summary>机型主数据管理</summary><div class="toolbar" style="margin-top:8px"><input id="masterSearch" type="search" placeholder="搜索主数据 ID / 名称 / 系列"><button id="masterAdd" disabled>＋ 主数据机型</button><span class="muted" id="masterCount"></span></div><div class="check-wrap"><table><thead><tr><th>机型 ID</th><th>标准机型名称</th><th>品牌 / 产品系列</th><th>累计统计组</th><th>别名</th><th>操作</th></tr></thead><tbody id="masterRows"></tbody></table></div></details></section>
 <section class="panel"><div class="toolbar"><h2>长表预览</h2><span class="spacer"></span><span id="previewCount" class="muted">0 条记录</span></div><p class="muted">固定字段：brand, model, category, date, period, metric, value_wan, operator。累计与周增量独立存储；仅导出原始记录，不导出计算值或空白。</p><div class="preview-wrap"><table><thead><tr><th>brand</th><th>model</th><th>category</th><th>date</th><th>period</th><th>metric</th><th>value_wan</th><th>operator</th></tr></thead><tbody id="preview"></tbody></table></div><p class="muted" style="margin-top:8px">仅预览前 12 条；完整长表由「导出长表 CSV」生成。全空机型或周次不进入长表。</p></section>
 <footer class="muted">本工具不连接服务器，不上传文件，不修改 GitHub 项目。</footer>
 </main>
@@ -139,7 +139,8 @@ function locateRow(id){const r=state.rows.find(r=>r.id===id);if(!r)return;try{fl
 function renderIssues(){const filter=$('issueFilter').value,body=$('checkRows');body.replaceChildren();const shown=issues.filter(x=>filter==='all'||filter==='issues'&&x.level!=='ok'||filter===x.area&&x.level!=='ok').sort((a,b)=>({error:0,warn:1,ok:2}[a.level]-{error:0,warn:1,ok:2}[b.level]));for(const x of shown){const tr=node('tr'),op=node('td');tr.append(node('td',({error:'错误',warn:'待核查',ok:'匹配'})[x.level],'issue-'+x.level),node('td',x.label),node('td',x.message));if(x.row!==null){const b=node('button','定位销量');b.onclick=()=>locateRow(x.row);op.append(b);}if(master&&x.index!==null){const b=node('button','编辑主数据');b.onclick=()=>openMaster(x.index);op.append(b);}if(master&&x.area==='master'&&x.level==='warn'&&x.row!==null&&x.index===null){const r=state.rows.find(q=>q.id===x.row);if(r){const b=node('button',/系列$/.test(r.model)?'新增系列成员':'补充机型');b.onclick=()=>openMaster(-1,r);op.append(b);}}tr.append(op);body.append(tr);}if(!shown.length){const tr=node('tr'),td=node('td',state.ready?'当前筛选下没有检查项。':'请先导入销量数据。');td.colSpan=4;tr.append(td);body.append(tr);}}
 function renderMaster(){const body=$('masterRows');body.replaceChildren();$('masterExport').disabled=!master;$('masterAdd').disabled=!master;if(!master){$('masterCount').textContent='';return;}$('masterStatus').textContent=master.name+' · '+master.rows.length+' 条机型'+(masterDirty?' · 尚未导出修改':'');const q=norm($('masterSearch').value);const list=master.rows.map((m,i)=>({m,i})).filter(({m})=>!q||norm([m.model_id,m.model_name,m.brand,m.series,m.tracking_group,m.aliases].join(' ')).includes(q));$('masterCount').textContent=list.length+' / '+master.rows.length+' 条';for(const {m,i} of list){const tr=node('tr'),td=node('td'),b=node('button','编辑');b.onclick=()=>openMaster(i);td.append(b);tr.append(node('td',m.model_id),node('td',m.model_name),node('td',m.brand+' / '+m.series),node('td',m.tracking_group||'—'),node('td',m.aliases),td);body.append(tr);}}
 async function readLocal(f){const b=await f.arrayBuffer();try{return new TextDecoder('utf-8',{fatal:true}).decode(b);}catch(_){return new TextDecoder('gbk').decode(b);}}
-$('masterFile').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{if(masterDirty&&!confirm('替换未导出的主数据？'))return;const a=parseCSV(await readLocal(f)),head=a.shift()?.map(x=>x.trim());if(!head||new Set(head).size!==head.length||!MASTER_REQUIRED_COLUMNS.every(k=>head.includes(k)))throw Error('需要项目 model-master.csv 的完整字段；未导入。');const rows=a.map((r,i)=>{if(r.length!==head.length)throw Error('第 '+(i+2)+' 行列数错误');return {tracking_group:'',...Object.fromEntries(head.map((h,j)=>[h,r[j]]))};});master={head:head.includes('tracking_group')?head:[...head,'tracking_group'],rows,name:f.name};masterDirty=false;renderMaster();scheduleCheck();}catch(err){$('masterStatus').textContent='导入失败：'+err.message;}finally{e.target.value='';}};
+function parseMasterFile(txt,name){const a=parseCSV(txt),head=a.shift()?.map(x=>x.trim());if(!head||new Set(head).size!==head.length||!MASTER_REQUIRED_COLUMNS.every(k=>head.includes(k)))throw Error('需要项目 model-master.csv 的完整字段；未导入。');const rows=a.map((r,i)=>{if(r.length!==head.length)throw Error('第 '+(i+2)+' 行列数错误');return {tracking_group:'',...Object.fromEntries(head.map((h,j)=>[h,r[j]]))};});return {head:head.includes('tracking_group')?head:[...head,'tracking_group'],rows,name};}
+$('masterFile').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{if(masterDirty&&!confirm('替换未导出的主数据？'))return;master=parseMasterFile(await readLocal(f),f.name);masterDirty=false;renderMaster();scheduleCheck();}catch(err){$('masterStatus').textContent='导入失败：'+err.message;}finally{e.target.value='';}};
 $('masterNew').onclick=()=>{if(master&&!confirm('新建空主数据，替换当前主数据？'))return;master={head:[...MASTER_HEADER],rows:[],name:'model-master.csv'};masterDirty=true;renderMaster();scheduleCheck();};
 function createMasterId(brand,name){
  const slug=v=>String(v||'').normalize('NFKC').toLowerCase().trim().replace(/[^\p{L}\p{N}]+/gu,'-').replace(/^-+|-+$/g,'');
@@ -170,12 +171,50 @@ $('clearDraft').onclick=()=>{if(!confirm('删除本浏览器的草稿？当前�
 // Paste TSV from Excel into visible sales rows, starting at the currently selected period.
 // Validate the entire block before modifying anything. Empty cells skip existing records.
 $('grid').addEventListener('paste',e=>{const td=e.target.closest('td.week[data-id][data-period]');if(!td)return;const text=e.clipboardData?.getData('text/plain');if(!text||!/[\t\r\n]/.test(text))return;e.preventDefault();try{flush();const lines=text.replace(/\r\n/g,'\n').replace(/\r/g,'\n').replace(/\n$/,'').split('\n').map(l=>l.split('\t'));const visible=[...$('grid').tBodies[0].rows].map(tr=>Number(tr.querySelector('td.week')?.dataset.id));const ri=visible.indexOf(+td.dataset.id),wi=state.weeks.indexOf(td.dataset.period);if(ri<0||wi<0)throw Error('请选择一个销量单元格。');if(ri+lines.length>visible.length||lines.some(r=>wi+r.length>state.weeks.length))throw Error('粘贴范围超出当前可见机型或周次，请先增加相应行列。');const edits=[];let specialReplaced=0;lines.forEach((line,i)=>line.forEach((raw,j)=>{if(!raw.trim())return;const v=decodeCell(raw),row=state.rows.find(r=>r.id===visible[ri+i]),p=state.weeks[wi+j];if(!row||!v)throw Error('无法定位粘贴目标');const old=records(row).get(p);if(old&&old.op!=='='&&(old.op!==v.op||old.value!==v.value))specialReplaced++;edits.push({row,p,v:{op:v.op,value:v.value}});}));if(!edits.length)return;if(specialReplaced&&!confirm('本次粘贴会覆盖 '+specialReplaced+' 条特殊原始记录，是否继续？'))return;for(const x of edits)records(x.row).set(x.p,x.v);mark();renderGrid();status('已批量粘贴 '+edits.length+' 个销量记录（空白跳过）。');}catch(err){status('粘贴失败：'+err.message,true);}});
-// Fresh startup: use the shipped master; restore only this editor version's draft if available.
+// Restore user drafts first; fetch only missing inputs on startup.
 master=null;
-try{const raw=localStorage.getItem(DRAFT_KEY);if(raw){const d=JSON.parse(raw);if(d.version===1){restoreSnapshot(d.snapshot,d.metric);dirty=!!d.dirty;masterDirty=!!d.masterDirty;status('已恢复本地草稿。');$('draftStatus').textContent='草稿已恢复；请及时导出 CSV。';}}}catch(e){$('draftStatus').textContent='未恢复本地草稿，请重新导入 CSV。';}
+try{const raw=localStorage.getItem(DRAFT_KEY);if(raw){const d=JSON.parse(raw);if(d.version===1){restoreSnapshot(d.snapshot,d.metric);dirty=!!d.dirty;masterDirty=!!d.masterDirty;status('已恢复本地草稿。');$('draftStatus').textContent='草稿已恢复；可点击读取项目 CSV 更新数据。';}}}catch(e){$('draftStatus').textContent='未恢复本地草稿，将尝试读取项目 CSV。';}
 lastSnapshot=snapshot();updateHistory();renderMaster();updateSummary();
-
 updateMode();
 runChecks();
+
+async function readProject(name){
+ const response=await fetch(new URL(name,location.href),{cache:'no-store',credentials:'same-origin'});
+ if(!response.ok)throw Error('HTTP '+response.status);
+ return readLocal(response);
+}
+async function loadProjectSales(initial=false){
+ const button=$('projectSales');if(button.disabled)return;
+ button.disabled=true;
+ try{
+  const txt=await readProject('data.csv');
+  if(initial&&state.ready)return;
+  if(!initial&&state.ready){flush();if(!confirm('重新读取项目 data.csv 并替换当前销量数据？未导出的修改将丢失。'))return;}
+  const next=parseFile(txt);
+  // Initial load is a baseline, not a local edit or undo operation.
+  if(initial){restoring=true;try{replaceState(next);}finally{restoring=false;}lastSnapshot=snapshot();updateHistory();}
+  else{replaceState(next);dirty=next.removed.length>0;persistDraft();}
+  status('已读取项目 data.csv：'+next.rows.length+' 个产品，'+next.weeks.length+' 周；'+(next.removed.length?'按旧规则删除 '+next.removed.length+' 项（原文件不变）。':'未删除任何数据。'));
+  runChecks();
+ }catch(e){if(!initial||!state.ready)status('项目 data.csv 读取失败：'+e.message+'；可手动导入本地 CSV。',true);}
+ finally{button.disabled=false;}
+}
+async function loadProjectMaster(initial=false){
+ const button=$('projectMaster');if(button.disabled)return;
+ button.disabled=true;
+ try{
+  const txt=await readProject('model-master.csv');
+  if(initial&&master)return;
+  if(!initial&&master&&!confirm('重新读取项目 model-master.csv 并替换当前主数据？未导出的修改将丢失。'))return;
+  master=parseMasterFile(txt,'项目 model-master.csv');masterDirty=false;renderMaster();
+  if(initial){lastSnapshot=snapshot();updateHistory();}else{scheduleCheck();persistDraft();}
+  runChecks();
+ }catch(e){if(!initial||!master)$('masterStatus').textContent='项目 model-master.csv 读取失败：'+e.message+'；可手动导入。';}
+ finally{button.disabled=false;}
+}
+$('projectSales').onclick=()=>loadProjectSales();
+$('projectMaster').onclick=()=>loadProjectMaster();
+if(!state.ready)loadProjectSales(true);
+if(!master)loadProjectMaster(true);
 </script>
 </body></html>

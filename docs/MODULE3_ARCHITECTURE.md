@@ -81,7 +81,7 @@
 ## 机型追踪多视图及发布（2026-11-22）
 
 - `sales-estimate-archive.js` 维护销量 `trackerPublicationChart` 和原始排名 `trackerPublicationRank`；两者共享当前选择及时间轴（自然周或完整销售周）。排名按原榜单 sequence_id 对应观测获取，筛选不重排，不插补；缺榜与无记录保持缺失并保存状态、原始自然周及榜单规模。纵轴按实际观测名次范围适配，名次越高越靠上。双图可联动查看同周数据，矩阵区分“× 榜单缺失”和“— 无排名记录”。
-- 四种视图（销量、原始排名、双图、排名矩阵）可冻结到工作台；`trackerBoth`、`trackerRank`、`trackerMatrix` 由 `sales-poster.js` 处理，单销量沿用通用折线。组合图 CSV 包含两种指标及单位，发布清单记录图种和指标；缺失仍为空，排名不因销量插补产生。独立 PNG 序列化预览 SVG，去掉联动辅助线，按工作台当前宽度和水印输出，不使用安全区规避。
+- 四种视图（销量、原始排名、双图、排名矩阵）可冻结到工作台；`trackerBoth`、`trackerRank`、`trackerMatrix` 由 `sales-poster.js` 处理，单销量沿用通用折线。组合图 CSV 包含两种指标及单位，发布清单记录图种和指标；缺失仍为空，排名不因销量插补产生。独立 PNG 已统一为全14专题的共享 Canvas 导出器：`researchSnapshot(key,{direct:true})` 冻结当前图表与统计口径，`exportResearchChartPNG()` 根据图种动态计算画布，复用 `drawResearchChartContent()`（发布图卡同样调用）及主题、水印和分辨率。不截图、不应用安全区，超长图按16000px高/4000万像素上限等比缩放并提示；纯表格型长尾导出完整统计表。原机型追踪独立 SVG 导出逻辑已移除，发布图卡仍保留原布局及曲线限制。
 - `trackerBrandColors` 按 BrandUtils 母品牌固定色和已知机型身份排序分配12档深浅，当前勾选变化不改变同一机型颜色（目录变化可能影响排序）。`ResearchCharts.markerAt` 按当前选择顺序分配18种标记，循环使用；销量与排名共享 marker 字段并随快照保留。SVG 与 Canvas 使用相同圆形/多边形几何，图例同步。标记不是永久身份，改变筛选可重新分配；空心既可能是机型标记，也可能是估算点，虚线才是含插补的主要视觉依据。
 - 已知待维护事项：`sales-studio.js` 的含插补默认图内附注仍含“虚线 / 空心点”旧说法；机型图例与插补语义需在后续源码改动及视觉验收中核对。超过18款标记重复，工作台仍有24条曲线限制。
 - 发布配置当前 research v8、visual v2、publication v10；本轮未升级配置版本。相关提交 0e55546—8cf1766、a77d2b0—ba9d390。

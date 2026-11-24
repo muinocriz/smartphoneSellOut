@@ -342,8 +342,14 @@ function drawResearchPosterContent(ctx,L,p,s){
  if(!s)return;
  const {cardX,cardWidth,bodyTop,bodyBottom,bodyHeight}=L;
  drawDataCard(ctx,cardX,bodyTop,cardWidth,bodyHeight,p);
- const left=cardX+26,right=cardX+cardWidth-26,width=right-left;
- const start=bodyTop+16,bottom=bodyBottom-14;
+ const left=cardX+26,right=cardX+cardWidth-26,start=bodyTop+16,bottom=bodyBottom-14;
+ drawResearchChartContent(ctx,p,s,{left,right,top:start,bottom,width:right-left,height:bottom-start});
+}
+
+// Shared content renderer: the studio supplies its poster body, while direct PNG
+// supplies a flexible chart-sized canvas with no social safe area or frame.
+function drawResearchChartContent(ctx,p,s,box){
+ const {left,right,top:start,bottom,width}=box;
  const notes=String(s.chartNote??'').split(/\r?\n/).filter(v=>v.trim());
  const noteHeight=notes.length?notes.length*25+10:0,chartBottom=bottom-noteHeight;
  const chartBox={left,right,top:start,bottom:chartBottom,width,height:chartBottom-start};
@@ -387,3 +393,78 @@ function drawResearchPosterContent(ctx,L,p,s){
 }
 
 
+
+
+// Direct research PNG: vector-style Canvas re-render from a frozen data snapshot,
+// not a bitmap copy of the visible SVG/Canvas and not a social poster.
+function researchDirectGeometry(s){
+ const c=s.chart,n=c?.periods?.length||0,count=c?.lines?.length||0,kind=c?.kind||'line';
+ let width=Math.max(1080,n*60+150),height=560+Math.ceil(count/4)*36;
+ if(kind==='trackerBoth')height=1000+Math.ceil(count/4)*36;
+ if(kind==='trackerMatrix'){width=Math.max(1080,n*56+280);height=Math.max(420,count*44+70);}
+ if(kind==='trackerRank')height=560+Math.ceil(count/4)*36;
+ if(kind==='generationDualAxis')height=560;
+ if(kind==='coverageLayers')height=1000;
+ if(kind==='brandGrowth'){width=Math.max(1080,n*106+160);height=1120;}
+ if(kind==='dualBrandFlowMulti'){width=Math.max(1150,n*125+140);height=1080;}
+ if(kind==='dualBrandFlow'){width=1080;height=1070;}
+ if(kind==='brandStack'||kind==='brandRibbon'){width=Math.max(1080,n*78+160);height=Math.max(650,480+Math.ceil(count/3)*36);}
+ if(kind==='heatmap'){width=Math.max(1080,count*96+220);height=Math.max(560,n*44+150);}
+ if(kind==='scatter'){width=1080;height=Math.max(660,420+Math.ceil(n/2)*29);}
+ if(kind==='bars'){width=1080;height=Math.max(560,n*65+100);}
+ if(!c&&s.table){
+  const cols=s.table.headers.length;
+  width=Math.max(1080,260+Math.max(0,cols-1)*150);
+  height=Math.max(300,74+s.table.rows.length*44);
+ }
+ return {width,height};
+}
+function wrapDirectResearchText(ctx,value,width,size=19){
+ const result=[];
+ for(const raw of String(value??'').split(/\r?\n/)){
+  let line='';
+  for(const ch of raw){if(line&&measureMixedCanvas(ctx,line+ch,size,'400').width>width){result.push(line);line=ch;}else line+=ch;}
+  if(line.trim())result.push(line);
+ }
+ return result;
+}
+function drawDirectResearchTable(ctx,p,table,box){
+ const {left,top,width}=box,headers=table.headers,rows=table.rows;
+ if(!headers.length||!rows.length)return;
+ const first=Math.min(240,width*.26),cell=(width-first)/Math.max(1,headers.length-1),widths=headers.map((_,i)=>i===0?first:cell);
+ const rowH=44;
+ let x=left;
+ headers.forEach((label,i)=>{posterFitText(ctx,label,x+9,top+27,20,p.sub,'600','left',widths[i]-18);x+=widths[i];});
+ posterRule(ctx,left,left+width,top+42,p);
+ rows.forEach((row,j)=>{
+  const y=top+42+j*rowH;let x=left;
+  if(j%2){ctx.save();ctx.fillStyle=p.hair;ctx.globalAlpha=.18;ctx.fillRect(left,y,width,rowH);ctx.restore();}
+  row.forEach((value,i)=>{if(i>=widths.length)return;posterFitText(ctx,value??'',x+9,y+29,20,p.ink,'400','left',widths[i]-18);x+=widths[i];});
+  posterRule(ctx,left,left+width,y+rowH,p);
+ });
+}
+async function exportResearchChartPNG(snapshot,{palette,watermark,width}){
+ await PosterExport.waitForFonts();
+ let outputWidth=0;
+ const blob=await PosterExport.canvasPNG(canvas=>{
+  const p=palette,geometry=researchDirectGeometry(snapshot),padding=34,logicalW=geometry.width+padding*2;
+  const measure=canvas.getContext('2d');
+  const notes=[...new Set([snapshot.chartNote,snapshot.note].filter(Boolean))].flatMap(t=>wrapDirectResearchText(measure,t,geometry.width,19));
+  const headerH=134,footerH=notes.length*28+40,logicalH=headerH+geometry.height+footerH;
+  const scale=Math.min(width/logicalW,16000/logicalH,Math.sqrt(40000000/(logicalW*logicalH)));
+  if(!Number.isFinite(scale)||scale<=0)throw Error('图表尺寸无效');
+  canvas.width=Math.max(1,Math.floor(logicalW*scale));canvas.height=Math.max(1,Math.floor(logicalH*scale));outputWidth=canvas.width;
+  const ctx=canvas.getContext('2d'),audit={warnings:new Set(),errors:new Set()};posterAudits.set(ctx,audit);
+  ctx.scale(scale,scale);ctx.fillStyle=p.panel||'#ffffff';ctx.fillRect(0,0,logicalW,logicalH);
+  posterFitText(ctx,snapshot.title,padding,48,34,p.ink,'700','left',geometry.width);
+  posterFitText(ctx,snapshot.displayMetric+' · '+snapshot.range,padding,82,21,p.sub,'500','left',geometry.width);
+  posterFitText(ctx,'来源：'+snapshot.source,padding,111,19,p.sub,'400','left',geometry.width);
+  const box={left:padding,right:logicalW-padding,top:headerH,bottom:headerH+geometry.height,width:geometry.width,height:geometry.height};
+  if(snapshot.chart)drawResearchChartContent(ctx,p,{...snapshot,chartNote:''},box);
+  else if(snapshot.table)drawDirectResearchTable(ctx,p,snapshot.table,box);
+  notes.forEach((line,i)=>posterFitText(ctx,line,padding,box.bottom+28+i*28,19,p.sub,'400','left',geometry.width));
+  drawImageWatermark(ctx,logicalW,logicalH,0,0,watermark,{safeEnabled:false},p);
+  if(audit.errors.size)throw Error([...audit.errors].join('；')+'，请缩短区间或减少展示项目');
+ });
+ return {blob,width:outputWidth};
+}

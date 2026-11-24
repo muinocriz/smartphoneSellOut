@@ -2,17 +2,17 @@
 (function(root){
 'use strict';
 const Series=root.SalesSeries, Brand=root.BrandUtils;
-const HEADER=Object.freeze('model_id,model_name,brand,brand_group,aliases,series,generation,variant,form_factor,sale_start_date,predecessor_id,launch_price,chip_vendor,chip_model,base_ram,base_rom,source_url,notes,verification'.split(','));
+const HEADER=Object.freeze('model_id,model_name,brand,brand_group,aliases,series,generation,variant,form_factor,sale_start_date,predecessor_id,launch_price,chip_vendor,chip_model,base_ram,base_rom,source_url,notes,verification,tracking_group'.split(','));
 const normalize=Brand.normalize;
-const VERSION='model-master-v1';
+const VERSION='model-master-v2';
 function fingerprint(raw){let h=2166136261;for(let i=0;i<raw.length;i++)h=Math.imul(h^raw.charCodeAt(i),16777619);return (h>>>0).toString(16).padStart(8,'0');}
 function parse(raw){
   const rows=Series.readCSV(raw),header=rows.shift();
-  if(!header||header.length!==HEADER.length||header.some((v,i)=>v!==HEADER[i]))throw Error('机型主数据 CSV 表头不匹配。');
+  if(!header||![HEADER.length,HEADER.length-1].includes(header.length)||header.some((v,i)=>v!==HEADER[i]))throw Error('机型主数据 CSV 表头不匹配。');
   const byId=new Map(),byName=new Map(),bySeries=new Map(),issues=[];
   for(const [i,row] of rows.entries()){
-    if(row.length!==HEADER.length)throw Error('机型主数据第 '+(i+2)+' 行列数不正确。');
-    const m=Object.fromEntries(HEADER.map((k,j)=>[k,row[j].trim()]));
+    if(row.length!==header.length)throw Error('机型主数据第 '+(i+2)+' 行列数不正确。');
+    const m=Object.fromEntries(HEADER.map((k,j)=>[k,(row[j]??'').trim()]));
     if(!m.model_id||m.model_id.startsWith('unmatched:')||!normalize(m.model_name))throw Error('机型主数据第 '+(i+2)+' 行缺少合法 ID 或名称。');
     if(byId.has(m.model_id))throw Error('机型 ID 重复：'+m.model_id);
     m.aliases=Object.freeze(m.aliases.split(';').map(s=>s.trim()).filter(Boolean));

@@ -87,6 +87,13 @@ function priceBand(m,cuts=DEFAULT_CUTS){
 }
 function observed(weeks,master,col,filters={}){
  return weeks.map(w=>{
+  // A fused sales map is a separate observed sample, never a synthetic rank board.
+  if(w.salesMap){
+   if(!w.salesMap.size)return {period:w.period,start:w.start,end:w.end,valid:false,entries:[],total:null,knownPrice:null,count:null,status:'无有效扩展销量'};
+   const entries=[...w.salesMap].map(([key,e])=>{const model=master?.get(key)||null;return {key,model,units:e.value_wan,brand:model?.brand_group||e.brand_group||'',source:e.source,member_ids:e.member_ids,week:{period:w.period,start:w.start,end:w.end}};}).filter(x=>Number.isFinite(x.units)&&x.units>=0&&matches(x.model,filters));
+   const total=entries.reduce((s,x)=>s+x.units,0);
+   return {period:w.period,start:w.start,end:w.end,valid:true,entries,total,count:entries.length,knownPrice:entries.reduce((s,x)=>s+(validPrice(x.model)!==null?x.units:0),0),status:entries.length?'有效扩展样本':'属性筛选后无样本'};
+  }
   if(!w.hasBoard)return {period:w.period,valid:false,entries:[],total:null,knownPrice:null,count:null,status:w.comparisonStatus||'无有效榜单'};
   const entries=[...w.map].map(([key,r])=>({key,model:master?.get(key)||null,units:Number(r[col.estimated_wan]),brand:r[col.brand_group],week:{period:w.period,start:w.start,end:w.end}})).filter(x=>Number.isFinite(x.units)&&x.units>=0&&matches(x.model,filters));
   const total=entries.reduce((s,x)=>s+x.units,0);

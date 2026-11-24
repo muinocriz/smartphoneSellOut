@@ -6,6 +6,10 @@
 
 ## 2026-11-24
 
+### 模块4正式长表读取
+
+- [9c2fc6f](https://github.com/muinocriz/smartphoneSellOut/commit/9c2fc6f) / [7f6a30d](https://github.com/muinocriz/smartphoneSellOut/commit/7f6a30d)：经用户授权公开根路径 sales-long.csv，保留 /studio/ 授权副本。模块4默认读取项目长表和主数据，手动重读长表取代原宽表读取按钮；宽表仅用于手动增量同步或本地导入。草稿优先，旧宽表草稿提示备份后切换；读取失败不自动退回宽表。模块3及原始榜单访问权限不变，模块间独立，无自动上传。未执行测试、构建或部署验收。
+
 ### 跟踪数据正式开售日期校正
 
 - [eac4147](https://github.com/muinocriz/smartphoneSellOut/commit/eac4147) / [9f677b7](https://github.com/muinocriz/smartphoneSellOut/commit/9f677b7)：对照55个跟踪产品与机型主数据，针对差异及部分待核实日期查阅首销报道，修正宽表10行及长表对应99条日期；系列合计按已纳入统计组的首款成员正式开售日期，成员仍保留各自开售日。Pura 90系列 2026/5/9→2026/4/29；小米17系列 2026/3/6→2025/9/27；17 Ultra 2026/3/6→2025/12/27；17T系列 2026/6/8→2026/6/9；OPPO Find X9系列 2025/10/16→2025/10/22；Find X9 Ultra 2026/4/21→2026/4/24；Reno 16系列 2026/5/25→2026/5/29；荣耀 Magic 8系列 2026/1/19→2025/10/23；一加15T 2026/3/24→2026/3/25；iQOO Z11系列 2026/3/26→2026/1/15（Turbo首销）。

@@ -16,15 +16,15 @@
 <body><main>
 <header><div><h1>手机销量数据处理工具 V3.3</h1><p class="muted">公开工具 · 自动读取项目 CSV · 编辑及草稿仅保存在本地</p></div><div class="muted">单位：万台 / ISO 自然周</div></header>
 <section class="panel" aria-label="导入与导出">
-<div class="toolbar"><button class="primary" id="projectSales">读取项目 data.csv</button><button id="syncProject">从项目宽表增量同步</button><label class="file-btn" for="file">导入本地 CSV</label><input id="file" class="sr-only" type="file" accept=".csv,text/csv"><button id="newData">新建空表</button><button id="undoBtn" disabled>撤销</button><button id="redoBtn" disabled>重做</button><span class="spacer"></span><button id="longExport" disabled>导出长表 CSV</button></div>
+<div class="toolbar"><button class="primary" id="projectSales">读取项目 sales-long.csv</button><button id="syncProject">从 data.csv 增量同步</button><label class="file-btn" for="file">导入本地 CSV</label><input id="file" class="sr-only" type="file" accept=".csv,text/csv"><button id="newData">新建空表</button><button id="undoBtn" disabled>撤销</button><button id="redoBtn" disabled>重做</button><span class="spacer"></span><button id="longExport" disabled>导出长表 CSV</button></div>
 <div class="import-options"><label class="check muted">无年份周列使用年份 <input id="defaultYear" type="number" min="1900" max="9999" step="1" value="2026"></label></div>
-<p class="muted" style="margin-top:7px">支持原始 data.csv 及 V3 长表 CSV。维护已有长表时，先导入最新 sales-long.csv，再点击「从项目宽表增量同步」；直接读取项目宽表会替换当前销量数据。旧宽表作为累计销量导入，所有有效数值均保留；未显式标注运算符的数值视为精确值。</p>
-<div class="toolbar" style="margin-top:10px"><label class="check"><input type="checkbox" id="autoDraft" checked>本地自动保存草稿</label><button id="clearDraft" class="subtle">清除本地草稿</button><span id="draftStatus" class="muted"></span></div><div id="status" class="status" role="status" aria-live="polite">正在准备读取项目 data.csv…</div>
+<p class="muted" style="margin-top:7px">默认读取项目 sales-long.csv（已有本地草稿优先恢复）。点击「从 data.csv 增量同步」预览并确认宽表新增和冲突记录；保留已有独立周增量和特殊记录。支持手动导入本地宽表或长表 CSV。</p>
+<div class="toolbar" style="margin-top:10px"><label class="check"><input type="checkbox" id="autoDraft" checked>本地自动保存草稿</label><button id="clearDraft" class="subtle">清除本地草稿</button><span id="draftStatus" class="muted"></span></div><div id="status" class="status" role="status" aria-live="polite">正在准备读取项目 sales-long.csv…</div>
 </section>
 <div class="summary" aria-label="记录统计"><div class="metric"><span>跟踪产品</span><b id="countModels">0</b></div><div class="metric"><span>自然周</span><b id="countWeeks">0</b></div><div class="metric"><span>精确记录</span><b id="countExact">0</b><small id="countByMetric"></small></div><div class="metric"><span>特殊记录</span><b id="countSpecial">0</b></div></div>
 <section class="panel"><div class="toolbar"><h2>销量数据表</h2><div class="mode-switch" role="group" aria-label="销量类型"><button id="modeCum" aria-pressed="true">累计销量</button><button id="modeWeekly" aria-pressed="false">周增量</button></div><span class="spacer"></span><input id="search" placeholder="筛选品牌 / 机型" aria-label="筛选品牌或机型" type="search"><button id="addModel" disabled>＋ 机型</button><button id="addWeek" disabled>＋ 周次</button><button id="addSpecial" class="primary" disabled>＋ 特殊数据</button></div>
 <div class="legend"><span class="tag">= 精确值</span><span class="tag lt">&lt; 小于</span><span class="tag ge">≥ 大于等于</span><span class="tag ap">≈ 估计值</span><span class="tag derived-tag">灰色斜体 · 自动计算</span><span class="muted">普通单元格直接录入；彩色单元格点击编辑。计算值可直接覆盖为原始记录。</span></div>
-<p class="mode-hint" id="modeHint"></p><div class="table-wrap" id="tableWrap"><div id="empty" class="empty">导入 data.csv 后，将显示原来的二维表格。</div><table id="grid" hidden><thead></thead><tbody></tbody></table></div>
+<p class="mode-hint" id="modeHint"></p><div class="table-wrap" id="tableWrap"><div id="empty" class="empty">读取或导入销量 CSV 后，将显示二维表格。</div><table id="grid" hidden><thead></thead><tbody></tbody></table></div>
 <p class="muted" style="margin-top:9px">录入后按 Enter 跳到同列下一行。筛选仅影响显示，导出始终包含全部机型。可从 Excel 复制多行多列销量，从选中周单元格粘贴；空白跳过，不自动新增周次。草稿保存在本浏览器，仍请定期导出 CSV。</p></section>
 <section class="panel" id="checkPanel"><div class="toolbar"><h2>数据检查与机型主数据</h2><span class="spacer"></span><button id="projectMaster">读取项目 model-master.csv</button><label class="file-btn" for="masterFile">导入本地 model-master.csv</label><input id="masterFile" class="sr-only" type="file" accept=".csv,text/csv"><button id="masterNew">新建主数据</button><label class="file-btn" for="masterPatch">合并主数据补充 CSV</label><input id="masterPatch" class="sr-only" type="file" accept=".csv,text/csv"><button id="masterExport" disabled>导出主数据 CSV</button></div>
 <p class="muted" id="masterStatus" style="margin:8px 0">正在准备读取项目 model-master.csv…</p><div class="toolbar"><button id="checkNow" class="primary">立即检查</button><label class="check"><input type="checkbox" id="autoCheck" checked>编辑后自动检查</label><label class="check"><input type="checkbox" id="showGaps">列出内部缺周</label><span class="spacer"></span><select id="issueFilter" aria-label="检查结果筛选"><option value="issues">异常及待确认</option><option value="all">全部结果</option><option value="master">主数据问题</option><option value="sales">销量问题</option></select></div><div class="check-summary" id="checkSummary"></div><div class="check-wrap"><table><thead><tr><th>状态</th><th>产品 / 周次</th><th>检查结果</th><th>操作</th></tr></thead><tbody id="checkRows"></tbody></table></div><p class="muted" style="margin-top:8px">单机按标准名称及别名匹配；系列优先按品牌及累计统计组精确匹配；未设置统计组时仅按产品系列提供待确认候选。明确统计组不等于已核实采集范围。榜外缺失、上市前和停止跟踪后的空白不视为销量为零。不会自动修改任何数据。</p><details style="margin-top:14px"><summary>机型主数据管理</summary><div class="toolbar" style="margin-top:8px"><input id="masterSearch" type="search" placeholder="搜索主数据 ID / 名称 / 系列"><button id="masterAdd" disabled>＋ 主数据机型</button><span class="muted" id="masterCount"></span></div><div class="check-wrap"><table><thead><tr><th>机型 ID</th><th>标准机型名称</th><th>品牌 / 产品系列</th><th>累计统计组</th><th>别名</th><th>操作</th></tr></thead><tbody id="masterRows"></tbody></table></div></details></section>
@@ -196,16 +196,17 @@ async function loadProjectSales(initial=false){
  const button=$('projectSales');if(button.disabled)return;
  button.disabled=true;
  try{
-  const txt=await readProject('data.csv');
+  const txt=await readProject('sales-long.csv');
   if(initial&&state.ready)return;
-  if(!initial&&state.ready){flush();if(!confirm('重新读取项目 data.csv 并替换当前销量数据？长表独有的周增量、特殊记录及人工修改可能丢失。维护已有长表请改用增量同步。'))return;}
+  if(!initial&&state.ready){flush();if(!confirm('重新读取项目 sales-long.csv 并替换当前销量数据？本地修改可能丢失，请先导出需要保留的数据。'))return;}
   const next=parseFile(txt);
+  if(!next.isLong)throw Error('项目 sales-long.csv 不是有效的 V3 长表。');
   // Initial load is a baseline, not a local edit or undo operation.
   if(initial){restoring=true;try{replaceState(next);}finally{restoring=false;}lastSnapshot=snapshot();updateHistory();updateExportStyles();}
   else{replaceState(next);persistDraft();}
-  status('已读取项目 data.csv：'+next.rows.length+' 个产品，'+next.weeks.length+' 周。');
+  status('已读取项目 sales-long.csv：'+next.rows.length+' 个产品，'+next.weeks.length+' 周。');
   runChecks();
- }catch(e){if(!initial||!state.ready)status('项目 data.csv 读取失败：'+e.message+'；可手动导入本地 CSV。',true);}
+ }catch(e){if(!initial||!state.ready)status('项目 sales-long.csv 读取失败：'+e.message+'；可手动导入本地 CSV。',true);}
  finally{button.disabled=false;}
 }
 async function loadProjectMaster(initial=false){
@@ -265,7 +266,7 @@ function renderSyncPlan(plan){
 $('syncProject').onclick=async()=>{
  const button=$('syncProject');if(button.disabled)return;
  try{
-  flush();if(!state.ready||!state.isLong)throw Error('请先通过「导入本地 CSV」载入最新 sales-long.csv（长表底稿），再增量同步。当前宽表工作区不能代替已有长表。');
+  flush();if(!state.ready||!state.isLong)throw Error('请先点击「读取项目 sales-long.csv」载入长表底稿，或导入本地长表，再增量同步。当前宽表工作区不能代替已有长表。');
   button.disabled=true;const base=salesSnapshot();
   const txt=await readProject('data.csv');
   if(base!==salesSnapshot())throw Error('读取期间销量数据已变化，请重新同步。');
@@ -289,6 +290,7 @@ $('syncDialog').addEventListener('close',()=>{pendingSync=null;});
 $('projectSales').onclick=()=>loadProjectSales();
 $('projectMaster').onclick=()=>loadProjectMaster();
 if(!state.ready)loadProjectSales(true);
+else if(!state.isLong)status('已恢复宽表工作区。请先备份需要保留的修改，再点击「读取项目 sales-long.csv」切换为正式长表底稿。');
 if(!master)loadProjectMaster(true);
 </script>
 </body></html>

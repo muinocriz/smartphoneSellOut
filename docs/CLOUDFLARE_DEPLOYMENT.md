@@ -46,4 +46,4 @@
 
 ### 模块 3 扩展销量接入
 
-`/studio/sales-long.csv`、`/studio/sales-tracking.js`、`/studio/sales-fusion.js` 仅部署在授权路径，不发布根路径副本。`model-master.csv` 已升级至 20 列（含 `tracking_group`），仍按模块 4 的要求公开根路径副本；`data.csv` 和 `sales-estimates.csv` 不变。机型销量趋势默认原始榜单，切换扩展销量后使用精确周增量、累计差分及 TOP30 估算补充，保留原始排名；不启用插补，不代表全市场。其他研究专题暂保留原始口径。维护者重新部署后需验收上述访问权限、两种模式切换及导出来源说明；本次未执行构建或测试。
+`/studio/sales-long.csv`、`/studio/sales-tracking.js`、`/studio/sales-fusion.js` 仅部署在授权路径，不发布根路径副本。`model-master.csv` 已升级至 20 列（含 `tracking_group`），仍按模块 4 的要求公开根路径副本；`data.csv` 和 `sales-estimates.csv` 不变。机型销量趋势默认原始榜单，切换扩展销量后使用精确周增量、累计差分及 TOP30 估算补充，保留原始排名；不启用插补，不代表全市场。其余适用销量专题也已共用融合引擎；原始排名／矩阵、长尾韧性、榜单流动、TOP30覆盖率及榜内与全市场研究保持原始口径。维护者重新部署后需验收上述访问权限、两种模式切换及导出来源说明；本次未执行构建或测试。

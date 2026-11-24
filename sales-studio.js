@@ -73,10 +73,12 @@ function publicResearchTag(s){
  let tag=String(s.range||'').replace(/\s*→\s*/g,' vs ').replace(/（完整销售周）/g,' · 上市后周次').trim();
  if(!tag)return '';
  if(['coverage','dual'].includes(s.key)&&!tag.includes('TOP30'))tag+=' · TOP30';
+ if(s.config?.sampleMode==='expanded')tag+=' · 扩展样本';
  return tag;
 }
 function publicResearchChartNote(s){
  const key=s.key,kind=s.chart?.kind||'',imputed=!!s.chart?.imputed;
+ if(s.config?.sampleMode==='expanded'){const details={generation:'替代率为新代销量占两代合计比例，不代表实际换机',tier:'仅比较所选统计范围，缺失不等于零',price:'价格按正式首发价归类；合计项无法归类时保留未知',position:'销量加权首发价并非成交均价',chip:'跨芯片类别合计项保留未知',age:'按正式开售时间划分；未知年龄不强行归类',cross:'合计项不拆分；跨类别保留未知',brand:'占比以扩展样本为分母；色带不代表销量迁移',structure:'只统计所选样本，不代表市场份额',model:kind==='trackerBoth'?'销量采用扩展样本；排名仍为原始榜单':'缺失不等于零；合计项不拆分'};return details[key]||'扩展样本，非全市场';}
  if(key==='model'){
   if(kind==='trackerRank'||kind==='trackerMatrix')return '未上榜不代表停销；排名仅代表当前榜单';
   if(kind==='trackerBoth')return '销量为估算值；榜单排名并非全市场排名';
@@ -121,6 +123,7 @@ function publicResearchCopy(s){
  }
  const source=[s.config?.source,s.config?.series].filter(Boolean).join(' / ')||s.source||'历史销量榜';
  const cross=['dual','coverage'].includes(s.key);
+ if(s.config?.sampleMode==='expanded'){if(s.key==='brand'){title='品牌销量结构与集中度';subtitle='扩展样本中的品牌销量表现';}if(s.key==='chip')subtitle='不同芯片平台的样本销量表现';return {title,subtitle,tagLabel,chartNote:publicResearchChartNote(s),disclaimer:'来源：重点机型周增量／累计差分 + '+source+' TOP30估算\n扩展样本按覆盖范围去重，不代表全市场销量或份额'};}
  let disclaimer='来源：'+source+(cross?'；对照：全市场品牌份额数据':' · 榜单销量为估算值');
  if(s.key==='dual')disclaimer+=s.chart?.kind==='brandGrowth'?'\n榜外与品牌总销量为条件性估算，不是官方统计':'\nTOP30仅代表入榜样本；下图为整体市场份额';
  else if(s.key==='coverage')disclaimer+='\n市场总销量为条件性估算，不是官方统计';

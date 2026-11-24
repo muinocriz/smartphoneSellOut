@@ -363,6 +363,70 @@ function drawResearchHeatmap(ctx,chart,box,p,note=''){
  posterFitText(ctx,'最大 '+fmt(max),left+48+5*sw,ly+10,12,p.sub,'550','left',width*.55);
  if(note)posterFitText(ctx,note,left,bottom-5,Math.min(16,font),p.sub,'550','left',width);
 }
+/* Dual-axis generation study. Bars and line share week centers; reference
+ * guides use the percentage axis, not the dynamically scaled volume axis. */
+function drawGenerationDualAxis(ctx,chart,box,p){
+ const {left,right,top,bottom,width,height}=box,{periods,lines}=chart;
+ if(!periods.length||lines.length!==2)return;
+ const [volume,rate]=lines,n=periods.length;
+ const barColor=volume.color||'#2563eb',rateColor=rate.color||'#7c3aed';
+ const f=Math.max(.65,Math.min(1.4,width/780,height/466));
+ const font=14*f,small=12*f;
+ const legendStep=Math.max(22,30*f),legendY=top+font+3;
+ const x0=left+Math.max(45,62*f),x1=right-Math.max(47,61*f);
+ const y0=top+legendStep+Math.max(23,31*f),y1=bottom-Math.max(27,36*f);
+ if(!auditPlot(ctx,x1-x0,y1-y0,'代际替代双轴绘图区',260,150))return;
+ const slot=(x1-x0)/n,bw=Math.min(slot*.62,76*f);
+ if(bw<3){auditIssue(ctx,'代际替代图周次过多，柱宽不足',true);return;}
+ const max=Math.max(1,...volume.values.filter(Number.isFinite));
+ const magnitude=Math.pow(10,Math.floor(Math.log10(max/5)));
+ const raw=max/5/magnitude;
+ const step=([1,2,2.5,5,10].find(v=>v>=raw)||10)*magnitude;
+ const cap=step*5,plotH=y1-y0;
+ const x=i=>x0+(i+.5)*slot,y=v=>y1-v/cap*plotH,yp=v=>y1-v/100*plotH;
+ const text=(v,a,b,size,color=p.sub,weight='550',align='left',maxWidth=width)=>posterFitText(ctx,String(v),a,b,size,color,weight,align,maxWidth);
+ const rule=(a,b,c,d,color,lw=1,dash=[])=>{ctx.save();ctx.strokeStyle=color;ctx.lineWidth=lw;ctx.setLineDash(dash);ctx.beginPath();ctx.moveTo(a,b);ctx.lineTo(c,d);ctx.stroke();ctx.restore();};
+ // Use the same typography, spacing and theme tokens as other research posters.
+ const half=width/2;
+ ctx.fillStyle=barColor;ctx.fillRect(left,legendY-font*.75,16*f,9*f);
+ text(volume.name,left+22*f,legendY,font,p.ink,'600','left',half-26*f);
+ const lx=left+half;
+ rule(lx,legendY-font*.4,lx+20*f,legendY-font*.4,rateColor,2.5*f);
+ ResearchCharts.canvasMarker(ctx,'○',lx+10*f,legendY-font*.4,3.5*f,rateColor);
+ text(rate.name,lx+26*f,legendY,font,p.ink,'600','left',half-28*f);
+ text('合计周增量 / 万台',x0,y0-10*f,font,p.sub,'600','left',(x1-x0)/2);
+ text('替代率 / %',x1,y0-10*f,font,p.sub,'600','right',(x1-x0)/2);
+ for(let i=0;i<=5;i++){
+  const v=step*i,yy=y(v);
+  if(i!==4)rule(x0,yy,x1,yy,p.hair,1.2*f); // 80% has its own dashed guide.
+  text(Number(v.toFixed(3)),x0-8*f,yy+small*.35,small,p.sub,'550','right',x0-left-10*f);
+ }
+ for(const v of [0,20,40,50,60,80,100])text(v+'%',x1+8*f,yp(v)+small*.35,small,p.sub,'550','left',right-x1-9*f);
+ rule(x0,y0,x0,y1,p.hair,1.2*f);
+ rule(x1,y0,x1,y1,p.hair,1.2*f);
+ periods.forEach((period,i)=>{
+  const v=volume.values[i];
+  if(Number.isFinite(v)&&v>0){
+   ctx.save();ctx.fillStyle=barColor;ctx.globalAlpha=volume.imputed?.[i] ? .55 : 1;
+   ctx.fillRect(x(i)-bw/2,y(v),bw,y1-y(v));ctx.restore();
+  }
+ });
+ // No reference labels or legend entries: the right-axis ticks suffice.
+ for(const v of [50,80])rule(x0,yp(v),x1,yp(v),v===80?p.accent:p.sub,1.5*f,[6*f,5*f]);
+ rate.values.forEach((v,i)=>{
+  if(!Number.isFinite(v))return;
+  if(i>0&&Number.isFinite(rate.values[i-1]))rule(x(i-1),yp(rate.values[i-1]),x(i),yp(v),rateColor,2.8*f,rate.imputed?.[i]||rate.imputed?.[i-1]?[7*f,5*f]:[]);
+ });
+ rate.values.forEach((v,i)=>{
+  if(Number.isFinite(v))ResearchCharts.canvasMarker(ctx,'○',x(i),yp(v),Math.min(4.4*f,slot*.23),rateColor,!!rate.imputed?.[i]);
+ });
+ const tickCount=Math.max(2,Math.floor((x1-x0)/(76*f))),stride=Math.max(1,Math.ceil((n-1)/(tickCount-1)));
+ periods.forEach((period,i)=>{
+  if(i===0||i===n-1||(i%stride===0&&n-1-i>=stride*.65))
+   text(period,x(i),y1+small+7*f,small,p.sub,'550','center',Math.min(104*f,slot*stride*.95));
+ });
+}
+
 const ResearchCharts=(()=>{
  const COLORS=['#2563eb','#ea580c','#059669','#9333ea','#db2777','#0891b2','#92400e','#64748b','#be123c','#4d7c0f','#0369a1','#7c3aed'];
  const MARKERS=['○','▲','■','◆','▽','⬟','●','△','□','◇','▼','⬠','⬢','⬡','◀','▷','▶','◁'];
@@ -466,13 +530,13 @@ const ResearchCharts=(()=>{
   });
  }
  function renderComposition(host,chart,label){
-  const W=chart.kind==='dualBrandFlowMulti'?Math.max(1150,chart.periods.length*125+140):chart.kind==='dualBrandFlow'?1080:chart.kind==='heatmap'?Math.max(850,chart.lines.length*94+210):chart.kind==='brandStack'?Math.max(780,chart.periods.length*78+120):850,H=chart.kind==='dualBrandFlowMulti'?1080:chart.kind==='dualBrandFlow'?1070:chart.kind==='heatmap'?Math.max(510,chart.periods.length*42+135):chart.kind==='scatter'?560:510;
+  const W=chart.kind==='generationDualAxis'?Math.max(780,chart.periods.length*56+120):chart.kind==='dualBrandFlowMulti'?Math.max(1150,chart.periods.length*125+140):chart.kind==='dualBrandFlow'?1080:chart.kind==='heatmap'?Math.max(850,chart.lines.length*94+210):chart.kind==='brandStack'?Math.max(780,chart.periods.length*78+120):850,H=chart.kind==='dualBrandFlowMulti'?1080:chart.kind==='dualBrandFlow'?1070:chart.kind==='heatmap'?Math.max(510,chart.periods.length*42+135):chart.kind==='scatter'?560:510;
   const canvas=document.createElement('canvas'),density=Math.min(2,window.devicePixelRatio||1);
   canvas.width=Math.round(W*density);canvas.height=Math.round(H*density);canvas.style.cssText='display:block;width:100%;min-width:620px;background:#fff;border-radius:10px';
   canvas.setAttribute('role','img');canvas.setAttribute('aria-label',label+'；完整数值见数据表');
   const ctx=canvas.getContext('2d');ctx.setTransform(density,0,0,density,0,0);ctx.fillStyle='#fff';ctx.fillRect(0,0,W,H);
   const box={left:16,right:W-16,top:16,bottom:H-16,width:W-32,height:H-32},p={ink:'#17263c',sub:'#64748b',hair:'#e4e9f0',accent:'#c93630',bar:'#265a87'};
-  if(chart.kind==='dualBrandFlowMulti')drawDualBrandFlowMulti(ctx,chart,box,p,'上图为TOP30样本，下图为全市场份额 · 色带只表示同品牌变化');else if(chart.kind==='dualBrandFlow')drawDualBrandFlow(ctx,chart,box,p,'上下图统计范围不同 · 色带只表示同品牌变化');else if(chart.kind==='heatmap')drawResearchHeatmap(ctx,chart,box,p);else if(chart.kind==='scatter'||chart.kind==='bars')drawHeadStaticPoster(ctx,p,{chart,chartNote:''},box);else drawBrandComposition(ctx,chart,box,p,'');
+  if(chart.kind==='generationDualAxis')drawGenerationDualAxis(ctx,chart,box,p);else if(chart.kind==='dualBrandFlowMulti')drawDualBrandFlowMulti(ctx,chart,box,p,'上图为TOP30样本，下图为全市场份额 · 色带只表示同品牌变化');else if(chart.kind==='dualBrandFlow')drawDualBrandFlow(ctx,chart,box,p,'上下图统计范围不同 · 色带只表示同品牌变化');else if(chart.kind==='heatmap')drawResearchHeatmap(ctx,chart,box,p);else if(chart.kind==='scatter'||chart.kind==='bars')drawHeadStaticPoster(ctx,p,{chart,chartNote:''},box);else drawBrandComposition(ctx,chart,box,p,'');
   host.append(canvas);
  }
  return Object.freeze({lineScale,svgLine,canvasLine,renderComposition,markerAt,svgMarker,canvasMarker});

@@ -351,6 +351,7 @@ function drawResearchPosterContent(ctx,L,p,s){
  if(notes.length>6)auditIssue(ctx,'图表内附注超过6行，建议精简');
  if(!auditPlot(ctx,width,chartBox.height,'研究图表内容区',360,230))return;
  if(['trackerBoth','trackerRank','trackerMatrix'].includes(s.chart?.kind)){drawTrackerTrendPoster(ctx,p,{...s,chartNote:''},chartBox);drawNotes();return;}
+ if(s.chart?.kind==='generationDualAxis'){drawGenerationDualAxis(ctx,s.chart,chartBox,p);drawNotes();return;}
  if(s.chart?.kind==='heatmap'){drawResearchHeatmap(ctx,s.chart,chartBox,p,'');drawNotes();return;}
  if(s.chart?.kind==='dualBrandFlowMulti'){drawDualBrandFlowMulti(ctx,s.chart,chartBox,p,'');drawNotes();return;}
   if(s.chart?.kind==='dualBrandFlow'){drawDualBrandFlow(ctx,s.chart,chartBox,p,'');drawNotes();return;}

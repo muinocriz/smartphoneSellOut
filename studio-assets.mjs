@@ -10,7 +10,7 @@ export const publicFiles=Object.freeze([
 ]);
 export const protectedFiles=Object.freeze([
  'market-share.html','market-share.csv','market-share-data.js','market-share-import.js','market-share.css',
- 'sales-estimator.html','sales-estimates.csv','model-master.csv','model-master.js','product-research.js','sales-estimate-archive.js','poster-themes.js','poster-watermark.js','poster-export.js','studio-ui.css','iso-sales-week.js','brand-utils.js',
+ 'sales-estimator.html','sales-estimates.csv','model-master.csv','model-master.js','sales-long.csv','sales-tracking.js','sales-fusion.js','product-research.js','sales-estimate-archive.js','poster-themes.js','poster-watermark.js','poster-export.js','studio-ui.css','iso-sales-week.js','brand-utils.js',
  'sales-series.js','studio-preferences.js','research-charts.js','sales-poster.js','sales-estimator.js','sales-studio.js'
 ]);
 export const generatedFiles=Object.freeze(['weekly-sales-panel.csv','weekly-sales-panel.meta.json']);

@@ -375,7 +375,7 @@ function applyTempData(){
 }
 function refreshTemp(){
   const old=CUR?.cats||[],lo=old[S.from]?.k,hi=old[S.to]?.k,atEnd=S.to===old.length-1;
-  applyTempData();saveTempData();
+  applyTempData();saveTempData();syncTempDisclaimer();
   const cats=categories(),find=(k,fallback)=>{const i=cats.findIndex(c=>c.k===k);return i<0?fallback:i};
   S.from=find(lo,0);S.to=atEnd?Math.max(0,cats.length-1):find(hi,Math.max(0,cats.length-1));
   $("sub").textContent=WEEKS[0]+"–"+WEEKS.at(-1)+"（"+fmtMD(WMON[0])+" 起）· "+ROWS.length+" 个机型 · 单位：万台";
@@ -605,7 +605,7 @@ function mobileList(o,t){
   return g;
 }
 function exportFooter(width){
-  const note=[$("exportDisclaimer").value.trim(),tempEdits.size||tempEnd!=null?"含本标签页临时数据，仅供参考":""].filter(Boolean).join("\n");
+  const note=$("exportDisclaimer").value.trim();
   if(!note)return {height:0,graphic:[]};
   const lines=[],pad=16,lineHeight=17;
   for(const paragraph of note.split("\n")){
@@ -1093,12 +1093,44 @@ try{
   const savedDisclaimer=localStorage.getItem(disclaimerStorageKey);
   if(savedDisclaimer!==null)disclaimerInput.value=savedDisclaimer;
 }catch(e){}
+// 临时附注与正式附注分开存储；只在进入临时数据状态时自动添加提示。
+const tempDisclaimerKey="phoneSales.module1.tempDisclaimer.v1";
+const tempDisclaimerNotice="含本标签页临时数据，仅供参考";
+let normalDisclaimer=disclaimerInput.value, tempDisclaimerActive=false;
+function defaultTempDisclaimer(base){
+  return base.split(/\r?\n/).some(line=>line.trim()===tempDisclaimerNotice)
+    ?base:[base.trimEnd(),tempDisclaimerNotice].filter(Boolean).join("\n");
+}
+function syncTempDisclaimer(){
+  const active=Boolean(tempEdits.size||tempEnd!=null);
+  if(active===tempDisclaimerActive){
+    if(!active)try{sessionStorage.removeItem(tempDisclaimerKey)}catch(e){}
+    return;
+  }
+  if(active){
+    normalDisclaimer=disclaimerInput.value;
+    let saved=null;
+    try{saved=sessionStorage.getItem(tempDisclaimerKey)}catch(e){}
+    disclaimerInput.value=saved===null?defaultTempDisclaimer(normalDisclaimer):saved;
+    tempDisclaimerActive=true;
+    saveDisclaimer();
+  }else{
+    tempDisclaimerActive=false;
+    disclaimerInput.value=normalDisclaimer;
+    try{sessionStorage.removeItem(tempDisclaimerKey)}catch(e){}
+  }
+}
 function saveDisclaimer(){
-  try{localStorage.setItem(disclaimerStorageKey,disclaimerInput.value)}catch(e){}
+  if(tempDisclaimerActive){
+    try{sessionStorage.setItem(tempDisclaimerKey,disclaimerInput.value)}catch(e){}
+  }else{
+    normalDisclaimer=disclaimerInput.value;
+    try{localStorage.setItem(disclaimerStorageKey,normalDisclaimer)}catch(e){}
+  }
 }
 disclaimerInput.addEventListener("input",saveDisclaimer);
 $("resetExportDisclaimer").onclick=()=>{
-  disclaimerInput.value=disclaimerInput.defaultValue;
+  disclaimerInput.value=tempDisclaimerActive?defaultTempDisclaimer(disclaimerInput.defaultValue):disclaimerInput.defaultValue;
   saveDisclaimer();
 };
 $("expDesk").onclick=()=>exportPNG(false);
@@ -1118,6 +1150,7 @@ new MutationObserver(()=>{renderModels();draw(true)}).observe(document.documentE
 
 function start(text){
   try{load(text)}catch(e){showLoad("CSV 格式无法识别："+e.message,true);return}
+  syncTempDisclaimer();
   $("load").hidden=true;computeMilestones();computeRecent();
   if(RECENT.models.length){applyList(RECENT)}
   else{S.list=null;S.sel=new Set();selectBrandAll();renderBrands();renderModels();renderLists();draw(false)}

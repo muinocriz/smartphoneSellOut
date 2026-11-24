@@ -40,5 +40,52 @@ function fuse({tracking,master,rankCSV,scopeId}){const cat=typeof master==='stri
  return {version:VERSION,scopeId:scopeId||scopes.keys().next().value||'',weeks:[...weeks.values()].sort((a,b)=>a.period.localeCompare(b.period)),issues,master:cat};}
 // A group is assigned only when all its members share the chosen attribute. Never split a combined record.
 function aggregate(week,cat,field='series'){const map=new Map();for(const e of week.expanded){const members=e.member_ids.map(id=>cat.byId.get(id));const keys=sorted(members.map(m=>m?JSON.stringify(field==='series'?[brandKey(m.brand),m.series]:field==='generation'?[brandKey(m.brand),m.series,m.generation]:[m[field]||'']):''));const k=keys.length===1&&keys[0]?keys[0]:'未分配（跨组或未知）';map.set(k,clean((map.get(k)||0)+e.value_wan));}return [...map].map(([key,value_wan])=>({key,value_wan}));}
-const api=Object.freeze({VERSION,catalog,trackedMatch,rankMatch,parseBoards,top30,fuse,aggregate});root.SalesFusion=api;if(typeof module==='object'&&module.exports)module.exports=api;
+// Adapt fusion output to the existing research time-series interface. Original ranks
+// remain sourced from the unmodified board; a combined scope is never split into SKU values.
+const coverageKey=ids=>ids.length===1?ids[0]:'coverage:'+JSON.stringify(ids);
+function buildPanel(rawPanel,history,tracking,master,options={}){
+ const Series=root.SalesSeries,Brand=root.BrandUtils,p=Series.salesPanelOptions(options),header=[...rawPanel.header,'sales_source','member_ids','fusion_algorithm_version'],rows=[],scopes=[];
+ const col=Series.col,cat={models:master.models,byId:new Map(master.models.map(m=>[m.model_id,m]))};
+ const boardScopes=new Map();
+ for(const r of history){if(r[col.period_type]!=='weekly')continue;const id=JSON.stringify([r[col.source],r[col.series]]);if(!boardScopes.has(id))boardScopes.set(id,new Map());const weeks=boardScopes.get(id),t=weekTime(r[col.period]);if(!weeks.has(t))weeks.set(t,[]);weeks.get(t).push(Object.fromEntries(Series.HEADER.map((k,i)=>[k,r[i]])));}
+ for(const originalScope of rawPanel.scopes){
+  const result=fuse({tracking,master:cat,rankCSV:boardScopes,scopeId:originalScope.id}),byPeriod=new Map(result.weeks.map(w=>[w.period,w])),originalWeeks=new Map(originalScope.fullWeeks.map(w=>[w.period,w])),models=new Map();
+  const fullWeeks=[],dates=result.weeks.map(w=>weekTime(w.period));
+  if(!dates.length)continue;
+  const common=(members,field)=>members.length&&members.every(m=>m[field]===members[0][field])?members[0][field]:null;
+  function ensure(e){
+   const id=coverageKey(e.member_ids);if(models.has(id))return models.get(id);
+   const members=e.member_ids.map(x=>cat.byId.get(x)).filter(Boolean),single=members.length===1?members[0]:null;
+   const fields=['brand','brand_group','series','generation','form_factor','sale_start_date','launch_price','chip_vendor','chip_model','base_ram','base_rom'];
+   const info=single||Object.fromEntries(fields.map(k=>[k,common(members,k)]));
+   const name=single?.model_name||e.label;
+   const m={key:id,name,master:single||{...info,model_name:name,model_id:null,aliases:[]},brand:info.brand_group||'其他',count:0,first:'',member_ids:e.member_ids};
+   models.set(id,m);return m;
+  }
+  for(let t=dates[0];t<=dates.at(-1);t+=T.WEEK){
+   const per=period(t),orig=originalWeeks.get(per),f=byPeriod.get(per),rankMap=new Map(),salesMap=new Map();
+   // Original ranks are matched by exactly the same coverage, not by alias alone.
+   for(const r of orig?.map.values()||[]){const m=rankMatch(cat,r[col.model]);if(m.ids.length){const k=coverageKey(m.ids);if(!rankMap.has(k))rankMap.set(k,r);else rankMap.set(k,null);}}
+   for(const e of f?.expanded||[]){const m=ensure(e);salesMap.set(m.key,e);if(!m.first)m.first=per;}
+   fullWeeks.push({period:per,start:T.dateText(t),end:T.dateText(t+6*T.DAY),map:new Map([...rankMap].filter(([,r])=>r)),salesMap,hasBoard:!!orig?.hasBoard,top:orig?.top||'',count:orig?.count||0,cutoff:orig?.cutoff??null,boardComplete:!!f?.boardComplete,fusion:f||null});
+  }
+  const weeks=fullWeeks.filter(w=>(!p.start||w.period>=p.start)&&(!p.end||w.period<=p.end));
+  if(!weeks.length)continue;
+  const selected=[...models.values()].filter(m=>weeks.some(w=>w.salesMap.has(m.key))).sort((a,b)=>a.name.localeCompare(b.name,'zh-CN'));
+  const panelRows=[],fmt=v=>v==null?'':Number(v).toFixed(4);
+  for(const m of selected){
+   m.count=weeks.filter(w=>w.salesMap.has(m.key)).length;m.baseWeeks=p.coverageBase==='first'?weeks.filter(w=>w.period>=m.first).length:weeks.length;m.coverage=m.count/m.baseWeeks;
+   // Expanded mode deliberately does not impute or filter out newly added low-coverage records.
+   let total=0,unknown=false;
+   for(const w of weeks){const e=w.salesMap.get(m.key),rank=w.map.get(m.key),value=e?.value_wan??null;
+    if(w.period>=m.first&&value===null)unknown=true;if(value!==null)total+=value;
+    const cumulative=w.period<m.first||unknown?null:total;
+    panelRows.push([originalScope.source,originalScope.series,w.period,w.start,w.end,m.key,m.member_ids.length===1?m.key:'',m.name,rank?.[col.model]||'',m.brand,rank?.[col.rank]||'',fmt(value),'',fmt(value),fmt(cumulative),fmt(w.cutoff),'0',e?.source||'missing',String(m.count),String(weeks.length),m.coverage.toFixed(4),String(m.baseWeeks),m.first,weeks[0].period,weeks.at(-1).period,p.coverageBase,'0','0','none','expanded','0','0',e?.source||'',JSON.stringify(m.member_ids),VERSION]);
+   }
+  }
+  rows.push(...panelRows);scopes.push({...originalScope,weeks,fullWeeks,models:selected,rows:panelRows,options:p,expanded:true,fusionIssues:result.issues});
+ }
+ return {header,rows,scopes,masterRevision:master.revision,expanded:true};
+}
+const api=Object.freeze({VERSION,catalog,trackedMatch,rankMatch,parseBoards,top30,fuse,aggregate,buildPanel});root.SalesFusion=api;if(typeof module==='object'&&module.exports)module.exports=api;
 })(typeof globalThis!=='undefined'?globalThis:this);

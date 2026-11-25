@@ -604,7 +604,7 @@
     '<div><label class="lbl" for="crossRange">统计范围</label><select id="crossRange" class="field ui-field"><option value="last">所选末周</option><option value="range">所选区间有效周汇总</option></select></div>'+
     '<div><label class="lbl" for="crossMetric">矩阵指标</label><select id="crossMetric" class="field ui-field"><option value="volume">累计样本销量（万台）</option><option value="count">入榜统计项/机型周次</option><option value="share">全样本销量占比</option><option value="row_share">行内销量占比</option><option value="col_share">列内销量占比</option></select></div>'+
     '<div><label class="lbl" for="crossLimit">每轴主要已知类别（1–8）</label><input id="crossLimit" class="field ui-field" type="number" min="1" max="8" step="1" value="6"></div><div style="align-self:end"><button id="crossSwap" type="button" class="secondary">交换行列</button></div></div>'+
-    '<div id="crossPriceWrap" style="margin-top:10px"><label class="lbl" for="crossPriceCuts">价格分界线（元，升序逗号分隔）</label><div style="display:flex;gap:8px;flex-wrap:wrap"><input id="crossPriceCuts" class="field ui-field" style="flex:1;min-width:200px" value="'+Product.DEFAULT_CUTS.join(',')+'"><button id="crossResetCuts" type="button" class="secondary">恢复默认价格带</button></div><p class="mini">行或列选择「首发价格带」时生效；沿用价格带竞争分析的分界线规则。未知价格独立统计。</p></div>'+
+    '<div id="crossPriceWrap" style="margin-top:10px"><label class="lbl" for="crossPriceCuts">价格分界线（元，升序逗号分隔）</label><div style="display:flex;gap:8px;flex-wrap:wrap"><input id="crossPriceCuts" class="field ui-field" style="flex:1;min-width:200px" value="'+Product.DEFAULT_CUTS.join(',')+'"><button id="crossResetCuts" type="button" class="secondary">恢复默认价格带</button></div><p class="mini">行或列选择「首发价格带」时生效；沿用价格带竞争分析的分界线规则。扩展合计项全部成员同属一价格带时归入该带；跨价格带或价格缺失归未知，不拆分销量。</p></div>'+
     '<div id="researchNotice" class="msg" aria-live="polite"></div><div id="researchChart" style="overflow:auto"></div><div id="researchLegend" style="display:flex;flex-wrap:wrap;gap:8px 16px"></div>'+
     '<div class="tablewrap"><table class="ranktable"><thead id="researchHead"></thead><tbody id="researchRows"></tbody></table></div>'+
     '<button type="button" class="secondary" id="researchExport" style="margin-top:10px" disabled>导出当前专题 CSV</button>';
@@ -1344,7 +1344,7 @@
     const notice=$('researchNotice'),fields=new Map(Product.AGE_FIELDS),limit=Number(cfg.limit);
     const hasPrice=cfg.row==='price_band'||cfg.column==='price_band';
     visible($('crossPriceWrap'),hasPrice);
-    $('researchDesc').textContent=general+' 可交叉两个不同属性；区间汇总是有效榜单的样本销量之和，不是完整市场累计。同一机型每周入榜计一次；代际年龄以完整主数据中同品牌、同系列、同代际的最早有效正式开售日为起点，按当周计算，后续成员上市不重置。行内/列内占比的分母包含该行/列未知类别。';
+    $('researchDesc').textContent=general+' 可交叉两个不同属性；区间汇总是有效榜单的样本销量之和，不是完整市场累计。同一机型每周入榜计一次；代际年龄以完整主数据中同品牌、同系列、同代际的最早有效正式开售日为起点，按当周计算，后续成员上市不重置。行内/列内占比的分母包含该行/列未知类别。'+(hasPrice&&activeExpanded?' 扩展合计项按全部成员的首发价与当前分界线判断；同带归类，跨带或缺失归未知，不拆分。':'');
     if(cfg.row===cfg.column||!fields.has(cfg.row)||!fields.has(cfg.column)){notice.textContent='请选择两个不同的有效属性。';return;}
     if(!Number.isSafeInteger(limit)||limit<1||limit>8){notice.textContent='每轴主要已知类别须为1–8之间的整数。';return;}
     const cuts=hasPrice?Product.parseCuts(cfg.priceCuts):Product.DEFAULT_CUTS;
@@ -1367,7 +1367,7 @@
     const chart=crossHeatmap(collapsed,r.labels,c.labels,cfg.metric,periods,rowLabel,colLabel);
     if(chart.lines.some(l=>l.values.some(Number.isFinite)))attrPlot(chart,rowLabel+' × '+colLabel);
     const ageDetail=cfg.row==='age_band'||cfg.column==='age_band'?'代际年龄按同品牌、同系列、同代际最早有效正式开售日计算；后发成员不重置；合并项跨年龄区间或无法判断归未知；':'';
-    const coverage=pct(matrix.knownBoth,matrix.total),priceDetail=hasPrice?'价格分界线 '+cuts.join(' / ')+' 元；':'';
+    const coverage=pct(matrix.knownBoth,matrix.total),priceDetail=hasPrice?'价格分界线 '+cuts.join(' / ')+' 元；'+(activeExpanded?'扩展合计项同带归类，跨带或缺失归未知；':''):'';
     setAttributeInfo(rowLabel+' × '+colLabel+' · '+metricLabel,periods,'未知独立；次要类别合并；颜色按数值统一标尺；非全市场',priceDetail+ageDetail+'所选区间 '+range+'；实际有效 '+periods.length+'/'+selected.length+' 周；完整 '+rows.length+'×'+cols.length+' 矩阵见 CSV；合并后图表 '+r.labels.length+'×'+c.labels.length+'；双属性销量覆盖率 '+(coverage===null?'—':coverage.toFixed(2)+'%')+'；'+general);
     notice.textContent=sample+' · '+metricLabel+' · '+periods.length+'/'+selected.length+' 周有样本 · 完整 '+rows.length+'×'+cols.length+'，图表 '+r.labels.length+'×'+c.labels.length+' · 双属性覆盖率 '+(coverage===null?'—':coverage.toFixed(2)+'%');
   }
@@ -1416,10 +1416,10 @@
     }
     if(key==='price'){
       const cuts=Product.parseCuts(cfg.cuts);visible($('priceBrandWrap'),cfg.view==='matrix');
-      $('researchDesc').textContent=general+' 首发价为起售价，不是成交价；含其他版本的统计项按主数据代表性首发价归类，不拆分销量。';
+      $('researchDesc').textContent=general+' 首发价为起售价，不是成交价；含其他版本的统计项按主数据代表性首发价归类，不拆分销量。'+(scope.expanded?' 扩展合计项全部成员同属当前价格带时归入该带，跨带或价格缺失归未知。':'');
       if(!cuts){notice.textContent='请输入1–8个严格递增的正整数价格分界线（不超过1000000元）。';return;}
       const classify=x=>Product.priceBand(x.model,cuts),labels=[...Product.bandLabels(cuts),Product.UNKNOWN],metric=cfg.metric;
-      const metricLabel='首发价格带'+attrMetricLabel(metric),note='首发起售价分组（含版本项用代表价）；未知计入分母；非全市场';
+      const metricLabel='首发价格带'+attrMetricLabel(metric),note='首发起售价分组（含版本项用代表价）；'+(scope.expanded?'扩展合计项同带归类，跨带或缺失归未知；':'')+'未知计入分母；非全市场';
       if(cfg.view==='matrix'){
         if(!nonempty(last)){notice.textContent='所选末周无有效样本，不自动改用较早周。';return;}
         const colOf=x=>attrBrand(x,cfg.brandLevel),columns=Product.rankGroups([last],colOf);
@@ -1431,8 +1431,8 @@
         if(valid.length)attrPlot(attrTrend(per,labels,classify,metric,cfg.view),'价格带竞争');
         setAttributeInfo(metricLabel,per.filter(w=>nonempty(w)&&(metric!=='share'||w.total>0)).map(w=>w.period),note,'价格分界线：'+cuts.join(' / ')+' 元；'+general);
       }
-      const cov=last?.total>0?pct(last.knownPrice,last.total):null;
-      notice.textContent=metricLabel+suffix+' · 末周有效价格销量覆盖率 '+(cov===null?'—':cov.toFixed(2)+'%');return;
+      const cov=last?.total>0?pct(last.entries.reduce((sum,x)=>sum+(classify(x)!==Product.UNKNOWN?x.units:0),0),last.total):null;
+      notice.textContent=metricLabel+suffix+' · 末周价格带销量覆盖率 '+(cov===null?'—':cov.toFixed(2)+'%');return;
     }
     if(key==='position'){
       const threshold=Number(cfg.high);$('researchDesc').textContent=general+' 加权首发价以价格有效的销量为分母，仅未知或无效价格不参与加权；含其他版本的统计项使用主数据代表性首发价；高价位贡献以筛选样本（含未知价格）为分母，不是成交 ASP。';

@@ -123,7 +123,7 @@ function posterFitText(ctx,value,x,y,size,color,weight='600',align='left',width=
  const fit=measured>width?size*width/measured:size;
  if(str.trim()){
   if(!Number.isFinite(fit)||fit<=0){auditIssue(ctx,'文字区域无有效宽度',true);return;}
-  if(mobilePosterActive(ctx)&&fit<MOBILE_POSTER_TYPE.min)auditIssue(ctx,'部分文字低于手机阅读目标（400px宽时12px），建议减少项目或改用9:16');else if(fit<14||fit<size*.60)auditIssue(ctx,'部分文字因空间不足而缩小');
+  if(mobilePosterActive(ctx)&&fit<MOBILE_POSTER_TYPE.min*(posterAudits.get(ctx).referenceWidth||1080)/1080)auditIssue(ctx,'部分文字低于手机阅读目标（400px宽时12px），建议减少项目或改用9:16');else if(fit<14||fit<size*.60)auditIssue(ctx,'部分文字因空间不足而缩小');
  }
  canvasText(ctx,str,x,y,Math.max(1,fit),color,weight,align);
 }
@@ -327,8 +327,8 @@ function drawPoster(type,canvas,o=socialData(),showGuides=false,pixelRatio=1,pub
  }
  ctx.restore();
  drawImageWatermark(ctx,W,H,right,bottom,publication?.watermark||watermarkState,state,p);
- if(showGuides)drawSafeGuides(ctx,W,H,p);
  posterAudits.delete(ctx);
+ if(showGuides)drawSafeGuides(ctx,W,H,p);
  if(showGuides&&!publication){
   showPosterAudit(audit);
   const unavailable=publicationJob.busy||audit.errors.size>0;
@@ -465,7 +465,7 @@ function researchDirectGeometry(s){
  if(!c&&s.table){
   const cols=s.table.headers.length;
   width=Math.max(1080,260+Math.max(0,cols-1)*150);
-  height=Math.max(300,74+s.table.rows.length*44);
+  height=Math.max(300,86+s.table.rows.length*60);
  }
  return {width,height};
 }
@@ -482,20 +482,20 @@ function drawDirectResearchTable(ctx,p,table,box){
  const {left,top,width}=box,headers=table.headers,rows=table.rows;
  if(!headers.length||!rows.length)return;
  const first=Math.min(240,width*.26),cell=(width-first)/Math.max(1,headers.length-1),widths=headers.map((_,i)=>i===0?first:cell);
- const rowH=44;
+ const rowH=60;
  let x=left;
- headers.forEach((label,i)=>{posterFitText(ctx,label,x+9,top+27,20,p.sub,'600','left',widths[i]-18);x+=widths[i];});
- posterRule(ctx,left,left+width,top+42,p);
+ headers.forEach((label,i)=>{posterFitText(ctx,label,x+9,top+36,MOBILE_POSTER_TYPE.note,p.sub,'600','left',widths[i]-18);x+=widths[i];});
+ posterRule(ctx,left,left+width,top+54,p);
  rows.forEach((row,j)=>{
-  const y=top+42+j*rowH;let x=left;
+  const y=top+54+j*rowH;let x=left;
   if(j%2){ctx.save();ctx.fillStyle=p.hair;ctx.globalAlpha=.18;ctx.fillRect(left,y,width,rowH);ctx.restore();}
-  row.forEach((value,i)=>{if(i>=widths.length)return;posterFitText(ctx,value??'',x+9,y+29,20,p.ink,'400','left',widths[i]-18);x+=widths[i];});
+  row.forEach((value,i)=>{if(i>=widths.length)return;posterFitText(ctx,value??'',x+9,y+40,MOBILE_POSTER_TYPE.note,p.ink,'400','left',widths[i]-18);x+=widths[i];});
   posterRule(ctx,left,left+width,y+rowH,p);
  });
 }
 async function exportResearchChartPNG(snapshot,{palette,watermark,width}){
  await PosterExport.waitForFonts();
- let outputWidth=0;
+ let outputWidth=0,warnings=[];
  const blob=await PosterExport.canvasPNG(canvas=>{
   const p=palette,geometry=researchDirectGeometry(snapshot),padding=34,logicalW=geometry.width+padding*2;
   const measure=canvas.getContext('2d');
@@ -505,7 +505,7 @@ async function exportResearchChartPNG(snapshot,{palette,watermark,width}){
   const scale=Math.min(width/logicalW,16000/logicalH,Math.sqrt(40000000/(logicalW*logicalH)));
   if(!Number.isFinite(scale)||scale<=0)throw Error('图表尺寸无效');
   canvas.width=Math.max(1,Math.floor(logicalW*scale));canvas.height=Math.max(1,Math.floor(logicalH*scale));outputWidth=canvas.width;
-  const ctx=canvas.getContext('2d'),audit={warnings:new Set(),errors:new Set()};posterAudits.set(ctx,audit);
+  const ctx=canvas.getContext('2d'),audit={warnings:new Set(),errors:new Set(),referenceWidth:logicalW};posterAudits.set(ctx,audit);
   ctx.scale(scale,scale);ctx.fillStyle=p.panel||'#ffffff';ctx.fillRect(0,0,logicalW,logicalH);
   let yy=15;headings.forEach(h=>{yy+=h.size;posterFitText(ctx,h.v,padding,yy,h.size,h.weight==='700'?p.ink:p.sub,h.weight,'left',geometry.width);yy+=h.size*.3;});
    const box={left:padding,right:logicalW-padding,top:headerH,bottom:headerH+geometry.height,width:geometry.width,height:geometry.height};
@@ -513,7 +513,8 @@ async function exportResearchChartPNG(snapshot,{palette,watermark,width}){
   else if(snapshot.table)drawDirectResearchTable(ctx,p,snapshot.table,box);
   notes.forEach((line,i)=>posterFitText(ctx,line,padding,box.bottom+36+i*43,T.note,p.sub,'400','left',geometry.width));
   drawImageWatermark(ctx,logicalW,logicalH,0,0,watermark,{safeEnabled:false},p);
-  if(audit.errors.size)throw Error([...audit.errors].join('；')+'，请缩短区间或减少展示项目');
+  warnings=[...audit.warnings];posterAudits.delete(ctx);
+   if(audit.errors.size)throw Error([...audit.errors].join('；')+'，请缩短区间或减少展示项目');
  });
- return {blob,width:outputWidth};
+ return {blob,width:outputWidth,warnings};
 }

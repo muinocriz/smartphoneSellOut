@@ -785,6 +785,84 @@ const ResearchCharts=(()=>{
 
   const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox','0 0 '+W+' '+H);svg.setAttribute('role','img');svg.setAttribute('aria-label',label);svg.style.cssText='width:100%;min-width:560px';svg.innerHTML=content;host.append(svg);
  }
+ // Board flow: the retained count and movement counts share the same week
+ // coordinates, but not the same vertical scale. Keep nullable observations.
+ function boardFlowLayout(chart,box){
+  const {left,right,top,bottom,width,height}=box,n=chart.periods.length;
+  const x0=left+56,x1=right-55,x=i=>n===1?(x0+x1)/2:x0+i*(x1-x0)/Math.max(1,n-1);
+  const y0=top+23,y1=bottom-29,gap=39,available=y1-y0-gap,upperH=available*.35;
+  const panels=[{lines:chart.lines.slice(0,1),title:'留榜机型数 · 动态 Y 轴',top:y0,bottom:y0+upperH,offset:0},{lines:chart.lines.slice(1),title:'进入与退出榜单 · 机型数',top:y0+upperH+gap,bottom:y1,offset:1}];
+  panels.forEach((panel,j)=>{
+   const values=panel.lines.flatMap(l=>l.values.filter(Number.isFinite));
+   let low=0,high=1;
+   if(values.length){
+    const min=Math.min(...values),max=Math.max(...values);
+    const padding=j===0?Math.max(1,Math.ceil((max-min)*.1)):0;
+    low=j===0?Math.max(0,min-padding):0;high=Math.max(low+1,max+padding);
+   }
+   const step=Math.max(1,Math.ceil((high-low)/4));
+   low=Math.max(0,Math.floor(low/step)*step);high=Math.max(low+step,Math.ceil(high/step)*step);
+   panel.ticks=Array.from({length:Math.round((high-low)/step)+1},(_,i)=>low+i*step);
+   panel.scale={x,y:v=>panel.bottom-(v-low)/(high-low)*(panel.bottom-panel.top)};
+   panel.hasValues=values.length>0;
+  });
+  const stride=Math.max(1,Math.ceil((n-1)/Math.max(1,Math.floor((x1-x0)/53))));
+  const years=new Set(chart.periods.map(w=>String(w).slice(0,4)));
+  const labels=chart.periods.map((period,i)=>({i,label:years.size===1&&/^\d{4}-W\d{2}$/.test(period)?period.slice(5):period})).filter(({i})=>i===0||i===n-1||(i%stride===0&&n-1-i>=stride*.65));
+  return {x0,x1,x,panels,labels,width,height};
+ }
+ function boardFlowDash(i){return [[],[],[7,4],[3,3],[9,3,2,3],[5,3]][i]||[];}
+ function svgBoardFlow(host,legend,chart,label){
+  const n=chart.periods.length;if(!n||!chart.lines.length)return;
+  const W=Math.max(720,n*48+110),H=400,layout=boardFlowLayout(chart,{left:0,right:W,top:0,bottom:H,width:W,height:H});
+  const {x0,x1,x,panels,labels}=layout;
+  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  let content='<style>.board-flow-week:hover .board-flow-guide{opacity:.45}</style>';
+  panels.forEach(panel=>{
+   content+='<text x="'+x0+'" y="'+(panel.top-10)+'" font-size="12" font-weight="600" fill="currentColor">'+esc(panel.title)+'</text>';
+   panel.ticks.forEach(v=>{const y=panel.scale.y(v);content+='<line x1="'+x0+'" x2="'+x1+'" y1="'+y+'" y2="'+y+'" stroke="currentColor" opacity=".14"/><text x="'+(x0-8)+'" y="'+(y+4)+'" text-anchor="end" fill="currentColor" font-size="11">'+v+'</text>';});
+   if(!panel.hasValues)content+='<text x="'+((x0+x1)/2)+'" y="'+((panel.top+panel.bottom)/2)+'" text-anchor="middle" fill="currentColor" font-size="12">无相邻可比较周</text>';
+   panel.lines.forEach((l,j)=>{
+    const i=panel.offset+j,color=esc(l.color||COLORS[i%COLORS.length]),dash=boardFlowDash(i);
+    points({...chart,lines:[l]},panel.scale,p=>{
+     if(p.previous)content+='<line x1="'+p.previous.x+'" y1="'+p.previous.y+'" x2="'+p.x+'" y2="'+p.y+'" stroke="'+color+'" stroke-width="1.8" '+(dash.length?'stroke-dasharray="'+dash.join(' ')+'"':'')+'/>';
+     content+=svgMarker(l.marker||markerAt(i),p.x,p.y,2.6,color);
+    });
+   });
+  });
+  labels.forEach(({i,label})=>{content+='<text x="'+x(i)+'" y="'+(panels[1].bottom+19)+'" text-anchor="middle" fill="currentColor" font-size="10">'+esc(label)+'</text>';});
+  // A single hover target per week exposes all six values, even if points overlap.
+  chart.periods.forEach((period,i)=>{
+   const half=n===1?(x1-x0)/2:(x1-x0)/(n-1)/2,px=x(i),a=Math.max(x0,px-half),b=Math.min(x1,px+half);
+   const tooltip=[period,...chart.lines.map(l=>l.name+'：'+(Number.isFinite(l.values[i])?l.values[i]+' 款':'—（缺失或不适用）'))].join('\n');
+   content+='<g class="board-flow-week"><title>'+esc(tooltip)+'</title><line class="board-flow-guide" x1="'+px+'" x2="'+px+'" y1="'+panels[0].top+'" y2="'+panels[1].bottom+'" stroke="currentColor" stroke-dasharray="3 3" opacity="0" pointer-events="none"/><rect x="'+a+'" y="'+panels[0].top+'" width="'+(b-a)+'" height="'+(panels[1].bottom-panels[0].top)+'" fill="transparent"/></g>';
+  });
+  chart.lines.forEach((l,i)=>{const span=document.createElement('span');span.style.color=l.color||COLORS[i%COLORS.length];span.textContent=(l.marker||markerAt(i))+' '+l.name;legend.append(span);});
+  const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox','0 0 '+W+' '+H);svg.setAttribute('role','img');svg.setAttribute('aria-label',label+'；上下图共用周次，留榜使用动态纵轴');svg.style.cssText='width:100%;min-width:560px';host.append(svg);svg.innerHTML=content;
+ }
+ function canvasBoardFlow(ctx,chart,box,p){
+  if(!chart.periods.length||!chart.lines.length)return;
+  const {left,right,top,bottom,width,height}=box,cols=width>=850?3:2,rows=Math.ceil(chart.lines.length/cols),legendStep=28,legendH=rows*legendStep+8;
+  if(!auditPlot(ctx,width-111,height-legendH-91,'榜单流动双图绘图区',260,145))return;
+  const layout=boardFlowLayout(chart,{left,right,top:top+legendH,bottom,width,height:height-legendH});
+  chart.lines.forEach((l,i)=>{const cell=width/cols,x=left+i%cols*cell,y=top+(Math.floor(i/cols)+.75)*legendStep,color=l.color||COLORS[i%COLORS.length];canvasMarker(ctx,l.marker||markerAt(i),x+8,y-5,4,color);canvasText(ctx,l.name,x+20,y,18,p.ink,'600','left',cell-24);});
+  const {x0,x1,x,panels,labels}=layout;
+  panels.forEach(panel=>{
+   canvasText(ctx,panel.title,x0,panel.top-9,18,p.ink,'600','left',x1-x0);
+   panel.ticks.forEach(v=>{const y=panel.scale.y(v);ctx.strokeStyle=p.hair;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x0,y);ctx.lineTo(x1,y);ctx.stroke();canvasText(ctx,String(v),x0-8,y+5,16,p.sub,'500','right',48);});
+   if(!panel.hasValues)canvasText(ctx,'无相邻可比较周',(x0+x1)/2,(panel.top+panel.bottom)/2,18,p.sub,'500','center',x1-x0);
+   panel.lines.forEach((l,j)=>{
+    const i=panel.offset+j,color=l.color||COLORS[i%COLORS.length],dash=boardFlowDash(i);
+    points({...chart,lines:[l]},panel.scale,pt=>{
+     if(pt.previous){ctx.save();ctx.strokeStyle=color;ctx.lineWidth=2.5;ctx.setLineDash(dash);ctx.beginPath();ctx.moveTo(pt.previous.x,pt.previous.y);ctx.lineTo(pt.x,pt.y);ctx.stroke();ctx.restore();}
+     canvasMarker(ctx,l.marker||markerAt(i),pt.x,pt.y,3.2,color);
+    });
+   });
+  });
+  // Export has larger labels than the SVG; thin the common axis accordingly.
+  const stride=Math.max(1,Math.ceil((chart.periods.length-1)/Math.max(1,Math.floor((x1-x0)/85))));
+  labels.filter(({i})=>i===0||i===chart.periods.length-1||(i%stride===0&&chart.periods.length-1-i>=stride*.65)).forEach(({i,label})=>canvasText(ctx,label,x(i),panels[1].bottom+22,16,p.sub,'500','center',83));
+ }
  function canvasLine(ctx,chart,scale){
   for(const band of chart.bands||[])for(const run of bandRuns(chart,band)){
    ctx.save();ctx.fillStyle=band.color||'#7c3aed';ctx.globalAlpha=Number.isFinite(band.opacity)?Math.max(0,Math.min(1,band.opacity)):.18;
@@ -829,5 +907,5 @@ const ResearchCharts=(()=>{
    }).catch(()=>{});
   }
  }
- return Object.freeze({lineScale,svgLine,canvasLine,renderComposition,markerAt,svgMarker,canvasMarker});
+ return Object.freeze({lineScale,svgLine,canvasLine,renderComposition,markerAt,svgMarker,canvasMarker,svgBoardFlow,canvasBoardFlow});
 })();

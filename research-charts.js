@@ -620,7 +620,43 @@ function crossPeriodTicks(ctx,periods,x,y,plotWidth,font,p,preview=false){
   }
  });
 }
+function drawMobileCoverageLayers(ctx,chart,box,p){
+ const {left,right,top,bottom,width}=box,n=chart.periods.length;
+ if(!n)return;
+ const labels=chart.lines.filter(l=>l.panel==='scale'),layers=chart.lines.filter(l=>l.panel==='layers');
+ const upper={...chart,lines:labels},T=MOBILE_POSTER_TYPE,titleH=posterDp(17),gap=posterDp(8),footerH=posterDp(20);
+ const legend1=[...labels,...(chart.bands||[]).map(b=>({...b,name:b.name||'区间范围',legendBand:true}))];
+ researchPosterAxisText(ctx,'市场规模（万台）',left,top+T.label,'title',p.ink,'left',width);
+ const upperTop=posterLineLegend(ctx,legend1,{left,right,width,top:top+titleH,bottom},p)+posterDp(4);
+ // Measure the lower legend independently so both panels get equal plotting height.
+ const lowerLegend=layers.map(l=>({...l,marker:null}));
+ // Compute its exact wrapped-row height without leaving marks in the drawing.
+ const scratch=document.createElement('canvas').getContext('2d');
+ const lowerLegendH=posterLineLegend(scratch,lowerLegend,{left:0,right:width,width,top:0},p);
+ const plotH=(bottom-upperTop-titleH-gap-lowerLegendH-footerH-posterDp(8))/2;
+ if(plotH<posterDp(32)){auditIssue(ctx,'市场规模与销量分层绘图区不足，请精简图例或拆图',true);return;}
+ const axis=posterLineAxis(upper,plotH),pctTicks=[0,25,50,75,100];
+ const x0=left+Math.max(posterAxisGutter(ctx,axis.ticks),posterAxisGutter(ctx,pctTicks,v=>v+'%')),x1=right-posterDp(4),slot=(x1-x0)/n,x=i=>x0+(i+.5)*slot;
+ if(!auditPlot(ctx,x1-x0,plotH,'市场销量分层绘图区',250,96))return;
+ const upperBottom=upperTop+plotH,scale=posterLineScale(upper,{left:x0,right:x1,top:upperTop,bottom:upperBottom},axis);
+ posterYTicks(ctx,axis.ticks,scale.y,x0,x1,p);
+ ResearchCharts.canvasLine(ctx,upper,{...scale,x});
+ const lowerTitleTop=upperBottom+gap;
+ researchPosterAxisText(ctx,'市场销量分层（%）',left,lowerTitleTop+T.label,'title',p.ink,'left',width);
+ const lowerTop=posterLineLegend(ctx,lowerLegend,{left,right,width,top:lowerTitleTop+titleH,bottom},p)+posterDp(4);
+ const lowerBottom=lowerTop+plotH,yp=v=>lowerBottom-v/100*plotH;
+ posterYTicks(ctx,pctTicks,yp,x0,x1,p,v=>v+'%');
+ const bw=Math.min(slot*.63,posterDp(25));let count=0;
+ chart.periods.forEach((_,i)=>{
+  if(!layers.length||!layers.every(l=>Number.isFinite(l.values[i])))return;
+  count++;let accumulated=0;
+  layers.forEach((l,j)=>{const v=l.values[i];ctx.save();ctx.fillStyle=l.color;ctx.globalAlpha=j===3?.65:1;ctx.fillRect(x(i)-bw/2,yp(accumulated+v),bw,yp(accumulated)-yp(accumulated+v));ctx.restore();accumulated+=v;});
+ });
+ if(!count)posterFitText(ctx,'无可行市场区间，分层暂不绘制',(x0+x1)/2,(lowerTop+lowerBottom)/2,T.value,p.sub,'500','center',x1-x0);
+ posterWeekTicks(ctx,chart.periods,x,lowerBottom+posterDp(16),left,right,p);
+}
 function drawCoverageLayers(ctx,chart,box,p,preview=false){
+ if(!preview&&mobilePosterActive(ctx))return drawMobileCoverageLayers(ctx,chart,box,p);
  const {left,right,top,bottom,width,height}=box,n=chart.periods.length;
  if(!n)return;
  const f=Math.max(.65,Math.min(1.25,width/850,height/750)),font=(preview?13:18)*f,head=(preview?17:23)*f;
@@ -704,26 +740,30 @@ function drawBrandGrowth(ctx,chart,box,p,preview=false){
  if(!n)return;
  const groups=window.BrandUtils.groups.filter(g=>g.id!=='other');
  const f=Math.max(.6,Math.min(1.2,width/850,height/760)),font=(preview?12:17)*f,head=(preview?17:23)*f;
- const gap=18*f,legendH=35*f,cellW=(width-gap)/2,cellH=(height-legendH-gap*2)/3;
+ const gap=preview?18*f:posterDp(6),entries=[['榜内环比','#64748b','bar'],['榜外环比','#64748b','light'],['品牌总销量环比',p.ink,'line']];
+ const legendH=preview?35*f:posterLineLegend(ctx,entries.map(([name,color,role])=>({name,color,legendBand:role==='light',marker:role==='line'?'○':null})),box,p)-top;
+ const cellW=(width-gap)/2,cellH=(height-legendH-gap*2)/3;
  if(!auditPlot(ctx,cellW-45*f,cellH-head-35*f,'六品牌增长贡献子图',120,68))return;
  const peak=chart.lines.reduce((m,l)=>l.values.reduce((a,v)=>Number.isFinite(v)?Math.max(a,Math.abs(v)):a,m),0),target=peak>0?peak*1.08:1;
  const mag=Math.pow(10,Math.floor(Math.log10(target))),cap=([1,2,2.5,5,10].find(v=>v>=target/mag)||10)*mag;
- const entries=[['榜内环比','#64748b','bar'],['榜外环比','#64748b','light'],['品牌总销量环比',p.ink,'line']];
- entries.forEach(([label,color,role],i)=>{const lx=left+i*width/3,ly=top+font;ctx.save();ctx.fillStyle=color;ctx.globalAlpha=role==='light'?.34:1;if(role==='line')crossRule(ctx,lx,ly-4*f,lx+18*f,ly-4*f,color,2*f);else ctx.fillRect(lx,ly-9*f,16*f,10*f);ctx.restore();crossAxisText(ctx,label,lx+22*f,ly,font,p.sub,'left',width/3-24*f);});
+ if(preview)entries.forEach(([label,color,role],i)=>{const lx=left+i*width/3,ly=top+font;ctx.save();ctx.fillStyle=color;ctx.globalAlpha=role==='light'?.34:1;if(role==='line')crossRule(ctx,lx,ly-4*f,lx+18*f,ly-4*f,color,2*f);else ctx.fillRect(lx,ly-9*f,16*f,10*f);ctx.restore();crossAxisText(ctx,label,lx+22*f,ly,font,p.sub,'left',width/3-24*f);});
  groups.forEach((g,j)=>{
   const lines=chart.lines.filter(l=>l.brandKey===g.key),listed=lines.find(l=>l.role==='listed'),tail=lines.find(l=>l.role==='tail'),total=lines.find(l=>l.role==='total');
   const xx=left+(j%2)*(cellW+gap),yy=top+legendH+Math.floor(j/2)*(cellH+gap);
   crossAxisText(ctx,g.label,xx,yy+head,head,p.ink,'left',cellW*.6,'600');
   if(preview)crossAxisText(ctx,'万台',xx+cellW,yy+head,font,p.sub,'right',cellW*.3);else researchPosterAxisText(ctx,'万台',xx+cellW,yy+head,'title',p.sub,'right',cellW*.3,font);
-  const x0=xx+Math.max(29,40*f),x1=xx+cellW-6*f,y0=yy+head+10*f,y1=yy+cellH-font-10*f,slot=(x1-x0)/n,bw=Math.min(slot*.28,18*f),x=i=>x0+(i+.5)*slot,y=v=>y1-(v+cap)/(2*cap)*(y1-y0);
-  for(const v of [-cap,-cap/2,0,cap/2,cap]){const ypos=y(v);crossRule(ctx,x0,ypos,x1,ypos,v===0?p.sub:p.hair,v===0?1.3:1);if(preview)crossAxisText(ctx,Number(v.toPrecision(8)),x0-5*f,ypos+4*f,font,p.sub,'right',x0-xx-6*f);else researchPosterAxisText(ctx,Number(v.toPrecision(8)),x0-5*f,ypos+4*f,'tick',p.sub,'right',x0-xx-6*f,font);}
+  const ticks=preview?[-cap,-cap/2,0,cap/2,cap]:[-cap,0,cap];
+   const x0=xx+(preview?Math.max(29,40*f):posterAxisGutter(ctx,ticks)),x1=xx+cellW-(preview?6*f:posterDp(2)),y0=yy+(preview?head+10*f:posterDp(17)),y1=yy+cellH-(preview?font+10*f:posterDp(j>=4?18:5)),slot=(x1-x0)/n,bw=Math.min(slot*.28,18*f),x=i=>x0+(i+.5)*slot,y=v=>y1-(v+cap)/(2*cap)*(y1-y0);
+   if(!preview&&(x1<=x0||y1-y0<posterDp(16))){auditIssue(ctx,'品牌增长子图空间不足，请减少安全区或拆图',true);return;}
+  if(preview){for(const v of ticks){const ypos=y(v);crossRule(ctx,x0,ypos,x1,ypos,v===0?p.sub:p.hair,v===0?1.3:1);crossAxisText(ctx,Number(v.toPrecision(8)),x0-5*f,ypos+4*f,font,p.sub,'right',x0-xx-6*f);}}
+   else posterYTicks(ctx,ticks,y,x0,x1,p);
   if(!listed||!tail||!total)return;
   for(let i=0;i<n;i++)for(const [l,offset,alpha] of [[listed,-bw*.55,1],[tail,bw*.55,.34]]){
    const v=l.values[i];if(!Number.isFinite(v)||v===0)continue;ctx.save();ctx.fillStyle=g.color;ctx.globalAlpha=alpha;ctx.fillRect(x(i)+offset-bw/2,Math.min(y(v),y(0)),bw,Math.abs(y(v)-y(0)));ctx.restore();
   }
   ResearchCharts.canvasLine(ctx,{periods:chart.periods,lines:[{...total,color:p.ink,marker:'○'}]},{x,y});
   if(!lines.some(l=>l.values.some(Number.isFinite)))crossAxisText(ctx,'无相邻有效周',(x0+x1)/2,(y0+y1)/2,font,p.sub,'center',x1-x0-4*f);
-  crossPeriodTicks(ctx,chart.periods,x,y1+font+5*f,x1-x0,font,p,preview);
+  if(preview)crossPeriodTicks(ctx,chart.periods,x,y1+font+5*f,x1-x0,font,p,true);else if(j>=4)posterWeekTicks(ctx,chart.periods,x,y1+posterDp(15),xx,xx+cellW,p,3);
  });
 }
 
@@ -861,7 +901,42 @@ const ResearchCharts=(()=>{
   chart.lines.forEach((l,i)=>{const span=document.createElement('span');span.style.color=l.color||COLORS[i%COLORS.length];span.textContent=(l.marker||markerAt(i))+' '+l.name;legend.append(span);});
   const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox','0 0 '+W+' '+H);svg.setAttribute('role','img');svg.setAttribute('aria-label',label+'；上下图共用周次，留榜使用动态纵轴');svg.style.cssText='width:100%;min-width:560px';host.append(svg);svg.innerHTML=content;
  }
+ function canvasMobileBoardFlow(ctx,chart,box,p){
+  if(!chart.periods.length||!chart.lines.length)return;
+  const {left,right,top,bottom,width}=box,n=chart.periods.length,T=MOBILE_POSTER_TYPE;
+  const legendItems=chart.lines.map((l,i)=>({...l,marker:l.marker||markerAt(i),color:l.color||COLORS[i%COLORS.length]}));
+  const legendBottom=posterLineLegend(ctx,legendItems,box,p),titleH=posterDp(19),gap=posterDp(8);
+  const available=bottom-legendBottom-2*titleH-gap-posterDp(20),upperH=available*.42,lowerH=available-upperH;
+  if(Math.min(upperH,lowerH)<posterDp(28)){auditIssue(ctx,'榜单流动双图绘图区不足，请减少图例或拆图',true);return;}
+  const panels=[{lines:chart.lines.slice(0,1),title:'留榜机型数 · 动态 Y 轴',h:upperH,offset:0},{lines:chart.lines.slice(1),title:'进入与退出榜单 · 机型数',h:lowerH,offset:1}];
+  panels.forEach((panel,j)=>{
+   const values=panel.lines.flatMap(l=>l.values.filter(Number.isFinite)),min=values.length?Math.min(...values):0,max=values.length?Math.max(...values):1;
+   const pad=j===0?Math.max(1,Math.ceil((max-min)*.1)):0;
+   const low=j===0?Math.max(0,min-pad):0,high=Math.max(low+1,max+pad);
+   const step=Math.max(1,Math.ceil(posterNiceStep((high-low)/(posterTickCapacity(panel.h)-1)))),start=Math.max(0,Math.floor(low/step)*step),end=Math.max(start+step,Math.ceil(high/step)*step);
+   panel.axis={low:start,high:end,ticks:Array.from({length:Math.round((end-start)/step)+1},(_,i)=>start+i*step)};panel.hasValues=values.length>0;
+  });
+  const x0=left+Math.max(...panels.map(v=>posterAxisGutter(ctx,v.axis.ticks))),x1=right-posterDp(4),x=i=>n===1?(x0+x1)/2:x0+i*(x1-x0)/Math.max(1,n-1);
+  if(!auditPlot(ctx,x1-x0,Math.min(upperH,lowerH),'榜单流动双图绘图区',260,84))return;
+  let yy=legendBottom;
+  panels.forEach(panel=>{
+   const y0=yy+titleH,y1=y0+panel.h,{low,high,ticks}=panel.axis,scale={x,y:v=>y1-(v-low)/(high-low)*panel.h};
+   researchPosterAxisText(ctx,panel.title,x0,y0-posterDp(5),'title',p.ink,'left',x1-x0);
+   posterYTicks(ctx,ticks,scale.y,x0,x1,p);
+   if(!panel.hasValues)posterFitText(ctx,'无相邻可比较周',(x0+x1)/2,(y0+y1)/2,T.value,p.sub,'500','center',x1-x0);
+   panel.lines.forEach((l,j)=>{
+    const i=panel.offset+j,color=l.color||COLORS[i%COLORS.length],dash=boardFlowDash(i);
+    points({...chart,lines:[l]},scale,pt=>{
+     if(pt.previous){ctx.save();ctx.strokeStyle=color;ctx.lineWidth=T.line;ctx.setLineDash(dash);ctx.beginPath();ctx.moveTo(pt.previous.x,pt.previous.y);ctx.lineTo(pt.x,pt.y);ctx.stroke();ctx.restore();}
+     canvasMarker(ctx,l.marker||markerAt(i),pt.x,pt.y,T.marker,color);
+    });
+   });
+   yy=y1+gap;
+  });
+  posterWeekTicks(ctx,chart.periods,x,yy-gap+posterDp(16),left,right,p);
+ }
  function canvasBoardFlow(ctx,chart,box,p){
+  if(mobilePosterActive(ctx))return canvasMobileBoardFlow(ctx,chart,box,p);
   if(!chart.periods.length||!chart.lines.length)return;
   const {left,right,top,bottom,width,height}=box,cols=width>=850?3:2,rows=Math.ceil(chart.lines.length/cols),legendStep=28,legendH=rows*legendStep+8;
   if(!auditPlot(ctx,width-111,height-legendH-91,'榜单流动双图绘图区',260,145))return;

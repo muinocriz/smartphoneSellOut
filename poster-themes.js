@@ -181,7 +181,7 @@
     };
   }
   // Keep numeric-only eligibility format-specific; share the actual token splitting.
-  const NUMERIC_TOKEN=/[+\-−]?\d+(?:[.,:/–-]\d+)*(?:[%％×])?/g;
+  const NUMERIC_TOKEN=/[+\-−]?\d+(?:[.,:/–-]\d+)*(?:[%％×]|pp)?/g;
   function numericTextRuns(value, numericPattern){
     const raw=String(value??'');
     if(!numericPattern.test(raw.trim()))return [{text:raw,number:false}];

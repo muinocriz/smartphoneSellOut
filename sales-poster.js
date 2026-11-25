@@ -43,7 +43,7 @@ const BRAND_FOOTER_NOTE='品牌合并：小米/REDMI · OPPO/一加/realme · vi
 const posterAudits=new WeakMap();
 // Reference coordinates preserve export sizes: 1080 units = 360 logical design units.
 // 360 logical design units; preserve the existing 1080-coordinate rendering API.
-const POSTER_DESIGN=Object.freeze({baseWidth:360,referenceWidth:1080,spacing:Object.freeze({xs:4,sm:8,md:12,lg:16,xl:24,xxl:32}),type:Object.freeze({title:24,subtitle:14,body:13,label:13,value:12,rank:12,axis:12,axisTitle:13,legend:10,note:12,caption:10,min:12}),weight:Object.freeze({body:'500',axis:'400',axisTitle:'500',legend:'400',caption:'400'}),chart:Object.freeze({line:1.2,highlightLine:1.8,marker:1.7,markerStroke:.8,grid:.5,axisGap:4,maxWeekTicks:5,legendLine:15})});
+const POSTER_DESIGN=Object.freeze({baseWidth:360,referenceWidth:1080,spacing:Object.freeze({xs:4,sm:8,md:12,lg:16,xl:24,xxl:32}),type:Object.freeze({title:24,subtitle:14,body:13,label:13,value:12,rank:12,axis:12,axisTitle:13,legend:10,note:12,caption:8,min:12}),weight:Object.freeze({body:'500',axis:'400',axisTitle:'500',legend:'400',caption:'400'}),chart:Object.freeze({line:1.2,highlightLine:1.8,marker:1.7,markerStroke:.8,grid:.5,axisGap:4,maxWeekTicks:5,legendLine:15})});
 const posterDp=v=>v*POSTER_DESIGN.referenceWidth/POSTER_DESIGN.baseWidth;
 const POSTER_SPACE=Object.freeze(Object.fromEntries(Object.entries(POSTER_DESIGN.spacing).map(([k,v])=>[k,posterDp(v)])));
 const MOBILE_POSTER_TYPE=Object.freeze({...Object.fromEntries(Object.entries(POSTER_DESIGN.type).map(([k,v])=>[k,posterDp(v)])),line:posterDp(POSTER_DESIGN.chart.line),marker:posterDp(POSTER_DESIGN.chart.marker)});
@@ -59,7 +59,7 @@ function posterBlock(ctx,lines,size,weight,top){
  return {y:top+ascent,step,height:lines.length?ascent+descent+(lines.length-1)*step:0};
 }
 function mobilePosterActive(ctx){return posterAudits.has(ctx);}
-// Shared captions use 10 logical units; ordinary chart labels retain the 12-unit minimum.
+// Shared captions use 8 logical units; legends use 10 and ordinary chart labels retain the 12-unit minimum.
 function posterReadabilityMin(ctx){const audit=posterAudits.get(ctx);return (audit?.minTextSize??MOBILE_POSTER_TYPE.min)*(audit?.referenceWidth||1080)/1080;}
 function posterBodyWeight(ctx,weight){return posterAudits.get(ctx)?.bodyTypography&&Number(weight)>500?POSTER_DESIGN.weight.body:weight;}
 function withPosterBody(ctx,draw){const a=posterAudits.get(ctx),old=a?.bodyTypography;if(a)a.bodyTypography=true;try{return draw();}finally{if(a)a.bodyTypography=old;}}

@@ -5,7 +5,7 @@ const metadata=Object.create(null);
 function numberText(raw){let s=String(raw).trim().replace(/，/g,',');if(!s)return null;if(/^\d{1,3}(,\d{3})+(\.\d+)?$/.test(s))s=s.replace(/,/g,'');if(!/^(?:\d+(?:\.\d*)?|\.\d+)$/.test(s)||!Number.isFinite(Number(s))||Number(s)<0)throw Error('请输入非负数字（单位：万台）。');if(s.startsWith('.'))s='0'+s;if(s.endsWith('.'))s=s.slice(0,-1);return s;}
 function parseCSV(text){const rows=[];let row=[],f='',q=false;const s=text.replace(/^\uFEFF/,'');for(let i=0;i<s.length;i++){const c=s[i];if(q){if(c==='"'){if(s[i+1]==='"'){f+='"';i++;}else q=false;}else f+=c;}else if(c==='"'&&f===''){q=true;}else if(c===','){row.push(f);f='';}else if(c==='\r'||c==='\n'){if(c==='\r'&&s[i+1]==='\n')i++;row.push(f);if(row.some(x=>x.trim()!==''))rows.push(row);row=[];f='';}else f+=c;}if(q)throw Error('CSV 引号未闭合。');row.push(f);if(row.some(x=>x.trim()!==''))rows.push(row);return rows;}
 
-const model=document.querySelector('#model'), metric=document.querySelector('#metric');
+const model=document.querySelector('#model');
 
 const fmt=n=>Number(n.toFixed(4)).toLocaleString('zh-CN',{maximumFractionDigits:4});
 function monday(period){
@@ -20,6 +20,20 @@ const periods=[];
 function display(point){return point?(point.op==='='?'':point.op==='>='?'≥':point.op)+fmt(point.value):'—'}
 
 const byId=id=>document.getElementById(id);
+function selectFilter(id,value){
+  const group=byId(id);
+  group.dataset.value=value;
+  for(const button of group.querySelectorAll('button'))button.setAttribute('aria-pressed',String(button.dataset.value===value));
+}
+function filterLabel(id){return byId(id).querySelector('[aria-pressed="true"]').textContent}
+for(const id of ['brand','metric','axis','gap']){
+  byId(id).onclick=event=>{
+    const button=event.target.closest('button[data-value]');
+    if(!button||button.disabled||byId(id).dataset.value===button.dataset.value)return;
+    selectFilter(id,button.dataset.value);
+    if(id==='brand')syncBrand();else draw();
+  };
+}
 const selected=new Set();
 let savedLists=[];
 try{savedLists=JSON.parse(localStorage.getItem('increments.lists')||'[]').filter(l=>typeof l.name==='string'&&Array.isArray(l.keys))}catch{}
@@ -61,7 +75,7 @@ function seriesRows(key){
     return {period,cumulative,direct,weekly:diff||direct,life:IsoSalesWeek.lifecycleWeekIndex(t,first),partial:partial?.isoMonday===t?partial.days:0,
       source:diff?(direct?'累计差分（另录 '+display(direct)+'）':'相邻周累计差分'):direct?'直接记录':'—'};
   });
-  if(byId('gap').value==='raw')return rows;
+  if(byId('gap').dataset.value==='raw')return rows;
   let left=-1;
   for(let i=0;i<rows.length;i++){
     const right=rows[i].cumulative;
@@ -74,7 +88,7 @@ function seriesRows(key){
     if(i-start===1&&!lower)continue;
     // A direct weekly record constrains the interval; leave the other weeks unestimated.
     if(rows.slice(start+1,i+1).some(r=>r.direct))continue;
-    const slope=byId('gap').value==='fit'?trendSlope(rows,start):0;
+    const slope=byId('gap').dataset.value==='fit'?trendSlope(rows,start):0;
     const count=i-start,total=right.value-anchor.value;
     const shift=Math.max(0,(count-1)*slope);
     const weights=Array.from({length:count},(_,j)=>Math.exp(j*slope-shift));
@@ -140,7 +154,7 @@ function presets(){
 function choices(){
   const box=byId('choices');box.replaceChildren();
   for(const key of Object.keys(metadata)){
-    if(byId('brand').value&&byId('brand').value!==metadata[key][0])continue;
+    if(byId('brand').dataset.value&&byId('brand').dataset.value!==metadata[key][0])continue;
     const label=document.createElement('label'),input=document.createElement('input');
     input.type='checkbox';input.checked=selected.has(key);
     input.onchange=()=>{if(input.checked)selected.add(key);else selected.delete(key);draw()};
@@ -149,8 +163,8 @@ function choices(){
 }
 function applyKeys(keys){
   if(activeEdit)return;
-  if(keys.some(k=>metadata[k]&&byId('brand').value&&metadata[k][0]!==byId('brand').value)){
-    byId('brand').value='';model.replaceChildren(...Object.keys(metadata).map(k=>new Option(nameOf(k),k)));
+  if(keys.some(k=>metadata[k]&&byId('brand').dataset.value&&metadata[k][0]!==byId('brand').dataset.value)){
+    selectFilter('brand','');model.replaceChildren(...Object.keys(metadata).map(k=>new Option(nameOf(k),k)));
   }
   selected.clear();keys.filter(key=>metadata[key]).forEach(key=>selected.add(key));
   if(selected.size&&!selected.has(model.value))model.value=[...selected][0];
@@ -163,13 +177,13 @@ function listOptions(){
   if(old&&Number(old)<lists.length)lists.value=old;
 }
 function syncBrand(){
-  const brand=byId('brand').value;
+  const brand=byId('brand').dataset.value;
   const keys=Object.keys(metadata).filter(k=>!brand||metadata[k][0]===brand);
   model.replaceChildren(...keys.map(k=>new Option(nameOf(k),k)));
   applyKeys(keys);drawEditor();
 }
-byId('brand').onchange=syncBrand;
-byId('all').onclick=()=>{for(const k of Object.keys(metadata))if(!byId('brand').value||metadata[k][0]===byId('brand').value)selected.add(k);choices();draw()};
+
+byId('all').onclick=()=>{for(const k of Object.keys(metadata))if(!byId('brand').dataset.value||metadata[k][0]===byId('brand').dataset.value)selected.add(k);choices();draw()};
 byId('brandTops').onclick=()=>{
   const best=new Map();
   for(const key of Object.keys(metadata)){
@@ -204,7 +218,7 @@ let current;
 function draw(){
   if(activeEdit||!metadata[model.value])return;
   byId('editStatus').textContent=hasDraft()?'含临时数据，可导出长表保存。':'';
-  const life=byId('axis').value==='life';
+  const life=byId('axis').dataset.value==='life';
   const dark=document.documentElement.dataset.theme==='dark';
   const sets=[...selected].map(key=>({key,color:styles.get(key)[dark?'cd':'cl'],rows:seriesRows(key)}));
   if(!selected.has(focused))focused=null;
@@ -225,7 +239,7 @@ function draw(){
   byId('to').selectedIndex=to;
   const ticks=axis.slice(from,to+1);
   for(const set of sets){
-    const lookup=new Map(set.rows.map(r=>[life?r.life:r.period,r[metric.value]]));
+    const lookup=new Map(set.rows.map(r=>[life?r.life:r.period,r[byId('metric').dataset.value]]));
     set.lookup=lookup;
     set.points=ticks.map(t=>lookup.get(t));
   }
@@ -235,7 +249,7 @@ function draw(){
   }
   byId('hoverReadout').textContent='';
   const matrix=byId('matrix');matrix.replaceChildren();
-  matrix.createCaption().textContent='多机对比 · '+metric.selectedOptions[0].text+'（万台）';
+  matrix.createCaption().textContent='多机对比 · '+filterLabel('metric')+'（万台）';
   const columns=[...ticks].reverse();
   const header=matrix.createTHead().insertRow();
   for(const name of ['机型',...columns.map(rangeLabel)]){
@@ -246,7 +260,7 @@ function draw(){
     const row=matrixBody.insertRow(),name=row.insertCell();name.textContent=nameOf(s.key);name.style.color=s.color;
     for(const t of columns)row.insertCell().textContent=display(s.lookup.get(t));
   }
-  const title=metric.selectedOptions[0].text+' · '+byId('axis').selectedOptions[0].text;
+  const title=filterLabel('metric')+' · '+filterLabel('axis');
   byId('heading').textContent=title;
   const svg=document.querySelector('svg');
   const w=Math.max(300,Math.round(svg.getBoundingClientRect().width)||800);
@@ -265,7 +279,7 @@ function draw(){
     const age=r.partial?'P0 · '+r.partial+'天':r.life==null?'—':'W'+r.life;
     for(const v of [r.period,age,display(r.cumulative),display(r.weekly),r.source])tr.insertCell().textContent=v;
   }
-  byId('windowLabel').hidden=byId('gap').value!=='fit';
+  byId('windowLabel').hidden=byId('gap').dataset.value!=='fit';
 }
 function lastVisible(s){return s.points.filter(p=>p&&(!byId('log').checked||p.value>0)).at(-1)?.value??-Infinity}
 function legendText(s){
@@ -426,10 +440,10 @@ async function exportChart(mobile){
     }
     y+=20*legendRows;
     ctx.fillStyle=themeColor('--sub');for(const line of notes){ctx.fillText(line,18,y);y+=20}
-    const link=document.createElement('a');link.download='销量增量追踪-'+metric.selectedOptions[0].text+'-'+(mobile?'手机':'桌面')+'.png';link.href=canvas.toDataURL();link.click();
+    const link=document.createElement('a');link.download='销量增量追踪-'+filterLabel('metric')+'-'+(mobile?'手机':'桌面')+'.png';link.href=canvas.toDataURL();link.click();
   }finally{URL.revokeObjectURL(url)}
 }
-for(const id of ['axis','gap','window','from','to','log','labels'])byId(id).onchange=()=>{
+for(const id of ['window','from','to','log','labels'])byId(id).onchange=()=>{
   if(id==='to'&&byId('to').selectedIndex<byId('from').selectedIndex)byId('from').selectedIndex=byId('to').selectedIndex;
   draw();
 };
@@ -544,7 +558,7 @@ document.querySelector('#download').onclick=()=>{
  const link=document.createElement('a');link.href=url;link.download='sales-long.csv';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
 };
 model.onchange=()=>{if(selected.size<=1)selected.clear();selected.add(model.value);choices();refresh()};
-metric.onchange=draw;
+
 
 
 let sourceText='',sourceKey='',loadSequence=0;
@@ -583,7 +597,7 @@ function loadSource(text,key){
   periods.length=0;for(const w of draft?.periods??initialPeriods)periods.push(w);
   for(const k of Object.keys(metadata))delete metadata[k];
   model.replaceChildren();
-  byId('brand').replaceChildren(new Option('全部品牌',''));
+  byId('brand').replaceChildren();
   const brands=new Set();
   for(const [id,meta] of nextMetadata){
     metadata[id]=meta;model.add(new Option(nameOf(id),id));brands.add(meta[0]);
@@ -592,7 +606,12 @@ function loadSource(text,key){
   const styleRows=[...nextMetadata].map(([id,meta])=>({id,brand:meta[0]}));
   assignColors(styleRows);for(const r of styleRows)styles.set(r.id,r);
   focused=null;
-  for(const brand of brands)byId('brand').add(new Option(brand,brand));
+  for(const brand of ['',...brands]){
+    const button=document.createElement('button');
+    button.type='button';button.dataset.value=brand;button.textContent=brand||'全部品牌';
+    byId('brand').append(button);
+  }
+  selectFilter('brand','');
   selected.clear();
   const recent=presets()[0].keys;
   for(const k of recent.length?recent:[model.value])selected.add(k);

@@ -297,10 +297,25 @@ function draw(){
   byId('windowLabel').hidden=byId('gap').dataset.value!=='fit';
 }
 function lastVisible(s){return s.points.filter(p=>p&&(!byId('log').checked||p.value>0)).at(-1)?.value??-Infinity}
-function legendText(s){
+function legendValue(s){
   const point=s.points.filter(p=>p&&(!byId('log').checked||p.value>0)).at(-1);
-  const value=point?(point.op==='='?'':point.op==='>='?'≥':point.op)+point.value.toLocaleString('zh-CN',{maximumSignificantDigits:4}):'—';
-  return nameOf(s.key)+'  '+value;
+  return point?(point.op==='='?'':point.op==='>='?'≥':point.op)+point.value.toLocaleString('zh-CN',{maximumSignificantDigits:4}):'—';
+}
+function legendText(s){return nameOf(s.key)+'  '+legendValue(s)}
+const bodyFont='"Noto Sans SC", system-ui, sans-serif';
+const numberFont='"IBM Plex Mono", ui-monospace, monospace';
+function fitText(context,text,width){
+  if(context.measureText(text).width<=width)return text;
+  const chars=Array.from(text);
+  while(chars.length&&context.measureText(chars.join('')+'…').width>width)chars.pop();
+  return chars.length?chars.join('')+'…':'';
+}
+function mobileLegendName(context,key,width,multiBrand){
+  const [brand,model]=metadata[key];
+  const needsBrand=/^\d/.test(model)||Array.from(model).length<=3;
+  const full=multiBrand||needsBrand?brand+' '+model:model;
+  if(context.measureText(full).width<=width)return full;
+  return fitText(context,needsBrand?full:model,width);
 }
 function plot(svg,{sets,ticks,rangeLabel},width,height,{mobile=false,interactive=false,numbered=null}={}){
   const paper=themeColor('--paper'),ink=themeColor('--ink'),grid=themeColor('--grid');
@@ -316,11 +331,11 @@ function plot(svg,{sets,ticks,rangeLabel},width,height,{mobile=false,interactive
     const radius=markerArrow(point)?arrowSize/2:point.op==='='?dotRadius:ringRadius+ringStroke/2;
     return radius+markerGap;
   }
-  const fontFamily='Noto Sans SC, sans-serif',fontSize=12;
-  const measure=showPointLabels?document.createElement('canvas').getContext('2d'):null;
-  if(measure)measure.font=fontSize+'px '+fontFamily;
+  const fontSize=12;
+  const measure=document.createElement('canvas').getContext('2d');
+  measure.font=fontSize+'px '+numberFont;
   svg.replaceChildren();delete svg.dataset.plot;svg.setAttribute('viewBox','0 0 '+width+' '+height);
-  svg.setAttribute('font-family',fontFamily);svg.setAttribute('font-size',fontSize);svg.setAttribute('fill',ink);
+  svg.setAttribute('font-family',bodyFont);svg.setAttribute('font-size',fontSize);svg.setAttribute('fill',ink);
   const log=byId('log').checked,visible=p=>p!=null&&(!log||p.value>0);
   const nums=sets.flatMap(s=>s.points.filter(visible).map(p=>log?Math.log10(p.value):p.value));
   let low=nums.reduce((a,b)=>Math.min(a,b),log?Infinity:0),high=nums.reduce((a,b)=>Math.max(a,b),log?-Infinity:0);
@@ -332,7 +347,7 @@ function plot(svg,{sets,ticks,rangeLabel},width,height,{mobile=false,interactive
   for(let i=0;i<=4;i++){
     const pos=bottom-(bottom-top)*i/4,v=low+(high-low)*i/4;
     svgNode(svg,'line',{x1:left,x2:right,y1:pos,y2:pos,stroke:grid});
-    svgNode(svg,'text',{x:left-5,y:pos+4,'text-anchor':'end'},fmt(log?10**v:v));
+    svgNode(svg,'text',{x:left-5,y:pos+4,'text-anchor':'end','font-family':numberFont},fmt(log?10**v:v));
   }
   const step=Math.max(1,Math.ceil(ticks.length/Math.max(2,Math.floor((right-left)/85))));
   ticks.forEach((t,i)=>{
@@ -373,7 +388,7 @@ function plot(svg,{sets,ticks,rangeLabel},width,height,{mobile=false,interactive
             stroke:s.color,'stroke-width':exact?0:ringStroke
           });
       svgNode(node,'title',{},nameOf(s.key)+' · '+rangeLabel(ticks[i])+' · '+display(point)+' 万台');
-      if(measure)pointLabels.push({group,x:cx,y:cy-12,text:fmt(point.value),color:s.color});
+      if(showPointLabels)pointLabels.push({group,x:cx,y:cy-12,text:fmt(point.value),color:s.color});
     });
   }
   function textBounds(text,x,y,align){
@@ -391,7 +406,7 @@ function plot(svg,{sets,ticks,rangeLabel},width,height,{mobile=false,interactive
     if(box.left<0||box.right>width||box.top<0)continue;
     const overlaps=occupied.some(other=>box.left<other.right&&box.right>other.left&&box.top<other.bottom&&box.bottom>other.top);
     if(overlaps)continue;
-    svgNode(group,'text',{x,y,'text-anchor':'middle',fill:color},text);
+    svgNode(group,'text',{x,y,'text-anchor':'middle',fill:color,'font-family':numberFont},text);
     occupied.push(box);
   }
   // Prioritize the highlighted series when the available tail-label slots fill up.
@@ -400,13 +415,14 @@ function plot(svg,{sets,ticks,rangeLabel},width,height,{mobile=false,interactive
   let last=top-15;
   visibleLabels.forEach(l=>{l.target=Math.max(l.y,last+15);last=l.target});
   let ceiling=bottom;
+  measure.font=fontSize+'px '+(mobile?numberFont:bodyFont);
   for(const l of visibleLabels.reverse()){
     const pos=Math.min(l.target,ceiling);ceiling=pos-15;
     const labelX=right+7;
     const g=svgNode(svg,'g',{opacity:interactive&&focused&&focused!==l.key?0.2:1});
     svgNode(g,'path',{d:'M'+l.x+' '+l.y+' L'+(labelX-3)+' '+pos,fill:'none',stroke:l.color,'stroke-width':.7,opacity:.65});
-    const tail=svgNode(g,'text',{x:labelX,y:pos+4,fill:l.color},l.text);
-    if(!mobile&&l.text.length*12>width-labelX-3){tail.setAttribute('textLength',width-labelX-3);tail.setAttribute('lengthAdjust','spacingAndGlyphs')}
+    const text=mobile?l.text:fitText(measure,l.text,width-labelX-3);
+    svgNode(g,'text',{x:labelX,y:pos+4,fill:l.color,'font-family':mobile?numberFont:bodyFont},text);
   }
   if(interactive)svg.dataset.plot=JSON.stringify({left,right,width});
 }
@@ -456,12 +472,34 @@ new ResizeObserver(entries=>{
   const width=entries[0].contentRect.width;
   if(width>0&&Math.abs(width-chartWidth)>1){chartWidth=width;if(current&&!activeEdit)draw()}
 }).observe(screenChart);
+// Draw exported text with the loaded page fonts. SVG loaded as an image cannot use the page's font stylesheet.
+function takeChartText(svg){
+  return Array.from(svg.querySelectorAll('text'),node=>{
+    const x=Number(node.getAttribute('x'));
+    let y=Number(node.getAttribute('y'));
+    const spans=Array.from(node.querySelectorAll('tspan'));
+    const lines=spans.length?spans.map(span=>{
+      y+=Number(span.getAttribute('dy'));
+      return {text:span.textContent,x:Number(span.getAttribute('x')??x),y};
+    }):[{text:Array.from(node.childNodes).filter(child=>child.nodeType===Node.TEXT_NODE).map(child=>child.textContent).join(''),x,y}];
+    const font=(node.getAttribute('font-size')||svg.getAttribute('font-size'))+'px '+(node.getAttribute('font-family')||svg.getAttribute('font-family'));
+    const fill=node.getAttribute('fill')||svg.getAttribute('fill');
+    const align={middle:'center',end:'right'}[node.getAttribute('text-anchor')]||'left';
+    const baseline=node.hasAttribute('dominant-baseline')?'middle':'alphabetic';
+    node.remove();
+    return {lines,font,fill,align,baseline};
+  });
+}
 async function exportChart(mobile){
   if(!current?.sets.some(s=>s.points.some(p=>p&&(!byId('log').checked||p.value>0))))return alert('当前范围没有可导出的销量');
-  await document.fonts.ready;
+  await Promise.allSettled([
+    document.fonts.load('400 12px "Noto Sans SC"',current.sets.map(s=>nameOf(s.key)).join('')+'销量增量追踪'),
+    document.fonts.load('400 12px "IBM Plex Mono"','0123456789.≥<≈'),
+    document.fonts.ready
+  ]);
   if(activeEdit)return alert('请先保存或取消当前编辑');
   const width=mobile?400:1200,base=mobile?500:675,scale=mobile?3:2;
-  const canvas=document.createElement('canvas'),ctx=canvas.getContext('2d'),font='14px "Noto Sans SC", sans-serif';
+  const canvas=document.createElement('canvas'),ctx=canvas.getContext('2d'),font='14px '+bodyFont;
   ctx.font=font;
   const lines=text=>{
     const result=[];
@@ -477,29 +515,51 @@ async function exportChart(mobile){
   const ranked=current.sets.filter(s=>Number.isFinite(lastVisible(s))).sort((a,b)=>lastVisible(b)-lastVisible(a));
   const cols=mobile&&ranked.length>4?2:1,limit=mobile?cols*6:Infinity;
   const shown=ranked.length>limit?ranked.slice(0,limit-1):ranked;
-  const legend=shown.map((s,i)=>({text:(mobile?(i+1)+'. ':'')+legendText(s),color:s.color}));
+  const multiBrand=new Set(ranked.map(s=>metadata[s.key][0])).size>1;
+  const legend=shown.map((s,i)=>({key:s.key,rank:i+1,value:legendValue(s),color:s.color}));
   if(shown.length<ranked.length)legend.push({text:'另有 '+(ranked.length-shown.length)+' 款',color:themeColor('--sub')});
   const legendRows=Math.ceil(legend.length/cols);
   const height=Math.max(base,245+20*legendRows)+notes.length*20;
   canvas.width=width*scale;canvas.height=height*scale;ctx.scale(scale,scale);
   ctx.fillStyle=themeColor('--paper');ctx.fillRect(0,0,width,height);
-  ctx.fillStyle=themeColor('--ink');ctx.font='bold 22px sans-serif';ctx.fillText('销量增量追踪',18,34);
+  ctx.fillStyle=themeColor('--ink');ctx.font='700 22px '+bodyFont;ctx.fillText('销量增量追踪',18,34);
   ctx.font=font;
   const sub=byId('heading').textContent+' · 万台 · '+current.rangeLabel(current.ticks[0])+' 至 '+current.rangeLabel(current.ticks.at(-1));
   ctx.fillText(sub,18,61,width-36);
   const chartH=height-92-20*(legendRows+notes.length);
   const svg=document.createElementNS(svgNS,'svg');plot(svg,{...current,sets:ranked},width,chartH,{mobile,numbered:shown});
   svg.setAttribute('width',width);svg.setAttribute('height',chartH);
+  const chartText=takeChartText(svg);
   const url=URL.createObjectURL(new Blob([new XMLSerializer().serializeToString(svg)],{type:'image/svg+xml'}));
   try{
     const img=new Image();img.src=url;await img.decode();ctx.drawImage(img,0,67);
+    for(const label of chartText){
+      ctx.font=label.font;ctx.fillStyle=label.fill;ctx.textAlign=label.align;ctx.textBaseline=label.baseline;
+      for(const line of label.lines)ctx.fillText(line.text,line.x,67+line.y);
+    }
+    ctx.textBaseline='alphabetic';
     let y=chartH+86;
     for(const [i,item] of legend.entries()){
       const col=Math.floor(i/legendRows),row=i%legendRows,colWidth=(width-36)/cols;
-      ctx.fillStyle=item.color;ctx.fillText(item.text,18+col*colWidth,y+row*20,colWidth-8);
+      const left=18+col*colWidth,right=left+colWidth-8,baseline=y+row*20;
+      ctx.textAlign='left';ctx.font='13px '+bodyFont;
+      if(!item.key){ctx.fillStyle=item.color;ctx.fillText(item.text,left,baseline);continue}
+      if(mobile){
+        ctx.fillStyle=item.color;
+        ctx.font='700 13px '+bodyFont;
+        ctx.fillText(String(item.rank),left,baseline);
+      }
+      const nameX=left+(mobile?24:0);
+      ctx.font='12px '+numberFont;ctx.textAlign='right';ctx.fillStyle=themeColor('--sub');
+      const valueWidth=ctx.measureText(item.value).width;
+      ctx.fillText(item.value,right,baseline);
+      ctx.font='13px '+bodyFont;ctx.textAlign='left';ctx.fillStyle=item.color;
+      const nameWidth=right-nameX-valueWidth-10;
+      const name=mobile?mobileLegendName(ctx,item.key,nameWidth,multiBrand):fitText(ctx,nameOf(item.key),nameWidth);
+      ctx.fillText(name,nameX,baseline);
     }
     y+=20*legendRows;
-    ctx.fillStyle=themeColor('--sub');for(const line of notes){ctx.fillText(line,18,y);y+=20}
+    ctx.textAlign='left';ctx.font=font;ctx.fillStyle=themeColor('--sub');for(const line of notes){ctx.fillText(line,18,y);y+=20}
     const link=document.createElement('a');link.download='销量增量追踪-'+filterLabel('metric')+'-'+(mobile?'手机':'桌面')+'.png';link.href=canvas.toDataURL();link.click();
   }finally{URL.revokeObjectURL(url)}
 }

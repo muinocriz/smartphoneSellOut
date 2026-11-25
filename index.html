@@ -900,7 +900,7 @@ function renderRank(){
   el.style.gridTemplateRows=`repeat(${rows},auto)`;
   // 名字可用宽度：每列宽 − 序号 − 色条 − 数值 − 间距；完整名放不下时先去掉品牌
   const colW=(el.clientWidth||chart.getWidth())/cols-10;
-  el.innerHTML=o.rank.map((it,k)=>{const v=flagPrefix(it.flag)+Math.round(it.v).toLocaleString("zh-CN");
+  el.innerHTML=o.rank.map((it,k)=>{const v=flagPrefix(it.flag)+it.v.toLocaleString("zh-CN",{maximumSignificantDigits:4});
     const max=colW-textW(String(n),13,700)-14-28-textW(v,12,400,MONO)-10;
     return `<li data-i="${it.i}" style="--c:${colorOf(it.r)}"${HL===it.i?' class="on"':""}><b>${k+1}</b><i></i><span>${esc(listName(it.r,max))}</span><em>${v}</em></li>`}).join("");
 }

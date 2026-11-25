@@ -1731,13 +1731,29 @@
     const snapshot={schemaVersion:2,config,ready:true,key,title:sharePair?'双周品牌市场份额变化贡献':expanded&&key==='brand'?'品牌销量结构与集中度':researchViews[key],subtitle:key==='model'&&(rankOnly||combined)?displayMetric:attributeTopics.has(key)?attributePublicationInfo?.metricLabel||researchSubtitles[key]:key==='brand'?(brandPublicationInfo?.metricLabel||researchSubtitles[key]):key==='coverage'?(coveragePublicationInfo?.metricLabel||researchSubtitles[key]):key==='dual'?(dualPublicationInfo?.metricLabel||researchSubtitles[key]):researchSubtitles[key],range,effectivePeriods,footer,source:scope.source+' / '+scope.series+(expanded?' · 重点机型销量追踪':(['coverage','dual'].includes(key)?' · 全市场品牌份额':'')),context:(scope.source+' / '+scope.series)+' · 图表 '+chartRange+' · 所选 '+selectedRange+' · '+(!sharePair&&['coverage','dual'].includes(key)?'共同有效':'有效观测')+' '+effectiveText+' · '+modeLabel+(top===null?'':' · 固定 TOP'+top),modeLabel,displayMetric,chart,table,summary,description,detail,note,chartNote,csv};
     return JSON.parse(JSON.stringify(snapshot));
   }
+  let researchSendBusy=false;
   async function sendResearchToStudio(key=researchView){
+    if(researchSendBusy){notify('正在生成研究图卡，请勿重复点击。');return false;}
     if(masterLoading||!loaded){notify('历史销量或机型主数据尚在加载，请读取完成后再生成专题。');return false;}
-    if(['coverage','dual'].includes(key)&&!marketCache){await ensureMarketData();}
-    const s=researchSnapshot(key);
-    if(!s){notify('当前专题没有可发布的研究结果；请检查区间、机型及分组。');return false;}
-    if(!applyResearchTopicToStudio(s))return false;
-    activateModuleTab('social');$('socialStudio').scrollIntoView({behavior:'smooth',block:'start'});return true;
+    researchSendBusy=true;
+    researchSend.disabled=true;researchSend.setAttribute('aria-busy','true');researchSend.textContent='正在生成图卡…';
+    try{
+      if(['coverage','dual'].includes(key)&&!marketCache){await ensureMarketData();}
+      const s=researchSnapshot(key);
+      if(!s){notify('当前专题没有可发布的研究结果；请检查区间、机型及分组。');return false;}
+      if(!applyResearchTopicToStudio(s)){notify('当前专题无法导入图文工作台，请重新选择专题。');return false;}
+      activateModuleTab('social');$('socialStudio').scrollIntoView({behavior:'smooth',block:'start'});return true;
+    }catch(err){
+      reportConsumerError('专题图卡生成',err);
+      const message='专题图卡生成失败：'+(err?.message||String(err));
+      notify(message);
+      const status=$('posterLayoutQuality');
+      if(status){status.hidden=false;status.className='msg studio-layout-warning bad';status.textContent=message;}
+      for(const id of ['downloadCard','downloadVersions','downloadAllCards']){const button=$(id);if(button)button.disabled=true;}
+      return false;
+    }finally{
+      researchSendBusy=false;researchSend.disabled=false;researchSend.removeAttribute('aria-busy');researchSend.textContent='用当前专题生成图卡';
+    }
   }
   // Add the research topics to the existing publishing-topic chooser.
   const chooser=$('templateChooser'),researchChooser=document.createElement('section'),researchHeading=document.createElement('h4');

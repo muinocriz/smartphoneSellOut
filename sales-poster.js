@@ -167,7 +167,7 @@ function posterLineLegend(ctx,items,box,p){
   row.push({...l,color:l.color||colors[i%colors.length],wrapped,x:left+used});used+=itemW;
  }
  if(row.length)rows.push(row);
- const needed=rows.reduce((sum,r)=>sum+Math.max(1,...r.map(l=>l.wrapped.length))*step,sum,0);
+ const needed=rows.reduce((sum,r)=>sum+Math.max(1,...r.map(l=>l.wrapped.length))*step,0);
  if(Number.isFinite(box.bottom)&&top+needed+posterDp(52)>box.bottom){auditIssue(ctx,'图例占用空间过多，请减少机型或拆分图卡',true);return box.bottom;}
  let yy=top;
  for(const group of rows){

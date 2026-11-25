@@ -529,8 +529,9 @@ function drawGenerationDualAxis(ctx,chart,box,p,preview=false){
  };
  const legendStep=Math.max(22,30*f),legendY=top+font+3;
  const legendBottom=preview?top+legendStep:posterLineLegend(ctx,[{...volume,color:barColor},{...rate,color:rateColor,marker:'○'}],box,p);
- const x0=left+(preview?Math.max(45,62*f):110),x1=right-(preview?Math.max(47,61*f):116);
  const y0=legendBottom+Math.max(axis.title+14,31*f),y1=bottom-Math.max(axis.period+14,36*f);
+ const posterVolume=preview?null:posterValueAxis(Math.max(1,...volume.values.filter(Number.isFinite))*1.05,y1-y0);
+ const x0=left+(preview?Math.max(45,62*f):posterAxisGutter(ctx,posterVolume.ticks)),x1=right-(preview?Math.max(47,61*f):posterAxisGutter(ctx,[0,20,40,60,80,100],v=>v+'%'));
  if(!auditPlot(ctx,x1-x0,y1-y0,'代际替代双轴绘图区',260,150))return;
  const slot=(x1-x0)/n,bw=Math.min(slot*.62,76*f);
  if(bw<3){auditIssue(ctx,'代际替代图周次过多，柱宽不足',true);return;}
@@ -543,7 +544,7 @@ function drawGenerationDualAxis(ctx,chart,box,p,preview=false){
  const raw=desired/magnitude;
  const step=[1,2,2.5,5,10].reduce((best,v)=>v<=raw+1e-10?v:best,1)*magnitude;
  const intervals=Math.max(1,Math.ceil(target/step-1e-10));
- const cap=intervals*step,plotH=y1-y0;
+ const cap=preview?intervals*step:posterVolume.high,plotH=y1-y0;
  const x=i=>x0+(i+.5)*slot,y=v=>y1-v/cap*plotH,yp=v=>y1-v/100*plotH;
  const text=(v,a,b,size,color=p.sub,weight='550',align='left',maxWidth=width)=>posterFitText(ctx,String(v),a,b,size,color,weight,align,maxWidth);
  const rule=(a,b,c,d,color,lw=1,dash=[])=>{ctx.save();ctx.strokeStyle=color;ctx.lineWidth=lw;ctx.setLineDash(dash);ctx.beginPath();ctx.moveTo(a,b);ctx.lineTo(c,d);ctx.stroke();ctx.restore();};
@@ -559,12 +560,16 @@ function drawGenerationDualAxis(ctx,chart,box,p,preview=false){
  }
  axisText('合计周增量 / 万台',x0,y0-12,'title',p.sub,'left',(x1-x0)/2);
  axisText('替代率 / %',x1,y0-12,'title',p.sub,'right',(x1-x0)/2);
- for(let i=0;i<=intervals;i++){
-  const v=step*i,yy=y(v),fraction=i/intervals;
-  if(![.5,.8].some(ref=>Math.abs(fraction-ref)<1e-9))rule(x0,yy,x1,yy,p.hair,1.2*f);
-  axisText(Number(v.toPrecision(12)),x0-10,yy+5,'tick',p.sub,'right',x0-left-12);
+ for(const v of preview?Array.from({length:intervals+1},(_,i)=>step*i):posterSpacedTicks(posterVolume.ticks,y)){
+  const yy=y(v),fraction=v/cap;
+  if(![.5,.8].some(ref=>Math.abs(fraction-ref)<1e-9))rule(x0,yy,x1,yy,p.hair,preview?1.2*f:posterDp(POSTER_DESIGN.chart.grid));
+  if(preview)axisText(Number(v.toPrecision(12)),x0-10,yy+5,'tick',p.sub,'right',x0-left-12);
+  else canvasText(ctx,posterAxisLabel(v),x0-posterDp(4),yy+MOBILE_POSTER_TYPE.value*.32,MOBILE_POSTER_TYPE.value,p.sub,'500','right');
  }
- for(const v of [0,20,40,50,60,80,100])axisText(v+'%',x1+10,yp(v)+5,'tick',p.sub,'left',right-x1-12);
+ for(const v of preview?[0,20,40,50,60,80,100]:posterSpacedTicks([0,25,50,75,100],yp)){
+  if(preview)axisText(v+'%',x1+10,yp(v)+5,'tick',p.sub,'left',right-x1-12);
+  else canvasText(ctx,v+'%',x1+posterDp(4),yp(v)+MOBILE_POSTER_TYPE.value*.32,MOBILE_POSTER_TYPE.value,p.sub,'500','left');
+ }
  rule(x0,y0,x0,y1,p.hair,1.2*f);
  rule(x1,y0,x1,y1,p.hair,1.2*f);
  periods.forEach((period,i)=>{
@@ -578,10 +583,10 @@ function drawGenerationDualAxis(ctx,chart,box,p,preview=false){
  for(const v of [50,80])rule(x0,yp(v),x1,yp(v),v===80?p.accent:p.sub,1.5*f,[6*f,5*f]);
  rate.values.forEach((v,i)=>{
   if(!Number.isFinite(v))return;
-  if(i>0&&Number.isFinite(rate.values[i-1]))rule(x(i-1),yp(rate.values[i-1]),x(i),yp(v),rateColor,preview?2.8*f:6,rate.imputed?.[i]||rate.imputed?.[i-1]?[7*f,5*f]:[]);
+  if(i>0&&Number.isFinite(rate.values[i-1]))rule(x(i-1),yp(rate.values[i-1]),x(i),yp(v),rateColor,preview?2.8*f:MOBILE_POSTER_TYPE.line,rate.imputed?.[i]||rate.imputed?.[i-1]?[7*f,5*f]:[]);
  });
  rate.values.forEach((v,i)=>{
-  if(Number.isFinite(v))ResearchCharts.canvasMarker(ctx,'○',x(i),yp(v),Math.min(preview?4.4*f:7,slot*.23),rateColor,!!rate.imputed?.[i]);
+  if(Number.isFinite(v))ResearchCharts.canvasMarker(ctx,'○',x(i),yp(v),Math.min(preview?4.4*f:MOBILE_POSTER_TYPE.marker,slot*.23),rateColor,!!rate.imputed?.[i]);
  });
  if(!preview){posterWeekTicks(ctx,periods,x,y1+43,left,right,p);return;}
  const tickCount=Math.max(2,Math.floor((x1-x0)/Math.max(76*f,axis.period*4.8))),stride=Math.max(1,Math.ceil((n-1)/(tickCount-1)));
@@ -605,6 +610,7 @@ function crossRule(ctx,x0,y0,x1,y1,color,width=1){
  ctx.save();ctx.strokeStyle=color;ctx.lineWidth=width;ctx.beginPath();ctx.moveTo(x0,y0);ctx.lineTo(x1,y1);ctx.stroke();ctx.restore();
 }
 function crossPeriodTicks(ctx,periods,x,y,plotWidth,font,p,preview=false){
+ if(!preview){const a=x(0),b=x(periods.length-1),edge=periods.length>1?(b-a)/(periods.length-1)/2:plotWidth/2;posterWeekTicks(ctx,periods,x,y,a-edge,b+edge,p,plotWidth<posterDp(160)?3:5);return;}
  const n=periods.length,maxTicks=Math.max(2,Math.floor(plotWidth/(font*6))),stride=Math.max(1,Math.ceil((n-1)/(maxTicks-1)));
  periods.forEach((period,i)=>{
   if(i===0||i===n-1||(i%stride===0&&n-1-i>=stride*.65)){
@@ -740,7 +746,7 @@ const ResearchCharts=(()=>{
   const {hollow,vertices}=markerGeometry(marker,x,y,r);
   ctx.save();ctx.beginPath();
   if(vertices){vertices.forEach(([a,b],i)=>i?ctx.lineTo(a,b):ctx.moveTo(a,b));ctx.closePath();}else ctx.arc(x,y,r,0,Math.PI*2);
-  ctx.fillStyle=estimated||hollow?'#ffffff':color;ctx.strokeStyle=color;ctx.lineWidth=1.8;ctx.fill();ctx.stroke();ctx.restore();
+  ctx.fillStyle=estimated||hollow?'#ffffff':color;ctx.strokeStyle=color;ctx.lineWidth=mobilePosterActive(ctx)?posterDp(POSTER_DESIGN.chart.markerStroke):1.8;ctx.fill();ctx.stroke();ctx.restore();
  }
  function lineScale(chart,box){
   const n=chart.periods.length,max=(chart.bands||[]).reduce((m,b)=>(b.upper||[]).reduce((a,v)=>Number.isFinite(v)?Math.max(a,v):a,m),chart.lines.reduce((m,l)=>l.values.reduce((a,v)=>Number.isFinite(v)?Math.max(a,v):a,m),1));
@@ -892,7 +898,7 @@ const ResearchCharts=(()=>{
    ctx.restore();
   }
   points(chart,scale,p=>{if(p.previous){ctx.save();ctx.strokeStyle=p.color;ctx.lineWidth=mobilePosterActive(ctx)?MOBILE_POSTER_TYPE.line:4;ctx.setLineDash(p.previous.dashed?[11,8]:[]);ctx.beginPath();ctx.moveTo(p.previous.x,p.previous.y);ctx.lineTo(p.x,p.y);ctx.stroke();ctx.restore();}
-   canvasMarker(ctx,p.marker,p.x,p.y,mobilePosterActive(ctx)?(chart.periods.length>35?5:MOBILE_POSTER_TYPE.marker):(chart.periods.length>35?3.5:5),p.color,p.estimated);
+   canvasMarker(ctx,p.marker,p.x,p.y,mobilePosterActive(ctx)?(chart.periods.length>35?posterDp(1.2):MOBILE_POSTER_TYPE.marker):(chart.periods.length>35?3.5:5),p.color,p.estimated);
   });
   if(chart.alerts&&chart.lines[1])chart.alerts.forEach((level,i)=>{
    const v=chart.lines[1].values[i];

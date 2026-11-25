@@ -41,6 +41,54 @@ const BRAND_FOOTER_NOTE='品牌合并：小米/REDMI · OPPO/一加/realme · vi
 // A per-render audit uses the actual sizes and plot dimensions used by the renderer.
 // It never alters the user's safety margins, chart data, or export resolution.
 const posterAudits=new WeakMap();
+// Reference coordinates preserve export sizes: 1080 units = 400 mobile CSS px.
+const MOBILE_POSTER_TYPE=Object.freeze({title:72,subtitle:43,body:40,label:36,note:33,min:33,line:6,marker:7});
+function mobilePosterActive(ctx){return posterAudits.has(ctx);}
+function posterWrap(ctx,value,width,size,weight='550'){
+ const lines=[];
+ for(const raw of String(value??'').split(/\r?\n/)){
+  let line='';
+  for(const ch of raw){if(line&&measureMixedCanvas(ctx,line+ch,size,weight).width>width){lines.push(line.trim());line=ch;}else line+=ch;}
+  if(line.trim())lines.push(line.trim());
+ }
+ return lines;
+}
+function posterWeekLabel(period,periods){
+ const text=String(period);
+ return /^\d{4}-W\d{2}$/.test(text)&&periods.every(v=>/^\d{4}-W\d{2}$/.test(String(v))&&String(v).slice(0,4)===text.slice(0,4))?text.slice(5):text;
+}
+function posterWeekTicks(ctx,periods,x,y,left,right,p){
+ if(!periods.length)return;
+ const labels=periods.map(v=>posterWeekLabel(v,periods)),size=MOBILE_POSTER_TYPE.label,n=labels.length;
+ const widest=Math.max(...labels.map(v=>measureMixedCanvas(ctx,v,size,'550').width));
+ const span=Math.max(1,x(n-1)-x(0)),count=Math.max(2,Math.min(7,Math.floor(span/(widest+15))+1));
+ const stride=Math.max(1,Math.ceil((n-1)/(count-1)));
+ labels.forEach((v,i)=>{
+  if(i!==0&&i!==n-1&&(i%stride!==0||x(n-1)-x(i)<widest+10))return;
+  const labelW=measureMixedCanvas(ctx,v,size,'550').width;
+  const xx=Math.max(left+labelW/2,Math.min(right-labelW/2,x(i)));
+  posterFitText(ctx,v,xx,y,size,p.sub,'550','center',right-left);
+ });
+}
+function posterLineLegend(ctx,items,box,p){
+ const {left,top,width}=box,T=MOBILE_POSTER_TYPE;
+ const colors=['#2563eb','#ea580c','#059669','#9333ea','#7c3aed','#0891b2','#92400e','#64748b'];
+ const cols=items.length>1?2:1,cell=width/cols,step=49;
+ const rows=items.map((l,i)=>({...l,color:l.color||colors[i%colors.length],wrapped:posterWrap(ctx,l.name,cell-39,T.label,'600')}));
+ let yy=top;
+ for(let i=0;i<rows.length;i+=cols){
+  const group=rows.slice(i,i+cols),height=Math.max(...group.map(l=>Math.max(1,l.wrapped.length)))*step;
+  group.forEach((l,j)=>{
+   const x=left+j*cell,base=yy+T.label;
+   if(l.legendBand){ctx.save();ctx.fillStyle=l.color;ctx.globalAlpha=.45;ctx.fillRect(x,base-21,20,13);ctx.restore();}
+   else if(l.marker)ResearchCharts.canvasMarker(ctx,l.marker,x+10,base-13,T.marker,l.color);
+   else {ctx.fillStyle=l.color;ctx.fillRect(x,base-17,22,6);}
+   l.wrapped.forEach((v,k)=>posterFitText(ctx,v,x+34,base+k*step,T.label,p.ink,'600','left',cell-39));
+  });
+  yy+=height;
+ }
+ return yy+12;
+}
 function auditIssue(ctx,message,blocking=false){
  const a=posterAudits.get(ctx);if(a)(blocking?a.errors:a.warnings).add(message);
 }
@@ -54,8 +102,8 @@ function auditPosterGeometry(ctx,L,type,research){
  if(L.footerY<0||L.bodyBottom<=L.bodyTop){auditIssue(ctx,'附注占用过多空间，主体或页脚无法完整排布',true);return false;}
  if(L.footerLines.length>5)auditIssue(ctx,'免责附注超过5行，建议精简');
  if(L.footerLines.length&&L.footSize<16)auditIssue(ctx,'附注字号偏小');
- if(type==='top'&&(L.bodyHeight-28)/10<55)auditIssue(ctx,'TOP10 行高偏小');
- if(research?.chart?.lines?.length>12&&!['brandStack','brandRibbon','bars','scatter','heatmap','brandGrowth','dualBrandShareComparison','brandContributionPair'].includes(research.chart.kind))auditIssue(ctx,'曲线较多，建议减少机型或分组');
+ if(type==='top'&&(L.bodyHeight-28)/10<75)auditIssue(ctx,'TOP10 行高偏小');
+ if(research?.chart?.lines?.length>8&&!['brandStack','brandRibbon','bars','scatter','heatmap','brandGrowth','dualBrandShareComparison','brandContributionPair'].includes(research.chart.kind))auditIssue(ctx,'曲线较多，建议减少机型或分组');
  if(research?.chart?.kind==='heatmap'&&(research.chart.periods.length>8||research.chart.lines.length>8))auditIssue(ctx,'热力矩阵类别较多，建议降低每轴类别上限或使用9:16');
  return true;
 }
@@ -73,55 +121,52 @@ function posterFitText(ctx,value,x,y,size,color,weight='600',align='left',width=
  const fit=measured>width?size*width/measured:size;
  if(str.trim()){
   if(!Number.isFinite(fit)||fit<=0){auditIssue(ctx,'文字区域无有效宽度',true);return;}
-  if(fit<14||fit<size*.60)auditIssue(ctx,'部分文字因空间不足而缩小');
+  if(mobilePosterActive(ctx)&&fit<MOBILE_POSTER_TYPE.min)auditIssue(ctx,'部分文字低于手机阅读目标（400px宽时12px），建议减少项目或改用9:16');else if(fit<14||fit<size*.60)auditIssue(ctx,'部分文字因空间不足而缩小');
  }
  canvasText(ctx,str,x,y,Math.max(1,fit),color,weight,align);
 }
 function posterRule(ctx,x1,x2,y,p){
  ctx.strokeStyle=p.hair;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x1,y);ctx.lineTo(x2,y);ctx.stroke();
 }
-function getPosterLayout(W,H,type,o,right,bottom,copy=getPosterCopy(type,o)){
+function getPosterLayout(ctx,W,H,type,o,right,bottom,copy=getPosterCopy(type,o)){
  const safeRight=W-Math.round(W*right),safeBottom=H-Math.round(H*bottom);
  const left=70,rightEdge=safeRight-Math.max(24,70-Math.round(W*right));
  const cardX=52,cardRight=rightEdge+18;
- const footerLines=String(copy.disclaimer||'').split(/\r?\n/).filter(v=>v.trim());
+ const T=MOBILE_POSTER_TYPE,width=rightEdge-left;
+ const footerLines=posterWrap(ctx,copy.disclaimer,width,T.note,'560');
  const brandNote=type==='brands'&&o.brands.length>0;
- // Retain every entered footer line; ordinary 1–4 line notes retain their normal sizes.
- const lineStep=Math.min(32,Math.max(12,Math.floor(142/Math.max(1,footerLines.length))));
- const footSize=Math.min(23,lineStep*.76);
- const footerHeight=footerLines.length?24+footerLines.length*lineStep+20:0;
- const footerY=safeBottom-Math.max(48,footerHeight);
- // Empty corner labels release the entire header row for the content below.
+ const brandLines=brandNote?posterWrap(ctx,BRAND_FOOTER_NOTE,width,T.note,'530'):[];
+ const lineStep=43,footSize=T.note;
+ const footerHeight=(footerLines.length+brandLines.length)*lineStep+(footerLines.length?18:0);
+ const footerY=safeBottom-34-footerHeight;
  const markLeft=String(copy.markLeft??'').trim(),markRight=String(copy.markRight??'').trim();
- const headerOffset=markLeft||markRight?0:72;
- const bodyTop=316-headerOffset,bodyBottom=footerLines.length||brandNote?footerY-(brandNote?44:20):safeBottom-64;
- return {W,H,safeRight,safeBottom,left,right:rightEdge,width:rightEdge-left,cardX,cardRight,cardWidth:cardRight-cardX,bodyTop,bodyBottom,bodyHeight:bodyBottom-bodyTop,footerY,footerLines,brandNote,lineStep,footSize,copy,markLeft,markRight,headerOffset};
+ const titleLines=posterWrap(ctx,copy.title,width,T.title,'850'),subtitleLines=posterWrap(ctx,copy.subtitle,width,T.subtitle,'550');
+ const tagLines=posterWrap(ctx,copy.tagLabel,width-32,T.label,'760');
+ const titleY=markLeft||markRight?142:90;
+ const subtitleY=titleY+Math.max(1,titleLines.length)*82-19;
+ const tagY=subtitleY+Math.max(1,subtitleLines.length)*52-8;
+ const bodyTop=tagY+(tagLines.length?tagLines.length*44+27:5)+15;
+ const bodyBottom=footerY-18;
+ return {W,H,safeRight,safeBottom,left,right:rightEdge,width,cardX,cardRight,cardWidth:cardRight-cardX,bodyTop,bodyBottom,bodyHeight:bodyBottom-bodyTop,footerY,footerLines,brandNote,brandLines,lineStep,footSize,copy,markLeft,markRight,titleLines,subtitleLines,tagLines,titleY,subtitleY,tagY};
 }
 function posterFrame(ctx,L,o,p){
- const {copy,left,right,width,markLeft,markRight,headerOffset}=L;
- const markW=markLeft?Math.min(162,width*.38):0;
- if(markLeft){
-  rounded(ctx,left,55,markW,42,13,p.panel2);
-  posterFitText(ctx,markLeft,left+17,84,25,p.accent,'800','left',markW-34);
+ const {left,right,width,markLeft,markRight,titleLines,subtitleLines,tagLines,titleY,subtitleY,tagY,bodyTop}=L,T=MOBILE_POSTER_TYPE;
+ if(markLeft)posterFitText(ctx,markLeft,left,57,T.note,p.accent,'800','left',width*.47);
+ if(markRight)posterFitText(ctx,markRight,right,57,T.note,p.sub,'600','right',width*.47);
+ titleLines.forEach((v,i)=>posterFitText(ctx,v,left,titleY+i*82,T.title,p.ink,'850','left',width));
+ subtitleLines.forEach((v,i)=>posterFitText(ctx,v,left,subtitleY+i*52,T.subtitle,p.sub,'550','left',width));
+ if(tagLines.length){
+  const tagW=Math.min(width,Math.max(...tagLines.map(v=>measureMixedCanvas(ctx,v,T.label,'760').width))+32);
+  rounded(ctx,left,tagY-34,tagW,tagLines.length*44+10,15,p.panel2);
+  tagLines.forEach((v,i)=>posterFitText(ctx,v,left+16,tagY+i*44,T.label,p.accent,'760','left',tagW-32));
  }
- if(markRight)posterFitText(ctx,markRight,right,84,22,p.sub,'600','right',width-(markLeft?markW+20:0));
- posterFitText(ctx,copy.title,left,178-headerOffset,72,p.ink,'850','left',width);
- posterFitText(ctx,copy.subtitle,left+2,230-headerOffset,29,p.sub,'550','left',width-2);
- const tag=String(copy.tagLabel||'').trim();
- if(tag){
-  const tagWidth=Math.min(width,Math.max(250,Math.ceil(measureMixedCanvas(ctx,tag,26,'760').width+42)));
-  rounded(ctx,left,247-headerOffset,tagWidth,43,15,p.panel2);
-  posterFitText(ctx,tag,left+21,277-headerOffset,26,p.accent,'760','left',tagWidth-42);
- }
- posterRule(ctx,left,right,300-headerOffset,p);
+ posterRule(ctx,left,right,bodyTop-12,p);
 }
 function drawPosterFooter(ctx,L,p){
- const {left,right,width,footerY,footerLines,lineStep,footSize,brandNote}=L;
- if(!footerLines.length&&!brandNote)return;
- if(brandNote)posterFitText(ctx,BRAND_FOOTER_NOTE,left,footerY-12,21,p.sub,'530','left',width);
- if(!footerLines.length)return;
+ const {left,right,width,footerY,footerLines,brandLines,lineStep,footSize}=L;
+ if(!footerLines.length&&!brandLines.length)return;
  posterRule(ctx,left,right,footerY,p);
- footerLines.forEach((line,i)=>posterFitText(ctx,line,left,footerY+24+i*lineStep,Math.min(footSize,i===2?21:23),p.sub,i===2?'500':'560','left',width));
+ [...brandLines,...footerLines].forEach((line,i)=>posterFitText(ctx,line,left,footerY+36+i*lineStep,footSize,p.sub,'560','left',width));
 }
 function paintBar(ctx,x,y,w,h,ratio,p,highlight=false,brandColor=null){
  if(w<=0||h<=0)return;
@@ -137,14 +182,14 @@ function drawTop(ctx,L,o,p){
  const step=(bodyBottom-bodyTop-28)/10,max=entries[0].pixels||1;
  if(!auditPlot(ctx,right-nameX,step,'榜单行',220,55))return;
  entries.forEach((m,i)=>{
-  const y=bodyTop+14+i*step,base=y+step*.45;
-  const font=Math.min(31,step*.39),barH=Math.min(13,step*.17);
+  const y=bodyTop+14+i*step,base=y+step*.58;
+  const font=Math.min(MOBILE_POSTER_TYPE.body,step*.55),barH=Math.min(13,step*.16);
   if(i===0)rounded(ctx,cardX+10,y-3,cardWidth-20,step-3,14,p.panel2);
   const ink=i===0?p.bar2:p.ink;
-  posterFitText(ctx,String(m.rank).padStart(2,'0'),left,base,Math.min(29,font),p.accent,'850','left',rankW-8);
+  posterFitText(ctx,String(m.rank).padStart(2,'0'),left,base,Math.min(MOBILE_POSTER_TYPE.label,font),p.accent,'850','left',rankW-8);
   posterFitText(ctx,m.name,nameX,base,font,ink,'680','left',nameW);
-  posterFitText(ctx,o.fit.k===null?'待标定':displayWan(m.sale)+' 万台',right,base,Math.min(30,font),ink,'750','right',saleW);
-  paintBar(ctx,nameX,y+step*.68,right-nameX,barH,m.pixels/max,p,i===0);
+  posterFitText(ctx,o.fit.k===null?'待标定':displayWan(m.sale)+' 万台',right,base,Math.min(MOBILE_POSTER_TYPE.body,font),ink,'750','right',saleW);
+  paintBar(ctx,nameX,y+step*.77,right-nameX,barH,m.pixels/max,p,i===0);
  });
 }
 function chooseDuelModelLabel(ctx,original,maxWidth,baseSize=43){
@@ -184,14 +229,14 @@ function drawBrands(ctx,L,o,p){
  const {left,right,width,cardX,cardWidth,bodyTop,bodyBottom}=L;
  const n=brands.length,first=brands[0].pixels||1;
  drawDataCard(ctx,cardX,bodyTop,cardWidth,bodyBottom-bodyTop,p);
- posterFitText(ctx,`品牌系列榜 · ${n} 组｜上榜合计 ${o.models.length} 条`,left,bodyTop+33,26,p.sub,'600','left',width);
- const top=bodyTop+46,step=Math.min(206,(bodyBottom-top-12)/n);
+ posterFitText(ctx,`品牌系列榜 · ${n} 组｜上榜合计 ${o.models.length} 条`,left,bodyTop+38,MOBILE_POSTER_TYPE.note,p.sub,'600','left',width);
+ const top=bodyTop+55,step=(bodyBottom-top-12)/n;
  brands.forEach((b,i)=>{
-  const y=top+i*step,hot=i===0,font=Math.min(33,step*.28),barH=Math.min(22,step*.19),salesW=width*.43;
+  const y=top+i*step,hot=i===0,font=Math.min(MOBILE_POSTER_TYPE.body,step*.32),barH=Math.min(15,step*.11),salesW=width*.48;
   posterFitText(ctx,`${i+1}. ${b.brand}（上榜 ${b.count} 款）`,left,y+step*.28,font,p.ink,'760','left',width-salesW-12);
-  posterFitText(ctx,`${displaySale(b.sale)}  ·  ${fmt(b.share*100,1)}%`,right,y+step*.28,Math.min(31,font),hot?p.bar2:p.ink,'750','right',salesW);
+  posterFitText(ctx,`${displaySale(b.sale)}  ·  ${fmt(b.share*100,1)}%`,right,y+step*.28,Math.min(MOBILE_POSTER_TYPE.body,font),hot?p.bar2:p.ink,'750','right',salesW);
   paintBar(ctx,left,y+step*.40,width,barH,b.pixels/first,p,hot,window.BrandUtils.color(b.brand));
-  posterFitText(ctx,'主力爆款：'+b.hero,left,y+step*.83,Math.min(24,step*.24),p.sub,'560','left',width);
+  posterFitText(ctx,'主力爆款：'+b.hero,left,y+step*.83,Math.min(MOBILE_POSTER_TYPE.note,step*.31),p.sub,'560','left',width);
  });
 }
 function drawLeader(ctx,L,o,p){
@@ -254,7 +299,7 @@ function drawPoster(type,canvas,o=socialData(),showGuides=false,pixelRatio=1,pub
  const p=publication?.palette||socialPalettes[state.theme];
  const right=state.safeEnabled?Math.max(0,Math.min(.35,state.safeRight/100)):0;
  const bottom=state.safeEnabled?Math.max(0,Math.min(.35,state.safeBottom/100)):0;
- const L=getPosterLayout(W,H,type,o,right,bottom,publication?.copy||getPosterCopy(type,o));
+ const L=getPosterLayout(ctx,W,H,type,o,right,bottom,publication?.copy||getPosterCopy(type,o));
  const audit={errors:new Set(),warnings:new Set()};posterAudits.set(ctx,audit);
  const layoutOK=auditPosterGeometry(ctx,L,type,isResearchTemplate(type)?research:null);
  drawPosterBackdrop(ctx,W,H,p);
@@ -350,10 +395,10 @@ function drawResearchPosterContent(ctx,L,p,s){
 // supplies a flexible chart-sized canvas with no social safe area or frame.
 function drawResearchChartContent(ctx,p,s,box){
  const {left,right,top:start,bottom,width}=box;
- const notes=String(s.chartNote??'').split(/\r?\n/).filter(v=>v.trim());
- const noteHeight=notes.length?notes.length*25+10:0,chartBottom=bottom-noteHeight;
+ const notes=posterWrap(ctx,s.chartNote,width,MOBILE_POSTER_TYPE.note,'550');
+ const noteHeight=notes.length?notes.length*43+12:0,chartBottom=bottom-noteHeight;
  const chartBox={left,right,top:start,bottom:chartBottom,width,height:chartBottom-start};
- const drawNotes=()=>notes.forEach((line,i)=>posterFitText(ctx,line,left,bottom-8-(notes.length-1-i)*25,20,p.sub,'550','left',width));
+ const drawNotes=()=>notes.forEach((line,i)=>posterFitText(ctx,line,left,bottom-8-(notes.length-1-i)*43,MOBILE_POSTER_TYPE.note,p.sub,'550','left',width));
  if(notes.length>6)auditIssue(ctx,'图表内附注超过6行，建议精简');
  if(!auditPlot(ctx,width,chartBox.height,'研究图表内容区',360,230))return;
  if(['trackerBoth','trackerRank','trackerMatrix'].includes(s.chart?.kind)){drawTrackerTrendPoster(ctx,p,{...s,chartNote:''},chartBox);drawNotes();return;}
@@ -371,18 +416,14 @@ function drawResearchChartContent(ctx,p,s,box){
  if(s.chart?.kind==='bars'||s.chart?.kind==='scatter'){drawHeadStaticPoster(ctx,p,{...s,chartNote:''},chartBox);drawNotes();return;}
  if(s.chart){
   const {periods,lines,unit}=s.chart,n=periods.length,bands=s.chart.bands||[],legendItems=[...lines.map(l=>({...l,legendBand:false})),...bands.map(b=>({...b,legendBand:true}))],count=legendItems.length;
-  const cols=count<=2?Math.max(1,count):count<=6?2:count<=12?3:4;
-  const legendRows=Math.ceil(count/cols),legendStep=Math.min(36,chartBox.height*.29/Math.max(1,legendRows));
-  const cellW=width/cols,colors=['#2563eb','#ea580c','#059669','#9333ea','#db2777','#0891b2','#92400e','#64748b','#be123c','#4d7c0f','#0369a1','#7c3aed'];
-  legendItems.forEach((l,i)=>{const x=left+(i%cols)*cellW,y=start+(Math.floor(i/cols)+.77)*legendStep,color=l.color||colors[i%colors.length];if(l.legendBand){ctx.save();ctx.fillStyle=color;ctx.globalAlpha=.45;ctx.fillRect(x,y-15,17,10);ctx.restore();}else if(l.marker)ResearchCharts.canvasMarker(ctx,l.marker,x+8,y-8,6,color);else{ctx.fillStyle=color;ctx.fillRect(x,y-12,17,5);}posterFitText(ctx,l.name,x+23,y,Math.min(24,legendStep*.78),p.ink,'600','left',cellW-28);});
-  const x0=left+68,x1=right-32,y0=start+legendRows*legendStep+34,y1=chartBottom-48;
-  if(!auditPlot(ctx,x1-x0,y1-y0,'折线图绘图区',260,150))return;
-  const scale=ResearchCharts.lineScale(s.chart,{left:x0,right:x1,top:y0,bottom:y1}),{top,x,y}=scale;
-  researchPosterAxisText(ctx,unit,x0,y0-12,'title',p.sub,'left',width-100);
-  for(let i=0;i<=4;i++){const v=top*i/4;ctx.strokeStyle=p.hair;ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(x0,y(v));ctx.lineTo(x1,y(v));ctx.stroke();researchPosterAxisText(ctx,Number(v.toFixed(2)),x0-10,y(v)+5,'tick',p.sub,'right',56);}
-  const ticks=Math.max(2,Math.min(7,Math.floor((x1-x0)/88))),stride=Math.max(1,Math.ceil((n-1)/(ticks-1)));
-  periods.forEach((period,i)=>{if(i===0||i===n-1||(i%stride===0&&n-1-i>=stride*.65))researchPosterAxisText(ctx,period,x(i),y1+26,'period',p.sub,'center',Math.min(104,(x1-x0)/Math.max(1,ticks-1)));});
-  ResearchCharts.canvasLine(ctx,s.chart,scale);
+  const legendBottom=posterLineLegend(ctx,legendItems,chartBox,p);
+   const x0=left+112,x1=right-26,y0=legendBottom+48,y1=chartBottom-59;
+   if(!auditPlot(ctx,x1-x0,y1-y0,'折线图绘图区',260,220))return;
+   const scale=ResearchCharts.lineScale(s.chart,{left:x0,right:x1,top:y0,bottom:y1}),{top,x,y}=scale;
+   researchPosterAxisText(ctx,unit,x0,y0-12,'title',p.sub,'left',width-112);
+   for(let i=0;i<=4;i++){const v=top*i/4;ctx.strokeStyle=p.hair;ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(x0,y(v));ctx.lineTo(x1,y(v));ctx.stroke();researchPosterAxisText(ctx,Number(v.toFixed(2)),x0-10,y(v)+9,'tick',p.sub,'right',100);}
+   posterWeekTicks(ctx,periods,x,y1+43,left,right,p);
+   ResearchCharts.canvasLine(ctx,s.chart,scale);
   drawNotes();
  }else if(s.table){
   const rows=s.table.rows,indices=[0,1,2,3,7],labels=['机型','观测周','最长连续','末周连续','上榜合计/万台'];
@@ -403,12 +444,12 @@ function drawResearchChartContent(ctx,p,s,box){
 // not a bitmap copy of the visible SVG/Canvas and not a social poster.
 function researchDirectGeometry(s){
  const c=s.chart,n=c?.periods?.length||0,count=c?.lines?.length||0,kind=c?.kind||'line';
- let width=Math.max(1080,n*60+150),height=560+Math.ceil(count/4)*36;
+ let width=1080,height=690+Math.ceil((count+(c?.bands?.length||0))/2)*100;
  if(kind==='trackerBoth')height=1000+Math.ceil(count/4)*36;
  if(kind==='boardFlow')height=570;
  if(kind==='trackerMatrix'){width=Math.max(1080,n*56+280);height=Math.max(420,count*44+70);}
  if(kind==='trackerRank')height=560+Math.ceil(count/4)*36;
- if(kind==='generationDualAxis')height=560;
+ if(kind==='generationDualAxis')height=900;
  if(kind==='coverageLayers')height=1000;
  if(kind==='brandContributionPair'){width=960;height=690;}
  if(kind==='dualBrandShareComparison'){width=1200;height=740;}

@@ -43,7 +43,7 @@ const BRAND_FOOTER_NOTE='品牌合并：小米/REDMI · OPPO/一加/realme · vi
 const posterAudits=new WeakMap();
 // Reference coordinates preserve export sizes: 1080 units = 360 logical design units.
 // 360 logical design units; preserve the existing 1080-coordinate rendering API.
-const POSTER_DESIGN=Object.freeze({baseWidth:360,referenceWidth:1080,spacing:Object.freeze({xs:4,sm:8,md:12,lg:16,xl:24,xxl:32}),type:Object.freeze({title:24,subtitle:14,body:13,label:13,value:12,rank:12,axis:12,axisTitle:13,legend:10,note:12,caption:8,min:12}),weight:Object.freeze({body:'500',axis:'400',axisTitle:'500',legend:'400',caption:'400'}),chart:Object.freeze({line:1.2,highlightLine:1.8,marker:1.7,markerStroke:.8,grid:.5,axisGap:4,maxWeekTicks:5,legendLine:15})});
+const POSTER_DESIGN=Object.freeze({baseWidth:360,referenceWidth:1080,spacing:Object.freeze({xs:4,sm:8,md:12,lg:16,xl:24,xxl:32}),type:Object.freeze({title:24,subtitle:14,body:13,label:13,value:12,rank:12,axis:12,axisTitle:13,legend:10,note:12,caption:8,min:12}),weight:Object.freeze({body:'500',axis:'400',axisTitle:'500',legend:'400',caption:'400'}),chart:Object.freeze({line:1.2,highlightLine:1.8,marker:1.7,markerStroke:.8,grid:.5,axisGap:4,axisLegendGap:8,maxWeekTicks:5,legendLine:15})});
 const posterDp=v=>v*POSTER_DESIGN.referenceWidth/POSTER_DESIGN.baseWidth;
 const POSTER_SPACE=Object.freeze(Object.fromEntries(Object.entries(POSTER_DESIGN.spacing).map(([k,v])=>[k,posterDp(v)])));
 const MOBILE_POSTER_TYPE=Object.freeze({...Object.fromEntries(Object.entries(POSTER_DESIGN.type).map(([k,v])=>[k,posterDp(v)])),line:posterDp(POSTER_DESIGN.chart.line),marker:posterDp(POSTER_DESIGN.chart.marker)});
@@ -79,6 +79,15 @@ function posterWeekLabel(period,periods){
 }
 // Fixed font axis labels: adjust the ticks and gutter rather than individual font sizes.
 function posterAxisLabel(v){return String(Number(v.toPrecision(12)));}
+// Reserve the full glyph extents (including marker height), not just a gap between baselines.
+function posterAxisLegendDistance(ctx,axisLabels,axisSize,legendLabels,legendSize,symbolRise=0,axisWeight=POSTER_DESIGN.weight.axis,legendWeight=POSTER_DESIGN.weight.legend){
+ let descent=axisSize*.25,ascent=legendSize;
+ ctx.save();
+ for(const label of axisLabels){ctx.font=axisWeight+' '+axisSize+'px '+posterAxisFont(label);descent=Math.max(descent,ctx.measureText(String(label??'')).actualBoundingBoxDescent||0);}
+ for(const label of legendLabels){ctx.font=legendWeight+' '+legendSize+'px '+CJK_FONT;ascent=Math.max(ascent,ctx.measureText(String(label??'')).actualBoundingBoxAscent||0);}
+ ctx.restore();
+ return descent+posterDp(POSTER_DESIGN.chart.axisLegendGap)+Math.max(ascent,symbolRise);
+}
 // All calendar/numeric tick labels use the same explicit font, including W38 and 2026-W46.
 function posterAxisFont(value){return /^[\x20-\x7e\u2212\u2013\u2014\uff05]+$/.test(String(value??''))?NUM_FONT:CJK_FONT;}
 function posterAxisMeasure(ctx,value,size=MOBILE_POSTER_TYPE.axis){ctx.save();ctx.font=POSTER_DESIGN.weight.axis+' '+size+'px '+posterAxisFont(value);const w=ctx.measureText(String(value??'')).width;ctx.restore();return w;}

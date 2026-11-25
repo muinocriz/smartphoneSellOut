@@ -492,7 +492,7 @@ function drawTrackerTrendPoster(ctx,p,s,box){
  if(matrix){
   const labelW=Math.min(width*.31,210),cw=(width-labelW)/n,ch=Math.min(56,(height-42-noteHeight)/count);
   if(cw<20||ch<20){auditIssue(ctx,'排名矩阵过密，请缩短区间、减少机型或使用9:16图卡',true);return;}
-  chart.periods.forEach((v,i)=>posterFitText(ctx,v,left+labelW+(i+.5)*cw,top+23,Math.min(18,cw*.45),p.sub,'600','center',cw-3));
+  chart.periods.forEach((v,i)=>posterFitText(ctx,posterWeekLabel(v,chart.periods),left+labelW+(i+.5)*cw,top+23,Math.min(18,cw*.45),p.sub,'400','center',cw-3));
   lines.forEach((l,j)=>{
    const y=top+34+j*ch;
    posterFitText(ctx,l.name,left+labelW-9,y+ch*.64,Math.min(22,ch*.52),p.ink,'650','right',labelW-12);

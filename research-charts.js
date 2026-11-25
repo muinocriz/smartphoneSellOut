@@ -169,8 +169,9 @@ function drawBrandComposition(ctx,chart,box,p,note=''){
   });
   if(!pct)drawText('共同销量轴 · 峰值 '+cap.toFixed(1)+' 万台',left,y0-4,small,p.sub,'550','left',width*.25);
  }else{
-  const x0=left+Math.max(36,57*f),x1=right-Math.max(10,18*f),y0=top+Math.max(16,22*f),y1=legendY-Math.max(35,48*f);
+  const x0=left+Math.max(36,57*f),x1=right-Math.max(10,18*f),y0=top+Math.max(16,22*f),y1=legendY-(mobilePosterActive(ctx)&&periods.every(v=>/^\d{4}-W\d{2}$/.test(String(v)))?posterDp(24):Math.max(35,48*f));
   const plotH=y1-y0,slot=(x1-x0)/n,bw=Math.min(slot*.72,92*Math.max(.8,f));
+   const weekly=periods.every(v=>/^\d{4}-W\d{2}$/.test(String(v))),posterWeeks=weekly&&mobilePosterActive(ctx);
   if(!auditPlot(ctx,x1-x0,plotH,'多周堆叠图',260,180))return;
   if(bw<3){auditIssue(ctx,'堆叠柱过密，无法清楚区分各类别',true);return;}
   if(bw<25)auditIssue(ctx,'周次较多，堆叠柱或内部标签较密集');
@@ -196,8 +197,9 @@ function drawBrandComposition(ctx,chart,box,p,note=''){
     ctx.save();ctx.strokeStyle=p.sub;ctx.setLineDash([3,4]);ctx.strokeRect(x-bw/2,y0,bw,plotH);ctx.restore();
     if(bw>=24)drawText('缺失',x,y0+plotH/2,small,p.sub,'600','center',bw);
    }
-   if(i===0||i===n-1||(i%stride===0&&n-1-i>=stride*.65))drawText(String(period),x,y1+small+6,small,p.sub,'550','center',Math.min(105,slot*stride*.9));
+   if(!posterWeeks&&(i===0||i===n-1||(i%stride===0&&n-1-i>=stride*.65)))drawText(weekly?posterWeekLabel(period,periods):String(period),x,y1+small+6,small,p.sub,'550','center',Math.min(105,slot*stride*.9));
   });
+   if(posterWeeks)posterWeekTicks(ctx,periods,i=>x0+slot*(i+.5),y1+posterDp(15),x0,x1,p);
  }
  lines.forEach((l,i)=>{const x=left+(i%cols)*width/cols,y=legendY+Math.floor(i/cols)*legStep;rect(x,y-small*.68,small*.85,small*.7,l.color);posterCompactLegendText(ctx,l.name,x+small+4,y,p.ink,small,'600','left',width/cols-small-7);});
  if(note)drawText(note,left,bottom-3,small,p.sub,'550','left',width);
@@ -270,9 +272,7 @@ function drawDualBrandFlowMulti(ctx,chart,box,p,note=''){
     if(seg.h>=labelSize+4&&bw>=37)
       draw(seg.value.toFixed(1)+'%',cx,seg.mid+labelSize*.34,labelSize,'#fff','800','center',bw-3);
    });
-   const full=periods[i],label=periods.length<=8?full:
-     periods.every(v=>v.slice(0,4)===periods[0].slice(0,4))?full.slice(5):
-     full.slice(2);
+   const label=posterWeekLabel(periods[i],periods);
    draw(label,cx,y1+Math.max(17,20*f),subtitleSize,p.sub,'650','center',Math.max(8,slot*.93));
   });
  }
@@ -712,8 +712,7 @@ function drawBrandCompetitionHeatmap(ctx,chart,box,p,preview=false){
  chart.periods.forEach((period,i)=>{
   if(i%labelStep!==0&&i!==n-1)return;
   if(i!==n-1&&n-1-i<labelStep*.7)return;
-  const sameYear=chart.periods.every(w=>w.slice(0,4)===chart.periods[0].slice(0,4));
-  const label=slot<80*f&&sameYear?period.slice(5):period;
+  const label=posterWeekLabel(period,chart.periods);
   canvasText(ctx,label,x0+(i+.5)*slot,y0-10*f,font,p.sub,'500','center',Math.max(slot,slot*labelStep)-3);
  });
  lines.forEach((l,j)=>{

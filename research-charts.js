@@ -12,6 +12,8 @@ function canvasText(ctx,text,x,y,size,color,weight='600',align='left',maxWidth=n
  const original=String(text??'');ctx.save();ctx.fillStyle=color;ctx.textBaseline='alphabetic';
  const measured=measureMixedCanvas(ctx,original,size,weight);
  const scale=maxWidth!==null&&measured.width>maxWidth?maxWidth/measured.width:1;
+ if(original.trim()&&mobilePosterActive(ctx)&&size*scale<MOBILE_POSTER_TYPE.min*(posterAudits.get(ctx).referenceWidth||1080)/1080)
+  auditIssue(ctx,'部分文字低于手机阅读目标（400px宽时12px），建议减少项目或改用9:16');
  let start=x-(align==='right'?measured.width*scale:align==='center'?measured.width*scale/2:0);
  // 独立数字行使用字形左边界做光学补偿（特别是数字 1）。
  if(align==='left'&&/^[+\-−]?\d[\d.,:%％×\s+\-−]*$/.test(original)){
@@ -526,7 +528,7 @@ function drawGenerationDualAxis(ctx,chart,box,p,preview=false){
   ctx.restore();
  };
  const legendStep=Math.max(22,30*f),legendY=top+font+3;
- const legendBottom=preview?top+legendStep:posterLineLegend(ctx,[volume,{...rate,marker:'○'}],box,p);
+ const legendBottom=preview?top+legendStep:posterLineLegend(ctx,[{...volume,color:barColor},{...rate,color:rateColor,marker:'○'}],box,p);
  const x0=left+(preview?Math.max(45,62*f):110),x1=right-(preview?Math.max(47,61*f):116);
  const y0=legendBottom+Math.max(axis.title+14,31*f),y1=bottom-Math.max(axis.period+14,36*f);
  if(!auditPlot(ctx,x1-x0,y1-y0,'代际替代双轴绘图区',260,150))return;

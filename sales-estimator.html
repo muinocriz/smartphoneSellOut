@@ -123,6 +123,12 @@
 .studio-layout-warning{min-height:3.4em;box-sizing:border-box;overflow-wrap:anywhere}
 .studio-layout-warning.bad{color:#9e3d34;background:#fff0ec;border-color:#f3c4c0}
 .studio-ui .module3-title{margin:10px 0 16px}
+
+/* Actual CSS-pixel phone preview; never changes exported canvas dimensions. */
+.preview-titlebar{flex-wrap:wrap;align-items:center}
+.preview-titlebar select{font:inherit;color:inherit}
+.studio-preview .poster-viewport[data-phone-preview]{display:block;overflow:auto;max-height:none;box-sizing:border-box}
+.studio-preview .poster-viewport[data-phone-preview] canvas{position:static;inset:auto;width:var(--phone-preview-width);height:auto;max-width:none;max-height:none;object-fit:initial;margin:0 auto}
 </style><link rel="stylesheet" href="studio-ui.css"></head><body class="studio-ui"><main class="shell">
 <h1 class="ui-page-title module3-title">热销机型与榜单研究</h1>
 <nav id="module3-nav" aria-label="模块3功能" role="tablist" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin:0 0 16px"><button type="button" role="tab" id="module3-tab-estimate" aria-controls="module3-estimate" aria-selected="true" class="module-tab-button">榜单估算</button><button type="button" role="tab" id="module3-tab-history" aria-controls="module3-history" aria-selected="false" class="module-tab-button">历史榜单</button><button type="button" role="tab" id="module3-tab-tracker" aria-controls="module3-tracker" aria-selected="false" class="module-tab-button">热销机型追踪</button><button type="button" role="tab" id="module3-tab-social" aria-controls="socialStudio" aria-selected="false" class="module-tab-button">图文工作台</button></nav>
@@ -296,7 +302,7 @@
   </div>
     </div>
     <div class="studio-preview">
-      <div class="preview-titlebar"><span>实时画面预览</span><span id="previewSize">1080 × 1440</span></div>
+      <div class="preview-titlebar"><span>实时画面预览</span><label>展示宽度 <select id="posterPreviewWidth" aria-label="手机展示宽度"><option value="">适应窗口</option><option value="320">320px</option><option value="360">360px</option><option value="390">390px</option><option value="400">400px</option></select></label><span id="previewSize">1080 × 1440</span></div>
       <div class="poster-viewport"><canvas id="posterCanvas" width="1080" height="1440" aria-label="自动生成的手机销量图卡预览"></canvas></div>
     </div>
   </div>

@@ -59,7 +59,8 @@ function buildPanel(rawPanel,history,tracking,master,options={},cache=null){
    const fields=['brand','brand_group','series','generation','variant','form_factor','sale_start_date','launch_price','chip_vendor','chip_model','base_ram','base_rom'];
    const info=single||Object.fromEntries(fields.map(k=>[k,common(members,k)]));
    const name=single?.model_name||e.label;
-   const m={key:id,name,master:single||{...info,model_name:name,model_id:null,aliases:[]},brand:info.brand_group||'其他',count:0,first:'',member_ids:e.member_ids};
+   // Preserve member prices for dynamic price-band classification, without inventing a single launch price.
+   const m={key:id,name,master:single||{...info,member_launch_prices:e.member_ids.map(id=>cat.byId.get(id)?.launch_price??null),model_name:name,model_id:null,aliases:[]},brand:info.brand_group||'其他',count:0,first:'',member_ids:e.member_ids};
    models.set(id,m);return m;
   }
   for(let t=dates[0];t<=dates.at(-1);t+=T.WEEK){

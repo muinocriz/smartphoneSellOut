@@ -23,7 +23,32 @@ const byId=id=>document.getElementById(id);
 const selected=new Set();
 let savedLists=[];
 try{savedLists=JSON.parse(localStorage.getItem('increments.lists')||'[]').filter(l=>typeof l.name==='string'&&Array.isArray(l.keys))}catch{}
-const colors=['#1761ae','#cf6528','#488e49','#9354a5','#aa4056','#23898e','#705c36','#586ab4'];
+const BRAND_HUE={"小米":24,"redmi":38,"华为":2,"荣耀":344,"oppo":138,"一加":168,"vivo":214,"iqoo":234,"苹果":276};
+// [色相偏移, 饱和度, 亮度]：相邻序号的亮度和色相尽量拉开
+const SHADE=[[0,80,48],[-12,70,34],[12,78,62],[6,90,40],[-8,60,56],[14,65,30],[-14,85,66],[-4,55,44],[10,70,52],[-10,80,38]];
+function hsl2hex(h,s,l){h=((h%360)+360)%360;s/=100;l/=100;const a=s*Math.min(l,1-l);
+  const f=n=>{const k=(n+h/30)%12;return Math.round(255*(l-a*Math.max(-1,Math.min(k-3,9-k,1)))).toString(16).padStart(2,"0")};
+  return "#"+f(0)+f(8)+f(4)}
+function assignColors(rows){const n=new Map();let other=0;
+  rows.forEach(r=>{const h=BRAND_HUE[r.brand]??BRAND_HUE[r.brand.toLowerCase()];
+    if(h==null){r.cl=r.cd=PAL[other++%PAL.length];return}
+    const k=n.get(r.brand)||0;n.set(r.brand,k+1);const [dh,sa,li]=SHADE[k%SHADE.length];
+    r.cl=hsl2hex(h+dh,sa,li);r.cd=hsl2hex(h+dh,sa,Math.min(74,li+14))})} // 深色背景下整体提亮
+const PAL=["#2f6fde","#e0592a","#1c9a6c","#b4489f","#d29a00","#0f9bb0","#7a5ae0","#c23b4e","#5d8a1f","#8a6a4a","#3b4fa0","#d06d9c"];
+
+
+const styles=new Map();
+let focused=null;
+function themeColor(variable){return getComputedStyle(document.documentElement).getPropertyValue(variable).trim()}
+function chooseTheme(value){
+  document.documentElement.dataset.theme=value;
+  byId('theme').textContent=value==='dark'?'切换浅色':'切换深色';
+}
+const preferred=matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light';
+let mode=preferred;try{mode=localStorage.getItem('increments.theme')||mode}catch{}
+chooseTheme(mode);
+byId('theme').onclick=()=>{const next=document.documentElement.dataset.theme==='dark'?'light':'dark';chooseTheme(next);try{localStorage.setItem('increments.theme',next)}catch{}draw()};
+
 const weekMs=7*IsoSalesWeek.DAY;
 function seriesRows(key){
   const date=metadata[key][3].split(/[/.\-]/).map(Number);
@@ -123,7 +148,13 @@ function choices(){
   }
 }
 function applyKeys(keys){
+  if(activeEdit)return;
+  if(keys.some(k=>metadata[k]&&byId('brand').value&&metadata[k][0]!==byId('brand').value)){
+    byId('brand').value='';model.replaceChildren(...Object.keys(metadata).map(k=>new Option(nameOf(k),k)));
+  }
   selected.clear();keys.filter(key=>metadata[key]).forEach(key=>selected.add(key));
+  if(selected.size&&!selected.has(model.value))model.value=[...selected][0];
+  drawEditor();
   choices();draw();
 }
 function listOptions(){
@@ -131,7 +162,13 @@ function listOptions(){
   presets().forEach((l,i)=>lists.add(new Option(l.name+'（'+l.keys.filter(k=>metadata[k]).length+'）',i)));
   if(old&&Number(old)<lists.length)lists.value=old;
 }
-byId('brand').onchange=choices;
+function syncBrand(){
+  const brand=byId('brand').value;
+  const keys=Object.keys(metadata).filter(k=>!brand||metadata[k][0]===brand);
+  model.replaceChildren(...keys.map(k=>new Option(nameOf(k),k)));
+  applyKeys(keys);drawEditor();
+}
+byId('brand').onchange=syncBrand;
 byId('all').onclick=()=>{for(const k of Object.keys(metadata))if(!byId('brand').value||metadata[k][0]===byId('brand').value)selected.add(k);choices();draw()};
 byId('brandTops').onclick=()=>{
   const best=new Map();
@@ -165,10 +202,12 @@ function svgNode(parent,tag,attrs={},content){
 }
 let current;
 function draw(){
-  if(!metadata[model.value])return;
+  if(activeEdit||!metadata[model.value])return;
   byId('editStatus').textContent=hasDraft()?'含临时数据，可导出长表保存。':'';
   const life=byId('axis').value==='life';
-  const sets=[...selected].map((key,i)=>({key,color:colors[i%colors.length],rows:seriesRows(key)}));
+  const dark=document.documentElement.dataset.theme==='dark';
+  const sets=[...selected].map(key=>({key,color:styles.get(key)[dark?'cd':'cl'],rows:seriesRows(key)}));
+  if(!selected.has(focused))focused=null;
   const lifeWeeks=sets.flatMap(s=>s.rows.filter(r=>r.life!=null&&(r.cumulative||r.weekly)).map(r=>r.life));
   let axis=periods;
   if(life){
@@ -187,20 +226,40 @@ function draw(){
   const ticks=axis.slice(from,to+1);
   for(const set of sets){
     const lookup=new Map(set.rows.map(r=>[life?r.life:r.period,r[metric.value]]));
+    set.lookup=lookup;
     set.points=ticks.map(t=>lookup.get(t));
   }
-  current={sets,ticks,rangeLabel};
+  current={sets,ticks,rangeLabel,axis};
+  for(const [id,value] of [['loSlider',from],['hiSlider',to]]){
+    const slider=byId(id);slider.max=Math.max(0,axis.length-1);slider.value=value;slider.disabled=!axis.length;
+  }
+  byId('hoverReadout').textContent='';
+  const matrix=byId('matrix');matrix.replaceChildren();
+  matrix.createCaption().textContent='多机对比 · '+metric.selectedOptions[0].text+'（万台）';
+  const columns=[...ticks].reverse();
+  const header=matrix.createTHead().insertRow();
+  for(const name of ['机型',...columns.map(rangeLabel)]){
+    const th=document.createElement('th');th.textContent=name;header.append(th);
+  }
+  const matrixBody=matrix.createTBody();
+  for(const s of sets){
+    const row=matrixBody.insertRow(),name=row.insertCell();name.textContent=nameOf(s.key);name.style.color=s.color;
+    for(const t of columns)row.insertCell().textContent=display(s.lookup.get(t));
+  }
   const title=metric.selectedOptions[0].text+' · '+byId('axis').selectedOptions[0].text;
   byId('heading').textContent=title;
-  const svg=document.querySelector('svg');plot(svg,current,800,280);
+  const svg=document.querySelector('svg');
+  const w=Math.max(300,Math.round(svg.getBoundingClientRect().width)||800);
+  plot(svg,current,w,Math.max(260,Math.min(420,w*.42)),{mobile:w<=600,interactive:true});
   const legend=byId('legend');legend.replaceChildren();
   const ranked=[...sets].sort((a,b)=>lastVisible(b)-lastVisible(a));
   for(const s of ranked){
     const mark=document.createElement('i');mark.style.background=s.color;
-    const el=document.createElement('span');el.append(mark,legendText(s));legend.append(el);
+    const el=document.createElement('button');el.type='button';el.setAttribute('aria-pressed',String(focused===s.key));
+    el.append(mark,(w<=600&&Number.isFinite(lastVisible(s))?(ranked.indexOf(s)+1)+'. ':'')+legendText(s));el.onclick=()=>{focused=focused===s.key?null:s.key;draw()};legend.append(el);
   }
   byId('detailTitle').textContent=nameOf(model.value)+' · 逐周明细';
-  const body=document.querySelector('tbody');body.replaceChildren();
+  const body=byId('detail').tBodies[0];body.replaceChildren();
   for(const r of seriesRows(model.value).reverse()){
     const tr=body.insertRow();
     const age=r.partial?'P0 · '+r.partial+'天':r.life==null?'—':'W'+r.life;
@@ -214,39 +273,119 @@ function legendText(s){
   const value=point?(point.op==='='?'':point.op==='>='?'≥':point.op)+point.value.toLocaleString('zh-CN',{maximumSignificantDigits:4}):'—';
   return nameOf(s.key)+'  '+value;
 }
-function plot(svg,{sets,ticks,rangeLabel},width,height){
-  svg.replaceChildren();svg.setAttribute('viewBox','0 0 '+width+' '+height);
-  svg.setAttribute('font-family','Noto Sans SC, sans-serif');svg.setAttribute('font-size','12');svg.setAttribute('fill','#465369');
+function plot(svg,{sets,ticks,rangeLabel},width,height,{mobile=false,interactive=false,numbered=null}={}){
+  const paper=themeColor('--paper'),ink=themeColor('--ink'),grid=themeColor('--grid');
+  const ranked=sets.filter(s=>Number.isFinite(lastVisible(s))).sort((a,b)=>lastVisible(b)-lastVisible(a));
+  numbered??=ranked;
+  const labels=[],occupied=[];
+  svg.replaceChildren();delete svg.dataset.plot;svg.setAttribute('viewBox','0 0 '+width+' '+height);
+  svg.setAttribute('font-family','Noto Sans SC, sans-serif');svg.setAttribute('font-size','12');svg.setAttribute('fill',ink);
   const log=byId('log').checked,visible=p=>p!=null&&(!log||p.value>0);
   const nums=sets.flatMap(s=>s.points.filter(visible).map(p=>log?Math.log10(p.value):p.value));
   let low=nums.reduce((a,b)=>Math.min(a,b),log?Infinity:0),high=nums.reduce((a,b)=>Math.max(a,b),log?-Infinity:0);
   if(!nums.length){svgNode(svg,'text',{x:width/2,y:height/2,'text-anchor':'middle'},sets.length?'当前范围没有可显示的数据':'请选择对比机型');return}
   if(low===high)high+=1;
-  const left=58,right=width-25,top=26,bottom=height-33;
+  const left=52,right=width-(mobile?36:Math.min(170,width*.22)),top=26,bottom=height-33;
   const x=i=>ticks.length===1?(left+right)/2:left+i*(right-left)/(ticks.length-1);
   const y=v=>bottom-((log?Math.log10(v):v)-low)*(bottom-top)/(high-low);
   for(let i=0;i<=4;i++){
     const pos=bottom-(bottom-top)*i/4,v=low+(high-low)*i/4;
-    svgNode(svg,'line',{x1:left,x2:right,y1:pos,y2:pos,stroke:'#dee3ea'});
+    svgNode(svg,'line',{x1:left,x2:right,y1:pos,y2:pos,stroke:grid});
     svgNode(svg,'text',{x:left-5,y:pos+4,'text-anchor':'end'},fmt(log?10**v:v));
   }
   const step=Math.max(1,Math.ceil(ticks.length/Math.max(2,Math.floor((right-left)/85))));
   ticks.forEach((t,i)=>{if(i%step===0||i===ticks.length-1&&(i%step)>step/2)svgNode(svg,'text',{x:x(i),y:height-10,'text-anchor':'middle'},rangeLabel(t))});
-  for(const s of sets)s.points.forEach((p,i)=>{
+  for(const s of sets){
+    const group=svgNode(svg,'g',{opacity:interactive&&focused&&focused!==s.key?0.18:1});
+    const end=s.points.findLastIndex(visible);
+    if(end>=0){
+      const rank=numbered.indexOf(s),text=mobile?(rank<0?'':String(rank+1)):nameOf(s.key);
+      if(text)labels.push({text,color:s.color,key:s.key,x:x(end),y:y(s.points[end].value)});
+    }
+    s.points.forEach((p,i)=>{
     if(!visible(p))return;
     const prev=s.points[i-1],cx=x(i),cy=y(p.value);
     if(visible(prev)&&(p.op==='='&&prev.op==='='||p.estimated||prev.estimated)){
-      svgNode(svg,'line',{x1:x(i-1),y1:y(prev.value),x2:cx,y2:cy,stroke:s.color,'stroke-width':2,'stroke-dasharray':p.estimated||prev.estimated?'5 3':'none'});
+      svgNode(group,'line',{x1:x(i-1),y1:y(prev.value),x2:cx,y2:cy,stroke:s.color,'stroke-width':2,'stroke-dasharray':p.estimated||prev.estimated?'5 3':'none'});
     }
-    const node=svgNode(svg,'circle',{cx,cy,r:3.6,fill:p.op==='='?s.color:'white',stroke:s.color,'stroke-width':2});
+    const node=svgNode(group,'circle',{cx,cy,r:3.6,fill:p.op==='='?s.color:paper,stroke:s.color,'stroke-width':2});
     svgNode(node,'title',{},nameOf(s.key)+' · '+rangeLabel(ticks[i])+' · '+display(p)+' 万台');
     const symbol=p.op==='>='?'↑':p.op==='<'?'↓':p.op==='≈'?'≈':'';
-    if(symbol||byId('labels').checked)svgNode(svg,'text',{x:cx+3,y:cy-7,fill:s.color},symbol+(byId('labels').checked?fmt(p.value):''));
-  });
+    if(symbol)svgNode(group,'text',{x:cx+4,y:cy-5,fill:s.color},symbol);
+    if(byId('labels').checked&&!(mobile&&!interactive)){
+      const text=fmt(p.value),w=text.length*7+6,l=cx-w/2,t=cy-19;
+      if(!occupied.some(box=>l<box.l+box.w&&l+w>box.l&&t<box.t+13&&t+13>box.t)){
+        svgNode(group,'text',{x:cx,y:t,'text-anchor':'middle',fill:s.color},text);occupied.push({l,w,t});
+      }
+    }
+    });
+  }
+  // Prioritize the highlighted series when the available tail-label slots fill up.
+  const capacity=Math.max(1,Math.floor((bottom-top)/15));
+  const visibleLabels=labels.sort((a,b)=>Number(interactive&&b.key===focused)-Number(interactive&&a.key===focused)).slice(0,capacity).sort((a,b)=>a.y-b.y);
+  let last=top-15;
+  visibleLabels.forEach(l=>{l.target=Math.max(l.y,last+15);last=l.target});
+  let ceiling=bottom;
+  for(const l of visibleLabels.reverse()){
+    const pos=Math.min(l.target,ceiling);ceiling=pos-15;
+    const labelX=right+7;
+    const g=svgNode(svg,'g',{opacity:interactive&&focused&&focused!==l.key?0.2:1});
+    svgNode(g,'path',{d:'M'+l.x+' '+l.y+' L'+(labelX-3)+' '+pos,fill:'none',stroke:l.color,'stroke-width':.7,opacity:.65});
+    const tail=svgNode(g,'text',{x:labelX,y:pos+4,fill:l.color},l.text);
+    if(!mobile&&l.text.length*12>width-labelX-3){tail.setAttribute('textLength',width-labelX-3);tail.setAttribute('lengthAdjust','spacingAndGlyphs')}
+  }
+  if(interactive)svg.dataset.plot=JSON.stringify({left,right,width});
 }
+
+function changeRange(lo,hi){
+  if(activeEdit||!current?.axis.length)return;
+  const end=current.axis.length-1;
+  byId('from').selectedIndex=Math.max(0,Math.min(lo,end));
+  byId('to').selectedIndex=Math.max(byId('from').selectedIndex,Math.min(hi,end));
+  draw();
+}
+byId('loSlider').oninput=e=>changeRange(+e.target.value,byId('to').selectedIndex);
+byId('hiSlider').oninput=e=>changeRange(Math.min(byId('from').selectedIndex,+e.target.value),+e.target.value);
+byId('fullRange').onclick=()=>changeRange(0,current.axis.length-1);
+const screenChart=document.querySelector('svg');
+let drag=null;
+function plotLocation(event){
+  if(!screenChart.dataset.plot||!current?.ticks.length)return null;
+  const {left,right,width}=JSON.parse(screenChart.dataset.plot);
+  const rect=screenChart.getBoundingClientRect();
+  const x=(event.clientX-rect.left)*width/rect.width;
+  return {x,left,right};
+}
+screenChart.onpointerdown=e=>{
+  const loc=plotLocation(e);
+  if(activeEdit||!loc||e.pointerType!=='mouse'||e.button!==0||loc.x<loc.left||loc.x>loc.right)return;
+  drag={x:loc.x,lo:byId('from').selectedIndex,hi:byId('to').selectedIndex};
+  screenChart.setPointerCapture(e.pointerId);
+};
+screenChart.onpointermove=e=>{
+  const loc=plotLocation(e);if(!loc||activeEdit)return;
+  const {x,left,right}=loc,n=current.ticks.length;
+  if(drag){
+    const span=drag.hi-drag.lo;
+    const lo=Math.max(0,Math.min(current.axis.length-1-span,drag.lo+Math.round((drag.x-x)*Math.max(1,span)/(right-left))));
+    if(lo!==byId('from').selectedIndex)changeRange(lo,lo+span);
+    return;
+  }
+  if(x<left||x>right){byId('hoverReadout').textContent='';return}
+  const idx=Math.round((x-left)/(right-left)*Math.max(0,n-1));
+  byId('hoverReadout').textContent=[current.rangeLabel(current.ticks[idx]),...current.sets.map(s=>nameOf(s.key)+' '+display(s.points[idx]))].join(' · ');
+};
+screenChart.onpointerup=screenChart.onpointercancel=screenChart.onlostpointercapture=()=>{drag=null};
+screenChart.onpointerleave=()=>{byId('hoverReadout').textContent=''};
+let chartWidth=0;
+new ResizeObserver(entries=>{
+  const width=entries[0].contentRect.width;
+  if(width>0&&Math.abs(width-chartWidth)>1){chartWidth=width;if(current&&!activeEdit)draw()}
+}).observe(screenChart);
 async function exportChart(mobile){
   if(!current?.sets.some(s=>s.points.some(p=>p&&(!byId('log').checked||p.value>0))))return alert('当前范围没有可导出的销量');
   await document.fonts.ready;
+  if(activeEdit)return alert('请先保存或取消当前编辑');
   const width=mobile?400:1200,base=mobile?500:675,scale=mobile?3:2;
   const canvas=document.createElement('canvas'),ctx=canvas.getContext('2d'),font='14px "Noto Sans SC", sans-serif';
   ctx.font=font;
@@ -261,23 +400,32 @@ async function exportChart(mobile){
   };
   const footer=byId('footer').value.trim(),notes=footer?lines(footer):[];
   if(hasDraft())notes.push('含本标签页临时数据，仅供参考');
-  const legend=[...current.sets].sort((a,b)=>lastVisible(b)-lastVisible(a)).flatMap(s=>lines(legendText(s)).map(text=>({text,color:s.color})));
-  const height=Math.max(base,245+20*legend.length)+notes.length*20;
+  const ranked=current.sets.filter(s=>Number.isFinite(lastVisible(s))).sort((a,b)=>lastVisible(b)-lastVisible(a));
+  const cols=mobile&&ranked.length>4?2:1,limit=mobile?cols*6:Infinity;
+  const shown=ranked.length>limit?ranked.slice(0,limit-1):ranked;
+  const legend=shown.map((s,i)=>({text:(mobile?(i+1)+'. ':'')+legendText(s),color:s.color}));
+  if(shown.length<ranked.length)legend.push({text:'另有 '+(ranked.length-shown.length)+' 款',color:themeColor('--sub')});
+  const legendRows=Math.ceil(legend.length/cols);
+  const height=Math.max(base,245+20*legendRows)+notes.length*20;
   canvas.width=width*scale;canvas.height=height*scale;ctx.scale(scale,scale);
-  ctx.fillStyle='white';ctx.fillRect(0,0,width,height);
-  ctx.fillStyle='#18243b';ctx.font='bold 22px sans-serif';ctx.fillText('销量增量追踪',18,34);
+  ctx.fillStyle=themeColor('--paper');ctx.fillRect(0,0,width,height);
+  ctx.fillStyle=themeColor('--ink');ctx.font='bold 22px sans-serif';ctx.fillText('销量增量追踪',18,34);
   ctx.font=font;
   const sub=byId('heading').textContent+' · 万台 · '+current.rangeLabel(current.ticks[0])+' 至 '+current.rangeLabel(current.ticks.at(-1));
   ctx.fillText(sub,18,61,width-36);
-  const chartH=height-92-20*(legend.length+notes.length);
-  const svg=document.createElementNS(svgNS,'svg');plot(svg,current,width,chartH);
+  const chartH=height-92-20*(legendRows+notes.length);
+  const svg=document.createElementNS(svgNS,'svg');plot(svg,{...current,sets:ranked},width,chartH,{mobile,numbered:shown});
   svg.setAttribute('width',width);svg.setAttribute('height',chartH);
   const url=URL.createObjectURL(new Blob([new XMLSerializer().serializeToString(svg)],{type:'image/svg+xml'}));
   try{
     const img=new Image();img.src=url;await img.decode();ctx.drawImage(img,0,67);
     let y=chartH+86;
-    for(const item of legend){ctx.fillStyle=item.color;ctx.fillText(item.text,18,y);y+=20}
-    ctx.fillStyle='#52617a';for(const line of notes){ctx.fillText(line,18,y);y+=20}
+    for(const [i,item] of legend.entries()){
+      const col=Math.floor(i/legendRows),row=i%legendRows,colWidth=(width-36)/cols;
+      ctx.fillStyle=item.color;ctx.fillText(item.text,18+col*colWidth,y+row*20,colWidth-8);
+    }
+    y+=20*legendRows;
+    ctx.fillStyle=themeColor('--sub');for(const line of notes){ctx.fillText(line,18,y);y+=20}
     const link=document.createElement('a');link.download='销量增量追踪-'+metric.selectedOptions[0].text+'-'+(mobile?'手机':'桌面')+'.png';link.href=canvas.toDataURL();link.click();
   }finally{URL.revokeObjectURL(url)}
 }
@@ -310,37 +458,71 @@ byId('importLists').onchange=async event=>{
 };
 let initial=[],initialPeriods=[];
 const editGrid=document.querySelector('#editGrid');
+
+let activeEdit=null;
+function finishEdit(){
+  activeEdit=null;notifyEditor();
+  for(const el of document.querySelectorAll('[data-edit-locked]')){el.disabled=false;delete el.dataset.editLocked}
+  refresh();
+}
 function drawEditor(){
   editGrid.replaceChildren();
-  const recent=[...periods].reverse();
+  const recent=[...periods].reverse(),key=model.value;
   const header=editGrid.createTHead().insertRow();
   for(const label of ['指标',...recent]){const th=document.createElement('th');th.textContent=label;header.append(th)}
   const editorBody=editGrid.createTBody();
   for(const [kind,label] of [['cumulative','累计销量'],['weekly','直接周增量']]){
     const row=editorBody.insertRow();row.insertCell().textContent=label;
+    const match=r=>r[0]===key&&r[2]===kind;
+    const baseline=new Map(initial.filter(match).map(r=>[r[1],r]));
+    const live=new Map(records.filter(match).map(r=>[r[1],r]));
     for(const week of recent){
-      const cell=row.insertCell();
-      const index=records.findIndex(r=>r[0]===model.value&&r[1]===week&&r[2]===kind);
-      const rec=records[index];
-      cell.tabIndex=0;cell.style.whiteSpace='nowrap';cell.textContent=rec?display({value:rec[3],op:rec[4]}):'—';
+      const cell=row.insertCell(),rec=live.get(week),original=baseline.get(week);
+      const valueOf=r=>r?display({value:r[3],op:r[4]}):'—';
+      const changed=rec?.[3]!==original?.[3]||rec?.[4]!==original?.[4];
+      cell.tabIndex=0;cell.style.whiteSpace='nowrap';cell.textContent=valueOf(rec);
+      cell.classList.toggle('changed',changed);
+      cell.title=(changed?'临时修改 · ':'')+'原值：'+valueOf(original);
       function edit(){
-        if(cell.querySelector('input'))return;
-        const op=document.createElement('select');
+        if(activeEdit)return;
+        activeEdit=cell;notifyEditor();
+        for(const el of document.querySelectorAll('main button, main select, main input, main textarea')){
+          if(!el.disabled){el.disabled=true;el.dataset.editLocked='1'}
+        }
+        const op=document.createElement('select');op.setAttribute('aria-label','运算符');
         for(const [v,t] of [['=','='],['>=','≥'],['<','<'],['≈','≈']])op.add(new Option(t,v));
         op.value=rec?.[4]||'=';
         const input=document.createElement('input');input.type='number';input.min='0';input.step='any';input.style.width='7em';input.value=rec?.[3]??'';
-        const save=document.createElement('button');save.textContent='保存';
-        const cancel=document.createElement('button');cancel.textContent='取消';cancel.onclick=refresh;
-        save.onclick=()=>{
+        input.setAttribute('aria-label',label+'（万台）');
+        const hint=document.createElement('small');hint.textContent='原值 '+valueOf(original)+' · 先保存或取消，再导出';
+        function write(next){
+          const idx=records.indexOf(rec);
+          if(next){if(idx>=0)records[idx]=next.slice();else records.push(next.slice())}
+          else if(idx>=0)records.splice(idx,1);
+          persistDraft();finishEdit();
+        }
+        function save(){
           if(input.validity.badInput||!input.checkValidity()){input.reportValidity();return}
-          if(input.value===''){if(index>=0)records.splice(index,1)}
-          else{const updated=[model.value,week,kind,input.valueAsNumber,op.value];if(index>=0)records[index]=updated;else records.push(updated)}
-          persistDraft();refresh();
-        };
-        input.onkeydown=e=>{if(e.key==='Enter'){e.stopPropagation();save.click()}if(e.key==='Escape')refresh()};
-        cell.replaceChildren(op,input,save,cancel);input.focus();
+          if(input.value===''){write(original);return}
+          const v=input.valueAsNumber;
+          if(kind==='cumulative'&&(v!==rec?.[3]||op.value!==rec?.[4])){
+            const exact=records.filter(r=>match(r)&&r[4]==='=').sort((a,b)=>a[1].localeCompare(b[1]));
+            const before=exact.filter(r=>r[1]<week).at(-1),after=exact.find(r=>r[1]>week);
+            const tooLow=before&&(op.value==='='?v<before[3]:op.value==='<'&&v<=before[3]);
+            const tooHigh=after&&['=','>='].includes(op.value)&&v>after[3];
+            if((tooLow||tooHigh)&&!confirm('该累计值与前后精确累计记录倒挂，仍然保存？'))return;
+          }
+          write([key,week,kind,v,op.value]);
+        }
+        function button(text,action){const b=document.createElement('button');b.type='button';b.textContent=text;b.onclick=action;return b}
+        cell.replaceChildren(op,input,button('保存',save),button('取消',finishEdit));
+        if(changed)cell.append(button('恢复原值',()=>write(original)));
+        if(rec)cell.append(button('删除记录',()=>{if(confirm('删除这一条原始记录？可通过恢复原值撤回。'))write(null)}));
+        cell.append(document.createElement('br'),hint);
+        input.onkeydown=e=>{if(e.key==='Enter'){e.stopPropagation();save()}if(e.key==='Escape')finishEdit()};
+        input.focus();input.select();
       }
-      cell.ondblclick=edit;cell.onkeydown=e=>{if(e.target===cell&&e.key==='Enter')edit()};
+      cell.ondblclick=edit;cell.onkeydown=e=>{if(e.target===cell&&e.key==='Enter'){e.preventDefault();edit()}};
     }
   }
 }
@@ -354,9 +536,10 @@ function longCSV(){
  return lines.map(row=>row.map(quote).join(',')).join('\r\n');
 }
 function hasDraft(){return periods.length!==initialPeriods.length||JSON.stringify(records)!==JSON.stringify(initial)}
-window.getIncrementDraft=()=>sourceText&&hasDraft()?{csv:longCSV(),periods:periods.slice()}:null;
+window.getIncrementDraft=()=>!activeEdit&&sourceText&&hasDraft()?{csv:longCSV(),periods:periods.slice()}:null;
 function notifyEditor(){if(parent!==window)parent.dispatchEvent(new Event('increment-data-change'))}
 document.querySelector('#download').onclick=()=>{
+ if(activeEdit)return alert('请先保存或取消当前编辑');
  const url=URL.createObjectURL(new Blob(['\uFEFF'+longCSV()],{type:'text/csv;charset=utf-8'}));
  const link=document.createElement('a');link.href=url;link.download='sales-long.csv';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
 };
@@ -405,6 +588,10 @@ function loadSource(text,key){
   for(const [id,meta] of nextMetadata){
     metadata[id]=meta;model.add(new Option(nameOf(id),id));brands.add(meta[0]);
   }
+  styles.clear();
+  const styleRows=[...nextMetadata].map(([id,meta])=>({id,brand:meta[0]}));
+  assignColors(styleRows);for(const r of styleRows)styles.set(r.id,r);
+  focused=null;
   for(const brand of brands)byId('brand').add(new Option(brand,brand));
   selected.clear();
   const recent=presets()[0].keys;

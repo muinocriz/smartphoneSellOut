@@ -82,8 +82,13 @@ function bandLabels(cuts=DEFAULT_CUTS){
 }
 function validPrice(m){return m&&Number.isFinite(m.launch_price)&&m.launch_price>0?m.launch_price:null;}
 function priceBand(m,cuts=DEFAULT_CUTS){
- const price=validPrice(m);if(price===null)return UNKNOWN;
- const i=cuts.findIndex(n=>price<n);return bandLabels(cuts)[i<0?cuts.length:i];
+ const labels=bandLabels(cuts),classify=price=>{if(!Number.isFinite(price)||price<=0)return UNKNOWN;const i=cuts.findIndex(n=>price<n);return labels[i<0?cuts.length:i];};
+ // A combined observation can be classified without splitting sales only if all member bands agree.
+ if(Array.isArray(m?.member_launch_prices)){
+  const bands=m.member_launch_prices.map(classify);
+  return bands.length&&bands[0]!==UNKNOWN&&bands.every(b=>b===bands[0])?bands[0]:UNKNOWN;
+ }
+ return classify(validPrice(m));
 }
 function observed(weeks,master,col,filters={}){
  return weeks.map(w=>{

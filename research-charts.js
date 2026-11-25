@@ -174,13 +174,19 @@ function drawBrandComposition(ctx,chart,box,p,note=''){
   const weekly=periods.every(v=>/^\d{4}-W\d{2}$/.test(String(v))),posterWeeks=weekly&&mobile;
   const axisBaselineOffset=posterWeeks?posterDp(15):small+6;
   const reserve=mobile?axisBaselineOffset+posterAxisLegendDistance(ctx,periods.map(v=>posterWeekLabel(v,periods)),posterWeeks?MOBILE_POSTER_TYPE.axis:small,lines.map(l=>l.name),MOBILE_POSTER_TYPE.legend,small*.68,posterWeeks?POSTER_DESIGN.weight.axis:'550'):Math.max(35,48*f);
-  const x0=left+Math.max(36,57*f),x1=right-Math.max(10,18*f),y0=top+Math.max(16,22*f),y1=legendY-reserve;
+  const yTicks=Array.from({length:5},(_,i)=>cap*i/4),tickLabel=v=>String(Number(v.toFixed(2)))+(pct?'%':'');
+  const x0=left+(mobile?posterAxisGutter(ctx,yTicks,tickLabel):Math.max(36,57*f)),x1=right-Math.max(10,18*f),y0=top+(mobile?posterDp(19):Math.max(16,22*f)),y1=legendY-reserve;
   const plotH=y1-y0,slot=(x1-x0)/n,bw=Math.min(slot*.72,92*Math.max(.8,f));
   if(!auditPlot(ctx,x1-x0,plotH,'多周堆叠图',260,180))return;
   if(bw<3){auditIssue(ctx,'堆叠柱过密，无法清楚区分各类别',true);return;}
   if(bw<25)auditIssue(ctx,'周次较多，堆叠柱或内部标签较密集');
-  for(let i=0;i<=4;i++){const v=cap*i/4,y=y1-plotH*i/4;line(x0,y,x1,y);drawText(Number(v.toFixed(2))+(pct?'%':''),x0-6,y+small*.3,small,p.sub,'550','right',x0-left-7);}
-  drawText(unit,x0,top+small*.7,small,p.sub,'600');
+  if(mobile){
+   posterYTicks(ctx,yTicks,v=>y1-v/cap*plotH,x0,x1,p,tickLabel);
+   researchPosterAxisText(ctx,unit,x0,y0-posterDp(5),'title',p.sub,'left',x1-x0);
+  }else{
+   for(let i=0;i<=4;i++){const v=cap*i/4,y=y1-plotH*i/4;line(x0,y,x1,y);drawText(tickLabel(v),x0-6,y+small*.3,small,p.sub,'550','right',x0-left-7);}
+   drawText(unit,x0,top+small*.7,small,p.sub,'600');
+  }
   const stride=Math.max(1,Math.ceil(n/Math.max(1,Math.floor((x1-x0)/(65*Math.max(.8,f))))));
   // Chronological category stacks (brands, price bands, chips, ages) use
   // exactly the same ribbon geometry as the cross-module dual multiweek view.

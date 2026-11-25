@@ -1605,7 +1605,8 @@
         rows.push([w.period,w.top,w.originalCount,w.count??'',w.comparisonStatus,numberText(w.cutoff,4),stay??'',ok?add.length:'',ok?out.length:'',ok?types.new.length:'',ok?types.old.length:'',ok?types.return.length:'',ok?types.unknown.length:'',types.new.join('、'),types.old.join('、'),types.return.join('、'),types.unknown.join('、'),out.map(x=>canonicalName(x[1][col.model])).join('、')]);
         if(w.hasBoard)for(const k of w.map.keys())seen.add(k);
       });
-      researchPlot(weeks,['留榜','新品首次观测进入','老机首次观测进入','重新上榜','年龄未知进入','退出榜单'].map((name,i)=>({name,values:values[i]})),'机型数');
+      researchPublicationChart={kind:'boardFlow',periods:weeks.map(w=>w.period),unit:'机型数',lines:['留榜','新品首次观测进入','老机首次观测进入','重新上榜','年龄未知进入','退出榜单'].map((name,i)=>({name,color:trackerPalette[i%trackerPalette.length],marker:ResearchCharts.markerAt(i),values:[...values[i]],imputed:[]}))};
+      ResearchCharts.svgBoardFlow($('researchChart'),$('researchLegend'),researchPublicationChart,researchViews[researchView]);
       researchTable(['周期','标称 TOP','原始实收条数','分析条数','周样本状态','门槛/万台','留榜','新进入合计','退出','新品首次观测','老机首次观测','重新上榜','年龄未知','新品名单','老机首次观测名单','回榜名单','未知名单','退出名单'],rows);
       notice.textContent='仅原始观测 · 新品门槛 P0 至 W'+threshold+' · 回榜按所选榜单口径全部历史判定。';return;
     }

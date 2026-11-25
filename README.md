@@ -2,7 +2,7 @@
 
 [简体中文](README.md) · [English](README.en.md)
 
-一个部署于 Cloudflare Workers 的手机销量分析与图文制作项目，包含销量追踪、市场份额、榜单研究及销量数据处理四个独立模块。业务前端保持原生静态 HTML/CSS/JS，本地预览无需构建；线上部署通过 Worker 实施访问控制。
+一个部署于 Cloudflare Workers 的手机销量分析与图文制作项目，包含销量追踪、市场份额、榜单研究及销量数据处理四个独立模块。业务前端保持原生静态 HTML/CSS/JS，本地预览无需构建；线上通过 Worker 提供静态资源。
 
 **[在线打开项目](https://smartphonesellout.zirconium.workers.dev/)**
 
@@ -21,7 +21,7 @@
 
 ## 快速使用
 
-访问上方在线入口即可使用；模块 1／2／4 公开，模块 3 需要授权。拥有私有仓库访问权限的维护者可克隆或下载仓库，在项目根目录执行：
+访问上方在线入口即可使用；四个模块均可直接访问。拥有私有仓库访问权限的维护者可克隆或下载仓库，在项目根目录执行：
 
 ```bash
 python3 -m http.server 8000
@@ -64,7 +64,7 @@ CSV 字段、完整销售周口径、设计约定、部署和维护方法见 [�
 
 ## Cloudflare 分模块部署
 
-生产站点已迁移至 Cloudflare Workers；GitHub 源仓库为 Private，原 GitHub Pages 已由维护者关闭。模块 1／2／4 公开（含 `data.csv`、`market-share.csv`、`model-master.csv` 和 `sales-long.csv`），模块 3 须使用获准邮箱通过 Cloudflare Access 一次性验证码认证；其页面、原始榜单历史 CSV、融合引擎和衍生数据位于 `/studio/`；销量长表及主数据同时保留授权路径副本，由 Worker 服务端校验 Access JWT。模块 2 的公开资源在根目录提供，构建保留 `/studio/market-share.csv` 等兼容副本供跨模块研究使用。部署仅发布白名单资产，私有仓库的 `master` 分支继续作为部署来源。本地开发入口不应用访问控制。验收范围和维护事项详见[部署指南](docs/CLOUDFLARE_DEPLOYMENT.md)。
+四个模块及其发布的 CSV 均公开访问。模块 3 沿用 `/studio/` 路径。Cloudflare 从私有仓库的 `master` 分支部署构建清单中的文件。详见[部署指南](docs/CLOUDFLARE_DEPLOYMENT.md)。
 
 ## 更多文档
 

@@ -6,6 +6,8 @@
 
 ## 2026-11-25
 
+- 四个模块及已发布 CSV 统一开放访问，移除模块 3 邮箱登录界面、会话检查和 Worker JWT 校验。
+
 ### 模块3移动端海报第二轮：公共视觉规范与专题适配
 
 本轮范围：[57d77b7](https://github.com/muinocriz/smartphoneSellOut/commit/57d77b7) 之后至 [3e5236c](https://github.com/muinocriz/smartphoneSellOut/commit/3e5236c)（含），共16次提交；按实际提交 UTC 日期归档。下列参数为本轮最终状态，覆盖第一轮及过程中的临时字号。

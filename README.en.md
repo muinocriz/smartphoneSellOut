@@ -2,7 +2,7 @@
 
 [简体中文](README.md) · [English](README.en.md)
 
-A smartphone data dashboard and social-poster toolkit deployed on Cloudflare Workers, with four independent modules. The frontend uses static HTML/CSS/JS and requires no local build; the production Worker enforces access control.
+A smartphone data dashboard and social-poster toolkit deployed on Cloudflare Workers, with four independent modules. The frontend uses static HTML/CSS/JS and requires no local build; the Worker serves the published assets.
 
 **[Open the live project](https://smartphonesellout.zirconium.workers.dev/)**
 
@@ -24,7 +24,7 @@ The module-3 in-list and whole-market brand competition study adds a six-brand, 
 
 ## Getting started
 
-Use the live site above (modules 1, 2 and 4 are public; module 3 requires authorization). Maintainers with private repository access can download or clone it and serve it locally:
+Use the live site above (all four modules are public). Maintainers with private repository access can download or clone it and serve it locally:
 
 ```bash
 python3 -m http.server 8000
@@ -61,7 +61,7 @@ Sales-tracking data is manually compiled mainly from public posts by **RD观测*
 
 ## Cloudflare deployment
 
-Production hosting has migrated to Cloudflare Workers. The source repository is private, and the maintainer has disabled the former GitHub Pages site. Modules 1, 2 and 4 are public, including `data.csv`, `market-share.csv`, `model-master.csv` and `sales-long.csv`. Module 3 requires Cloudflare Access authorization via an approved email and one-time PIN. Its page, original ranking history, fusion engines and derived datasets live under `/studio/`; the long-format sales and model master CSVs also retain copies there, with server-side Access JWT verification by the Worker. Module 2 assets are served at the root; the build retains compatible copies under `/studio/` for cross-module research. Only allowlisted assets are deployed; the private repository's `master` branch remains the deployment source. See the [deployment guide (Chinese)](docs/CLOUDFLARE_DEPLOYMENT.md) for validation scope and maintenance requirements. Local development does not enforce Access.
+Cloudflare deploys the listed assets from the private repository's `master` branch. All four modules and their published CSV files are public. Module 3 uses `/studio/`. See the [deployment guide](docs/CLOUDFLARE_DEPLOYMENT.md).
 
 ## Documentation
 

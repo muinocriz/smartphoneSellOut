@@ -129,7 +129,7 @@ dataset_id,source,series,period_type,period,period_start,period_end,top_n,actual
 
 ### 机型主数据与统一序列身份
 
-- `model-master.csv` 为模块3长期机型属性表，维护于仓库根目录，根路径 `/model-master.csv` 同时供公开模块4读取，`/studio/model-master.csv` 仍要求授权；V3.3 初始接入110行、20字段。机型按永久 ID 保持唯一，退出榜单不删除；首发价格为正式首发定价，不含首销限时优惠、补贴、平台券及后续降价；起售 RAM/ROM 与该价格对应，均以纯数值维护（元、GB），日期统一定义为中国大陆正式开售日期，不新增发布日期或预售日期字段。`data.csv` 和 `sales-long.csv` 的 `date` 与 `model-master.csv` 的 `sale_start_date` 采用相同口径。发布会、媒体沟通会、预约及开始预售均不等于正式开售；优先查证官方开售公告或明确记载正式首销的可信报道。若查不到正式开售日期，但能确认正式发布日期，则暂按发布即开售取发布日期，在主数据备注或核实资料中注明「正式开售日未查证，暂按发布日期」，后续取得证据再更正；不把该暂定日期描述为已核实的正式首销。发布日期也未知则留空待核实。
+- `model-master.csv` 为模块3长期机型属性表，维护于仓库根目录，根路径 `/model-master.csv` 同时供公开模块4读取，`/studio/model-master.csv` 也可公开读取；V3.3 初始接入110行、20字段。机型按永久 ID 保持唯一，退出榜单不删除；首发价格为正式首发定价，不含首销限时优惠、补贴、平台券及后续降价；起售 RAM/ROM 与该价格对应，均以纯数值维护（元、GB），日期统一定义为中国大陆正式开售日期，不新增发布日期或预售日期字段。`data.csv` 和 `sales-long.csv` 的 `date` 与 `model-master.csv` 的 `sale_start_date` 采用相同口径。发布会、媒体沟通会、预约及开始预售均不等于正式开售；优先查证官方开售公告或明确记载正式首销的可信报道。若查不到正式开售日期，但能确认正式发布日期，则暂按发布即开售取发布日期，在主数据备注或核实资料中注明「正式开售日未查证，暂按发布日期」，后续取得证据再更正；不把该暂定日期描述为已核实的正式首销。发布日期也未知则留空待核实。
 - 按标准名称或别名归一化精确匹配，保留人工芯片归类，来源备注不覆盖主字段；上一代 ID 可暂未收录，不影响加载。相关字段约定见 [模块3架构](MODULE3_ARCHITECTURE.md)。已接入研究时间序列和默认属性/代际分组：统一以永久 ID 关联，未匹配用独立 unmatched: 标识，不使用旧 model_key 或迁移旧研究配置。同榜单身份冲突阻止研究序列，不影响原始历史读取。主数据异常单独提示，失败时允许临时销量研究；已新增价格、芯片、产品定位、年龄结构及多属性交叉专题。
 
 ### 热销机型追踪与十四个研究专题
@@ -201,15 +201,14 @@ dataset_id,source,series,period_type,period,period_start,period_end,top_n,actual
 - **依赖**：销量追踪使用 Apache ECharts 5.4.3（cdnjs）；市场份额编辑器使用原生 HTML/CSS 与 SVG，不依赖 Tailwind；模块 3 使用 Canvas 图卡导出。字体仍使用 Google Fonts，失败时回退系统字体。完整离线部署仍需考虑 ECharts CDN 和字体资源。
 - **本地预览**：项目根目录执行 `python3 -m http.server 8000`，浏览器访问 `http://localhost:8000`；直接打开 HTML 可能触发 CSV 的本地文件访问限制。
 - **生产部署**：使用 Cloudflare Workers，正式入口为 https://smartphonesellout.zirconium.workers.dev/；GitHub 私有仓库的 `master` 为部署来源。原 GitHub Pages 已由维护者关闭，不再作为发布渠道，不得重新启用旧的公开根目录部署。
-- **直达链接**：`/` 为公开销量追踪，`/#market-share` 为模块 2，`/#sales-estimator` 为模块 3，`/#sales-data-editor` 为模块4；模块4直接加载公开根路径独立编辑器。模块 2 直接加载公开根目录资源，模块 3 在通过 Access 后加载 `/studio/` 下的资源。
-- **公开性**：GitHub 仓库为 Private；模块 1／2／4（含 `data.csv`、`market-share.csv`、`model-master.csv`、`sales-long.csv`）公开，模块 3 的页面、历史 CSV 和衍生数据必须通过授权访问。不得提交密钥或未经授权的数据，且此前公开过的数据无法追回。在发布估算图卡前核对来源与统计口径。
+- **直达链接**：`/` 为公开销量追踪，`/#market-share` 为模块 2，`/#sales-estimator` 为模块 3，`/#sales-data-editor` 为模块4；模块4直接加载公开根路径独立编辑器。模块 2 直接加载公开根目录资源，模块 3 直接加载 `/studio/` 下的资源。
+- **公开性**：源仓库私有，四个模块和构建发布的 CSV 均支持匿名访问。
 
 
 ### Cloudflare 分模块部署
 
 - 原有根目录源码与 CSV 仍是维护源；Cloudflare 构建通过 `scripts/build-cloudflare.mjs` 的明确白名单生成 `dist/`。模块 1／2／4 的页面、数据及依赖按白名单公开；模块 3 及其独立历史和衍生 CSV 放在 `/studio/`，保留模块 2 的兼容副本供跨模块研究使用。不发布 README、维护文档、测试和 Git 历史。
-- `wrangler.jsonc` 固定静态资产目录并禁用预览 URL；`cloudflare-worker.mjs` 对私有路径和登录／会话入口校验 Cloudflare Access JWT，缺少配置或验证失败即拒绝访问。必须保留服务端权限校验；首页 hash、iframe 显隐、本地存储或账号名称不是权限依据。
-- 邮箱白名单由 Access 的 Allow 策略管理，`CF_ACCESS_TEAM_DOMAIN` 与 `CF_ACCESS_AUD` 在 Cloudflare Worker 控制台设置；不要提交令牌及邮箱名单。2026-11-20 维护者曾确认指定邮箱认证、公开首页和当时两个私有 CSV 的匿名拦截符合预期；后续模块2、4公开及模块3新增私有资源配置尚待重新验收，历史部署、其他域名和会话失效仍须按部署指南逐项检查，不得将有限验收表述为完整安全审计。
+- 部署时保留 `/studio/` 资源路径，旧 Access 配置迁移见[部署指南](CLOUDFLARE_DEPLOYMENT.md)。
 - Cloudflare 部署使用 Node/npm（仅部署侧依赖），业务前端保持原生静态 HTML/CSS/JS；本地根目录预览不需要构建。实际设置、旧部署保护及手动验收见 [Cloudflare 部署指南](CLOUDFLARE_DEPLOYMENT.md)。
 
 ## 8. 开发与测试流程（轻量优先）

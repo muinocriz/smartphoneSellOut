@@ -6,9 +6,6 @@
     "deploy": "wrangler deploy",
     "generate:panel": "node scripts/generate-sales-panel.mjs"
   },
-  "dependencies": {
-    "jose": "^6.0.0"
-  },
   "devDependencies": {
     "wrangler": "^4.0.0"
   }

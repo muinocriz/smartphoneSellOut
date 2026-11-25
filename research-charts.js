@@ -1,8 +1,8 @@
 /* Shared chart rendering and typography. SVG line previews retain point tooltips; Canvas exports use identical point geometry. */
 const CJK_FONT='"Source Han Sans SC","Source Han Sans CN","思源黑体","Noto Sans CJK SC","Noto Sans SC",sans-serif';
 const NUM_FONT='"IBM Plex Mono",ui-monospace,Menlo,monospace';
-// Only standalone numeric values use the numeric font; prose retains the body font.
-const CANVAS_NUMERIC_PATTERN=/^[+\-−]?\d[\d.,:/–-]*(?:\s*(?:%|％|pp|倍|万台|台|px))?$/;
+// Standalone and middle-dot-separated numeric values use the numeric font; prose retains the body font.
+const CANVAS_NUMERIC_PATTERN=/^[+\-−]?\d[\d.,:/–-]*(?:\s*(?:%|％|pp|倍|万台|台|px))?(?:\s*[·•]\s*[+\-−]?\d[\d.,:/–-]*(?:\s*(?:%|％|pp|倍|万台|台|px))?)*$/;
 function measureMixedCanvas(ctx,text,size,weight='600'){
  const runs=PosterThemes.numericTextRuns(text,CANVAS_NUMERIC_PATTERN);let width=0;
  const measured=runs.map(run=>{ctx.font=weight+' '+size+'px '+(run.number?NUM_FONT:CJK_FONT);const w=ctx.measureText(run.text).width;width+=w;return {...run,width:w}});

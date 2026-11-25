@@ -12,6 +12,10 @@ function monday(period){
   const match=/^(\d{4})-W(\d{2})$/.exec(period);
   return match ? IsoSalesWeek.isoWeekMonday(+match[1],+match[2]) : null;
 }
+function isoWeekLabel(period,separator=' '){
+  const date=new Date(monday(period));
+  return period.replace('-W','W')+separator+(date.getUTCMonth()+1)+'/'+date.getUTCDate();
+}
 function iso(t){
   const year=new Date(t+259200000).getUTCFullYear();
   return year+'-W'+String(1+(t-monday(year+'-W01'))/604800000).padStart(2,'0');
@@ -120,6 +124,7 @@ function trendSlope(rows,left){
   return Math.max(-Math.log(1.25),Math.min(Math.log(1.25),xy/xx));
 }
 function nameOf(key){return metadata[key].slice(0,2).join(' ')}
+let milestoneStep=50;
 function milestoneLists(){
   const latest=new Map(),history=new Map();
   for(const [key,week,kind,value,op] of records){
@@ -135,7 +140,7 @@ function milestoneLists(){
     const end=items.at(-1),prev=items.at(-2);
     if(end.week!==latest.get(metadata[key][0])||(!prev&&end.op==='='))continue;
     const peak=items.slice(0,-1).reduce((p,r)=>Math.max(p,r.value),0);
-    if(Math.floor(end.value/50)<=Math.floor(peak/50))continue;
+    if(Math.floor(end.value/milestoneStep)<=Math.floor(peak/milestoneStep))continue;
     const adjacent=prev?.op==='='&&monday(end.week)-monday(prev.week)===weekMs;
     (adjacent?weekly:cross).push(key);
   }
@@ -196,6 +201,16 @@ byId('brandTops').onclick=()=>{
 };
 byId('none').onclick=()=>applyKeys([]);
 byId('applyList').onclick=()=>applyKeys(presets()[Number(byId('lists').value)].keys);
+byId('milestoneStep').onchange=event=>{
+  const input=event.target,value=input.valueAsNumber;
+  if(!Number.isSafeInteger(value)||value<1){
+    alert('请输入大于 0 的整数，单位为万台。');
+    input.value=milestoneStep;
+    return;
+  }
+  milestoneStep=value;
+  listOptions();
+};
 function saveLists(){try{localStorage.setItem('increments.lists',JSON.stringify(savedLists))}catch{}listOptions()}
 byId('saveList').onclick=()=>{
   const name=byId('listName').value.trim();if(!name||!selected.size)return alert('请填写列表名称并选择机型');
@@ -228,7 +243,7 @@ function draw(){
     const start=Math.min(...lifeWeeks),end=Math.max(...lifeWeeks);
     axis=lifeWeeks.length?Array.from({length:end-start+1},(_,i)=>start+i):[];
   }
-  const rangeLabel=v=>life?'第'+v+'周':v;
+  const rangeLabel=(v,separator=' ')=>life?'第'+v+'周':isoWeekLabel(v,separator);
   for(const id of ['from','to']){
     const input=byId(id),old=input.value,atEnd=id==='to'&&input.selectedIndex===input.length-1;
     input.replaceChildren(...axis.map(v=>new Option(rangeLabel(v),v)));
@@ -252,7 +267,7 @@ function draw(){
   matrix.createCaption().textContent='多机对比 · '+filterLabel('metric')+'（万台）';
   const columns=[...ticks].reverse();
   const header=matrix.createTHead().insertRow();
-  for(const name of ['机型',...columns.map(rangeLabel)]){
+  for(const name of ['机型',...columns.map(v=>rangeLabel(v))]){
     const th=document.createElement('th');th.textContent=name;header.append(th);
   }
   const matrixBody=matrix.createTBody();
@@ -277,7 +292,7 @@ function draw(){
   for(const r of seriesRows(model.value).reverse()){
     const tr=body.insertRow();
     const age=r.partial?'P0 · '+r.partial+'天':r.life==null?'—':'W'+r.life;
-    for(const v of [r.period,age,display(r.cumulative),display(r.weekly),r.source])tr.insertCell().textContent=v;
+    for(const v of [isoWeekLabel(r.period),age,display(r.cumulative),display(r.weekly),r.source])tr.insertCell().textContent=v;
   }
   byId('windowLabel').hidden=byId('gap').dataset.value!=='fit';
 }
@@ -299,7 +314,7 @@ function plot(svg,{sets,ticks,rangeLabel},width,height,{mobile=false,interactive
   let low=nums.reduce((a,b)=>Math.min(a,b),log?Infinity:0),high=nums.reduce((a,b)=>Math.max(a,b),log?-Infinity:0);
   if(!nums.length){svgNode(svg,'text',{x:width/2,y:height/2,'text-anchor':'middle'},sets.length?'当前范围没有可显示的数据':'请选择对比机型');return}
   if(low===high)high+=1;
-  const left=52,right=width-(mobile?36:Math.min(170,width*.22)),top=26,bottom=height-33;
+  const left=52,right=width-(mobile?36:Math.min(170,width*.22)),top=26,bottom=height-43;
   const x=i=>ticks.length===1?(left+right)/2:left+i*(right-left)/(ticks.length-1);
   const y=v=>bottom-((log?Math.log10(v):v)-low)*(bottom-top)/(high-low);
   for(let i=0;i<=4;i++){
@@ -308,7 +323,12 @@ function plot(svg,{sets,ticks,rangeLabel},width,height,{mobile=false,interactive
     svgNode(svg,'text',{x:left-5,y:pos+4,'text-anchor':'end'},fmt(log?10**v:v));
   }
   const step=Math.max(1,Math.ceil(ticks.length/Math.max(2,Math.floor((right-left)/85))));
-  ticks.forEach((t,i)=>{if(i%step===0||i===ticks.length-1&&(i%step)>step/2)svgNode(svg,'text',{x:x(i),y:height-10,'text-anchor':'middle'},rangeLabel(t))});
+  ticks.forEach((t,i)=>{
+    if(i%step!==0&&(i!==ticks.length-1||i%step<=step/2))return;
+    const lines=rangeLabel(t,'\n').split('\n');
+    const label=svgNode(svg,'text',{x:x(i),y:bottom+15,'text-anchor':'middle'});
+    lines.forEach((line,index)=>svgNode(label,'tspan',{x:x(i),dy:index===0?0:13},line));
+  });
   for(const s of sets){
     const group=svgNode(svg,'g',{opacity:interactive&&focused&&focused!==s.key?0.18:1});
     const end=s.points.findLastIndex(visible);
@@ -483,7 +503,7 @@ function drawEditor(){
   editGrid.replaceChildren();
   const recent=[...periods].reverse(),key=model.value;
   const header=editGrid.createTHead().insertRow();
-  for(const label of ['指标',...recent]){const th=document.createElement('th');th.textContent=label;header.append(th)}
+  for(const label of ['指标',...recent.map(week=>isoWeekLabel(week))]){const th=document.createElement('th');th.textContent=label;header.append(th)}
   const editorBody=editGrid.createTBody();
   for(const [kind,label] of [['cumulative','累计销量'],['weekly','直接周增量']]){
     const row=editorBody.insertRow();row.insertCell().textContent=label;

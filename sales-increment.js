@@ -306,9 +306,15 @@ function plot(svg,{sets,ticks,rangeLabel},width,height,{mobile=false,interactive
   const paper=themeColor('--paper'),ink=themeColor('--ink'),grid=themeColor('--grid');
   const ranked=sets.filter(s=>Number.isFinite(lastVisible(s))).sort((a,b)=>lastVisible(b)-lastVisible(a));
   numbered??=ranked;
-  const labels=[],occupied=[];
+  const labels=[],pointLabels=[],occupied=[];
+  const mobileExport=mobile&&!interactive;
+  const showPointLabels=byId('labels').checked&&!mobileExport;
+  const lineWidth=2;
+  const fontFamily='Noto Sans SC, sans-serif',fontSize=12;
+  const measure=showPointLabels?document.createElement('canvas').getContext('2d'):null;
+  if(measure)measure.font=fontSize+'px '+fontFamily;
   svg.replaceChildren();delete svg.dataset.plot;svg.setAttribute('viewBox','0 0 '+width+' '+height);
-  svg.setAttribute('font-family','Noto Sans SC, sans-serif');svg.setAttribute('font-size','12');svg.setAttribute('fill',ink);
+  svg.setAttribute('font-family',fontFamily);svg.setAttribute('font-size',fontSize);svg.setAttribute('fill',ink);
   const log=byId('log').checked,visible=p=>p!=null&&(!log||p.value>0);
   const nums=sets.flatMap(s=>s.points.filter(visible).map(p=>log?Math.log10(p.value):p.value));
   let low=nums.reduce((a,b)=>Math.min(a,b),log?Infinity:0),high=nums.reduce((a,b)=>Math.max(a,b),log?-Infinity:0);
@@ -340,19 +346,39 @@ function plot(svg,{sets,ticks,rangeLabel},width,height,{mobile=false,interactive
     if(!visible(p))return;
     const prev=s.points[i-1],cx=x(i),cy=y(p.value);
     if(visible(prev)&&(p.op==='='&&prev.op==='='||p.estimated||prev.estimated)){
-      svgNode(group,'line',{x1:x(i-1),y1:y(prev.value),x2:cx,y2:cy,stroke:s.color,'stroke-width':2,'stroke-dasharray':p.estimated||prev.estimated?'5 3':'none'});
+      svgNode(group,'line',{x1:x(i-1),y1:y(prev.value),x2:cx,y2:cy,stroke:s.color,'stroke-width':lineWidth,'stroke-dasharray':p.estimated||prev.estimated?'5 3':'none'});
     }
-    const node=svgNode(group,'circle',{cx,cy,r:3.6,fill:p.op==='='?s.color:paper,stroke:s.color,'stroke-width':2});
+    const smallDot=mobileExport&&p.op==='=';
+    const node=svgNode(group,'circle',{
+      cx,cy,r:smallDot?lineWidth/2:3.6,
+      fill:p.op==='='?s.color:paper,stroke:s.color,'stroke-width':smallDot?0:lineWidth
+    });
     svgNode(node,'title',{},nameOf(s.key)+' · '+rangeLabel(ticks[i])+' · '+display(p)+' 万台');
     const symbol=p.op==='>='?'↑':p.op==='<'?'↓':p.op==='≈'?'≈':'';
-    if(symbol)svgNode(group,'text',{x:cx+4,y:cy-5,fill:s.color},symbol);
-    if(byId('labels').checked&&!(mobile&&!interactive)){
-      const text=fmt(p.value),w=text.length*7+6,l=cx-w/2,t=cy-19;
-      if(!occupied.some(box=>l<box.l+box.w&&l+w>box.l&&t<box.t+13&&t+13>box.t)){
-        svgNode(group,'text',{x:cx,y:t,'text-anchor':'middle',fill:s.color},text);occupied.push({l,w,t});
-      }
+    if(symbol){
+      svgNode(group,'text',{x:cx+4,y:cy-5,fill:s.color},symbol);
+      if(measure)occupied.push(textBounds(symbol,cx+4,cy-5,'left'));
     }
+    if(measure)pointLabels.push({group,x:cx,y:cy-12,text:fmt(p.value),color:s.color});
     });
+  }
+  function textBounds(text,x,y,align){
+    measure.textAlign=align;
+    const size=measure.measureText(text);
+    return {
+      left:x-(size.actualBoundingBoxLeft??(align==='center'?size.width/2:0))-2,
+      right:x+(size.actualBoundingBoxRight??(align==='center'?size.width/2:size.width))+2,
+      top:y-(size.actualBoundingBoxAscent??fontSize)-1,
+      bottom:y+(size.actualBoundingBoxDescent??2)+1
+    };
+  }
+  for(const {group,x,y,text,color} of pointLabels){
+    const box=textBounds(text,x,y,'center');
+    if(box.left<0||box.right>width||box.top<0)continue;
+    const overlaps=occupied.some(other=>box.left<other.right&&box.right>other.left&&box.top<other.bottom&&box.bottom>other.top);
+    if(overlaps)continue;
+    svgNode(group,'text',{x,y,'text-anchor':'middle',fill:color},text);
+    occupied.push(box);
   }
   // Prioritize the highlighted series when the available tail-label slots fill up.
   const capacity=Math.max(1,Math.floor((bottom-top)/15));
@@ -655,3 +681,4 @@ async function start(file){
 }
 byId('localFile').onchange=event=>{const file=event.target.files[0];if(file)start(file);event.target.value=''};
 start();
+document.fonts?.addEventListener('loadingdone',()=>{if(current&&!activeEdit)draw()});

@@ -43,7 +43,7 @@ const BRAND_FOOTER_NOTE='品牌合并：小米/REDMI · OPPO/一加/realme · vi
 const posterAudits=new WeakMap();
 // Reference coordinates preserve export sizes: 1080 units = 360 logical design units.
 // 360 logical design units; preserve the existing 1080-coordinate rendering API.
-const POSTER_DESIGN=Object.freeze({baseWidth:360,referenceWidth:1080,spacing:Object.freeze({xs:4,sm:8,md:12,lg:16,xl:24,xxl:32}),type:Object.freeze({title:24,subtitle:14,body:13,label:13,value:12,rank:12,axis:12,axisTitle:13,legend:10,note:12,caption:8,min:12}),weight:Object.freeze({body:'500',axis:'400',axisTitle:'500',legend:'400',caption:'400'}),chart:Object.freeze({line:1.2,highlightLine:1.8,marker:1.7,markerStroke:.8,grid:.5,axisGap:4,axisLegendGap:8,maxWeekTicks:5,legendLine:15})});
+const POSTER_DESIGN=Object.freeze({baseWidth:360,referenceWidth:1080,spacing:Object.freeze({xs:4,sm:8,md:12,lg:16,xl:24,xxl:32}),type:Object.freeze({title:24,subtitle:14,body:13,label:13,value:12,stackValue:10,rank:12,axis:12,axisTitle:13,legend:10,note:12,caption:8,min:12}),weight:Object.freeze({body:'500',stackValue:'400',axis:'400',axisTitle:'500',legend:'400',caption:'400'}),chart:Object.freeze({line:1.2,highlightLine:1.8,marker:1.7,markerStroke:.8,grid:.5,axisGap:4,axisLegendGap:8,maxWeekTicks:5,legendLine:15})});
 const posterDp=v=>v*POSTER_DESIGN.referenceWidth/POSTER_DESIGN.baseWidth;
 const POSTER_SPACE=Object.freeze(Object.fromEntries(Object.entries(POSTER_DESIGN.spacing).map(([k,v])=>[k,posterDp(v)])));
 const MOBILE_POSTER_TYPE=Object.freeze({...Object.fromEntries(Object.entries(POSTER_DESIGN.type).map(([k,v])=>[k,posterDp(v)])),line:posterDp(POSTER_DESIGN.chart.line),marker:posterDp(POSTER_DESIGN.chart.marker)});
@@ -545,6 +545,24 @@ function drawResearchPosterContent(ctx,L,p,s){
 // Shared content renderer: the studio supplies its poster body, while direct PNG
 // supplies a flexible chart-sized canvas with no social safe area or frame.
 // Mobile two-period ribbons: measured columns, fixed readable fonts and collision-aware labels.
+// Stack values are numeric labels, including the percent sign, not body copy.
+function posterStackValueMetrics(ctx,value){
+ const size=MOBILE_POSTER_TYPE.stackValue,weight=POSTER_DESIGN.weight.stackValue;
+ ctx.save();ctx.font=weight+' '+size+'px '+NUM_FONT;const m=ctx.measureText(String(value??''));ctx.restore();
+ return {width:m.width,ascent:Math.max(size*.8,m.actualBoundingBoxAscent||0),descent:Math.max(size*.2,m.actualBoundingBoxDescent||0)};
+}
+function posterStackValueText(ctx,value,x,y,color){
+ const m=posterStackValueMetrics(ctx,value),size=MOBILE_POSTER_TYPE.stackValue;
+ ctx.save();ctx.font=POSTER_DESIGN.weight.stackValue+' '+size+'px '+NUM_FONT;ctx.textAlign='center';ctx.textBaseline='alphabetic';ctx.fillStyle=color;ctx.fillText(String(value??''),x,y+(m.ascent-m.descent)/2);ctx.restore();
+}
+function posterStackValueFits(ctx,value,width,height){
+ const m=posterStackValueMetrics(ctx,value),pad=posterDp(2);
+ return width>=m.width+2*pad&&height>=m.ascent+m.descent+2*pad;
+}
+function posterStackSegmentValue(ctx,value,x,y,width,height,color){
+ if(!posterStackValueFits(ctx,value,width,height)){auditIssue(ctx,'部分堆叠色块空间不足，未显示内部数值；可缩短区间或扩大图幅');return false;}
+ posterStackValueText(ctx,value,x,y,color);return true;
+}
 function drawPosterRibbon(ctx,chart,box,p){
  const {left,right,top,bottom,width}=box,{periods,lines,unit,limit}=chart,T=MOBILE_POSTER_TYPE,S=POSTER_SPACE,sz=T.value,label=T.label,pct=unit==='%';
  if(periods.length!==2||!lines.length||!lines.every(l=>l.values.slice(0,2).length===2&&l.values.slice(0,2).every(v=>Number.isFinite(v)&&v>=0))){auditIssue(ctx,'双周流向图数据不完整',true);return;}
@@ -553,7 +571,7 @@ function drawPosterRibbon(ctx,chart,box,p){
  const measure=(v,font=sz,weight='600')=>measureMixedCanvas(ctx,v,font,weight).width;
  const weeks=periods.map(v=>posterWeekLabel(v,periods));
  const nw=Math.max(...lines.map(l=>measure(l.name,label,'550'))),dw=Math.max(measure('变化'),...lines.map(l=>measure(change(l.values[0],l.values[1]))));
- const bw=Math.max(posterDp(44),...lines.flatMap(l=>l.values.slice(0,2).map(v=>measure(fmt(v),sz,'700')+2*S.xs)),...weeks.map(v=>measure(v)+S.xs));
+ const bw=Math.max(posterDp(44),...lines.flatMap(l=>l.values.slice(0,2).map(v=>posterStackValueMetrics(ctx,fmt(v)).width+2*S.xs)),...weeks.map(v=>measure(v)+S.xs));
  const lx=left+nw+S.xs,rx=right-dw-S.xs-bw,L=lx+bw,R=rx,y0=top+posterDp(pct?36:52),y1=bottom,plotH=y1-y0;
  const max=Math.max(1,...[0,1].map(i=>lines.reduce((sum,l)=>sum+l.values[i],0))),tick=Math.pow(10,Math.floor(Math.log10(max)))/2,cap=limit||Math.ceil(max/tick)*tick;
  if(R-L<posterDp(8)||plotH<=0){auditIssue(ctx,'双周流向图空间不足，请精简文案或调整安全区',true);return;}
@@ -577,12 +595,12 @@ function drawPosterRibbon(ctx,chart,box,p){
   posterFitText(ctx,change(s.v,t.v),right,by[i]+sz*.32,sz,d>=.05?'#b72f2a':d<=-.05?'#265a87':p.sub,'600','right',dw);
   for(const [seg,x,y,side] of [[s,lx,ay[i],1],[t,rx,by[i],-1]]){
    const val=fmt(seg.v),fits=seg.h>=pitch&&Math.abs(y-seg.mid)<=Math.max(0,(seg.h-pitch)/2);
-   if(fits){posterFitText(ctx,val,x+bw/2,y+sz*.32,sz,ink(seg.color),'700','center',bw-S.xs);continue;}
+   if(fits&&posterStackValueFits(ctx,val,bw,seg.h)){posterStackValueText(ctx,val,x+bw/2,y,ink(seg.color));continue;}
    // Prefer an outside callout in the ribbon, falling back to an opaque label in its column.
-   const w=measure(val,sz,'700')+S.xs,external=R-L>=2*(w+S.xs),cx=external?(side===1?L+S.xs+w/2:R-S.xs-w/2):x+bw/2;
+   const w=posterStackValueMetrics(ctx,val).width+S.xs,external=R-L>=2*(w+S.xs),cx=external?(side===1?L+S.xs+w/2:R-S.xs-w/2):x+bw/2;
    lead(side===1?x+bw:x,seg.mid,external?cx-side*w/2:cx+side*w/2,y);
    rounded(ctx,cx-w/2,y-pitch/2,w,pitch,posterDp(2),'#ffffff');
-   posterFitText(ctx,val,cx,y+sz*.32,sz,p.ink,'700','center',w-S.xs);
+   posterStackValueText(ctx,val,cx,y,p.ink);
    auditIssue(ctx,'部分较小色块使用引导标注，已保留原始占比与数值');
   }
  });

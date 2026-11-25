@@ -164,7 +164,7 @@ function drawBrandComposition(ctx,chart,box,p,note=''){
   base.forEach((s,i)=>{
    const t=comp[i],d=t.v-s.v,delta=(d>0?'+':'')+(Math.abs(d)<.00005?'0.0':d.toFixed(1))+(pct?'pp':'万台');
    for(const [seg,x] of [[s,lx],[t,rx]]){
-    if(seg.h>0){rounded(ctx,x,seg.top,bw,Math.max(0,seg.h-Math.min(1,seg.h*.1)),Math.min(4,seg.h/2),seg.color);if(seg.h>=small+5)drawText(fmt(seg.v),x+bw/2,seg.mid+small*.35,small,'#fff','800','center',bw-5);}
+    if(seg.h>0){rounded(ctx,x,seg.top,bw,Math.max(0,seg.h-Math.min(1,seg.h*.1)),Math.min(4,seg.h/2),seg.color);if(mobile)posterStackSegmentValue(ctx,fmt(seg.v),x+bw/2,seg.mid,bw,seg.h,'#fff');else if(seg.h>=small+5)drawText(fmt(seg.v),x+bw/2,seg.mid+small*.35,small,'#fff','800','center',bw-5);}
    }
    if(s.h>=small+2)drawText(s.name,lx-6,s.mid+small*.3,small,p.ink,'700','right',Math.max(10,lx-left-8));
    if(t.h>=small+2)drawText(delta,rx+bw+6,t.mid+small*.3,small,d>0?'#c93630':d<0?'#265a87':p.sub,'750','left',Math.max(10,right-rx-bw-6));
@@ -202,7 +202,7 @@ function drawBrandComposition(ctx,chart,box,p,note=''){
   periods.forEach((period,i)=>{
    const x=x0+slot*(i+.5);
    if(valid(i)){
-    segments(i,y1,plotH).forEach(s=>{if(s.h<=0)return;rect(x-bw/2,s.top,bw,Math.max(0,s.h-Math.min(.65,s.h*.08)),s.color);if(s.h>=small+4&&bw>=36)drawText(fmt(s.v),x,s.mid+small*.3,small,'#fff','750','center',bw-3);});
+    segments(i,y1,plotH).forEach(s=>{if(s.h<=0)return;rect(x-bw/2,s.top,bw,Math.max(0,s.h-Math.min(.65,s.h*.08)),s.color);if(mobile)posterStackSegmentValue(ctx,fmt(s.v),x,s.mid,bw,s.h,'#fff');else if(s.h>=small+4&&bw>=36)drawText(fmt(s.v),x,s.mid+small*.3,small,'#fff','750','center',bw-3);});
    }else{
     ctx.save();ctx.strokeStyle=p.sub;ctx.setLineDash([3,4]);ctx.strokeRect(x-bw/2,y0,bw,plotH);ctx.restore();
     if(bw>=24)drawText('缺失',x,y0+plotH/2,small,p.sub,'600','center',bw);
@@ -281,7 +281,8 @@ function drawDualBrandFlowMulti(ctx,chart,box,p,note=''){
     if(seg.h<=0)return;
     rounded(ctx,bx,seg.top,bw,Math.max(.1,seg.h-Math.min(.9,seg.h*.08)),
       Math.min(3*f,seg.h/2),seg.color);
-    if(seg.h>=labelSize+4&&bw>=37)
+    if(mobilePosterActive(ctx))posterStackSegmentValue(ctx,seg.value.toFixed(1)+'%',cx,seg.mid,bw,seg.h,'#fff');
+     else if(seg.h>=labelSize+4&&bw>=37)
       draw(seg.value.toFixed(1)+'%',cx,seg.mid+labelSize*.34,labelSize,'#fff','800','center',bw-3);
    });
    const label=posterWeekLabel(periods[i],periods);
@@ -460,7 +461,7 @@ function drawDualBrandFlow(ctx,chart,box,p,note=''){
    for(const [seg,bx] of [[a,lx],[b,rx]]){
     if(seg.h<=0)continue;
     rounded(ctx,bx,seg.top,barW,Math.max(.1,seg.h-Math.min(1,seg.h*.09)),Math.min(6,seg.h/2),seg.color);
-    if(seg.h>=textSize+3)drawText(fmt(seg.v),bx+barW/2,seg.mid+textSize*.34,textSize,'#ffffff','800','center',barW-6);
+    if(mobilePosterActive(ctx))posterStackSegmentValue(ctx,fmt(seg.v),bx+barW/2,seg.mid,barW,seg.h,'#ffffff');else if(seg.h>=textSize+3)drawText(fmt(seg.v),bx+barW/2,seg.mid+textSize*.34,textSize,'#ffffff','800','center',barW-6);
    }
    if(a.h>=labelSize+1)drawText(a.label,lx-Math.max(5,7*f),a.mid+labelSize*.34,labelSize,p.ink,'700','right',labelW-5);
    // Highlight ONLY the numerical change field: no shading or callouts on the bars.

@@ -43,7 +43,7 @@ const BRAND_FOOTER_NOTE='品牌合并：小米/REDMI · OPPO/一加/realme · vi
 const posterAudits=new WeakMap();
 // Reference coordinates preserve export sizes: 1080 units = 360 logical design units.
 // 360 logical design units; preserve the existing 1080-coordinate rendering API.
-const POSTER_DESIGN=Object.freeze({baseWidth:360,referenceWidth:1080,spacing:Object.freeze({xs:4,sm:8,md:12,lg:16,xl:24,xxl:32}),type:Object.freeze({title:24,subtitle:14,body:13,label:13,value:12,stackValue:10,rank:12,axis:12,axisTitle:13,legend:10,note:12,caption:8,min:12}),weight:Object.freeze({body:'500',stackValue:'400',axis:'400',axisTitle:'500',legend:'400',caption:'400'}),chart:Object.freeze({line:1.2,highlightLine:1.8,marker:1.7,markerStroke:.8,grid:.5,axisGap:4,axisLegendGap:8,maxWeekTicks:5,legendLine:15})});
+const POSTER_DESIGN=Object.freeze({baseWidth:360,referenceWidth:1080,spacing:Object.freeze({xs:4,sm:8,md:12,lg:16,xl:24,xxl:32}),type:Object.freeze({title:24,subtitle:14,body:13,label:13,value:12,stackValue:10,stackValueMin:8,rank:12,axis:12,axisTitle:13,legend:10,note:12,caption:8,min:12}),weight:Object.freeze({body:'500',stackValue:'400',axis:'400',axisTitle:'500',legend:'400',caption:'400'}),chart:Object.freeze({line:1.2,highlightLine:1.8,marker:1.7,markerStroke:.8,grid:.5,axisGap:4,axisLegendGap:8,maxWeekTicks:5,legendLine:15})});
 const posterDp=v=>v*POSTER_DESIGN.referenceWidth/POSTER_DESIGN.baseWidth;
 const POSTER_SPACE=Object.freeze(Object.fromEntries(Object.entries(POSTER_DESIGN.spacing).map(([k,v])=>[k,posterDp(v)])));
 const MOBILE_POSTER_TYPE=Object.freeze({...Object.fromEntries(Object.entries(POSTER_DESIGN.type).map(([k,v])=>[k,posterDp(v)])),line:posterDp(POSTER_DESIGN.chart.line),marker:posterDp(POSTER_DESIGN.chart.marker)});
@@ -546,22 +546,35 @@ function drawResearchPosterContent(ctx,L,p,s){
 // supplies a flexible chart-sized canvas with no social safe area or frame.
 // Mobile two-period ribbons: measured columns, fixed readable fonts and collision-aware labels.
 // Stack values are numeric labels, including the percent sign, not body copy.
-function posterStackValueMetrics(ctx,value){
- const size=MOBILE_POSTER_TYPE.stackValue,weight=POSTER_DESIGN.weight.stackValue;
+function posterStackValueMetrics(ctx,value,size=MOBILE_POSTER_TYPE.stackValue){
+ const weight=POSTER_DESIGN.weight.stackValue;
  ctx.save();ctx.font=weight+' '+size+'px '+NUM_FONT;const m=ctx.measureText(String(value??''));ctx.restore();
  return {width:m.width,ascent:Math.max(size*.8,m.actualBoundingBoxAscent||0),descent:Math.max(size*.2,m.actualBoundingBoxDescent||0)};
 }
-function posterStackValueText(ctx,value,x,y,color){
- const m=posterStackValueMetrics(ctx,value),size=MOBILE_POSTER_TYPE.stackValue;
+function posterStackValueText(ctx,value,x,y,color,size=MOBILE_POSTER_TYPE.stackValue){
+ const m=posterStackValueMetrics(ctx,value,size);
  ctx.save();ctx.font=POSTER_DESIGN.weight.stackValue+' '+size+'px '+NUM_FONT;ctx.textAlign='center';ctx.textBaseline='alphabetic';ctx.fillStyle=color;ctx.fillText(String(value??''),x,y+(m.ascent-m.descent)/2);ctx.restore();
 }
 function posterStackValueFits(ctx,value,width,height){
  const m=posterStackValueMetrics(ctx,value),pad=posterDp(2);
  return width>=m.width+2*pad&&height>=m.ascent+m.descent+2*pad;
 }
+// Prefer the approved 10dp size, then reduce padding and adapt only the affected label.
+function posterStackBarWidth(ctx,slot,preferred,labels){
+ const needed=Math.max(0,...labels.map(v=>posterStackValueMetrics(ctx,v).width))+posterDp(4);
+ return Math.min(slot*.9,Math.max(preferred,needed));
+}
 function posterStackSegmentValue(ctx,value,x,y,width,height,color){
- if(!posterStackValueFits(ctx,value,width,height)){auditIssue(ctx,'部分堆叠色块空间不足，未显示内部数值；可缩短区间或扩大图幅');return false;}
- posterStackValueText(ctx,value,x,y,color);return true;
+ const T=MOBILE_POSTER_TYPE,base=T.stackValue,min=T.stackValueMin;
+ const m=posterStackValueMetrics(ctx,value),fullPad=posterDp(2);
+ let size=base;
+ if(width<m.width+2*fullPad||height<m.ascent+m.descent+2*fullPad){
+  const pad=posterDp(.5);
+  size=Math.min(base,base*(width-2*pad)/Math.max(1,m.width),base*(height-2*pad)/Math.max(1,m.ascent+m.descent));
+ }
+ if(!Number.isFinite(size)||size<min){auditIssue(ctx,'部分堆叠色块过小，无法显示8号数值；可缩短区间或扩大图幅');return false;}
+ if(size<base-.01)auditIssue(ctx,'部分堆叠色块数值因空间不足局部适配至8–10号');
+ posterStackValueText(ctx,value,x,y,color,size);return true;
 }
 function drawPosterRibbon(ctx,chart,box,p){
  const {left,right,top,bottom,width}=box,{periods,lines,unit,limit}=chart,T=MOBILE_POSTER_TYPE,S=POSTER_SPACE,sz=T.value,label=T.label,pct=unit==='%';

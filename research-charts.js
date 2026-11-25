@@ -176,7 +176,8 @@ function drawBrandComposition(ctx,chart,box,p,note=''){
   const reserve=mobile?axisBaselineOffset+posterAxisLegendDistance(ctx,periods.map(v=>posterWeekLabel(v,periods)),posterWeeks?MOBILE_POSTER_TYPE.axis:small,lines.map(l=>l.name),MOBILE_POSTER_TYPE.legend,small*.68,posterWeeks?POSTER_DESIGN.weight.axis:'550'):Math.max(35,48*f);
   const yTicks=Array.from({length:5},(_,i)=>cap*i/4),tickLabel=v=>String(Number(v.toFixed(2)))+(pct?'%':'');
   const x0=left+(mobile?posterAxisGutter(ctx,yTicks,tickLabel):Math.max(36,57*f)),x1=right-Math.max(10,18*f),y0=top+(mobile?posterDp(19):Math.max(16,22*f)),y1=legendY-reserve;
-  const plotH=y1-y0,slot=(x1-x0)/n,bw=Math.min(slot*.72,92*Math.max(.8,f));
+  const plotH=y1-y0,slot=(x1-x0)/n,preferred=Math.min(slot*.72,92*Math.max(.8,f));
+  const bw=mobile?posterStackBarWidth(ctx,slot,preferred,lines.flatMap(l=>l.values.filter(Number.isFinite).filter(v=>v>0).map(fmt))):preferred;
   if(!auditPlot(ctx,x1-x0,plotH,'多周堆叠图',260,180))return;
   if(bw<3){auditIssue(ctx,'堆叠柱过密，无法清楚区分各类别',true);return;}
   if(bw<25)auditIssue(ctx,'周次较多，堆叠柱或内部标签较密集');
@@ -248,7 +249,9 @@ function drawDualBrandFlowMulti(ctx,chart,box,p,note=''){
   const x0=x+Math.max(54,62*f),x1=x+w-Math.max(11,20*f),
         y0=y+Math.max(76,89*f),y1=y+h-axisBottomPad,
         plotW=x1-x0,plotH=y1-y0,slot=plotW/periods.length,
-        bw=Math.min(Math.max(30,88*f),slot*.62),barXs=periods.map((_,i)=>x0+slot*(i+.5));
+        preferred=Math.min(Math.max(30,88*f),slot*.62),
+         bw=mobilePosterActive(ctx)?posterStackBarWidth(ctx,slot,preferred,panel.weeks.flatMap(week=>week.valid?week.series.filter(s=>Number.isFinite(s.share)&&s.share>0).map(s=>s.share.toFixed(1)+'%'):[])):preferred,
+         barXs=periods.map((_,i)=>x0+slot*(i+.5));
   if(plotH<=80||slot<=8){auditIssue(ctx,'周次过多或图幅过窄，堆叠柱无法清晰显示',true);return;}
   if(slot<55)auditIssue(ctx,'多周数据较密集，可缩短统计区间或改用较宽的图卡');
   for(let k=0;k<=4;k++){

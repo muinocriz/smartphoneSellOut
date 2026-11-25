@@ -1024,7 +1024,7 @@
           deltaHigh=key==='outside'&&finite(a.low)&&finite(b.high)?b.high-a.low:null;
         const status=delta===null?'不可比较':key!=='outside'?'有效':deltaLow>0?'估算上涨':deltaHigh<0?'估算下跌':deltaLow===0&&deltaHigh===0?'估算持平':'估算方向不确定';
         rows.push([title,base,compare,g.label,a.status,b.status,numberText(a.value,4),numberText(b.value,4),numberText(delta,4),numberText(a.low,4),numberText(a.high,4),numberText(b.low,4),numberText(b.high,4),numberText(deltaLow,4),numberText(deltaHigh,4),status,key==='outside'?numberText(scenarios[0].low,4):'',key==='outside'?numberText(scenarios[0].high,4):'',key==='outside'?numberText(scenarios[1].low,4):'',key==='outside'?numberText(scenarios[1].high,4):'']);
-        lines.push({name:title+' · '+g.label,brand:g.label,panel:key,color:g.color,values:[a.value,b.value],lower:[a.low,a.high],upper:[a.high,b.high],statuses:[a.status,b.status],delta,deltaLow,deltaHigh,deltaStatus:status,imputed:[false,false]});
+        lines.push({name:title+' · '+g.label,brand:g.label,panel:key,color:g.color,values:[a.value,b.value],lower:[a.low,b.low],upper:[a.high,b.high],statuses:[a.status,b.status],delta,deltaLow,deltaHigh,deltaStatus:status,imputed:[false,false]});
         return {key:g.key,label:g.label,color:g.color,base:a.value,compare:b.value,baseLow:a.low,baseHigh:a.high,compareLow:b.low,compareHigh:b.high,baseStatus:a.status,compareStatus:b.status,delta,deltaLow,deltaHigh,deltaStatus:status};
       });
       return {key,title,series,status:series.some(v=>finite(v.base)||finite(v.compare))?'ok':'missing',message:key==='outside'?scenarios.map(sc=>sc.status).join(' / '):'缺少有效数据'};

@@ -1671,7 +1671,7 @@
       const result=await exportResearchChartPNG(snapshot,{palette,watermark,width});
       const name=[snapshot.title,snapshot.displayMetric,snapshot.range].join('-').replace(/[\\/:*?"<>|\s]+/g,'_');
       PosterExport.downloadBlob(result.blob,name+'.png');
-      notify(result.width<width?'图表 PNG 已生成（超长图按画布安全限制缩放至 '+result.width+'px）':'图表 PNG 已生成');
+      notify((result.width<width?'图表 PNG 已生成（超长图按画布安全限制缩放至 '+result.width+'px）':'图表 PNG 已生成')+(result.warnings?.length?'；可读性提示：'+result.warnings.join('；') : ''));
     }catch(err){notify('图表导出失败：'+err.message);}
     finally{researchPNGBusy=false;researchPNG.textContent='导出当前图表 PNG';syncResearchPNGButton();}
   };

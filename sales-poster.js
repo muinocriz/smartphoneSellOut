@@ -43,7 +43,7 @@ const BRAND_FOOTER_NOTE='品牌合并：小米/REDMI · OPPO/一加/realme · vi
 const posterAudits=new WeakMap();
 // Reference coordinates preserve export sizes: 1080 units = 360 logical design units.
 // 360 logical design units; preserve the existing 1080-coordinate rendering API.
-const POSTER_DESIGN=Object.freeze({baseWidth:360,referenceWidth:1080,spacing:Object.freeze({xs:4,sm:8,md:12,lg:16,xl:24,xxl:32}),type:Object.freeze({title:24,subtitle:14,body:13,label:13,value:12,rank:12,legend:11,note:12,caption:10,min:12}),weight:Object.freeze({body:'500',caption:'400'}),chart:Object.freeze({line:1.2,highlightLine:1.8,marker:1.7,markerStroke:.8,grid:.5,axisGap:4,maxWeekTicks:5,legendLine:15})});
+const POSTER_DESIGN=Object.freeze({baseWidth:360,referenceWidth:1080,spacing:Object.freeze({xs:4,sm:8,md:12,lg:16,xl:24,xxl:32}),type:Object.freeze({title:24,subtitle:14,body:13,label:13,value:12,rank:12,axis:12,axisTitle:13,legend:10,note:12,caption:10,min:12}),weight:Object.freeze({body:'500',axis:'400',axisTitle:'500',legend:'400',caption:'400'}),chart:Object.freeze({line:1.2,highlightLine:1.8,marker:1.7,markerStroke:.8,grid:.5,axisGap:4,maxWeekTicks:5,legendLine:15})});
 const posterDp=v=>v*POSTER_DESIGN.referenceWidth/POSTER_DESIGN.baseWidth;
 const POSTER_SPACE=Object.freeze(Object.fromEntries(Object.entries(POSTER_DESIGN.spacing).map(([k,v])=>[k,posterDp(v)])));
 const MOBILE_POSTER_TYPE=Object.freeze({...Object.fromEntries(Object.entries(POSTER_DESIGN.type).map(([k,v])=>[k,posterDp(v)])),line:posterDp(POSTER_DESIGN.chart.line),marker:posterDp(POSTER_DESIGN.chart.marker)});
@@ -79,15 +79,24 @@ function posterWeekLabel(period,periods){
 }
 // Fixed font axis labels: adjust the ticks and gutter rather than individual font sizes.
 function posterAxisLabel(v){return String(Number(v.toPrecision(12)));}
+// All calendar/numeric tick labels use the same explicit font, including W38 and 2026-W46.
+function posterAxisFont(value){return /^[\x20-\x7e\u2212\u2013\u2014\uff05]+$/.test(String(value??''))?NUM_FONT:CJK_FONT;}
+function posterAxisMeasure(ctx,value,size=MOBILE_POSTER_TYPE.axis){ctx.save();ctx.font=POSTER_DESIGN.weight.axis+' '+size+'px '+posterAxisFont(value);const w=ctx.measureText(String(value??'')).width;ctx.restore();return w;}
+function posterAxisText(ctx,value,x,y,color,align='left',maxWidth=Infinity,size=MOBILE_POSTER_TYPE.axis){
+ const str=String(value??''),w=posterAxisMeasure(ctx,str,size),fit=w>maxWidth?size*maxWidth/w:size;
+ if(!Number.isFinite(fit)||fit<=0){auditIssue(ctx,'坐标轴文字区域无有效宽度',true);return;}
+ if(fit<MOBILE_POSTER_TYPE.axis)auditIssue(ctx,'局部坐标轴空间不足，字号低于12逻辑单位');
+ ctx.save();ctx.font=POSTER_DESIGN.weight.axis+' '+fit+'px '+posterAxisFont(str);ctx.fillStyle=color;ctx.textAlign=align;ctx.textBaseline='alphabetic';ctx.fillText(str,x,y);ctx.restore();
+}
 function posterAxisGutter(ctx,ticks,format=posterAxisLabel){
- return Math.max(0,...ticks.map(v=>measureMixedCanvas(ctx,format(v),MOBILE_POSTER_TYPE.value,'500').width))+posterDp(4);
+ return Math.max(0,...ticks.map(v=>posterAxisMeasure(ctx,format(v))))+posterDp(4);
 }
 function posterNiceStep(raw){
  const unit=Math.pow(10,Math.floor(Math.log10(Math.max(raw,1e-12))));
  return ([1,2,2.5,5,10].find(v=>v*unit>=raw*(1-1e-10))||10)*unit;
 }
 function posterTickCapacity(height){
- return Math.max(2,Math.min(5,Math.floor(height/(MOBILE_POSTER_TYPE.value+posterDp(4)))+1));
+ return Math.max(2,Math.min(5,Math.floor(height/(MOBILE_POSTER_TYPE.axis+posterDp(4)))+1));
 }
 function posterValueAxis(max,height){
  const peak=Math.max(.000001,Number.isFinite(max)?max:1),step=posterNiceStep(peak/(posterTickCapacity(height)-1)),count=Math.max(1,Math.ceil(peak/step-1e-10));
@@ -100,7 +109,7 @@ function posterRankAxis(min,max,height){
  return {low,high,ticks:posterSpacedTicks(ticks,v=>(v-low)/(high-low)*height)};
 }
 function posterSpacedTicks(ticks,y){
- const gap=MOBILE_POSTER_TYPE.value+posterDp(4),ordered=[...new Set(ticks)].sort((a,b)=>y(a)-y(b)),result=[];
+ const gap=MOBILE_POSTER_TYPE.axis+posterDp(4),ordered=[...new Set(ticks)].sort((a,b)=>y(a)-y(b)),result=[];
  for(const v of ordered){
   if(!result.length||Math.abs(y(v)-y(result[result.length-1]))>=gap)result.push(v);
   else if(v===ordered[ordered.length-1]&&result.length>1&&Math.abs(y(v)-y(result[result.length-2]))>=gap)result[result.length-1]=v;
@@ -117,13 +126,13 @@ function posterLineScale(chart,box,axis){
 function posterYTicks(ctx,ticks,y,x0,x1,p,format=posterAxisLabel){
  for(const v of posterSpacedTicks(ticks,y)){
   const yy=y(v);ctx.save();ctx.strokeStyle=p.hair;ctx.lineWidth=posterDp(POSTER_DESIGN.chart.grid);ctx.beginPath();ctx.moveTo(x0,yy);ctx.lineTo(x1,yy);ctx.stroke();ctx.restore();
-  canvasText(ctx,format(v),x0-posterDp(4),yy+MOBILE_POSTER_TYPE.value*.32,MOBILE_POSTER_TYPE.value,p.sub,'500','right');
+  posterAxisText(ctx,format(v),x0-posterDp(4),yy+MOBILE_POSTER_TYPE.axis*.32,p.sub,'right');
  }
 }
 function posterWeekTicks(ctx,periods,x,y,left,right,p,maxCount=POSTER_DESIGN.chart.maxWeekTicks){
  if(!periods.length)return;
- const labels=periods.map(v=>posterWeekLabel(v,periods)),size=MOBILE_POSTER_TYPE.value,n=labels.length,gap=posterDp(4);
- const items=labels.map((label,i)=>{const w=measureMixedCanvas(ctx,label,size,'500').width;return {label,w,x:Math.max(left+w/2,Math.min(right-w/2,x(i)))};});
+ const labels=periods.map(v=>posterWeekLabel(v,periods)),size=MOBILE_POSTER_TYPE.axis,n=labels.length,gap=posterDp(4);
+ const items=labels.map((label,i)=>{const w=posterAxisMeasure(ctx,label,size);return {label,w,x:Math.max(left+w/2,Math.min(right-w/2,x(i)))};});
  let selected=[];
  for(let count=Math.min(maxCount,n);count>=1;count--){
   const ids=count===1?[n-1]:Array.from({length:count},(_,i)=>Math.round(i*(n-1)/(count-1)));
@@ -131,7 +140,7 @@ function posterWeekTicks(ctx,periods,x,y,left,right,p,maxCount=POSTER_DESIGN.cha
   if(chosen.every((v,i)=>v.w<=right-left&&(!i||v.x-v.w/2>=chosen[i-1].x+chosen[i-1].w/2+gap))){selected=chosen;break;}
  }
  if(!selected.length){auditIssue(ctx,'横轴周次空间不足，请调整安全区');return;}
- selected.forEach(v=>canvasText(ctx,v.label,v.x,y,size,p.sub,'500','center'));
+ selected.forEach(v=>posterAxisText(ctx,v.label,v.x,y,p.sub,'center'));
 }
 function posterLegendWrap(ctx,value,width,size){
  const lines=[];
@@ -140,27 +149,35 @@ function posterLegendWrap(ctx,value,width,size){
   const tokens=raw.match(/[A-Za-z0-9][A-Za-z0-9._/-]*|[ \t]+|[^\r\n]/gu)||[];
   for(const token of tokens){
    if(!line&&/^\s+$/.test(token))continue;
-   if(line&&measureMixedCanvas(ctx,line+token,size,'500').width>width){if(line.trim())lines.push(line.trim());line=token.trimStart();}
+   if(line&&posterLegendMeasure(ctx,line+token,size)>width){if(line.trim())lines.push(line.trim());line=token.trimStart();}
    else line+=token;
   }
   if(line.trim())lines.push(line.trim());
  }
  return lines;
 }
+function posterLegendMeasure(ctx,value,size=MOBILE_POSTER_TYPE.legend){ctx.save();ctx.font=POSTER_DESIGN.weight.legend+' '+size+'px '+CJK_FONT;const w=ctx.measureText(String(value??'')).width;ctx.restore();return w;}
 function posterLegendText(ctx,value,x,y,p){
  const audit=posterAudits.get(ctx),old=audit?.minTextSize;
  if(audit)audit.minTextSize=MOBILE_POSTER_TYPE.legend;
- try{canvasText(ctx,value,x,y,MOBILE_POSTER_TYPE.legend,p.ink,'500','left');}
+ try{ctx.save();ctx.font=POSTER_DESIGN.weight.legend+' '+MOBILE_POSTER_TYPE.legend+'px '+CJK_FONT;ctx.fillStyle=p.ink;ctx.textAlign='left';ctx.textBaseline='alphabetic';ctx.fillText(String(value??''),x,y);ctx.restore();}
  finally{if(audit){if(old===undefined)delete audit.minTextSize;else audit.minTextSize=old;}}
+}
+function posterCompactLegendText(ctx,value,x,y,color,previewSize,previewWeight='600',align='left',width=Infinity){
+ if(!mobilePosterActive(ctx))return posterFitText(ctx,value,x,y,previewSize,color,previewWeight,align,width);
+ const str=String(value??''),size=MOBILE_POSTER_TYPE.legend,w=posterLegendMeasure(ctx,str,size),fit=w>width?size*width/w:size;
+ if(!Number.isFinite(fit)||fit<=0){auditIssue(ctx,'图例文字区域无有效宽度',true);return;}
+ if(fit<size)auditIssue(ctx,'局部图例空间不足，字号低于10逻辑单位');
+ ctx.save();ctx.font=POSTER_DESIGN.weight.legend+' '+fit+'px '+CJK_FONT;ctx.fillStyle=color;ctx.textAlign=align;ctx.textBaseline='alphabetic';ctx.fillText(str,x,y);ctx.restore();
 }
 function posterLineLegend(ctx,items,box,p){
  const {left,top,width}=box,T=MOBILE_POSTER_TYPE,size=T.legend,step=posterDp(POSTER_DESIGN.chart.legendLine),symbol=posterDp(8),gap=posterDp(4),prefix=symbol+gap,itemGap=posterDp(8);
  const colors=['#2563eb','#ea580c','#059669','#9333ea','#db2777','#0891b2','#92400e','#64748b','#be123c','#4d7c0f','#0369a1','#7c3aed'];
  const rows=[];let row=[],used=0;
  for(const [i,l] of items.entries()){
-  const text=String(l.name??''),w=measureMixedCanvas(ctx,text,size,'500').width;
+  const text=String(l.name??''),w=posterLegendMeasure(ctx,text,size);
   const wrapped=w<=width-prefix&&!/[\r\n]/.test(text)?[text]:posterLegendWrap(ctx,text,width-prefix,size);
-  const itemW=prefix+Math.max(0,...wrapped.map(v=>measureMixedCanvas(ctx,v,size,'500').width));
+  const itemW=prefix+Math.max(0,...wrapped.map(v=>posterLegendMeasure(ctx,v,size)));
   if(itemW>width){auditIssue(ctx,'图例完整英文词或机型名称超出可用宽度，请调整安全区',true);return box.bottom??top;}
   if(row.length&&used+itemGap+itemW>width){rows.push(row);row=[];used=0;}
   if(row.length)used+=itemGap;
@@ -231,7 +248,7 @@ function getPosterLayout(ctx,W,H,type,o,right,bottom,copy=getPosterCopy(type,o))
  const footerCopy=['top','versus','brands','leader'].includes(type)&&!disclaimer.includes('万台')?'销量单位：万台'+(disclaimer?' · '+disclaimer:''):disclaimer;
  const footerLines=posterWrap(ctx,footerCopy,width,footSize,'400');
  const brandNote=type==='brands'&&o.brands.length>0;
- const brandLines=brandNote?posterWrap(ctx,BRAND_FOOTER_NOTE,width,T.note,'400'):[];
+ const brandLines=brandNote?posterWrap(ctx,BRAND_FOOTER_NOTE,width,footSize,POSTER_DESIGN.weight.caption):[];
  const footerBlock=posterBlock(ctx,[...brandLines,...footerLines],footSize,'400',0);
  const footerEnd=Math.min(outer.y+outer.height-S.md,safeBottom-S.sm);
  const footerY=footerEnd-footerBlock.height-(footerBlock.height?S.xs:0);

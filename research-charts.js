@@ -199,7 +199,7 @@ function drawBrandComposition(ctx,chart,box,p,note=''){
    if(i===0||i===n-1||(i%stride===0&&n-1-i>=stride*.65))drawText(String(period),x,y1+small+6,small,p.sub,'550','center',Math.min(105,slot*stride*.9));
   });
  }
- lines.forEach((l,i)=>{const x=left+(i%cols)*width/cols,y=legendY+Math.floor(i/cols)*legStep;rect(x,y-small*.68,small*.85,small*.7,l.color);drawText(l.name,x+small+4,y,small,p.ink,'600','left',width/cols-small-7);});
+ lines.forEach((l,i)=>{const x=left+(i%cols)*width/cols,y=legendY+Math.floor(i/cols)*legStep;rect(x,y-small*.68,small*.85,small*.7,l.color);posterCompactLegendText(ctx,l.name,x+small+4,y,p.ink,small,'600','left',width/cols-small-7);});
  if(note)drawText(note,left,bottom-3,small,p.sub,'550','left',width);
 }
 
@@ -282,7 +282,7 @@ function drawDualBrandFlowMulti(ctx,chart,box,p,note=''){
  brands.forEach((g,i)=>{
   const x=left+i*cellW,sw=Math.max(10,17*f);
   rounded(ctx,x,legendY-sw*.72,sw,sw*.69,2,g.color);
-  draw(g.label,x+sw+Math.max(3,5*f),legendY,subtitleSize,p.ink,'650','left',cellW-sw-6);
+  posterCompactLegendText(ctx,g.label,x+sw+Math.max(3,5*f),legendY,p.ink,subtitleSize,'650','left',cellW-sw-6);
  });
  if(note)draw(note,left,bottom-Math.max(4,7*f),subtitleSize,p.sub,'500','left',width);
 }
@@ -353,8 +353,8 @@ function drawDualBrandShareComparison(ctx,chart,box,p){
  function marker(x,y,color,hollow){ctx.save();ctx.beginPath();ctx.arc(x,y,rr,0,Math.PI*2);ctx.fillStyle=color;ctx.strokeStyle=color;ctx.lineWidth=2*f;if(hollow){ctx.fillStyle=p.card||'#ffffff';ctx.fill();ctx.stroke();}else ctx.fill();ctx.restore();}
  function line(xa,ya,xb,yb,color,dash=false,weight=2){ctx.save();ctx.strokeStyle=color;ctx.lineWidth=weight*f;if(dash)ctx.setLineDash([5*f,4*f]);ctx.beginPath();ctx.moveTo(xa,ya);ctx.lineTo(xb,yb);ctx.stroke();ctx.restore();}
  const legendX=left+width*.5-120*f;
- marker(legendX,top+16*f,baseColor,false);canvasText(ctx,chart.periods[0],legendX+12*f,top+21*f,small,p.sub,'600');
- marker(legendX+145*f,top+16*f,p.ink,false);canvasText(ctx,chart.periods[1]+'（品牌色）',legendX+157*f,top+21*f,small,p.sub,'600','left',Math.max(20,right-legendX-157*f));
+ marker(legendX,top+16*f,baseColor,false);posterCompactLegendText(ctx,chart.periods[0],legendX+12*f,top+21*f,p.sub,small,'600','left',Math.max(1,130*f));
+ marker(legendX+145*f,top+16*f,p.ink,false);posterCompactLegendText(ctx,chart.periods[1]+'（品牌色）',legendX+157*f,top+21*f,p.sub,small,'600','left',Math.max(20,right-legendX-157*f));
  groups.forEach((g,i)=>canvasText(ctx,g.label,left+labelW-10*f,gridTop+i*rowH+rowH*.44,font,p.ink,'650','right',labelW-12*f));
  panels.forEach((panel,j)=>{
   const estimated=panel.key==='outside',x0=left+labelW+j*(colW+gap)+8*f,x1=x0+colW-16*f;
@@ -465,7 +465,7 @@ function drawDualBrandFlow(ctx,chart,box,p,note=''){
  fixedGroups.forEach((g,i)=>{
   const xx=left+i*cellW;
   rounded(ctx,xx,legendY-Math.max(8,11*f),Math.max(10,17*f),Math.max(9,11*f),2,g.color);
-  drawText(g.label,xx+Math.max(15,22*f),legendY,noteSize,p.ink,'650','left',cellW-Math.max(17,25*f));
+  posterCompactLegendText(ctx,g.label,xx+Math.max(15,22*f),legendY,p.ink,noteSize,'650','left',cellW-Math.max(17,25*f));
  });
  if(note)drawText(note,left,bottom-Math.max(4,7*f),noteSize,p.sub,'550','left',width);
 }
@@ -498,11 +498,14 @@ function drawResearchHeatmap(ctx,chart,box,p,note=''){
  if(note)posterFitText(ctx,note,left,bottom-5,Math.min(16,font),p.sub,'550','left',width);
 }
 // Shared research-poster axis typography (the live preview uses its own UI scale).
-const RESEARCH_POSTER_AXIS=Object.freeze({title:39,tick:36,period:36,titleWeight:'500',tickWeight:'500'});
+// Getter avoids reading sales-poster.js design constants before its script is loaded.
+const RESEARCH_POSTER_AXIS=Object.freeze({get title(){return MOBILE_POSTER_TYPE.axisTitle;},get tick(){return MOBILE_POSTER_TYPE.axis;},get period(){return MOBILE_POSTER_TYPE.axis;},get titleWeight(){return POSTER_DESIGN.weight.axisTitle;},get tickWeight(){return POSTER_DESIGN.weight.axis;}});
 // Shared poster typography; dense panels may cap the nominal font size.
 function researchPosterAxisText(ctx,value,x,y,role,color,align='left',maxWidth=Infinity,sizeLimit=Infinity){
  const axis=RESEARCH_POSTER_AXIS;
- posterFitText(ctx,value,x,y,Math.min(axis[role],sizeLimit),color,role==='title'?axis.titleWeight:axis.tickWeight,align,maxWidth);
+ const size=Math.min(axis[role],sizeLimit);
+ if(role==='title')posterFitText(ctx,value,x,y,size,color,axis.titleWeight,align,maxWidth);
+ else posterAxisText(ctx,value,x,y,color,align,maxWidth,size);
 }
 /* Dual-axis generation study. Bars and line share week centers; reference
  * guides use the percentage axis, not the dynamically scaled volume axis. */
@@ -564,11 +567,11 @@ function drawGenerationDualAxis(ctx,chart,box,p,preview=false){
   const yy=y(v),fraction=v/cap;
   if(![.5,.8].some(ref=>Math.abs(fraction-ref)<1e-9))rule(x0,yy,x1,yy,p.hair,preview?1.2*f:posterDp(POSTER_DESIGN.chart.grid));
   if(preview)axisText(Number(v.toPrecision(12)),x0-10,yy+5,'tick',p.sub,'right',x0-left-12);
-  else canvasText(ctx,posterAxisLabel(v),x0-posterDp(4),yy+MOBILE_POSTER_TYPE.value*.32,MOBILE_POSTER_TYPE.value,p.sub,'500','right');
+  else posterAxisText(ctx,posterAxisLabel(v),x0-posterDp(4),yy+MOBILE_POSTER_TYPE.axis*.32,p.sub,'right');
  }
  for(const v of preview?[0,20,40,50,60,80,100]:posterSpacedTicks([0,25,50,75,100],yp)){
   if(preview)axisText(v+'%',x1+10,yp(v)+5,'tick',p.sub,'left',right-x1-12);
-  else canvasText(ctx,v+'%',x1+posterDp(4),yp(v)+MOBILE_POSTER_TYPE.value*.32,MOBILE_POSTER_TYPE.value,p.sub,'500','left');
+  else posterAxisText(ctx,v+'%',x1+posterDp(4),yp(v)+MOBILE_POSTER_TYPE.axis*.32,p.sub,'left');
  }
  rule(x0,y0,x0,y1,p.hair,1.2*f);
  rule(x1,y0,x1,y1,p.hair,1.2*f);

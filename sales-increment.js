@@ -230,6 +230,7 @@ function svgNode(parent,tag,attrs={},content){
   parent.append(node);return node;
 }
 let current;
+let labelPreferenceChanged=false;
 function draw(){
   if(activeEdit||!metadata[model.value])return;
   byId('editStatus').textContent=hasDraft()?'含临时数据，可导出长表保存。':'';
@@ -279,6 +280,7 @@ function draw(){
   byId('heading').textContent=title;
   const svg=document.querySelector('svg');
   const w=Math.max(300,Math.round(svg.getBoundingClientRect().width)||800);
+  if(!labelPreferenceChanged)byId('labels').checked=w>600;
   plot(svg,current,w,Math.max(260,Math.min(420,w*.42)),{mobile:w<=600,interactive:true});
   const legend=byId('legend');legend.replaceChildren();
   const ranked=[...sets].sort((a,b)=>lastVisible(b)-lastVisible(a));
@@ -399,7 +401,7 @@ function plot(svg,{sets,ticks,rangeLabel},width,height,{mobile=false,interactive
             stroke:s.color,'stroke-width':exact?0:ringStroke
           });
       svgNode(node,'title',{},nameOf(s.key)+' · '+rangeLabel(ticks[i])+' · '+display(point)+' 万台');
-      if(showPointLabels)pointLabels.push({group,x:cx,y:cy-12,text:fmt(point.value),color:s.color});
+      if(showPointLabels)pointLabels.push({group,key:s.key,x:cx,y:cy-12,text:display(point)});
     });
   }
   function textBounds(text,x,y,align){
@@ -411,14 +413,6 @@ function plot(svg,{sets,ticks,rangeLabel},width,height,{mobile=false,interactive
       top:y-(size.actualBoundingBoxAscent??fontSize)-1,
       bottom:y+(size.actualBoundingBoxDescent??2)+1
     };
-  }
-  for(const {group,x,y,text,color} of pointLabels){
-    const box=textBounds(text,x,y,'center');
-    if(box.left<0||box.right>width||box.top<0)continue;
-    const overlaps=occupied.some(other=>boxesOverlap(box,other));
-    if(overlaps)continue;
-    svgNode(group,'text',{x,y,'text-anchor':'middle',fill:color,'font-family':numberFont},text);
-    occupied.push(box);
   }
   const labelFont=mobile?numberFont:bodyFont;
   measure.font=fontSize+'px '+labelFont;
@@ -438,7 +432,6 @@ function plot(svg,{sets,ticks,rangeLabel},width,height,{mobile=false,interactive
       const lineBox={x0:box.left,x1:box.right,y0:box.top,y1:box.bottom};
       let score=preference+Math.abs(y-label.y)/labelHeight+Math.abs(x-rightX)/100;
       if(markers.some(marker=>boxesOverlap(box,marker)))score+=30;
-      if(occupied.some(value=>boxesOverlap(box,value)))score+=20;
       if(segments.some(({x1,y1,x2,y2})=>segHitsBox(x1,y1,x2,y2,lineBox)))score+=40;
       if(!best||score<best.score)best={x,y,box,score};
     }
@@ -454,6 +447,22 @@ function plot(svg,{sets,ticks,rangeLabel},width,height,{mobile=false,interactive
       }
     }
     if(best)placed.push({...best,label,text});
+  }
+  // Keep the tail labels and visible marks clear before placing numeric labels.
+  measure.font=fontSize+'px '+numberFont;
+  pointLabels.sort((a,b)=>Number(interactive&&b.key===focused)-Number(interactive&&a.key===focused)||b.x-a.x||a.y-b.y);
+  for(const {group,x,y,text} of pointLabels){
+    const box=textBounds(text,x,y,'center');
+    if(box.left<left||box.right>width-2||box.top<2||box.bottom>bottom)continue;
+    if(occupied.some(other=>boxesOverlap(box,other))||markers.some(marker=>boxesOverlap(box,marker))||
+      placed.some(tail=>boxesOverlap(box,tail.box)))continue;
+    const lineBox={x0:box.left-1,x1:box.right+1,y0:box.top-1,y1:box.bottom+1};
+    if(segments.some(({x1,y1,x2,y2})=>segHitsBox(x1,y1,x2,y2,lineBox)))continue;
+    svgNode(group,'text',{
+      x,y,'text-anchor':'middle','font-family':numberFont,fill:ink,
+      stroke:paper,'stroke-width':2,'stroke-linejoin':'round','paint-order':'stroke'
+    },text);
+    occupied.push(box);
   }
   // Put guides beneath label backgrounds so they cannot obscure text.
   for(const {label,x,y,box} of placed){
@@ -530,10 +539,11 @@ function takeChartText(svg){
     }):[{text:Array.from(node.childNodes).filter(child=>child.nodeType===Node.TEXT_NODE).map(child=>child.textContent).join(''),x,y}];
     const font=(node.getAttribute('font-size')||svg.getAttribute('font-size'))+'px '+(node.getAttribute('font-family')||svg.getAttribute('font-family'));
     const fill=node.getAttribute('fill')||svg.getAttribute('fill');
+    const stroke=node.getAttribute('stroke'),strokeWidth=Number(node.getAttribute('stroke-width'));
     const align={middle:'center',end:'right'}[node.getAttribute('text-anchor')]||'left';
     const baseline=node.hasAttribute('dominant-baseline')?'middle':'alphabetic';
     node.remove();
-    return {lines,font,fill,align,baseline};
+    return {lines,font,fill,align,baseline,stroke,strokeWidth};
   });
 }
 async function exportChart(mobile){
@@ -581,7 +591,13 @@ async function exportChart(mobile){
     const img=new Image();img.src=url;await img.decode();ctx.drawImage(img,0,67);
     for(const label of chartText){
       ctx.font=label.font;ctx.fillStyle=label.fill;ctx.textAlign=label.align;ctx.textBaseline=label.baseline;
-      for(const line of label.lines)ctx.fillText(line.text,line.x,67+line.y);
+      if(label.stroke){
+        ctx.strokeStyle=label.stroke;ctx.lineWidth=label.strokeWidth;ctx.lineJoin='round';
+      }
+      for(const line of label.lines){
+        if(label.stroke)ctx.strokeText(line.text,line.x,67+line.y);
+        ctx.fillText(line.text,line.x,67+line.y);
+      }
     }
     ctx.textBaseline='alphabetic';
     let y=chartH+86;
@@ -610,6 +626,7 @@ async function exportChart(mobile){
   }finally{URL.revokeObjectURL(url)}
 }
 for(const id of ['window','from','to','log','labels'])byId(id).onchange=()=>{
+  if(id==='labels')labelPreferenceChanged=true;
   if(id==='to'&&byId('to').selectedIndex<byId('from').selectedIndex)byId('from').selectedIndex=byId('to').selectedIndex;
   draw();
 };

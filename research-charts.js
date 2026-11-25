@@ -496,7 +496,7 @@ function drawResearchHeatmap(ctx,chart,box,p,note=''){
  if(note)posterFitText(ctx,note,left,bottom-5,Math.min(16,font),p.sub,'550','left',width);
 }
 // Shared research-poster axis typography (the live preview uses its own UI scale).
-const RESEARCH_POSTER_AXIS=Object.freeze({title:19,tick:19,period:18,titleWeight:'600',tickWeight:'550'});
+const RESEARCH_POSTER_AXIS=Object.freeze({title:36,tick:36,period:36,titleWeight:'600',tickWeight:'550'});
 // Shared poster typography; dense panels may cap the nominal font size.
 function researchPosterAxisText(ctx,value,x,y,role,color,align='left',maxWidth=Infinity,sizeLimit=Infinity){
  const axis=RESEARCH_POSTER_AXIS;
@@ -510,7 +510,7 @@ function drawGenerationDualAxis(ctx,chart,box,p,preview=false){
  const [volume,rate]=lines,n=periods.length;
  const barColor=volume.color||'#2563eb',rateColor=rate.color||'#7c3aed';
  const f=Math.max(.65,Math.min(1.4,width/780,height/466));
- const font=14*f,small=12*f;
+ const font=preview?14*f:36;
  // Live previews keep UI typography; posters and direct PNG use shared axis typography.
  const axis=preview?{title:12,tick:12,period:12,titleWeight:'400',tickWeight:'400'}:RESEARCH_POSTER_AXIS;
  const axisFont=getComputedStyle(document.body).getPropertyValue('--ui-font-body').trim()||'system-ui,-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif';
@@ -526,8 +526,9 @@ function drawGenerationDualAxis(ctx,chart,box,p,preview=false){
   ctx.restore();
  };
  const legendStep=Math.max(22,30*f),legendY=top+font+3;
- const x0=left+Math.max(preview?45:68,62*f),x1=right-Math.max(preview?47:68,61*f);
- const y0=top+legendStep+Math.max(axis.title+14,31*f),y1=bottom-Math.max(axis.period+14,36*f);
+ const legendBottom=preview?top+legendStep:posterLineLegend(ctx,[volume,{...rate,marker:'○'}],box,p);
+ const x0=left+(preview?Math.max(45,62*f):110),x1=right-(preview?Math.max(47,61*f):116);
+ const y0=legendBottom+Math.max(axis.title+14,31*f),y1=bottom-Math.max(axis.period+14,36*f);
  if(!auditPlot(ctx,x1-x0,y1-y0,'代际替代双轴绘图区',260,150))return;
  const slot=(x1-x0)/n,bw=Math.min(slot*.62,76*f);
  if(bw<3){auditIssue(ctx,'代际替代图周次过多，柱宽不足',true);return;}
@@ -546,12 +547,14 @@ function drawGenerationDualAxis(ctx,chart,box,p,preview=false){
  const rule=(a,b,c,d,color,lw=1,dash=[])=>{ctx.save();ctx.strokeStyle=color;ctx.lineWidth=lw;ctx.setLineDash(dash);ctx.beginPath();ctx.moveTo(a,b);ctx.lineTo(c,d);ctx.stroke();ctx.restore();};
  // Use the same typography, spacing and theme tokens as other research posters.
  const half=width/2;
+ if(preview){
  ctx.fillStyle=barColor;ctx.fillRect(left,legendY-font*.75,16*f,9*f);
  text(volume.name,left+22*f,legendY,font,p.ink,'600','left',half-26*f);
  const lx=left+half;
  rule(lx,legendY-font*.4,lx+20*f,legendY-font*.4,rateColor,2.5*f);
  ResearchCharts.canvasMarker(ctx,'○',lx+10*f,legendY-font*.4,3.5*f,rateColor);
  text(rate.name,lx+26*f,legendY,font,p.ink,'600','left',half-28*f);
+ }
  axisText('合计周增量 / 万台',x0,y0-12,'title',p.sub,'left',(x1-x0)/2);
  axisText('替代率 / %',x1,y0-12,'title',p.sub,'right',(x1-x0)/2);
  for(let i=0;i<=intervals;i++){
@@ -573,11 +576,12 @@ function drawGenerationDualAxis(ctx,chart,box,p,preview=false){
  for(const v of [50,80])rule(x0,yp(v),x1,yp(v),v===80?p.accent:p.sub,1.5*f,[6*f,5*f]);
  rate.values.forEach((v,i)=>{
   if(!Number.isFinite(v))return;
-  if(i>0&&Number.isFinite(rate.values[i-1]))rule(x(i-1),yp(rate.values[i-1]),x(i),yp(v),rateColor,2.8*f,rate.imputed?.[i]||rate.imputed?.[i-1]?[7*f,5*f]:[]);
+  if(i>0&&Number.isFinite(rate.values[i-1]))rule(x(i-1),yp(rate.values[i-1]),x(i),yp(v),rateColor,preview?2.8*f:6,rate.imputed?.[i]||rate.imputed?.[i-1]?[7*f,5*f]:[]);
  });
  rate.values.forEach((v,i)=>{
-  if(Number.isFinite(v))ResearchCharts.canvasMarker(ctx,'○',x(i),yp(v),Math.min(4.4*f,slot*.23),rateColor,!!rate.imputed?.[i]);
+  if(Number.isFinite(v))ResearchCharts.canvasMarker(ctx,'○',x(i),yp(v),Math.min(preview?4.4*f:7,slot*.23),rateColor,!!rate.imputed?.[i]);
  });
+ if(!preview){posterWeekTicks(ctx,periods,x,y1+43,left,right,p);return;}
  const tickCount=Math.max(2,Math.floor((x1-x0)/Math.max(76*f,axis.period*4.8))),stride=Math.max(1,Math.ceil((n-1)/(tickCount-1)));
  periods.forEach((period,i)=>{
   if(i===0||i===n-1||(i%stride===0&&n-1-i>=stride*.65))
@@ -884,8 +888,8 @@ const ResearchCharts=(()=>{
    }
    ctx.restore();
   }
-  points(chart,scale,p=>{if(p.previous){ctx.save();ctx.strokeStyle=p.color;ctx.lineWidth=4;ctx.setLineDash(p.previous.dashed?[11,8]:[]);ctx.beginPath();ctx.moveTo(p.previous.x,p.previous.y);ctx.lineTo(p.x,p.y);ctx.stroke();ctx.restore();}
-   canvasMarker(ctx,p.marker,p.x,p.y,chart.periods.length>35?3.5:5,p.color,p.estimated);
+  points(chart,scale,p=>{if(p.previous){ctx.save();ctx.strokeStyle=p.color;ctx.lineWidth=mobilePosterActive(ctx)?MOBILE_POSTER_TYPE.line:4;ctx.setLineDash(p.previous.dashed?[11,8]:[]);ctx.beginPath();ctx.moveTo(p.previous.x,p.previous.y);ctx.lineTo(p.x,p.y);ctx.stroke();ctx.restore();}
+   canvasMarker(ctx,p.marker,p.x,p.y,mobilePosterActive(ctx)?(chart.periods.length>35?5:MOBILE_POSTER_TYPE.marker):(chart.periods.length>35?3.5:5),p.color,p.estimated);
   });
   if(chart.alerts&&chart.lines[1])chart.alerts.forEach((level,i)=>{
    const v=chart.lines[1].values[i];

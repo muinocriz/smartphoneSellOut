@@ -326,11 +326,11 @@ function drawTrackerTrendPoster(ctx,p,s,box){
   const x0=left+68,x1=right-32,y0=yStart+27,y1=yStart+part-34;
   const series=isRank?rankLines:lines;
   const scale=isRank?{x:i=>n===1?(x0+x1)/2:x0+i*(x1-x0)/(n-1),y:v=>span===0?(y0+y1)/2:y0+(v-min)*(y1-y0)/span}:ResearchCharts.lineScale(chart,{left:x0,right:x1,top:y0,bottom:y1});
-  posterFitText(ctx,isRank?'原始榜单排名':(chart.salesLabel||'销量走势')+' / 万台',x0,y0-10,20,p.ink,'700','left',width-100);
+  researchPosterAxisText(ctx,isRank?'原始榜单排名':(chart.salesLabel||'销量走势')+' / 万台',x0,y0-10,'title',p.ink,'left',width-100);
   const rankStep=Math.max(1,Math.ceil(span/5)),ticks=isRank?(ranks.length?[...new Set([...Array.from({length:Math.floor(span/rankStep)+1},(_,i)=>min+i*rankStep),max])]:[]):Array.from({length:5},(_,i)=>scale.top*i/4);
-  for(const v of ticks){const y=scale.y(v);ctx.strokeStyle=p.hair;ctx.lineWidth=1.4;ctx.beginPath();ctx.moveTo(x0,y);ctx.lineTo(x1,y);ctx.stroke();posterFitText(ctx,String(Number(v.toFixed(2))),x0-9,y+5,18,p.sub,'550','right',56);}
+  for(const v of ticks){const y=scale.y(v);ctx.strokeStyle=p.hair;ctx.lineWidth=1.4;ctx.beginPath();ctx.moveTo(x0,y);ctx.lineTo(x1,y);ctx.stroke();researchPosterAxisText(ctx,String(Number(v.toFixed(2))),x0-9,y+5,'tick',p.sub,'right',56,18);}
   const tickCount=Math.max(2,Math.min(7,Math.floor((x1-x0)/88))),stride=Math.max(1,Math.ceil((n-1)/(tickCount-1)));
-  chart.periods.forEach((v,i)=>{if(i===0||i===n-1||(i%stride===0&&n-1-i>=stride*.65))posterFitText(ctx,v,scale.x(i),y1+24,17,p.sub,'550','center',Math.min(100,(x1-x0)/Math.max(1,tickCount-1)));});
+  chart.periods.forEach((v,i)=>{if(i===0||i===n-1||(i%stride===0&&n-1-i>=stride*.65))researchPosterAxisText(ctx,v,scale.x(i),y1+24,'period',p.sub,'center',Math.min(100,(x1-x0)/Math.max(1,tickCount-1)),17);});
   if(isRank&&!ranks.length){posterFitText(ctx,'无原始排名记录',(x0+x1)/2,(y0+y1)/2,20,p.sub,'600','center',x1-x0);return;}
   ResearchCharts.canvasLine(ctx,{...chart,lines:series},scale);
  }
@@ -378,10 +378,10 @@ function drawResearchChartContent(ctx,p,s,box){
   const x0=left+68,x1=right-32,y0=start+legendRows*legendStep+34,y1=chartBottom-48;
   if(!auditPlot(ctx,x1-x0,y1-y0,'折线图绘图区',260,150))return;
   const scale=ResearchCharts.lineScale(s.chart,{left:x0,right:x1,top:y0,bottom:y1}),{top,x,y}=scale;
-  posterFitText(ctx,unit,x0,y0-12,RESEARCH_POSTER_AXIS.title,p.sub,RESEARCH_POSTER_AXIS.titleWeight,'left',width-100);
-  for(let i=0;i<=4;i++){const v=top*i/4;ctx.strokeStyle=p.hair;ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(x0,y(v));ctx.lineTo(x1,y(v));ctx.stroke();posterFitText(ctx,Number(v.toFixed(2)),x0-10,y(v)+5,RESEARCH_POSTER_AXIS.tick,p.sub,RESEARCH_POSTER_AXIS.tickWeight,'right',56);}
+  researchPosterAxisText(ctx,unit,x0,y0-12,'title',p.sub,'left',width-100);
+  for(let i=0;i<=4;i++){const v=top*i/4;ctx.strokeStyle=p.hair;ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(x0,y(v));ctx.lineTo(x1,y(v));ctx.stroke();researchPosterAxisText(ctx,Number(v.toFixed(2)),x0-10,y(v)+5,'tick',p.sub,'right',56);}
   const ticks=Math.max(2,Math.min(7,Math.floor((x1-x0)/88))),stride=Math.max(1,Math.ceil((n-1)/(ticks-1)));
-  periods.forEach((period,i)=>{if(i===0||i===n-1||(i%stride===0&&n-1-i>=stride*.65))posterFitText(ctx,period,x(i),y1+26,RESEARCH_POSTER_AXIS.period,p.sub,RESEARCH_POSTER_AXIS.tickWeight,'center',Math.min(104,(x1-x0)/Math.max(1,ticks-1)));});
+  periods.forEach((period,i)=>{if(i===0||i===n-1||(i%stride===0&&n-1-i>=stride*.65))researchPosterAxisText(ctx,period,x(i),y1+26,'period',p.sub,'center',Math.min(104,(x1-x0)/Math.max(1,ticks-1)));});
   ResearchCharts.canvasLine(ctx,s.chart,scale);
   drawNotes();
  }else if(s.table){

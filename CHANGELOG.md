@@ -6,6 +6,8 @@
 
 ## 2026-11-25
 
+- [d379166](https://github.com/muinocriz/smartphoneSellOut/commit/d379166) / [8624fab](https://github.com/muinocriz/smartphoneSellOut/commit/8624fab) / [c60f086](https://github.com/muinocriz/smartphoneSellOut/commit/c60f086) / [fac16ba](https://github.com/muinocriz/smartphoneSellOut/commit/fac16ba) / [a69e458](https://github.com/muinocriz/smartphoneSellOut/commit/a69e458) / [e4ae402](https://github.com/muinocriz/smartphoneSellOut/commit/e4ae402) / [0b29afc](https://github.com/muinocriz/smartphoneSellOut/commit/0b29afc) / [3f17ac5](https://github.com/muinocriz/smartphoneSellOut/commit/3f17ac5)：模块3第一轮移动端海报排版：1080参考坐标保留，等效400px逻辑设计；标题72、副标题43、核心40、图例及坐标轴36、附注33，低于阅读目标提示。趋势/追踪/代际双轴图例换行、周次疏化，独立趋势PNG按系列增加高度，页眉页脚自动换行，直接表格增大字号与行高；新增320/360/390/400px展示预览。密集矩阵、多面板及部分榜单局部尺寸仍有空间限制，未完成所有专题的独立重排。原比例、分辨率、安全区、水印及统计数据保留。未执行测试或构建。
+
 - [e90a663](https://github.com/muinocriz/smartphoneSellOut/commit/e90a6634996fa27402817efcccbf1cccdaa74ea0) / [238a97c](https://github.com/muinocriz/smartphoneSellOut/commit/238a97cf275d5179e373af2f6d063bdd7dfb4084)：模块3研究海报及直接 PNG 统一普通趋势、代际双轴、机型追踪、市场规模与销量分层、品牌增长贡献及品牌份额变化贡献的坐标轴字体规则。公共标题 19px/600、刻度 19px/550、周次 18px/550；独立数值及百分比使用 IBM Plex Mono，周次和标题使用思源黑体，密集子图保留尺寸约束。网页研究预览、图表数据与刻度计算不变。未执行测试或构建。
 
 - [af6adac](https://github.com/muinocriz/smartphoneSellOut/commit/af6adacbd10b9eee9d7f112540cabc9039c561d1)：修复模块3 Canvas 海报复合数值字体不一致；支持 `·`、`•` 分隔的独立数值组合（如 `116.4 万台 · 45.3%`），数字及紧随数字的百分号使用 IBM Plex Mono，单位与分隔符保持正文字体，机型名及普通说明不切换字体。未修改字号、布局、数据口径，未执行测试。

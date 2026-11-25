@@ -4,12 +4,12 @@ const NUM_FONT='"IBM Plex Mono",ui-monospace,Menlo,monospace';
 // Standalone and middle-dot-separated numeric values use the numeric font; prose retains the body font.
 const CANVAS_NUMERIC_PATTERN=/^[+\-−]?\d[\d.,:/–-]*(?:\s*(?:%|％|pp|倍|万台|台|px))?(?:\s*[·•]\s*[+\-−]?\d[\d.,:/–-]*(?:\s*(?:%|％|pp|倍|万台|台|px))?)*$/;
 function measureMixedCanvas(ctx,text,size,weight='600'){
- const runs=PosterThemes.numericTextRuns(text,CANVAS_NUMERIC_PATTERN);let width=0;
+ weight=posterBodyWeight(ctx,weight);const runs=PosterThemes.numericTextRuns(text,CANVAS_NUMERIC_PATTERN);let width=0;
  const measured=runs.map(run=>{ctx.font=weight+' '+size+'px '+(run.number?NUM_FONT:CJK_FONT);const w=ctx.measureText(run.text).width;width+=w;return {...run,width:w}});
  return {runs:measured,width};
 }
 function canvasText(ctx,text,x,y,size,color,weight='600',align='left',maxWidth=null){
- const original=String(text??'');ctx.save();ctx.fillStyle=color;ctx.textBaseline='alphabetic';
+ const original=String(text??'');weight=posterBodyWeight(ctx,weight);ctx.save();ctx.fillStyle=color;ctx.textBaseline='alphabetic';
  const measured=measureMixedCanvas(ctx,original,size,weight);
  const scale=maxWidth!==null&&measured.width>maxWidth?maxWidth/measured.width:1;
  if(original.trim()&&mobilePosterActive(ctx)&&size*scale<posterReadabilityMin(ctx))
@@ -498,7 +498,7 @@ function drawResearchHeatmap(ctx,chart,box,p,note=''){
  if(note)posterFitText(ctx,note,left,bottom-5,Math.min(16,font),p.sub,'550','left',width);
 }
 // Shared research-poster axis typography (the live preview uses its own UI scale).
-const RESEARCH_POSTER_AXIS=Object.freeze({title:39,tick:39,period:36,titleWeight:'600',tickWeight:'550'});
+const RESEARCH_POSTER_AXIS=Object.freeze({title:39,tick:36,period:36,titleWeight:'500',tickWeight:'500'});
 // Shared poster typography; dense panels may cap the nominal font size.
 function researchPosterAxisText(ctx,value,x,y,role,color,align='left',maxWidth=Infinity,sizeLimit=Infinity){
  const axis=RESEARCH_POSTER_AXIS;
@@ -594,6 +594,7 @@ function drawGenerationDualAxis(ctx,chart,box,p,preview=false){
 // Cross-module composition views share the poster palette and line/band geometry.
 // Live UI labels use the system font; exported axes use researchPosterAxisText.
 function crossAxisText(ctx,value,x,y,size,color,align='left',maxWidth=Infinity,weight='400'){
+ if(posterAudits.get(ctx)?.bodyTypography)return posterFitText(ctx,value,x,y,size,color,posterBodyWeight(ctx,weight),align,maxWidth);
  const font=getComputedStyle(document.body).getPropertyValue('--ui-font-body').trim()||'system-ui,sans-serif';
  const str=String(value??'');ctx.save();ctx.font=weight+' '+size+'px '+font;
  const measured=ctx.measureText(str).width;

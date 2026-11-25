@@ -43,7 +43,7 @@ const BRAND_FOOTER_NOTE='品牌合并：小米/REDMI · OPPO/一加/realme · vi
 const posterAudits=new WeakMap();
 // Reference coordinates preserve export sizes: 1080 units = 360 logical design units.
 // 360 logical design units; preserve the existing 1080-coordinate rendering API.
-const POSTER_DESIGN=Object.freeze({baseWidth:360,referenceWidth:1080,spacing:Object.freeze({xs:4,sm:8,md:12,lg:16,xl:24,xxl:32}),type:Object.freeze({title:24,subtitle:14,body:14,label:13,note:12,min:12}),chart:Object.freeze({line:2,marker:2.5})});
+const POSTER_DESIGN=Object.freeze({baseWidth:360,referenceWidth:1080,spacing:Object.freeze({xs:4,sm:8,md:12,lg:16,xl:24,xxl:32}),type:Object.freeze({title:24,subtitle:14,body:13,label:13,value:12,rank:12,note:12,caption:10,min:12}),weight:Object.freeze({body:'500',caption:'400'}),chart:Object.freeze({line:2,marker:2.5})});
 const posterDp=v=>v*POSTER_DESIGN.referenceWidth/POSTER_DESIGN.baseWidth;
 const POSTER_SPACE=Object.freeze(Object.fromEntries(Object.entries(POSTER_DESIGN.spacing).map(([k,v])=>[k,posterDp(v)])));
 const MOBILE_POSTER_TYPE=Object.freeze({...Object.fromEntries(Object.entries(POSTER_DESIGN.type).map(([k,v])=>[k,posterDp(v)])),line:posterDp(POSTER_DESIGN.chart.line),marker:posterDp(POSTER_DESIGN.chart.marker)});
@@ -59,8 +59,11 @@ function posterBlock(ctx,lines,size,weight,top){
  return {y:top+ascent,step,height:lines.length?ascent+descent+(lines.length-1)*step:0};
 }
 function mobilePosterActive(ctx){return posterAudits.has(ctx);}
-// TOP10 uses an explicitly approved 10-unit footer; all other content retains the shared minimum.
+// Shared captions use 10 logical units; ordinary chart labels retain the 12-unit minimum.
 function posterReadabilityMin(ctx){const audit=posterAudits.get(ctx);return (audit?.minTextSize??MOBILE_POSTER_TYPE.min)*(audit?.referenceWidth||1080)/1080;}
+function posterBodyWeight(ctx,weight){return posterAudits.get(ctx)?.bodyTypography&&Number(weight)>500?POSTER_DESIGN.weight.body:weight;}
+function withPosterBody(ctx,draw){const a=posterAudits.get(ctx),old=a?.bodyTypography;if(a)a.bodyTypography=true;try{return draw();}finally{if(a)a.bodyTypography=old;}}
+function posterCaption(ctx,value,x,y,color,align='left',width=Infinity){const a=posterAudits.get(ctx),old=a?.minTextSize;if(a)a.minTextSize=MOBILE_POSTER_TYPE.caption;try{posterFitText(ctx,value,x,y,MOBILE_POSTER_TYPE.caption,color,POSTER_DESIGN.weight.caption,align,width);}finally{if(a){if(old===undefined)delete a.minTextSize;else a.minTextSize=old;}}}
 function posterWrap(ctx,value,width,size,weight='550'){
  const lines=[];
  for(const raw of String(value??'').split(/\r?\n/)){
@@ -76,7 +79,7 @@ function posterWeekLabel(period,periods){
 }
 function posterWeekTicks(ctx,periods,x,y,left,right,p){
  if(!periods.length)return;
- const labels=periods.map(v=>posterWeekLabel(v,periods)),size=MOBILE_POSTER_TYPE.label,n=labels.length;
+ const labels=periods.map(v=>posterWeekLabel(v,periods)),size=MOBILE_POSTER_TYPE.value,n=labels.length;
  const widest=Math.max(...labels.map(v=>measureMixedCanvas(ctx,v,size,'550').width));
  const span=Math.max(1,x(n-1)-x(0)),count=Math.max(2,Math.min(7,Math.floor(span/(widest+15))+1));
  const stride=Math.max(1,Math.ceil((n-1)/(count-1)));
@@ -135,7 +138,7 @@ function showPosterAudit(a){
  if(node.className!==cls)node.className=cls;if(node.textContent!==message)node.textContent=message;
 }
 function posterFitText(ctx,value,x,y,size,color,weight='600',align='left',width=Infinity){
- const str=String(value??'');
+ const str=String(value??'');weight=posterBodyWeight(ctx,weight);
  const measured=measureMixedCanvas(ctx,str,size,weight).width;
  const fit=measured>width?size*width/measured:size;
  if(str.trim()){
@@ -152,9 +155,9 @@ function getPosterLayout(ctx,W,H,type,o,right,bottom,copy=getPosterCopy(type,o))
  const outer=PosterThemes.geometry(W,H).card;
  const left=outer.x+S.md,rightEdge=Math.min(outer.x+outer.width-S.md,safeRight-S.sm),width=rightEdge-left;
  const cardX=left,cardRight=rightEdge;
- const footSize=type==='top'?posterDp(TOP10_DESIGN.footer):T.note;
+ const footSize=T.caption;
  const disclaimer=String(copy.disclaimer??'').trim();
- const footerCopy=type==='top'&&!disclaimer.includes('万台')?'销量单位：万台'+(disclaimer?' · '+disclaimer:''):disclaimer;
+ const footerCopy=['top','versus','brands','leader'].includes(type)&&!disclaimer.includes('万台')?'销量单位：万台'+(disclaimer?' · '+disclaimer:''):disclaimer;
  const footerLines=posterWrap(ctx,footerCopy,width,footSize,'400');
  const brandNote=type==='brands'&&o.brands.length>0;
  const brandLines=brandNote?posterWrap(ctx,BRAND_FOOTER_NOTE,width,T.note,'400'):[];
@@ -203,7 +206,7 @@ function paintBar(ctx,x,y,w,h,ratio,p,highlight=false,brandColor=null){
 }
 // TOP10 approved design, in 360 logical units. At zero safety reserve,
 // the rank and name columns start at approximately x=36 and x=66.
-const TOP10_DESIGN=Object.freeze({rank:12,name:13,value:12,weight:'500',inset:16,rankColumn:30,valueGap:8,bar:4,footer:10});
+const TOP10_DESIGN=Object.freeze({rank:POSTER_DESIGN.type.rank,name:POSTER_DESIGN.type.label,value:POSTER_DESIGN.type.value,weight:POSTER_DESIGN.weight.body,inset:16,rankColumn:30,valueGap:8,bar:4});
 function drawTop(ctx,L,o,p){
  const entries=o.models.slice(0,10);if(!entries.length)return;
  const {cardX,cardRight,cardWidth,bodyTop,bodyBottom}=L,D=TOP10_DESIGN,S=POSTER_SPACE;
@@ -237,18 +240,17 @@ function drawDuel(ctx,L,o,p,state=socialState){
  const a=o.models[state.duelA]||o.models[0],b=o.models[state.duelB]||o.models[1];if(!a||!b)return;
  const {left,right,width,bodyTop,bodyHeight}=L;
  const ratio=Math.max(.00001,a.pixels)/Math.max(.00001,b.pixels);
- const gap=18,w=(width-gap)/2,panelH=bodyHeight*.56,y=bodyTop;
+ const gap=POSTER_SPACE.sm,w=(width-gap)/2,panelH=bodyHeight*.56,y=bodyTop,T=MOBILE_POSTER_TYPE;
  [[a,0],[b,1]].forEach(([m,i])=>{
-  const x=left+i*(w+gap),ix=x+22,iw=w-44;
+  const x=left+i*(w+gap),ix=x+POSTER_SPACE.sm,iw=w-2*POSTER_SPACE.sm,seriesColor=i===0?p.bar2:p.bar;
   drawDataCard(ctx,x,y,w,panelH,p);
-  posterFitText(ctx,(i?'对比机型':'参考机型')+' · 第 '+m.rank+' 名',ix,y+panelH*.13,Math.min(27,panelH*.085),p.accent,'800','left',iw);
-  const model=chooseDuelModelLabel(ctx,m.name,iw,Math.min(43,panelH*.12));
-  posterFitText(ctx,model.text,ix,y+panelH*.32,model.size,p.ink,'800','left',iw);
+  posterFitText(ctx,(i?'对比机型':'参考机型')+' · 第 '+m.rank+' 名',ix,y+panelH*.13,Math.min(T.value,panelH*.105),seriesColor,'500','left',iw);
+  const model=chooseDuelModelLabel(ctx,m.name,iw,Math.min(T.label,panelH*.12));
+  posterFitText(ctx,model.text,ix,y+panelH*.32,model.size,p.ink,'500','left',iw);
   posterRule(ctx,ix,ix+iw,y+panelH*.40,p);
-  posterFitText(ctx,'估算销量',ix,y+panelH*.54,Math.min(25,panelH*.073),p.sub,'630','left',iw);
+  posterFitText(ctx,'估算销量',ix,y+panelH*.54,Math.min(T.value,panelH*.105),p.sub,'500','left',iw);
   posterFitText(ctx,o.fit.k!==null?displayWan(m.sale):'待标定',ix,y+panelH*.74,Math.min(68,panelH*.17),p.ink,'830','left',iw);
-  posterFitText(ctx,o.fit.k!==null?'万台':'',ix,y+panelH*.86,Math.min(27,panelH*.07),p.sub,'620','left',iw);
-  paintBar(ctx,ix,y+panelH*.91,iw,Math.min(15,panelH*.04),m.pixels/Math.max(1,a.pixels,b.pixels),p,i===0);
+  paintBar(ctx,ix,y+panelH*.91,iw,Math.min(15,panelH*.04),m.pixels/Math.max(1,a.pixels,b.pixels),p,i===0,seriesColor);
  });
  const y2=y+panelH+18,h=bodyHeight-panelH-18,high=a.pixels>=b.pixels?a:b;
  // Bottom summaries are laid out in their own vertical band, not a scaled image.
@@ -256,7 +258,7 @@ function drawDuel(ctx,L,o,p,state=socialState){
  posterFitText(ctx,'销量较高：'+high.name,left,y2+h*.28,Math.min(27,h*.105),p.sub,'620','left',width);
  posterFitText(ctx,displayTimes(Math.max(ratio,1/ratio)),left,y2+h*.58,Math.min(103,h*.26),p.accent,'900','left',width);
  posterFitText(ctx,'两款估算销量差值',left,y2+h*.75,Math.min(28,h*.10),p.sub,'700','left',width);
- posterFitText(ctx,o.fit.k===null?'待标定':displaySale(Math.abs(a.sale-b.sale)),left,y2+h*.96,Math.min(60,h*.19),p.ink,'830','left',width);
+ posterFitText(ctx,o.fit.k===null?'待标定':displayWan(Math.abs(a.sale-b.sale)),left,y2+h*.96,Math.min(60,h*.19),p.ink,'830','left',width);
 }
 function drawBrands(ctx,L,o,p){
  const brands=o.brands.slice(0,7);if(!brands.length)return;
@@ -266,12 +268,12 @@ function drawBrands(ctx,L,o,p){
  const head=posterBlock(ctx,heading,T.note,'500',bodyTop+S.md);
  const top=bodyTop+S.md+head.height+S.xs;
  const rows=brands.map((b,i)=>{
-  const name=`${i+1}. ${b.brand}（${b.count}款）`,sale=`${displaySale(b.sale)} · ${fmt(b.share*100,1)}%`;
-  const labelWidth=measureMixedCanvas(ctx,name,T.label,'600').width,saleWidth=measureMixedCanvas(ctx,sale,T.note,'700').width;
+  const name=`${i+1}. ${b.brand}（${b.count}款）`,sale=`${displayWan(b.sale)} · ${fmt(b.share*100,1)}%`;
+  const labelWidth=measureMixedCanvas(ctx,name,T.label,'500').width,saleWidth=measureMixedCanvas(ctx,sale,T.value,'500').width;
   const stacked=labelWidth+saleWidth+S.xs>width;
-  const hero=posterWrap(ctx,'主力爆款：'+b.hero,width,T.note,'400');
+  const hero=posterWrap(ctx,'主力爆款：'+b.hero,width,T.value,'500');
   const main=posterBlock(ctx,[name,sale],T.label,'600',0),extra=stacked?T.note+S.xs:0;
-  const heroBlock=posterBlock(ctx,hero,T.note,'400',0);
+  const heroBlock=posterBlock(ctx,hero,T.value,'500',0);
   return {b,name,sale,stacked,hero,heroBlock,needed:Math.max(T.label,main.y+T.label*.15)+extra+posterDp(2+3+2)+heroBlock.height+posterDp(4)};
  });
  const totalNeeded=rows.reduce((sum,r)=>sum+r.needed,0),available=bodyBottom-S.md-top;
@@ -284,9 +286,9 @@ function drawBrands(ctx,L,o,p){
   posterFitText(ctx,name,left,y+T.label*.85,T.label,p.ink,'600','left',width);
   let baseline=y+T.label*.85;
   if(stacked)baseline+=T.note+S.xs;
-  posterFitText(ctx,sale,right,baseline,T.note,hot?p.bar2:p.ink,'700','right',width);
+  posterFitText(ctx,sale,right,baseline,T.value,hot?p.bar2:p.ink,'500','right',width);
   const barY=baseline+posterDp(4);paintBar(ctx,left,barY,width,posterDp(3),b.pixels/first,p,hot,window.BrandUtils.color(b.brand));
-  hero.forEach((v,j)=>posterFitText(ctx,v,left,barY+posterDp(5)+heroBlock.y+j*heroBlock.step,T.note,p.sub,'400','left',width));
+  hero.forEach((v,j)=>posterFitText(ctx,v,left,barY+posterDp(5)+heroBlock.y+j*heroBlock.step,T.value,p.sub,'500','left',width));
  });
 }
 function drawLeader(ctx,L,o,p){
@@ -295,13 +297,13 @@ function drawLeader(ctx,L,o,p){
  const heroH=h*.32,innerX=left+28,innerW=width-56;
  drawDataCard(ctx,left,y,width,heroH,p);
  posterFitText(ctx,'本榜第一名',innerX,y+heroH*.22,Math.min(28,heroH*.14),p.accent,'750','left',innerW);
- posterFitText(ctx,a.name,innerX,y+heroH*.51,Math.min(49,heroH*.24),p.ink,'850','left',innerW);
- posterFitText(ctx,o.fit.k===null?'待标定':displayWan(a.sale)+' 万台',innerX,y+heroH*.87,Math.min(83,heroH*.32),p.ink,'850','left',innerW);
+ posterFitText(ctx,a.name,innerX,y+heroH*.51,Math.min(MOBILE_POSTER_TYPE.label,heroH*.24),p.ink,'500','left',innerW);
+ posterFitText(ctx,o.fit.k===null?'待标定':displayWan(a.sale),innerX,y+heroH*.87,Math.min(83,heroH*.32),p.ink,'850','left',innerW);
  const midY=y+heroH+18,midH=h*.33-18;
  posterFitText(ctx,'第一名对比第二名',left,midY+midH*.13,Math.min(30,midH*.13),p.sub,'650','left',width);
  posterFitText(ctx,'约 '+displayTimes(o.ratio),left,midY+midH*.48,Math.min(76,midH*.32),p.accent,'900','left',width);
  posterFitText(ctx,'领先估算销量',left,midY+midH*.67,Math.min(28,midH*.13),p.sub,'650','left',width);
- posterFitText(ctx,o.fit.k===null?'待标定':displayWan(a.sale-b.sale)+' 万台',left,midY+midH*.95,Math.min(51,midH*.25),p.ink,'780','left',width);
+ posterFitText(ctx,o.fit.k===null?'待标定':displayWan(a.sale-b.sale),left,midY+midH*.95,Math.min(51,midH*.25),p.ink,'780','left',width);
  const lowY=y+h*.65+8,lowH=h*.35-8;
  posterRule(ctx,left,right,lowY,p);
  posterFitText(ctx,'样本内销量集中度',left,lowY+lowH*.19,Math.min(32,lowH*.16),p.ink,'760','left',width);
@@ -358,11 +360,13 @@ function drawPoster(type,canvas,o=socialData(),showGuides=false,pixelRatio=1,pub
  ctx.beginPath();ctx.rect(0,0,L.safeRight,L.safeBottom);ctx.clip();
  posterFrame(ctx,L,o,p);
  if(layoutOK){
+ withPosterBody(ctx,()=>{
  if(type==='top')drawTop(ctx,L,o,p);
  else if(type==='versus')drawDuel(ctx,L,o,p,state);
  else if(type==='brands')drawBrands(ctx,L,o,p);
  else if(isResearchTemplate(type)){const copy=publication?.copy||getPosterCopy(type,o);drawResearchPosterContent(ctx,L,p,{...research,chartNote:copy.chartNote??research?.chartNote??''});}
  else drawLeader(ctx,L,o,p);
+ });
  drawPosterFooter(ctx,L,p);
  }
  if(!layoutOK){posterFitText(ctx,'布局空间不足，请调整留白或附注',L.left,Math.min(L.safeBottom-20,360),32,p.warn,'800','left',L.width);}
@@ -443,7 +447,7 @@ function drawResearchPosterContent(ctx,L,p,s){
 // supplies a flexible chart-sized canvas with no social safe area or frame.
 // Mobile two-period ribbons: measured columns, fixed readable fonts and collision-aware labels.
 function drawPosterRibbon(ctx,chart,box,p){
- const {left,right,top,bottom,width}=box,{periods,lines,unit,limit}=chart,T=MOBILE_POSTER_TYPE,S=POSTER_SPACE,sz=T.note,label=T.label,pct=unit==='%';
+ const {left,right,top,bottom,width}=box,{periods,lines,unit,limit}=chart,T=MOBILE_POSTER_TYPE,S=POSTER_SPACE,sz=T.value,label=T.label,pct=unit==='%';
  if(periods.length!==2||!lines.length||!lines.every(l=>l.values.slice(0,2).length===2&&l.values.slice(0,2).every(v=>Number.isFinite(v)&&v>=0))){auditIssue(ctx,'双周流向图数据不完整',true);return;}
  const fmt=v=>v.toFixed(1)+(pct?'%':'');
  const change=(a,b)=>{const d=b-a;return (d>=.05?'+':'')+(Math.abs(d)<.05?'0.0':d.toFixed(1))+(pct?'pp':'万台');};
@@ -486,10 +490,10 @@ function drawPosterRibbon(ctx,chart,box,p){
 }
 function drawResearchChartContent(ctx,p,s,box){
  const {left,right,top:start,bottom,width}=box;
- const notes=posterWrap(ctx,s.chartNote,width,MOBILE_POSTER_TYPE.note,'550');
- const noteHeight=notes.length?notes.length*43+12:0,chartBottom=bottom-noteHeight;
+ const caption=MOBILE_POSTER_TYPE.caption,notes=posterWrap(ctx,s.chartNote,width,caption,'400');
+ const noteBlock=posterBlock(ctx,notes,caption,'400',0),noteHeight=notes.length?noteBlock.height+POSTER_SPACE.xs:0,chartBottom=bottom-noteHeight;
  const chartBox={left,right,top:start,bottom:chartBottom,width,height:chartBottom-start};
- const drawNotes=()=>notes.forEach((line,i)=>posterFitText(ctx,line,left,bottom-8-(notes.length-1-i)*43,MOBILE_POSTER_TYPE.note,p.sub,'550','left',width));
+ const drawNotes=()=>notes.forEach((line,i)=>posterCaption(ctx,line,left,chartBottom+POSTER_SPACE.xs+noteBlock.y+i*noteBlock.step,p.sub,'left',width));
  if(notes.length>6)auditIssue(ctx,'图表内附注超过6行，建议精简');
  if(!auditPlot(ctx,width,chartBox.height,'研究图表内容区',360,230))return;
  if(['trackerBoth','trackerRank','trackerMatrix'].includes(s.chart?.kind)){drawTrackerTrendPoster(ctx,p,{...s,chartNote:''},chartBox);drawNotes();return;}
@@ -591,19 +595,20 @@ async function exportResearchChartPNG(snapshot,{palette,watermark,width}){
  const blob=await PosterExport.canvasPNG(canvas=>{
   const p=palette,geometry=researchDirectGeometry(snapshot),padding=34,logicalW=geometry.width+padding*2;
   const measure=canvas.getContext('2d');
-  const T=MOBILE_POSTER_TYPE,notes=[...new Set([snapshot.chartNote,snapshot.note].filter(Boolean))].flatMap(t=>posterWrap(measure,t,geometry.width,T.note,'400'));
-   const headings=[...posterWrap(measure,snapshot.title,geometry.width,T.title,'700').map(v=>({v,size:T.title,weight:'700'})),...posterWrap(measure,snapshot.displayMetric+' · '+snapshot.range,geometry.width,T.subtitle,'500').map(v=>({v,size:T.subtitle,weight:'500'})),...posterWrap(measure,'来源：'+snapshot.source,geometry.width,T.note,'400').map(v=>({v,size:T.note,weight:'400'}))];
-  const headerH=32+headings.reduce((h,v)=>h+v.size*1.3,0),footerH=notes.length*43+40,logicalH=headerH+geometry.height+footerH;
+  const T=MOBILE_POSTER_TYPE,notes=[...new Set([snapshot.chartNote,snapshot.note].filter(Boolean))].flatMap(t=>posterWrap(measure,t,geometry.width,T.caption,'400'));
+   const noteBlock=posterBlock(measure,notes,T.caption,'400',0);
+   const headings=[...posterWrap(measure,snapshot.title,geometry.width,T.title,'700').map(v=>({v,size:T.title,weight:'700'})),...posterWrap(measure,snapshot.displayMetric+' · '+snapshot.range,geometry.width,T.subtitle,'500').map(v=>({v,size:T.subtitle,weight:'500'})),...posterWrap(measure,'来源：'+snapshot.source,geometry.width,T.caption,'400').map(v=>({v,size:T.caption,weight:'400'}))];
+  const headerH=32+headings.reduce((h,v)=>h+v.size*1.3,0),footerH=noteBlock.height+40,logicalH=headerH+geometry.height+footerH;
   const scale=Math.min(width/logicalW,16000/logicalH,Math.sqrt(40000000/(logicalW*logicalH)));
   if(!Number.isFinite(scale)||scale<=0)throw Error('图表尺寸无效');
   canvas.width=Math.max(1,Math.floor(logicalW*scale));canvas.height=Math.max(1,Math.floor(logicalH*scale));outputWidth=canvas.width;
   const ctx=canvas.getContext('2d'),audit={warnings:new Set(),errors:new Set(),referenceWidth:logicalW};posterAudits.set(ctx,audit);
   ctx.scale(scale,scale);ctx.fillStyle=p.panel||'#ffffff';ctx.fillRect(0,0,logicalW,logicalH);
-  let yy=15;headings.forEach(h=>{yy+=h.size;posterFitText(ctx,h.v,padding,yy,h.size,h.weight==='700'?p.ink:p.sub,h.weight,'left',geometry.width);yy+=h.size*.3;});
+  let yy=15;headings.forEach(h=>{yy+=h.size;if(h.size===T.caption)posterCaption(ctx,h.v,padding,yy,p.sub,'left',geometry.width);else posterFitText(ctx,h.v,padding,yy,h.size,h.weight==='700'?p.ink:p.sub,h.weight,'left',geometry.width);yy+=h.size*.3;});
    const box={left:padding,right:logicalW-padding,top:headerH,bottom:headerH+geometry.height,width:geometry.width,height:geometry.height};
-  if(snapshot.chart)drawResearchChartContent(ctx,p,{...snapshot,chartNote:''},box);
-  else if(snapshot.table)drawDirectResearchTable(ctx,p,snapshot.table,box);
-  notes.forEach((line,i)=>posterFitText(ctx,line,padding,box.bottom+36+i*43,T.note,p.sub,'400','left',geometry.width));
+  withPosterBody(ctx,()=>{if(snapshot.chart)drawResearchChartContent(ctx,p,{...snapshot,chartNote:''},box);
+  else if(snapshot.table)drawDirectResearchTable(ctx,p,snapshot.table,box);});
+  notes.forEach((line,i)=>posterCaption(ctx,line,padding,box.bottom+POSTER_SPACE.sm+noteBlock.y+i*noteBlock.step,p.sub,'left',geometry.width));
   drawImageWatermark(ctx,logicalW,logicalH,0,0,watermark,{safeEnabled:false},p);
   warnings=[...audit.warnings];posterAudits.delete(ctx);
    if(audit.errors.size)throw Error([...audit.errors].join('；')+'，请缩短区间或减少展示项目');

@@ -534,6 +534,52 @@ function drawCoverageLayers(ctx,chart,box,p,preview=false){
  if(!count)crossAxisText(ctx,'无可行市场区间，分层暂不绘制',x0+plotW/2,(lowerY+lowerBottom)/2,font,p.sub,'center',plotW-8*f);
  crossPeriodTicks(ctx,chart.periods,x,lowerBottom+font+7*f,plotW,font,p);
 }
+// Weekly market-share changes: brands are rows, calendar weeks are columns.
+function drawBrandCompetitionHeatmap(ctx,chart,box,p,preview=false){
+ const {left,right,top,bottom,width,height}=box,n=chart.periods.length,lines=chart.lines;
+ if(!n||!lines.length)return;
+ const f=Math.max(.65,Math.min(1.35,width/800,height/400)),font=(preview?13:17)*f;
+ const x0=left+Math.max(72,82*f),x1=right-8*f,y0=top+43*f,y1=bottom-62*f;
+ const slot=(x1-x0)/n,rowH=Math.min(60*f,(y1-y0)/lines.length);
+ if(!auditPlot(ctx,x1-x0,y1-y0,'品牌竞争热力图绘图区',240,125))return;
+ const peak=lines.reduce((m,l)=>l.values.reduce((a,v)=>Number.isFinite(v)?Math.max(a,Math.abs(v)):a,m),0);
+ const cap=Math.max(.1,Math.ceil(peak*10)/10);
+ const color=v=>{
+  const neutral=[241,245,249],target=v>=0?[185,28,28]:[29,78,216],t=Math.min(1,Math.abs(v)/cap);
+  return 'rgb('+neutral.map((c,i)=>Math.round(c+(target[i]-c)*t)).join(',')+')';
+ };
+ const fmt=v=>{const rounded=Math.round(v*10)/10;return (rounded>0?'+':'')+rounded.toFixed(1);};
+ const labelStep=Math.max(1,Math.ceil(52*f/slot));
+ canvasText(ctx,'全市场份额环比变化（pp）',left,top+font,font,p.ink,'600','left',width);
+ chart.periods.forEach((period,i)=>{
+  if(i%labelStep!==0&&i!==n-1)return;
+  if(i!==n-1&&n-1-i<labelStep*.7)return;
+  const sameYear=chart.periods.every(w=>w.slice(0,4)===chart.periods[0].slice(0,4));
+  const label=slot<80*f&&sameYear?period.slice(5):period;
+  canvasText(ctx,label,x0+(i+.5)*slot,y0-10*f,font,p.sub,'500','center',Math.max(slot,slot*labelStep)-3);
+ });
+ lines.forEach((l,j)=>{
+  const y=y0+j*rowH;
+  canvasText(ctx,l.name,x0-9*f,y+rowH/2+font*.32,font,p.ink,'600','right',x0-left-12*f);
+  l.values.forEach((v,i)=>{
+   const valid=Number.isFinite(v),x=x0+i*slot,gap=Math.min(3*f,slot*.12);
+   rounded(ctx,x+gap/2,y+gap/2,slot-gap,rowH-gap,3*f,valid?color(v):'#d1d5db');
+   const label=valid?fmt(v):'—',ink=valid&&Math.abs(v)/cap>.66?'#ffffff':'#17263c';
+   if(slot>=15*f)canvasText(ctx,label,x+slot/2,y+rowH/2+font*.32,font,ink,'600','center',Math.max(1,slot-gap-4));
+  });
+ });
+ const legendW=Math.min(width*.48,300*f),lx=left+(width-legendW)/2,ly=y0+rowH*lines.length+15*f;
+ const gradient=ctx.createLinearGradient(lx,ly,lx+legendW,ly);
+ gradient.addColorStop(0,color(-cap));gradient.addColorStop(.5,color(0));gradient.addColorStop(1,color(cap));
+ ctx.fillStyle=gradient;ctx.fillRect(lx,ly,legendW,9*f);
+ canvasText(ctx,'−'+cap.toFixed(1),lx,ly+24*f,font,p.sub,'500','center');
+ canvasText(ctx,'0',lx+legendW/2,ly+24*f,font,p.sub,'500','center');
+ canvasText(ctx,'+'+cap.toFixed(1),lx+legendW,ly+24*f,font,p.sub,'500','center');
+ canvasText(ctx,'蓝：下跌',left,ly+9*f,font,p.sub,'500','left',Math.max(1,lx-left-8*f));
+ canvasText(ctx,'红：上涨',right,ly+9*f,font,p.sub,'500','right',Math.max(1,right-lx-legendW-8*f));
+ canvasText(ctx,'— 缺失或不可比较',right,ly+24*f,font,p.sub,'500','right',Math.max(1,right-lx-legendW-8*f));
+}
+
 function drawBrandGrowth(ctx,chart,box,p,preview=false){
  const {left,right,top,bottom,width,height}=box,n=chart.periods.length;
  if(!n)return;
@@ -665,13 +711,14 @@ const ResearchCharts=(()=>{
   });
  }
  function renderComposition(host,chart,label){
-  const W=['coverageLayers','brandGrowth'].includes(chart.kind)?Math.max(chart.kind==='brandGrowth'?1080:900,chart.periods.length*(chart.kind==='brandGrowth'?52:48)+130):chart.kind==='generationDualAxis'?Math.max(780,chart.periods.length*56+120):chart.kind==='dualBrandFlowMulti'?Math.max(1150,chart.periods.length*125+140):chart.kind==='dualBrandFlow'?1080:chart.kind==='heatmap'?Math.max(850,chart.lines.length*94+210):chart.kind==='brandStack'?Math.max(780,chart.periods.length*78+120):850,H=chart.kind==='brandGrowth'?1120:chart.kind==='coverageLayers'?920:chart.kind==='dualBrandFlowMulti'?1080:chart.kind==='dualBrandFlow'?1070:chart.kind==='heatmap'?Math.max(510,chart.periods.length*42+135):chart.kind==='scatter'?560:510;
+  const W=chart.kind==='brandCompetitionHeatmap'?Math.max(850,chart.periods.length*78+120):['coverageLayers','brandGrowth'].includes(chart.kind)?Math.max(chart.kind==='brandGrowth'?1080:900,chart.periods.length*(chart.kind==='brandGrowth'?52:48)+130):chart.kind==='generationDualAxis'?Math.max(780,chart.periods.length*56+120):chart.kind==='dualBrandFlowMulti'?Math.max(1150,chart.periods.length*125+140):chart.kind==='dualBrandFlow'?1080:chart.kind==='heatmap'?Math.max(850,chart.lines.length*94+210):chart.kind==='brandStack'?Math.max(780,chart.periods.length*78+120):850,H=chart.kind==='brandCompetitionHeatmap'?490:chart.kind==='brandGrowth'?1120:chart.kind==='coverageLayers'?920:chart.kind==='dualBrandFlowMulti'?1080:chart.kind==='dualBrandFlow'?1070:chart.kind==='heatmap'?Math.max(510,chart.periods.length*42+135):chart.kind==='scatter'?560:510;
   const canvas=document.createElement('canvas'),density=Math.min(2,window.devicePixelRatio||1);
   canvas.width=Math.round(W*density);canvas.height=Math.round(H*density);canvas.style.cssText='display:block;width:100%;min-width:620px;background:#fff;border-radius:10px';
+  if(chart.kind==='brandCompetitionHeatmap')canvas.style.minWidth=Math.max(620,W*.7)+'px';
   canvas.setAttribute('role','img');canvas.setAttribute('aria-label',label+'；完整数值见数据表');
   const ctx=canvas.getContext('2d');ctx.setTransform(density,0,0,density,0,0);ctx.fillStyle='#fff';ctx.fillRect(0,0,W,H);
   const box={left:16,right:W-16,top:16,bottom:H-16,width:W-32,height:H-32},p={ink:'#17263c',sub:'#64748b',hair:'#e4e9f0',accent:'#c93630',bar:'#265a87'};
-  if(chart.kind==='coverageLayers')drawCoverageLayers(ctx,chart,box,p,true);else if(chart.kind==='brandGrowth')drawBrandGrowth(ctx,chart,box,p,true);else if(chart.kind==='generationDualAxis')drawGenerationDualAxis(ctx,chart,box,p,true);else if(chart.kind==='dualBrandFlowMulti')drawDualBrandFlowMulti(ctx,chart,box,p,'上图为TOP30样本，下图为全市场份额 · 色带只表示同品牌变化');else if(chart.kind==='dualBrandFlow')drawDualBrandFlow(ctx,chart,box,p,'上下图统计范围不同 · 色带只表示同品牌变化');else if(chart.kind==='heatmap')drawResearchHeatmap(ctx,chart,box,p);else if(chart.kind==='scatter'||chart.kind==='bars')drawHeadStaticPoster(ctx,p,{chart,chartNote:''},box);else drawBrandComposition(ctx,chart,box,p,'');
+  if(chart.kind==='brandCompetitionHeatmap')drawBrandCompetitionHeatmap(ctx,chart,box,p,true);else if(chart.kind==='coverageLayers')drawCoverageLayers(ctx,chart,box,p,true);else if(chart.kind==='brandGrowth')drawBrandGrowth(ctx,chart,box,p,true);else if(chart.kind==='generationDualAxis')drawGenerationDualAxis(ctx,chart,box,p,true);else if(chart.kind==='dualBrandFlowMulti')drawDualBrandFlowMulti(ctx,chart,box,p,'上图为TOP30样本，下图为全市场份额 · 色带只表示同品牌变化');else if(chart.kind==='dualBrandFlow')drawDualBrandFlow(ctx,chart,box,p,'上下图统计范围不同 · 色带只表示同品牌变化');else if(chart.kind==='heatmap')drawResearchHeatmap(ctx,chart,box,p);else if(chart.kind==='scatter'||chart.kind==='bars')drawHeadStaticPoster(ctx,p,{chart,chartNote:''},box);else drawBrandComposition(ctx,chart,box,p,'');
   host.append(canvas);
   // Canvas is not automatically repainted when web fonts finish loading.
   if(chart.kind==='generationDualAxis'&&document.fonts){

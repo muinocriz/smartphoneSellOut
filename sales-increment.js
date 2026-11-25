@@ -309,7 +309,13 @@ function plot(svg,{sets,ticks,rangeLabel},width,height,{mobile=false,interactive
   const labels=[],pointLabels=[],occupied=[];
   const mobileExport=mobile&&!interactive;
   const showPointLabels=byId('labels').checked&&!mobileExport;
-  const lineWidth=2;
+  const lineWidth=2,markerGap=1;
+  const dotRadius=lineWidth*.8,ringRadius=lineWidth*.65,ringStroke=1,arrowSize=9;
+  const markerArrow=point=>point.op==='>='?'↑':point.op==='<'?'↓':'';
+  function markerClearance(point){
+    const radius=markerArrow(point)?arrowSize/2:point.op==='='?dotRadius:ringRadius+ringStroke/2;
+    return radius+markerGap;
+  }
   const fontFamily='Noto Sans SC, sans-serif',fontSize=12;
   const measure=showPointLabels?document.createElement('canvas').getContext('2d'):null;
   if(measure)measure.font=fontSize+'px '+fontFamily;
@@ -342,24 +348,32 @@ function plot(svg,{sets,ticks,rangeLabel},width,height,{mobile=false,interactive
       const rank=numbered.indexOf(s),text=mobile?(rank<0?'':String(rank+1)):nameOf(s.key);
       if(text)labels.push({text,color:s.color,key:s.key,x:x(end),y:y(s.points[end].value)});
     }
-    s.points.forEach((p,i)=>{
-    if(!visible(p))return;
-    const prev=s.points[i-1],cx=x(i),cy=y(p.value);
-    if(visible(prev)&&(p.op==='='&&prev.op==='='||p.estimated||prev.estimated)){
-      svgNode(group,'line',{x1:x(i-1),y1:y(prev.value),x2:cx,y2:cy,stroke:s.color,'stroke-width':lineWidth,'stroke-dasharray':p.estimated||prev.estimated?'5 3':'none'});
-    }
-    const smallDot=mobileExport&&p.op==='=';
-    const node=svgNode(group,'circle',{
-      cx,cy,r:smallDot?lineWidth/2:3.6,
-      fill:p.op==='='?s.color:paper,stroke:s.color,'stroke-width':smallDot?0:lineWidth
-    });
-    svgNode(node,'title',{},nameOf(s.key)+' · '+rangeLabel(ticks[i])+' · '+display(p)+' 万台');
-    const symbol=p.op==='>='?'↑':p.op==='<'?'↓':p.op==='≈'?'≈':'';
-    if(symbol){
-      svgNode(group,'text',{x:cx+4,y:cy-5,fill:s.color},symbol);
-      if(measure)occupied.push(textBounds(symbol,cx+4,cy-5,'left'));
-    }
-    if(measure)pointLabels.push({group,x:cx,y:cy-12,text:fmt(p.value),color:s.color});
+    s.points.forEach((point,i)=>{
+      if(!visible(point))return;
+      const prev=s.points[i-1],cx=x(i),cy=y(point.value);
+      const arrow=markerArrow(point);
+      const estimated=point.estimated||prev?.estimated;
+      if(visible(prev)&&(estimated||(point.op==='='&&prev.op==='='))){
+        const px=x(i-1),py=y(prev.value),dx=cx-px,dy=cy-py;
+        const length=Math.hypot(dx,dy);
+        const startGap=markerClearance(prev),endGap=markerClearance(point);
+        if(length>startGap+endGap){
+          svgNode(group,'line',{
+            x1:px+dx*startGap/length,y1:py+dy*startGap/length,
+            x2:cx-dx*endGap/length,y2:cy-dy*endGap/length,
+            stroke:s.color,'stroke-width':lineWidth,'stroke-dasharray':estimated?'5 3':'none'
+          });
+        }
+      }
+      const exact=point.op==='=';
+      const node=arrow
+        ? svgNode(group,'text',{x:cx,y:cy,fill:s.color,'font-size':arrowSize,'text-anchor':'middle','dominant-baseline':'central'},arrow)
+        : svgNode(group,'circle',{
+            cx,cy,r:exact?dotRadius:ringRadius,fill:exact?s.color:paper,
+            stroke:s.color,'stroke-width':exact?0:ringStroke
+          });
+      svgNode(node,'title',{},nameOf(s.key)+' · '+rangeLabel(ticks[i])+' · '+display(point)+' 万台');
+      if(measure)pointLabels.push({group,x:cx,y:cy-12,text:fmt(point.value),color:s.color});
     });
   }
   function textBounds(text,x,y,align){

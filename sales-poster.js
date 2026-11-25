@@ -655,7 +655,7 @@ function researchDirectGeometry(s){
  if(kind==='dualBrandFlow'){width=1080;height=1070;}
  if(kind==='brandStack'){width=Math.max(1080,n*78+160);height=Math.max(650,480+Math.ceil(count/3)*36);}
  if(kind==='brandRibbon'){width=1080;height=Math.max(820,108+count*posterDp(16)+posterDp(24));}
- if(kind==='heatmap'){width=Math.max(1080,count*96+220);height=Math.max(560,n*44+150);}
+ if(kind==='heatmap'){width=Math.max(1080,count*posterDp(38)+220);height=Math.max(560,n*posterDp(20)+220);}
  if(kind==='scatter'){width=1080;height=Math.max(660,420+Math.ceil(n/2)*29);}
  if(kind==='bars'){width=1080;height=Math.max(560,n*65+100);}
  if(!c&&s.table){

@@ -483,7 +483,74 @@ function drawDualBrandFlow(ctx,chart,box,p,note=''){
 }
 
 // Shared heatmap rendering for live canvas and poster. Cell values are already normalized by the research engine.
+// Exported matrices use the shared mobile typography and content-driven label widths.
+// Keep the original compact renderer for the research-page preview.
+function drawMobileResearchHeatmap(ctx,chart,box,p,note=''){
+ const {left,right,top,bottom,width}=box,rows=chart.periods,cols=chart.lines;
+ if(!rows.length||!cols.length)return;
+ const T=MOBILE_POSTER_TYPE,S=POSTER_DESIGN.weight,gap=posterDp(4),pad=posterDp(2),axis=T.axis;
+ const wrap=(value,maxWidth)=>{
+  const result=[];
+  for(const raw of String(value??'').split(/\r?\n/)){
+   let line='';
+   for(const token of raw.match(/[A-Za-z0-9][A-Za-z0-9._/-]*|[ \t]+|[^\r\n]/gu)||[]){
+    if(!line&&/^\s+$/.test(token))continue;
+    if(line&&posterAxisMeasure(ctx,line+token,axis)>maxWidth){if(line.trim())result.push(line.trim());line=token.trimStart();}
+    else line+=token;
+   }
+   if(line.trim())result.push(line.trim());
+  }
+  return result.length?result:[''];
+ };
+ const longest=Math.max(0,...rows.map(v=>posterAxisMeasure(ctx,v,axis)));
+ // Only long labels pay the cost of wrapping; short labels do not reserve a fixed percentage.
+ const labelW=Math.min(longest+gap,width*.34),x0=left+labelW,x1=right,cw=(x1-x0)/cols.length;
+ if(labelW<=gap||cw<=2*pad){auditIssue(ctx,'热力矩阵横向空间不足，请减少属性类别数',true);return;}
+ const rowLines=rows.map(v=>wrap(v,labelW-gap)),colLines=cols.map(v=>wrap(v.name,cw-2*pad));
+ const lineMetrics=lines=>{
+  let ascent=axis*.85,descent=axis*.2;
+  ctx.save();for(const text of lines){ctx.font=S.axis+' '+axis+'px '+posterAxisFont(text);const m=ctx.measureText(text);ascent=Math.max(ascent,m.actualBoundingBoxAscent||0);descent=Math.max(descent,m.actualBoundingBoxDescent||0);}ctx.restore();
+  return {ascent,descent,step:Math.max(axis*1.2,ascent+descent+pad)};
+ };
+ const metrics=lineMetrics([...rowLines.flat(),...colLines.flat()]),blockH=lines=>metrics.ascent+metrics.descent+(lines.length-1)*metrics.step;
+ const heading=chart.rowLabel+' × '+chart.colLabel+' · '+chart.unit;
+ const headingLines=posterWrap(ctx,heading,width,T.axisTitle,S.axisTitle),headingBlock=posterBlock(ctx,headingLines,T.axisTitle,S.axisTitle,top);
+ const headerBottom=top+headingBlock.height+gap+Math.max(...colLines.map(blockH));
+ const y0=headerBottom+gap,legendH=T.legend+2*gap;
+ const noteLines=note?posterWrap(ctx,note,width,T.caption,S.caption):[],noteBlock=posterBlock(ctx,noteLines,T.caption,S.caption,0);
+ const y1=bottom-legendH-(noteLines.length?noteBlock.height+gap:0),rh=(y1-y0)/rows.length;
+ if(!auditPlot(ctx,x1-x0,y1-y0,'热力矩阵绘图区',220,150))return;
+ if(rh<=2*pad||cw<=2*pad){auditIssue(ctx,'热力矩阵单元过小，请减少属性类别数',true);return;}
+ const max=Math.max(0,...cols.flatMap(v=>v.values.filter(Number.isFinite))),fmt=v=>chart.unit==='项次'?String(Math.round(v)):v.toFixed(1)+(chart.unit==='%'?'%':'');
+ const vals=cols.flatMap(v=>v.values.map(n=>Number.isFinite(n)?fmt(n):'—'));
+ const widest=Math.max(1,...vals.map(v=>measureMixedCanvas(ctx,v,T.value,S.body).width));
+ const valueSize=Math.min(T.value,T.value*(cw-2*pad)/widest,(rh-2*pad)/1.2);
+ if(valueSize<T.value)auditIssue(ctx,'矩阵单元空间不足，数字统一缩小；建议减少属性类别数或使用更宽图幅');
+ if(valueSize<posterDp(6)){auditIssue(ctx,'热力矩阵数字无法清晰显示，请减少属性类别数',true);return;}
+ headingLines.forEach((v,i)=>posterFitText(ctx,v,left,headingBlock.y+i*headingBlock.step,T.axisTitle,p.sub,S.axisTitle,'left',width));
+ colLines.forEach((lines,j)=>lines.forEach((v,k)=>posterAxisText(ctx,v,x0+(j+.5)*cw,headerBottom-blockH(lines)+metrics.ascent+k*metrics.step,p.ink,'center',cw-2*pad)));
+ rows.forEach((name,i)=>{
+  const y=y0+i*rh,lines=rowLines[i],scale=Math.min(1,(rh-2*pad)/blockH(lines));
+  if(scale<1)auditIssue(ctx,'矩阵行标签空间不足，局部字号缩小');
+  lines.forEach((v,k)=>posterAxisText(ctx,v,x0-gap,y+(rh-blockH(lines)*scale)/2+(metrics.ascent+k*metrics.step)*scale,p.ink,'right',labelW-gap,axis*scale));
+  cols.forEach((col,j)=>{
+   const v=col.values[i],x=x0+j*cw,valid=Number.isFinite(v),ratio=valid&&max>0?Math.max(0,Math.min(1,v/max)):0;
+   ctx.fillStyle=valid?'rgb('+Math.round(240-205*ratio)+','+Math.round(246-133*ratio)+','+Math.round(253-72*ratio)+')':'#e5e7eb';
+   ctx.fillRect(x+1,y+1,Math.max(0,cw-2),Math.max(0,rh-2));
+   posterFitText(ctx,valid?fmt(v):'—',x+cw/2,y+rh/2+valueSize*.32,valueSize,valid&&ratio>.65?'#ffffff':'#17263c',S.body,'center',cw-2*pad);
+  });
+ });
+ const legendY=y1+gap+T.legend,zeroW=posterLegendMeasure(ctx,'0'),maxText='最大 '+fmt(max),maxW=posterLegendMeasure(ctx,maxText);
+ const sw=Math.min(posterDp(12),(width-zeroW-maxW-2*gap)/5),barH=posterDp(4),barX=left+zeroW+gap;
+ if(sw>0){
+  posterCompactLegendText(ctx,'0',left,legendY,p.sub,T.legend,S.legend);
+  for(let j=0;j<5;j++){const r=j/4;ctx.fillStyle='rgb('+Math.round(240-205*r)+','+Math.round(246-133*r)+','+Math.round(253-72*r)+')';ctx.fillRect(barX+j*sw,legendY-T.legend*.55,Math.max(0,sw-1),barH);}
+  posterCompactLegendText(ctx,maxText,barX+5*sw+gap,legendY,p.sub,T.legend,S.legend);
+ }else auditIssue(ctx,'矩阵色阶图例空间不足',true);
+ if(noteLines.length)noteLines.forEach((v,i)=>posterCaption(ctx,v,left,bottom-noteBlock.height+noteBlock.y+i*noteBlock.step,p.sub,'left',width));
+}
 function drawResearchHeatmap(ctx,chart,box,p,note=''){
+ if(mobilePosterActive(ctx))return drawMobileResearchHeatmap(ctx,chart,box,p,note);
  const {left,right,top,bottom,width,height}=box,rows=chart.periods,cols=chart.lines;
  if(!rows.length||!cols.length)return;
  const labelW=Math.min(width*.29,Math.max(100,width*.22)),headerH=Math.min(75,height*.14),footH=note?62:43;

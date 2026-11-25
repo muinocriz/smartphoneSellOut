@@ -2,7 +2,7 @@
 
 [简体中文](README.md) · [English](README.en.md)
 
-一个部署于 Cloudflare Workers 的手机销量分析与图文制作项目，包含销量追踪、市场份额、榜单研究及销量数据处理四个独立模块。业务前端保持原生静态 HTML/CSS/JS，本地预览无需构建；线上通过 Worker 提供静态资源。
+一个部署于 Cloudflare Workers 的手机销量分析与图文制作项目，包含销量追踪、市场份额、榜单研究及销量数据处理五个独立模块。业务前端保持原生静态 HTML/CSS/JS，本地预览无需构建；线上通过 Worker 提供静态资源。
 
 **[在线打开项目](https://smartphonesellout.zirconium.workers.dev/)**
 
@@ -18,10 +18,11 @@
 | **02 · 市场份额** | 自动读取 `market-share.csv`，选择连续两周品牌份额，支持本地 CSV 导入与手动编辑；五种图表（含规模比例堆叠图）、六套主题和 3:4 高清 PNG 导出。 | [打开市场份额](https://smartphonesellout.zirconium.workers.dev/#market-share) |
 | **03 · 榜单推算与出图** | 导入截图并标定估算入榜销量，或直接选择历史榜单及十四个研究专题制作图卡；支持销量与原始排名联动追踪、排名矩阵、CSV 存档、3:4／9:16 高清 PNG 和 ZIP 导出。 | [打开榜单推算](https://smartphonesellout.zirconium.workers.dev/#sales-estimator) |
 | **04 · 手机销量数据处理工具 V3.3** | 自动读取项目销量宽表及机型主数据，支持累计/周增量编辑、特殊数值、检查、主数据维护、本地草稿和 CSV 导出。 | [打开销量数据处理](https://smartphonesellout.zirconium.workers.dev/#sales-data-editor) |
+| **05 · 销量增量追踪** | 读取销量长表，优先按相邻精确累计差分，支持模糊值标记、逐周编辑和 CSV 导出。 | [打开销量增量追踪](https://smartphonesellout.zirconium.workers.dev/#sales-increment) |
 
 ## 快速使用
 
-访问上方在线入口即可使用；四个模块均可直接访问。拥有私有仓库访问权限的维护者可克隆或下载仓库，在项目根目录执行：
+访问上方在线入口即可使用；五个模块均可直接访问。拥有私有仓库访问权限的维护者可克隆或下载仓库，在项目根目录执行：
 
 ```bash
 python3 -m http.server 8000
@@ -64,7 +65,7 @@ CSV 字段、完整销售周口径、设计约定、部署和维护方法见 [�
 
 ## Cloudflare 分模块部署
 
-四个模块及其发布的 CSV 均公开访问。模块 3 沿用 `/studio/` 路径。Cloudflare 从私有仓库的 `master` 分支部署构建清单中的文件。详见[部署指南](docs/CLOUDFLARE_DEPLOYMENT.md)。
+五个模块及其发布的 CSV 均公开访问。模块 3 沿用 `/studio/` 路径。Cloudflare 从私有仓库的 `master` 分支部署构建清单中的文件。详见[部署指南](docs/CLOUDFLARE_DEPLOYMENT.md)。
 
 ## 更多文档
 

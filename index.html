@@ -104,13 +104,13 @@ td.bad{color:var(--warn)}
 .load{display:flex;flex-wrap:wrap;align-items:center;gap:10px;font-size:13px;color:var(--muted)}
 .load.err{color:var(--warn)}
 
-/* 首页四栏目：独立页面隔离样式、脚本与数据。 */
+/* 首页五栏目：独立页面隔离样式、脚本与数据。 */
 .page-tabs{font-family:var(--ui-font-body,var(--f-body));display:inline-flex;align-items:center;gap:4px;padding:4px;background:var(--panel);border:1px solid var(--line);border-radius:10px}
 .page-tabs button{font-size:17px;font-weight:700;white-space:nowrap;padding:6px 16px;border:0;border-radius:7px;background:transparent;color:var(--muted)}
 .page-tabs button:hover{color:var(--fg);background:var(--accent-soft)}
 .page-tabs button[aria-selected="true"]{color:var(--accent);background:var(--accent-soft)}
 .sales-view{display:grid;gap:16px;min-width:0}
-#shareView,#estimatorView,#editorView{min-width:0}
+#shareView,#estimatorView,#editorView,#incrementView{min-width:0}
 .editor-frame{display:block;width:100%;height:calc(100dvh - 108px);min-height:520px;border:1px solid var(--line);border-radius:10px}
 .share-frame,.estimator-frame{display:block;width:100%;height:calc(100dvh - 116px);min-height:780px;border:1px solid var(--line);border-radius:10px}.share-frame{background:#0f172a}.estimator-frame{background:#f5f7fb;min-height:0;height:calc(100dvh - 108px)}
 @media(max-width:600px){.page-tabs{width:100%;justify-content:space-between;flex-wrap:wrap}.page-tabs button{font-size:clamp(12px,3.7vw,16px);padding:6px clamp(7px,2.5vw,13px)}.share-frame,.estimator-frame{min-height:calc(100dvh - 130px)}}
@@ -125,6 +125,7 @@ td.bad{color:var(--warn)}
       <button id="tabShare" type="button" role="tab" aria-selected="false" aria-controls="shareView" tabindex="-1">市场份额</button>
       <button id="tabEstimator" type="button" role="tab" aria-selected="false" aria-controls="estimatorView" tabindex="-1">热销机型与榜单研究</button>
       <button id="tabEditor" type="button" role="tab" aria-selected="false" aria-controls="editorView" tabindex="-1">销量数据处理</button>
+      <button id="tabIncrement" type="button" role="tab" aria-selected="false" aria-controls="incrementView" tabindex="-1">销量增量追踪</button>
     </nav>
     <div class="hd-r">
       <span class="sub" id="sub">正在读取 data.csv…</span>
@@ -220,6 +221,9 @@ td.bad{color:var(--warn)}
   </section>
   <section id="editorView" role="tabpanel" aria-labelledby="tabEditor" hidden>
     <iframe id="editorFrame" class="editor-frame" title="手机销量数据处理工具 V3.3" data-src="sales-data-editor.html" loading="lazy" hidden></iframe>
+  </section>
+  <section id="incrementView" role="tabpanel" aria-labelledby="tabIncrement" hidden>
+    <iframe id="incrementFrame" class="editor-frame" title="销量增量追踪" data-src="sales-increment.html" loading="lazy" hidden></iframe>
   </section>
 </div>
 
@@ -1213,19 +1217,19 @@ fetch(DATA_URL+"?t="+Date.now()).then(r=>{if(!r.ok)throw new Error(r.status);ret
 </script>
 
 <script>
-/* 顶部四栏目：默认销量追踪；其余栏目支持 hash 深链接 */
+/* 顶部五栏目：默认销量追踪；其余栏目支持 hash 深链接 */
 (() => {
   const tabs = [
     {key: "sales", id: "tabSales", viewId: "salesView", hash: "#sales"},
     {key: "share", id: "tabShare", viewId: "shareView", hash: "#market-share"},
     {key: "estimator", id: "tabEstimator", viewId: "estimatorView", hash: "#sales-estimator"},
-    {key: "editor", id: "tabEditor", viewId: "editorView", hash: "#sales-data-editor"}
+    {key: "editor", id: "tabEditor", viewId: "editorView", hash: "#sales-data-editor"},
+    {key: "increment", id: "tabIncrement", viewId: "incrementView", hash: "#sales-increment"}
   ].map(item => ({...item, tab: document.getElementById(item.id), view: document.getElementById(item.viewId)}));
   const salesView = document.getElementById("salesView");
   const shareView = document.getElementById("shareView");
   const shareFrame = document.getElementById("shareFrame");
   const estimatorFrame = document.getElementById("estimatorFrame");
-  const editorFrame = document.getElementById("editorFrame");
   const sub = document.getElementById("sub");
   let frameObserver = null;
   function openStudio(key) {
@@ -1265,9 +1269,10 @@ fetch(DATA_URL+"?t="+Date.now()).then(r=>{if(!r.ok)throw new Error(r.status);ret
     if (updateUrl && location.hash !== active.hash) history.pushState(null, "", active.hash);
     if (active.key === "share" || active.key === "estimator") {
       openStudio(active.key);
-    } else if (active.key === "editor") {
-      editorFrame.hidden = false;
-      if (!editorFrame.hasAttribute("src")) editorFrame.src = editorFrame.dataset.src;
+    } else if (active.key === "editor" || active.key === "increment") {
+      const frame = document.getElementById(active.key + "Frame");
+      frame.hidden = false;
+      if (!frame.hasAttribute("src")) frame.src = frame.dataset.src;
     } else {
       // ECharts 在隐藏后重新显示时需要重新测量宽度。
       requestAnimationFrame(() => window.dispatchEvent(new Event("resize")));

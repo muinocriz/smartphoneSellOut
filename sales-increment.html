@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>销量增量追踪</title>
+<style>*{box-sizing:border-box}body{margin:0;background:#f4f6f9;color:#18243b;font:15px "Noto Sans SC",system-ui,sans-serif}main{max-width:980px;margin:auto;padding:32px 16px}h1{font-size:clamp(24px,5vw,38px);margin:4px 0}h2{font-size:18px;margin:0 0 14px}small,p{color:#50617a}section{background:white;border:1px solid #dbe2ea;border-radius:14px;padding:20px;margin:16px 0}label{display:inline-grid;gap:6px;margin:0 16px 8px 0}select{border:1px solid #aab7c9;border-radius:6px;background:white;padding:8px;font:inherit}svg{width:100%;height:auto;min-height:160px}table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}td,th{padding:8px 4px;text-align:right;border-bottom:1px solid #e4e8ef}td:first-child,th:first-child{text-align:left}caption{text-align:left;font-weight:bold;margin-bottom:10px}.scroll{overflow:auto}</style>
+<main>
+<h1>销量增量追踪</h1>
+<p>精选机型 · 单位：万台</p>
+<p id="loadState" role="status">正在读取项目长表…</p>
+<div id="content" hidden>
+<section>
+<label>追踪对象<select id="model">
+</select>
+</label>
+<label>显示指标<select id="metric">
+<option value="weekly">周销量增量</option>
+<option value="cumulative">累计销量</option>
+</select>
+</label>
+<h2 id="heading">
+</h2>
+<svg viewBox="0 0 800 240" role="img" aria-labelledby="heading">
+</svg>
+<small>缺失周保留断点。○↑ 表示至少达到该值，○↓ 表示低于该值，≈ 表示约数。</small>
+</section>
+<section class="scroll">
+<table>
+<caption>逐周明细</caption>
+<thead>
+<tr>
+<th>ISO 周</th>
+<th>原始累计</th>
+<th>周销量增量</th>
+<th>增量来源</th>
+</tr>
+</thead>
+<tbody>
+</tbody>
+</table>
+</section>
+<section>
+<h2>销量数据编辑</h2>
+<p>双击数值格或选中后按 Enter 编辑。空白表示没有原始记录。</p>
+<button id="addWeek">新增周次</button> <button id="reset">重置临时数据</button> <button id="download">导出长表 CSV</button>
+<div class="scroll">
+<table id="editGrid">
+</table>
+</div>
+</section>
+</div>
+</main>
+<script src="iso-sales-week.js"></script>
+<script src="sales-increment.js"></script>
+</html>

@@ -2,7 +2,7 @@
 
 [简体中文](README.md) · [English](README.en.md)
 
-A smartphone data dashboard and social-poster toolkit deployed on Cloudflare Workers, with four independent modules. The frontend uses static HTML/CSS/JS and requires no local build; the Worker serves the published assets.
+A smartphone data dashboard and social-poster toolkit deployed on Cloudflare Workers, with five independent modules. The frontend uses static HTML/CSS/JS and requires no local build; the Worker serves the published assets.
 
 **[Open the live project](https://smartphonesellout.zirconium.workers.dev/)**
 
@@ -21,10 +21,11 @@ A smartphone data dashboard and social-poster toolkit deployed on Cloudflare Wor
 The module-3 in-list and whole-market brand competition study adds a six-brand, three-row by two-column growth-decomposition view (listed and off-list week-over-week changes, plus total changes), and retains a two-week ribbon comparison and a multiweek stacked-flow mode, with translucent same-brand ribbons drawn only between adjacent valid weeks. The TOP30 market coverage study now combines market-size estimates and a 100% rank-layer composition chart; off-list shares are conditional scenario residuals, left blank without a feasible finite market interval. The ranking-ecosystem brand-structure multiweek stacked chart now also uses these ribbons for brand sales share, model-count share, and sales volume; missing weeks break the connections, and the multiweek cross-module view omits the pp-change column.
 
 | **04 · Sales Data Editor V3.3** | Auto-load project sales and model CSVs; edit cumulative and weekly values, manage special observations and model metadata, check data, save local drafts and export CSVs. | [Sales Data Editor](https://smartphonesellout.zirconium.workers.dev/#sales-data-editor) |
+| **05 · Weekly sales increments** | Track weekly changes from the long-format sales data, edit observations and export CSV. | [Open tracker](https://smartphonesellout.zirconium.workers.dev/#sales-increment) |
 
 ## Getting started
 
-Use the live site above (all four modules are public). Maintainers with private repository access can download or clone it and serve it locally:
+Use the live site above (all five modules are public). Maintainers with private repository access can download or clone it and serve it locally:
 
 ```bash
 python3 -m http.server 8000
@@ -61,7 +62,7 @@ Sales-tracking data is manually compiled mainly from public posts by **RD观测*
 
 ## Cloudflare deployment
 
-Cloudflare deploys the listed assets from the private repository's `master` branch. All four modules and their published CSV files are public. Module 3 uses `/studio/`. See the [deployment guide](docs/CLOUDFLARE_DEPLOYMENT.md).
+Cloudflare deploys the listed assets from the private repository's `master` branch. All five modules and their published CSV files are public. Module 3 uses `/studio/`. See the [deployment guide](docs/CLOUDFLARE_DEPLOYMENT.md).
 
 ## Documentation
 

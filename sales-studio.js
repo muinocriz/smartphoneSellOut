@@ -72,7 +72,7 @@ const publicResearchHeadings={
 function publicResearchTag(s){
  let tag=String(s.range||'').replace(/\s*→\s*/g,' vs ').replace(/（完整销售周）/g,' · 上市后周次').trim();
  if(!tag)return '';
- if(['coverage','dual'].includes(s.key)&&!tag.includes('TOP30'))tag+=' · TOP30';
+ if(['coverage','dual'].includes(s.key)&&s.chart?.kind!=='brandCompetitionHeatmap'&&!tag.includes('TOP30'))tag+=' · TOP30';
  if(s.config?.sampleMode==='expanded')tag+=' · 扩展样本';
  return tag;
 }
@@ -89,7 +89,7 @@ function publicResearchChartNote(s){
  if(key==='tail')return s.chart?.tail?'周均销量只计近期实际入榜周；未上榜不代表停销或零销量':'未出现在榜单中不代表机型已停销';
  if(key==='flow')return '进入或退出榜单，不等于上市或停销';
  if(key==='brand'&&['brandStack','brandRibbon'].includes(kind))return '浅色连接仅表示同品牌份额变化，不代表销量转移';
- if(key==='dual')return kind==='brandGrowth'?'榜外、总销量变化为模型情景；区间跨零时方向不确定':'上下图统计范围不同；色带仅连接同一品牌';
+ if(key==='dual')return kind==='brandCompetitionHeatmap'?'全市场份额较区间内相邻前周变化（pp）；缺失不补零':kind==='brandGrowth'?'榜外、总销量变化为模型情景；区间跨零时方向不确定':'上下图统计范围不同；色带仅连接同一品牌';
  if(key==='coverage'){
   if(kind==='coverageLayers')return s.chart?.skuEnabled?'紫线为市场总销量情景中点；下图榜外为推导值':'紫线仅为市场下界；无上界时不绘制分层';
   if(kind==='coverageTrend')return s.chart?.skuEnabled?
@@ -115,6 +115,7 @@ function publicResearchCopy(s){
   else if(s.chart?.axis==='lifecycle')subtitle='上市后各周销量变化';
  }
  if(s.key==='tail'&&s.chart?.tail)subtitle='上市年龄与近期销售活跃度';
+ if(s.key==='dual'&&s.chart?.kind==='brandCompetitionHeatmap'){title='品牌竞争表现热力图';subtitle='六大母品牌全市场份额环比变化（pp）';}
  if(s.key==='dual'&&s.chart?.kind==='brandGrowth'){title='品牌销量增长贡献分解';subtitle='六大母品牌榜内与榜外环比变化';}
  if(s.key==='coverage'){
   const view=s.config?.topic?.view;
@@ -125,6 +126,7 @@ function publicResearchCopy(s){
  const source=[s.config?.source,s.config?.series].filter(Boolean).join(' / ')||s.source||'历史销量榜';
  const cross=['dual','coverage'].includes(s.key);
  if(s.config?.sampleMode==='expanded'){if(s.key==='brand'){title='品牌销量结构与集中度';subtitle='扩展样本中的品牌销量表现';}if(s.key==='chip')subtitle='不同芯片平台的样本销量表现';return {title,subtitle,tagLabel,chartNote:publicResearchChartNote(s),disclaimer:'来源：重点机型周增量／累计差分 + '+source+' TOP30估算\n扩展样本按覆盖范围去重，不代表全市场销量或份额'};}
+ if(s.chart?.kind==='brandCompetitionHeatmap')return {title,subtitle,tagLabel,chartNote:publicResearchChartNote(s),disclaimer:'来源：模块2全市场品牌份额CSV\n仅展示六大母品牌；保留全市场原始分母'};
  let disclaimer='来源：'+source+(cross?'；对照：全市场品牌份额数据':' · 榜单销量为估算值');
  if(s.key==='dual')disclaimer+=s.chart?.kind==='brandGrowth'?'\n榜外与品牌总销量为条件性估算，不是官方统计':'\nTOP30仅代表入榜样本；下图为整体市场份额';
  else if(s.key==='coverage')disclaimer+='\n市场总销量为条件性估算，不是官方统计';
@@ -298,6 +300,7 @@ function researchChartRows(s){
  const trackerRank=['trackerRank','trackerMatrix'].includes(chart.kind),combined=chart.kind==='trackerBoth';
  if(trackerRank||combined)meta.push('原始榜单规模');
  if(chart.tail)meta.push('近期自然周窗口','近期上榜次数','近期可判定周数','近期有效销量周数','末周在榜状态','年龄层','入选理由','近期逐周观测');
+ if(chart.kind==='brandCompetitionHeatmap')meta.push('前周','本周全市场份额/%','前周全市场份额/%','环比数据状态');
  if(chart.kind==='brandGrowth')meta.push('品牌','环比数据状态','榜外变化下界/万台','榜外变化上界/万台');
  if(['coverageTrend','coverageLayers'].includes(chart.kind))meta.push('SKU约束启用','全市场趋势检查启用','市场总销量下界/万台','SKU总销量上界/万台','苹果推导入榜率下限/%','苹果推导入榜率上限/%','自动检查状态');
  const sets=combined?[{lines:chart.lines,metric:chart.salesLabel||'销量',unit:'万台',rank:false},{lines:chart.rankLines,metric:'原始榜单排名',unit:'名',rank:true}]:[{lines:chart.lines,metric:s.displayMetric,unit:chart.unit||'',rank:trackerRank}];
@@ -307,6 +310,7 @@ function researchChartRows(s){
   const row=[base[0],base[1],['generationDualAxis','brandGrowth'].includes(chart.kind)?line.metric:chart.kind==='coverageLayers'?(line.panel==='layers'?'销量分层':'市场规模'):set.metric,unit,chart.periods[i],line.name,valid?v:'',set.rank?(line.statuses?.[i]||(valid?'原始榜单观测':'无排名记录')):!valid?'缺失或不适用':line.imputed?.[i]?'含插补':'有效显示值',sourcePeriod,...tail];
   if(trackerRank||combined)row.push(set.rank?line.boardSizes?.[i]||'':'');
   if(chart.tail){const point=chart.tailPoints[i];row.push(chart.tailWindow.join(' / '),point.recentCount,point.recentKnown,point.meanCount,point.lastStatus,point.band,point.reason,JSON.stringify(point.observations));}
+  if(chart.kind==='brandCompetitionHeatmap')row.push(line.previousPeriods?.[i]||'',line.currentShares?.[i]??'',line.previousShares?.[i]??'',line.statuses?.[i]||'');
   if(chart.kind==='brandGrowth')row.push(line.brand,line.statuses?.[i]||'',line.lower?.[i]??'',line.upper?.[i]??'');
   if(['coverageTrend','coverageLayers'].includes(chart.kind)){
    const scenario=!!line.scenario;
@@ -322,7 +326,7 @@ function researchChartRows(s){
  return rows;
 }
 function researchManifest(s,pub){
- return {schema_version:1,snapshot_schema:s.schemaVersion,topic:s.key,title:s.title,subtitle:s.subtitle,display_metric:s.displayMetric,source:s.source,range:s.range,effective_periods:s.effectivePeriods,configuration:s.config,chart:s.chart?{kind:s.chart.kind||'line',axis:s.chart.axis||null,unit:s.chart.unit||null,periods:s.chart.periods,series:s.chart.lines.map(l=>l.name),...(s.chart.tail?{tail_window:s.chart.tailWindow,tail_points:s.chart.tailPoints,mean_definition:'observed_ranked_weeks_only',marker_area:'recent_count',marker_fill:'end_week_status'}:{}),...(['coverageTrend','coverageLayers'].includes(s.chart.kind)?{apple_anchor_scenario:{sku_enabled:s.chart.skuEnabled,trend_enabled:s.chart.trendEnabled,max_missing_apple_skus:s.chart.maxMissingAppleSkus,weekly_cutoff:'original-rank-30',market_trend_tolerance_pp:s.chart.trendTolerancePp,derived_capture_rate_min:s.chart.derivedCaptureLow,derived_capture_rate_max:s.chart.derivedCaptureHigh,market_lower:s.chart.marketLower,market_upper:s.chart.marketUpper,bands:s.chart.bands,alerts:s.chart.alerts,alert_reasons:s.chart.alertReasons,center:'arithmetic_midpoint_of_feasible_range_only',automatic_correction:false,confidence_interval:false}}:{}),...(s.chart.kind==='coverageLayers'?{panels:[{id:'scale',unit:'万台'},{id:'layers',unit:'%',denominator:'market-scenario-midpoint',missing_without_feasible_interval:true}],series_units:s.chart.lines.map(l=>({name:l.name,unit:l.unit,panel:l.panel}))}:{}),...(s.chart.kind==='brandGrowth'?{layout:'3-rows-2-columns',scale:'shared-signed',series_units:s.chart.lines.map(l=>({name:l.name,brand:l.brand,metric:l.metric,unit:l.unit,role:l.role,...(l.role==='tail'?{lower:l.lower,upper:l.upper}:{}),statuses:l.statuses}))}:{}),...(s.chart.kind==='generationDualAxis'?{metrics:s.chart.lines.map(l=>({label:l.metric,unit:l.unit})),right_axis:{min:0,max:100,references:[50,80],definition:'new_generation_weekly_volume / combined_weekly_volume * 100'}}:{}),...(s.chart.kind==='trackerBoth'?{metrics:[{label:s.chart.salesLabel,unit:'万台'},{label:'原始榜单排名',unit:'名'}]}:{})}:{kind:'table',rows_displayed:Math.min(10,s.table?.rows.length||0)},poster:{ratio:pub.state.ratio,width:pub.width,height:pub.height,theme:pub.state.theme,safe_enabled:pub.state.safeEnabled,safe_right:pub.state.safeRight,safe_bottom:pub.state.safeBottom},limitations:[s.note,s.chartNote],fingerprint:StudioPref.fingerprint([s.config,s.chart,s.csv])};
+ return {schema_version:1,snapshot_schema:s.schemaVersion,topic:s.key,title:s.title,subtitle:s.subtitle,display_metric:s.displayMetric,source:s.source,range:s.range,effective_periods:s.effectivePeriods,configuration:s.config,chart:s.chart?{kind:s.chart.kind||'line',axis:s.chart.axis||null,unit:s.chart.unit||null,periods:s.chart.periods,series:s.chart.lines.map(l=>l.name),...(s.chart.tail?{tail_window:s.chart.tailWindow,tail_points:s.chart.tailPoints,mean_definition:'observed_ranked_weeks_only',marker_area:'recent_count',marker_fill:'end_week_status'}:{}),...(['coverageTrend','coverageLayers'].includes(s.chart.kind)?{apple_anchor_scenario:{sku_enabled:s.chart.skuEnabled,trend_enabled:s.chart.trendEnabled,max_missing_apple_skus:s.chart.maxMissingAppleSkus,weekly_cutoff:'original-rank-30',market_trend_tolerance_pp:s.chart.trendTolerancePp,derived_capture_rate_min:s.chart.derivedCaptureLow,derived_capture_rate_max:s.chart.derivedCaptureHigh,market_lower:s.chart.marketLower,market_upper:s.chart.marketUpper,bands:s.chart.bands,alerts:s.chart.alerts,alert_reasons:s.chart.alertReasons,center:'arithmetic_midpoint_of_feasible_range_only',automatic_correction:false,confidence_interval:false}}:{}),...(s.chart.kind==='coverageLayers'?{panels:[{id:'scale',unit:'万台'},{id:'layers',unit:'%',denominator:'market-scenario-midpoint',missing_without_feasible_interval:true}],series_units:s.chart.lines.map(l=>({name:l.name,unit:l.unit,panel:l.panel}))}:{}),...(s.chart.kind==='brandCompetitionHeatmap'?{layout:'brands-by-weeks',metric:'market-share-delta-pp',source:'market-share.csv',delta:'adjacent-iso-week-within-range',missing:'null',normalization:'none',scale:'symmetric-zero-centered',series_details:s.chart.lines.map(l=>({name:l.name,statuses:l.statuses,current_shares:l.currentShares,previous_shares:l.previousShares,previous_periods:l.previousPeriods}))}:{}),...(s.chart.kind==='brandGrowth'?{layout:'3-rows-2-columns',scale:'shared-signed',series_units:s.chart.lines.map(l=>({name:l.name,brand:l.brand,metric:l.metric,unit:l.unit,role:l.role,...(l.role==='tail'?{lower:l.lower,upper:l.upper}:{}),statuses:l.statuses}))}:{}),...(s.chart.kind==='generationDualAxis'?{metrics:s.chart.lines.map(l=>({label:l.metric,unit:l.unit})),right_axis:{min:0,max:100,references:[50,80],definition:'new_generation_weekly_volume / combined_weekly_volume * 100'}}:{}),...(s.chart.kind==='trackerBoth'?{metrics:[{label:s.chart.salesLabel,unit:'万台'},{label:'原始榜单排名',unit:'名'}]}:{})}:{kind:'table',rows_displayed:Math.min(10,s.table?.rows.length||0)},poster:{ratio:pub.state.ratio,width:pub.width,height:pub.height,theme:pub.state.theme,safe_enabled:pub.state.safeEnabled,safe_right:pub.state.safeRight,safe_bottom:pub.state.safeBottom},limitations:[s.note,s.chartNote],fingerprint:StudioPref.fingerprint([s.config,s.chart,s.csv])};
 }
 function capturePublication(types,o){
  const state=Object.fromEntries(['template','ratio','theme','duelA','duelB','safeEnabled','safeRight','safeBottom'].map(k=>[k,socialState[k]]));

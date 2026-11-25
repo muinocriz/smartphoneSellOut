@@ -4,6 +4,10 @@
 
 本项目尚未采用严格的语义化版本号；以下按提交／合并日期（UTC）归纳重要变更，并链接相关 PR 或提交。
 
+## 2026-11-25
+
+- [af6adac](https://github.com/muinocriz/smartphoneSellOut/commit/af6adacbd10b9eee9d7f112540cabc9039c561d1)：修复模块3 Canvas 海报复合数值字体不一致；支持 `·`、`•` 分隔的独立数值组合（如 `116.4 万台 · 45.3%`），数字及紧随数字的百分号使用 IBM Plex Mono，单位与分隔符保持正文字体，机型名及普通说明不切换字体。未修改字号、布局、数据口径，未执行测试。
+
 ## 2026-11-24
 
 - [c0ad1bb](https://github.com/muinocriz/smartphoneSellOut/commit/c0ad1bb)：模块4新增本地宽表增量同步，项目与本地共用预览及应用逻辑，显示来源，保留现有长表冲突保护；一次确认同步支持整体撤销/重做，无需先上传 data.csv。未执行测试。

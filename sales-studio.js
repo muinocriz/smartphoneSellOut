@@ -496,6 +496,12 @@ function initPublicationPreferences(){
 }
 
 function initSocial(){PosterWatermark.mount(()=>watermarkState,()=>updateSocial(false));
+ const previewWidth=$('posterPreviewWidth'),viewport=$('posterCanvas').parentElement;
+ if(previewWidth)previewWidth.onchange=()=>{
+  const value=previewWidth.value;
+  if(['320','360','390','400'].includes(value)){viewport.dataset.phonePreview='';viewport.style.setProperty('--phone-preview-width',value+'px');}
+  else {delete viewport.dataset.phonePreview;viewport.style.removeProperty('--phone-preview-width');}
+ };
  $('studioReturnSource').onclick=()=>window.SalesEstimateArchive?.returnToStudioSource();
  $('studioUseCurrent').onclick=()=>{if(researchStudioActive())leaveResearchStudio('top');setSocialArchiveDataset(null);};
  $('templateChooser').addEventListener('click',ev=>{const b=ev.target.closest('[data-template]');if(!b)return;if(isResearchTemplate(b.dataset.template)){window.SalesEstimateArchive?.sendResearchToStudio(b.dataset.template.slice(9));return;}leaveResearchStudio(b.dataset.template);updateSocial(true)});

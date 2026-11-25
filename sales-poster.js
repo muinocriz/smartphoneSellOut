@@ -358,6 +358,7 @@ function drawResearchChartContent(ctx,p,s,box){
  if(!auditPlot(ctx,width,chartBox.height,'研究图表内容区',360,230))return;
  if(['trackerBoth','trackerRank','trackerMatrix'].includes(s.chart?.kind)){drawTrackerTrendPoster(ctx,p,{...s,chartNote:''},chartBox);drawNotes();return;}
  if(s.chart?.kind==='coverageLayers'){drawCoverageLayers(ctx,s.chart,chartBox,p);drawNotes();return;}
+ if(s.chart?.kind==='brandCompetitionHeatmap'){drawBrandCompetitionHeatmap(ctx,s.chart,chartBox,p);drawNotes();return;}
  if(s.chart?.kind==='brandGrowth'){drawBrandGrowth(ctx,s.chart,chartBox,p);drawNotes();return;}
  if(s.chart?.kind==='generationDualAxis'){drawGenerationDualAxis(ctx,s.chart,chartBox,p);drawNotes();return;}
  if(s.chart?.kind==='heatmap'){drawResearchHeatmap(ctx,s.chart,chartBox,p,'');drawNotes();return;}
@@ -405,6 +406,7 @@ function researchDirectGeometry(s){
  if(kind==='trackerRank')height=560+Math.ceil(count/4)*36;
  if(kind==='generationDualAxis')height=560;
  if(kind==='coverageLayers')height=1000;
+ if(kind==='brandCompetitionHeatmap'){width=Math.max(1080,n*90+160);height=600;}
  if(kind==='brandGrowth'){width=Math.max(1080,n*106+160);height=1120;}
  if(kind==='dualBrandFlowMulti'){width=Math.max(1150,n*125+140);height=1080;}
  if(kind==='dualBrandFlow'){width=1080;height=1070;}

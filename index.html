@@ -648,7 +648,7 @@ function mobileList(o,t){
   cells.forEach((c,n)=>{const col=Math.floor(n/rows),row=n%rows; // 先竖后横，阅读顺序 1→6 再 7→12
     const x=ML.pad+col*colW,y=top+row*ML.row+ML.row/2;
     if(c.more){g.push({type:"text",x,y,silent:true,style:{text:`另有 ${c.more} 个机型未列出（灰线）`,fill:t.mu,font:`12px ${FONT()}`,textVerticalAlign:"middle"}});return}
-    const {it,k}=c,num=String(k+1),vt=flagPrefix(it.flag)+Math.round(it.v).toLocaleString("zh-CN"),col_=colorOf(it.r);
+    const {it,k}=c,num=String(k+1),vt=flagPrefix(it.flag)+it.v.toLocaleString("zh-CN",{minimumSignificantDigits:4,maximumSignificantDigits:4}),col_=colorOf(it.r);
     const vW=textW(vt,12,400,MONO);
     g.push({type:"text",x,y,silent:true,style:{text:num,fill:col_,font:`700 13px ${FONT()}`,textVerticalAlign:"middle"}});
     g.push({type:"line",silent:true,shape:{x1:x+nW,y1:y,x2:x+nW+sw,y2:y},style:{stroke:col_,lineWidth:3,lineCap:"round"}});

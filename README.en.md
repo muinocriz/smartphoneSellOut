@@ -21,7 +21,7 @@ A smartphone data dashboard and social-poster toolkit deployed on Cloudflare Wor
 The module-3 in-list and whole-market brand competition study adds a six-brand, three-row by two-column growth-decomposition view (listed and off-list week-over-week changes, plus total changes), and retains a two-week ribbon comparison and a multiweek stacked-flow mode, with translucent same-brand ribbons drawn only between adjacent valid weeks. The TOP30 market coverage study now combines market-size estimates and a 100% rank-layer composition chart; off-list shares are conditional scenario residuals, left blank without a feasible finite market interval. The ranking-ecosystem brand-structure multiweek stacked chart now also uses these ribbons for brand sales share, model-count share, and sales volume; missing weeks break the connections, and the multiweek cross-module view omits the pp-change column.
 
 | **04 · Sales Data Editor V3.3** | Auto-load project sales and model CSVs; edit cumulative and weekly values, manage special observations and model metadata, check data, save local drafts and export CSVs. | [Sales Data Editor](https://smartphonesellout.zirconium.workers.dev/#sales-data-editor) |
-| **05 · Weekly sales increments** | Track weekly changes from the long-format sales data, edit observations and export CSV. | [Open tracker](https://smartphonesellout.zirconium.workers.dev/#sales-increment) |
+| **05 · Weekly sales increments** | Track weekly changes from the long-format sales data, compare models by calendar or full sales week, estimate bounded gaps, edit observations and export PNG or CSV. | [Open tracker](https://smartphonesellout.zirconium.workers.dev/#sales-increment) |
 
 ## Getting started
 

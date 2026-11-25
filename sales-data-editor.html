@@ -17,7 +17,7 @@
 <body><main>
 <header><div><h1>手机销量数据处理工具 V3.3</h1><p class="muted">公开工具 · 自动读取项目 CSV · 编辑及草稿仅保存在本地</p></div><div class="muted">单位：万台 / ISO 自然周</div></header>
 <section class="panel" aria-label="导入与导出">
-<div class="toolbar" role="group" aria-label="扩展销量表"><strong class="source-label">扩展销量表：</strong><button class="primary" id="projectSales">从项目导入</button><button id="newData">新建</button><button id="undoBtn" disabled>撤销</button><button id="redoBtn" disabled>重做</button><span class="spacer"></span><button id="longExport" disabled>导出</button></div>
+<div class="toolbar" role="group" aria-label="扩展销量表"><strong class="source-label">扩展销量表：</strong><button class="primary" id="projectSales">从项目导入</button><button id="incrementDraft" disabled>从销量增量追踪导入</button><button id="newData">新建</button><button id="undoBtn" disabled>撤销</button><button id="redoBtn" disabled>重做</button><span class="spacer"></span><button id="longExport" disabled>导出</button></div>
 <div class="toolbar source-row" role="group" aria-label="数据表"><strong class="source-label">数据表：</strong><button id="syncProject">从项目导入</button><button id="syncTracking" disabled title="销量追踪尚无临时更新">从销量追踪导入</button><button id="syncLocal">从本地导入</button><input id="syncFile" class="sr-only" type="file" accept=".csv,text/csv"></div>
 <div class="import-options"><label class="check muted">无年份周列使用年份 <input id="defaultYear" type="number" min="1900" max="9999" step="1" value="2026"></label></div>
 <p class="muted" style="margin-top:7px">默认读取项目扩展销量表（已有本地草稿优先恢复）。从项目、销量追踪或本地导入数据表时，先预览新增及冲突记录，再确认增量同步；保留已有独立周增量和特殊记录。销量追踪存在临时更新时才可从该处导入。</p>
@@ -314,6 +314,27 @@ $('syncApply').onclick=()=>{
  }catch(err){status('应用同步失败：'+err.message,true);$('syncDialog').close();}
 };
 $('syncDialog').addEventListener('close',()=>{pendingSync=null;});
+function incrementProvider(){
+ try{return window.parent.document.getElementById('incrementFrame')?.contentWindow;}catch(_){return null;}
+}
+function refreshIncrementImport(){
+ const provider=incrementProvider();
+ $('incrementDraft').disabled=!provider?.getIncrementDraft?.();
+}
+$('incrementDraft').onclick=()=>{
+ try{
+  const draft=incrementProvider()?.getIncrementDraft?.();
+  if(!draft)return refreshIncrementImport();
+  const next=parseFile(draft.csv);
+  if(!next.isLong)throw Error('缺少长表字段');
+  next.weeks=[...new Set([...next.weeks,...draft.periods])].sort();
+  flush();
+  if(state.ready&&!confirm('从销量增量追踪导入并替换当前销量数据？'))return;
+  replaceState(next);persistDraft();runChecks();status('已导入销量增量追踪的临时长表。');
+ }catch(e){status('导入失败：'+e.message,true);}
+};
+if(parent!==window)parent.addEventListener('increment-data-change',refreshIncrementImport);
+refreshIncrementImport();
 $('projectSales').onclick=()=>loadProjectSales();
 $('projectMaster').onclick=()=>loadProjectMaster();
 if(!state.ready)loadProjectSales(true);

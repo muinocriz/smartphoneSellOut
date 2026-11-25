@@ -49,6 +49,8 @@ Module 1 supports tab-local cumulative edits, temporary weeks, reset, editable t
 
 Both poster studios offer four PNG export resolutions, defaulting to 2160px wide. With safe-area avoidance enabled, both studios can export safe-area and full-layout variants (default right margin 13%, bottom 10%). Module 3 presents estimated sales to one decimal place in units of 10,000 phones, retaining CSV precision.
 
+Module 3 prioritizes mobile-readable 3:4 posters using a 360-unit logical design baseline, shared axis and legend typography, measured spacing, and adaptive stacked-chart and heatmap labels. See the [Maintenance & Design Guide (Chinese)](docs/MAINTAINER_GUIDE.md) for current design parameters and pending visual acceptance. Live research previews and exported posters retain distinct layout rules.
+
 Module 3 uses parent-brand color families and distinct point markers, shared across sales and rank charts for the current selection. Original ranks are never imputed or recalculated after filtering. The studio supports independent chart headings, notes and footer edits, and returning to the source without resetting the publication.
 
 For the full CSV schema, full-sales-week definitions, poster specifications, design principles, deployment details and implementation notes, see the [Maintenance & Design Guide (Chinese)](docs/MAINTAINER_GUIDE.md).

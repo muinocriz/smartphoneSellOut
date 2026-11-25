@@ -4,35 +4,24 @@
 
 本项目尚未采用严格的语义化版本号；以下按提交／合并日期（UTC）归纳重要变更，并链接相关 PR 或提交。
 
-## 2026-11-26
-
-- 修复10号堆叠内部数字因柱宽和内边距不足而整图消失的问题：优先按实际数字宽度扩展柱宽（最多槽宽90%），其次缩减内边距，局部数值必要时8–10号适配，低于8号才隐藏并提示；保留IBM Plex Mono/400及原数据。未执行测试或构建。
-
-- 统一模块3堆叠图与堆叠流向图已有内部数值为10逻辑单位、IBM Plex Mono、400字重，百分号同字体。按实测字形和2单位内边距避免文字越界；过小色块保留数据和色块但暂不绘制内部标签并提示，单个双周流向图保留引导标注。普通数据、坐标轴、图例及附注字号不变。未执行测试或构建。
-
-- 多维产品竞争分析热力矩阵采用动态行标签宽度，缩减短品牌名称造成的左侧空白；行列标签12/400、数值12/500、色阶图例10/400、附注8/400，长标签按词换行并预留表头高度。密集单元保留适配提示，独立PNG按行列数扩展画幅，原数据及色阶不变。未执行测试或构建。
-
-- 修复价格带、芯片平台、新老代际及品牌结构等共用堆叠图的纵轴仍使用旧动态小字号的问题；海报及独立PNG纵轴统一12/400、IBM Plex Mono，动态测量标签列宽，轴标题13/500。保留原始数据、轴范围、底置图例间距及柱内数值局部布局。未执行测试或构建。
-
-- 模块3底置图例与X轴统一预留至少8逻辑单位净间距，根据字形和图例标记高度计算基线间隔；适配时间及分类堆叠图、散点图、长尾气泡图及双市场多周流向图，多行堆叠图图例行高至少15。保留现有字号及数据，不执行测试或构建。
-
-- 模块3公共附注字号从10降为8逻辑单位（400字重），适用于图内统计说明、海报底部来源及免责声明、独立PNG来源与附注；统一重新计算换行与占用高度，图例仍为10，其他文字与统计口径不变。未执行测试或构建。
-
-- 修复模块3价格带、芯片平台等时间堆叠图绕过公共周次格式化的问题。同年自然周横轴显示 WXX、跨年保留年份、非时间类别不变；海报及独立PNG时间堆叠图统一使用公共横轴刻度样式及最多5个标签规则。同步修复多周双市场流向、品牌竞争热力图及排名矩阵周次格式。未执行测试或构建。
-
-- 模块3普通图表基准：横纵坐标刻度12/400，周次及数字显式采用 IBM Plex Mono，中文分类刻度使用正文黑体；轴标题13/500，图例与来源附注10/400。图例宽度计算与实际绘制统一字体及字重；部分独立专题图例接入公共样式，密集布局保留适配限制，网页研究预览不变。未执行测试或构建。
-
-- 修复模块3公共图例 `posterLineLegend()` 的 reduce 初始值误用未定义的 `sum`，导致市场销量分层及其他使用该函数的专题生成图卡时抛出 ReferenceError。改为以0累计行高，保留已确认的图例、坐标轴和折线设计参数；专题生成入口增加异常提示、防重复提交、失败时禁用导出及按钮状态恢复。未执行测试或构建。
-
-- [dbe1370](https://github.com/muinocriz/smartphoneSellOut/commit/dbe1370)：模块3公共折线图排版：普通线宽1.2、点半径1.7、描边0.8、图例11/500、行高15；图例按实际宽度流动、英文词不拆分。纵轴友好刻度、固定字号和实测列宽，排名刻度避碰，横轴最多5个，双面板共享底部周次。同步适配榜单流动、市场销量分层与品牌增长折线。网页预览及原始数据不变；未执行测试或构建。
-
-- 模块3统一海报与独立研究PNG的常规图内字重（500）、标签13、数值/轴刻度12、来源附注10/400设计规则；普通文字仍按空间适配，密集专题暂保留局部约束。销量PK参考/对比标题与各自进度条使用同一主题颜色，四个榜单概览模板的销量单位统一移至页脚。未执行测试或构建。
-
-- 模块3 TOP10海报专项：排名12、机型13、销量12均为500字重；机型列及进度条起点约为66逻辑单位，销量只保留数字并于页脚统一说明万台，附注10/400。保留安全区、主题、水印和原有数据、导出分辨率，其他模板字号不变。未执行测试或构建。
-
-- [2cbf6be](https://github.com/muinocriz/smartphoneSellOut/commit/2cbf6be) / [f79df62](https://github.com/muinocriz/smartphoneSellOut/commit/f79df62)：模块3采用360逻辑单位、4单位间距及3:4优先排版；公共页眉页脚按字形实测排版，品牌榜按内容分配行高，单个双周流向图使用实测文字列、对比度适配、标签避碰及小色块引导标注，取消重复图例；pp纳入数字字体，公共坐标轴字号及独立双周图高度调整。保留原比例、安全区、水印、导出分辨率及数据口径。复杂矩阵、多面板和其他专项尚未全部重排。未执行测试或构建。
-
 ## 2026-11-25
+
+### 模块3移动端海报第二轮：公共视觉规范与专题适配
+
+本轮范围：[57d77b7](https://github.com/muinocriz/smartphoneSellOut/commit/57d77b7) 之后至 [3e5236c](https://github.com/muinocriz/smartphoneSellOut/commit/3e5236c)（含），共16次提交；按实际提交 UTC 日期归档。下列参数为本轮最终状态，覆盖第一轮及过程中的临时字号。
+
+- [2cbf6be](https://github.com/muinocriz/smartphoneSellOut/commit/2cbf6be) / [f79df62](https://github.com/muinocriz/smartphoneSellOut/commit/f79df62) / [1db04cc](https://github.com/muinocriz/smartphoneSellOut/commit/1db04cc)：设计基准从第一轮等效400逻辑宽度调整为360，3:4（360×480）优先、9:16补充；公共页眉、页脚按实测字形排版，品牌榜按实际内容分配行高。双周品牌流向图改为实测标签列、对比度适配、标签避碰及引导标注，取消重复图例；pp接入数字字体。
+- [9510095](https://github.com/muinocriz/smartphoneSellOut/commit/9510095) / [f8216b6](https://github.com/muinocriz/smartphoneSellOut/commit/f8216b6)：TOP10机型13/500、排名及销量12/500，机型及进度条起点约66逻辑单位；四类基础图卡销量单位移至页脚统一说明，销量PK两侧标题颜色随对应进度条变化。常规图内正文采用公共500字重，重点指标保留大数字层级。
+- [dbe1370](https://github.com/muinocriz/smartphoneSellOut/commit/dbe1370) / [34874f8](https://github.com/muinocriz/smartphoneSellOut/commit/34874f8) / [6ef48f6](https://github.com/muinocriz/smartphoneSellOut/commit/6ef48f6)：普通折线1.2、点半径1.7、描边0.8、网格0.5；统一坐标轴12/400、数字及自然周 IBM Plex Mono，中文轴标题13/500；图例10/400、行高15、实测宽度流动排布及按词换行。数值轴友好刻度、最长标签预留列宽、排名刻度避碰；横轴最多5个标签，部分双面板共享底部横轴。适配趋势、追踪、代际双轴、榜单流动、市场销量分层及兼容的品牌增长图。
+- [8c98035](https://github.com/muinocriz/smartphoneSellOut/commit/8c98035)：修复公共图例高度累计的 `reduce()` 初始值误用未定义的 `sum` 导致多个专题生成失败；生成入口捕获异常、提示原因、防重复提交、失败禁用相关导出并恢复按钮。
+- [d2fb4ee](https://github.com/muinocriz/smartphoneSellOut/commit/d2fb4ee) / [d526318](https://github.com/muinocriz/smartphoneSellOut/commit/d526318)：价格带、芯片平台、新老代际及品牌结构等时间堆叠图接入公共横纵轴样式，同年自然周使用 WXX，跨年保留年份；兼容双市场多周流向、竞争热力图和排名矩阵同步周次格式，密集布局仍保留局部约束。
+- [15dc4bc](https://github.com/muinocriz/smartphoneSellOut/commit/15dc4bc) / [af2c1b1](https://github.com/muinocriz/smartphoneSellOut/commit/af2c1b1)：图内说明、来源与底部声明统一8/400；底置图例与X轴按字形及标记高度预留8逻辑单位净间距，适配堆叠图、散点图、长尾气泡图及双市场多周流向图。
+- [faddc86](https://github.com/muinocriz/smartphoneSellOut/commit/faddc86)：多维产品热力矩阵改为实测行标签宽度加4单位间距，长标签按词换行，列标题按实际行数预留高度；行列标签12/400，单元格数字12/500，色阶图例10/400。独立PNG随行列数扩展画幅，密集矩阵仍有局部适配与阻断提示。
+- [e37949a](https://github.com/muinocriz/smartphoneSellOut/commit/e37949a) / [3e5236c](https://github.com/muinocriz/smartphoneSellOut/commit/3e5236c)：已有堆叠内部数字（含百分号）统一10/400、IBM Plex Mono；修复旧柱宽无法容纳新字号导致整图数值消失的问题，优先按文字扩宽柱子至槽宽90%以内，再减小内边距并局部适配至8–10号，低于8号才隐藏并提示。单个双周品牌流向图保留引导标注；原本没有柱内数字的销量分层图不新增标签。
+
+本轮未改变原始数据、统计分母、主题、水印、安全区与导出分辨率；主要针对模块3海报及独立PNG，网页研究区不整体套用海报字号，但部分共用周次显示规则已同步。未执行测试、构建或部署验收。待办：公共横轴仍按等分取整抽样，可能出现 W40/W42/W43/W45/W46；改为固定自然周整数步长（如 W40/W42/W44/W46）尚未实现。密集专题仍需人工验收。最终视觉基准见 [维护与设计指南](docs/MAINTAINER_GUIDE.md)，实现及维护边界见 [模块3架构](docs/MODULE3_ARCHITECTURE.md)。
+
+### 第一轮移动端海报与字体修复
 
 - [d379166](https://github.com/muinocriz/smartphoneSellOut/commit/d379166) / [8624fab](https://github.com/muinocriz/smartphoneSellOut/commit/8624fab) / [c60f086](https://github.com/muinocriz/smartphoneSellOut/commit/c60f086) / [fac16ba](https://github.com/muinocriz/smartphoneSellOut/commit/fac16ba) / [a69e458](https://github.com/muinocriz/smartphoneSellOut/commit/a69e458) / [e4ae402](https://github.com/muinocriz/smartphoneSellOut/commit/e4ae402) / [0b29afc](https://github.com/muinocriz/smartphoneSellOut/commit/0b29afc) / [3f17ac5](https://github.com/muinocriz/smartphoneSellOut/commit/3f17ac5)：模块3第一轮移动端海报排版：1080参考坐标保留，等效400px逻辑设计；标题72、副标题43、核心40、图例及坐标轴36、附注33，低于阅读目标提示。趋势/追踪/代际双轴图例换行、周次疏化，独立趋势PNG按系列增加高度，页眉页脚自动换行，直接表格增大字号与行高；新增320/360/390/400px展示预览。密集矩阵、多面板及部分榜单局部尺寸仍有空间限制，未完成所有专题的独立重排。原比例、分辨率、安全区、水印及统计数据保留。未执行测试或构建。
 

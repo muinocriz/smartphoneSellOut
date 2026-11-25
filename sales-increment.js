@@ -317,11 +317,19 @@ function mobileLegendName(context,key,width,multiBrand){
   if(context.measureText(full).width<=width)return full;
   return fitText(context,needsBrand?full:model,width);
 }
+function segHitsBox(x1,y1,x2,y2,r){ // Liang–Barsky
+  let t0=0,t1=1;const dx=x2-x1,dy=y2-y1;
+  for(const [p,q] of [[-dx,x1-r.x0],[dx,r.x1-x1],[-dy,y1-r.y0],[dy,r.y1-y1]]){
+    if(p===0){if(q<0)return false}else{const t=q/p;if(p<0){if(t>t1)return false;if(t>t0)t0=t}else{if(t<t0)return false;if(t<t1)t1=t}}}
+  return true}
+function boxesOverlap(a,b){
+  return a.left<b.right&&a.right>b.left&&a.top<b.bottom&&a.bottom>b.top;
+}
 function plot(svg,{sets,ticks,rangeLabel},width,height,{mobile=false,interactive=false,numbered=null}={}){
   const paper=themeColor('--paper'),ink=themeColor('--ink'),grid=themeColor('--grid');
   const ranked=sets.filter(s=>Number.isFinite(lastVisible(s))).sort((a,b)=>lastVisible(b)-lastVisible(a));
   numbered??=ranked;
-  const labels=[],pointLabels=[],occupied=[];
+  const labels=[],pointLabels=[],occupied=[],segments=[],markers=[];
   const mobileExport=mobile&&!interactive;
   const showPointLabels=byId('labels').checked&&!mobileExport;
   const lineWidth=2,markerGap=1;
@@ -367,17 +375,20 @@ function plot(svg,{sets,ticks,rangeLabel},width,height,{mobile=false,interactive
       if(!visible(point))return;
       const prev=s.points[i-1],cx=x(i),cy=y(point.value);
       const arrow=markerArrow(point);
+      const clearance=markerClearance(point)-markerGap;
+      markers.push({left:cx-clearance,right:cx+clearance,top:cy-clearance,bottom:cy+clearance});
       const estimated=point.estimated||prev?.estimated;
       if(visible(prev)&&(estimated||(point.op==='='&&prev.op==='='))){
         const px=x(i-1),py=y(prev.value),dx=cx-px,dy=cy-py;
         const length=Math.hypot(dx,dy);
         const startGap=markerClearance(prev),endGap=markerClearance(point);
         if(length>startGap+endGap){
-          svgNode(group,'line',{
+          const segment={
             x1:px+dx*startGap/length,y1:py+dy*startGap/length,
-            x2:cx-dx*endGap/length,y2:cy-dy*endGap/length,
-            stroke:s.color,'stroke-width':lineWidth,'stroke-dasharray':estimated?'5 3':'none'
-          });
+            x2:cx-dx*endGap/length,y2:cy-dy*endGap/length
+          };
+          segments.push(segment);
+          svgNode(group,'line',{...segment,stroke:s.color,'stroke-width':lineWidth,'stroke-dasharray':estimated?'5 3':'none'});
         }
       }
       const exact=point.op==='=';
@@ -404,25 +415,60 @@ function plot(svg,{sets,ticks,rangeLabel},width,height,{mobile=false,interactive
   for(const {group,x,y,text,color} of pointLabels){
     const box=textBounds(text,x,y,'center');
     if(box.left<0||box.right>width||box.top<0)continue;
-    const overlaps=occupied.some(other=>box.left<other.right&&box.right>other.left&&box.top<other.bottom&&box.bottom>other.top);
+    const overlaps=occupied.some(other=>boxesOverlap(box,other));
     if(overlaps)continue;
     svgNode(group,'text',{x,y,'text-anchor':'middle',fill:color,'font-family':numberFont},text);
     occupied.push(box);
   }
-  // Prioritize the highlighted series when the available tail-label slots fill up.
-  const capacity=Math.max(1,Math.floor((bottom-top)/15));
-  const visibleLabels=labels.sort((a,b)=>Number(interactive&&b.key===focused)-Number(interactive&&a.key===focused)).slice(0,capacity).sort((a,b)=>a.y-b.y);
-  let last=top-15;
-  visibleLabels.forEach(l=>{l.target=Math.max(l.y,last+15);last=l.target});
-  let ceiling=bottom;
-  measure.font=fontSize+'px '+(mobile?numberFont:bodyFont);
-  for(const l of visibleLabels.reverse()){
-    const pos=Math.min(l.target,ceiling);ceiling=pos-15;
-    const labelX=right+7;
-    const g=svgNode(svg,'g',{opacity:interactive&&focused&&focused!==l.key?0.2:1});
-    svgNode(g,'path',{d:'M'+l.x+' '+l.y+' L'+(labelX-3)+' '+pos,fill:'none',stroke:l.color,'stroke-width':.7,opacity:.65});
-    const text=mobile?l.text:fitText(measure,l.text,width-labelX-3);
-    svgNode(g,'text',{x:labelX,y:pos+4,fill:l.color,'font-family':mobile?numberFont:bodyFont},text);
+  const labelFont=mobile?numberFont:bodyFont;
+  measure.font=fontSize+'px '+labelFont;
+  measure.textAlign='left';
+  const placed=[];
+  const labelHeight=fontSize+4,offset=mobile?6:8;
+  labels.sort((a,b)=>Number(interactive&&b.key===focused)-Number(interactive&&a.key===focused)||b.x-a.x||a.y-b.y);
+  for(const label of labels){
+    const text=mobile?label.text:fitText(measure,label.text,width-right-offset-8);
+    const labelWidth=Math.ceil(measure.measureText(text).width)+8;
+    const rightX=label.x+offset,leftX=label.x-offset-labelWidth;
+    let best;
+    function consider(x,y,preference){
+      const box={left:x,right:x+labelWidth,top:y-labelHeight/2,bottom:y+labelHeight/2};
+      if(box.left<left||box.right>width-2||box.top<top-6||box.bottom>bottom+6)return;
+      if(placed.some(item=>boxesOverlap(box,item.box)))return;
+      const lineBox={x0:box.left,x1:box.right,y0:box.top,y1:box.bottom};
+      let score=preference+Math.abs(y-label.y)/labelHeight+Math.abs(x-rightX)/100;
+      if(markers.some(marker=>boxesOverlap(box,marker)))score+=30;
+      if(occupied.some(value=>boxesOverlap(box,value)))score+=20;
+      if(segments.some(({x1,y1,x2,y2})=>segHitsBox(x1,y1,x2,y2,lineBox)))score+=40;
+      if(!best||score<best.score)best={x,y,box,score};
+    }
+    // Start next to the endpoint, then try vertically offset slots and nearby alternatives.
+    for(const [x,preference] of [[rightX,0],[leftX,8],[label.x-labelWidth/2,12]]){
+      for(const dy of [0,-1,1,-2,2])consider(x,label.y+dy*labelHeight,preference);
+    }
+    if(!best||best.score>=20){
+      const gutterX=Math.min(right+offset,width-labelWidth-2);
+      for(let y=top+labelHeight/2;y<=bottom+3;y+=labelHeight+1){
+        consider(rightX,y,5);
+        consider(gutterX,y,18);
+      }
+    }
+    if(best)placed.push({...best,label,text});
+  }
+  // Put guides beneath label backgrounds so they cannot obscure text.
+  for(const {label,x,y,box} of placed){
+    if(Math.abs(y-label.y)<3&&Math.abs(x-(label.x+offset))<3)continue;
+    const targetX=Math.max(box.left,Math.min(box.right,label.x));
+    const dx=targetX-label.x,dy=y-label.y,distance=Math.hypot(dx,dy);
+    if(distance<=5)continue;
+    const startX=label.x+dx*5/distance,startY=label.y+dy*5/distance;
+    const opacity=interactive&&focused&&focused!==label.key?0.15:.65;
+    svgNode(svg,'line',{x1:startX,y1:startY,x2:targetX,y2:y,stroke:label.color,'stroke-width':.7,opacity});
+  }
+  for(const {label,text,x,y,box} of placed){
+    const group=svgNode(svg,'g',{opacity:interactive&&focused&&focused!==label.key?0.2:1});
+    svgNode(group,'rect',{x,y:box.top,width:box.right-box.left,height:labelHeight,rx:3,fill:paper,opacity:.9});
+    svgNode(group,'text',{x:x+4,y:y+4,fill:label.color,'font-family':labelFont},text);
   }
   if(interactive)svg.dataset.plot=JSON.stringify({left,right,width});
 }

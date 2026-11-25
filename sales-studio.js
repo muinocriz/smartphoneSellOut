@@ -66,7 +66,7 @@ const publicResearchHeadings={
  price:['价格带竞争分析','不同首发价位的销量表现'],
  position:['品牌产品定位分析','各品牌首发价位与销量分布'],
  chip:['芯片平台竞争分析','不同芯片平台的上榜表现'],
- age:['新老产品结构分析','新品与老机型销量占比'],
+ age:['新老代际结构分析','新旧代际销量占比'],
  cross:['多维产品竞争分析','不同产品属性的销量分布']
 };
 function publicResearchTag(s){
@@ -99,7 +99,7 @@ function publicResearchChartNote(s){
  }
  if(key==='price')return '价格按首发起售价划分，并非实际成交价';
  if(key==='position')return '价格为首发价，不代表实际成交均价';
- if(key==='age')return '新品按开售时间划分，不以首次上榜为准';
+ if(key==='age')return '代际年龄按同代最早正式开售日计算，后发型号不重置';
  if(key==='tier')return '只对比所选机型，不代表同价位全部产品';
  if(key==='cross')return '仅比较所选产品属性及入榜机型';
  if(imputed)return '空心点代表补充估算，不能当作实测销量';

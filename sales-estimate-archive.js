@@ -531,7 +531,7 @@
   // Research views share the selected source/series and never combine different observation scopes.
   const researchNav=document.createElement('div');
   researchNav.style.cssText='display:grid;gap:12px;margin:12px 0';
-  const researchViews={model:'机型销量趋势',generation:'代际替代分析',structure:'产品结构分析',tier:'同档代际对比',tail:'长尾韧性分析',flow:'榜单流动分析',brand:'榜单品牌结构与集中度',dual:'榜内与全市场品牌竞争分析',coverage:'TOP30市场覆盖率与销量分层',price:'价格带竞争分析',position:'品牌产品定位分析',chip:'芯片平台竞争分析',age:'新老产品结构分析',cross:'多维产品竞争分析'};
+  const researchViews={model:'机型销量趋势',generation:'代际替代分析',structure:'产品结构分析',tier:'同档代际对比',tail:'长尾韧性分析',flow:'榜单流动分析',brand:'榜单品牌结构与集中度',dual:'榜内与全市场品牌竞争分析',coverage:'TOP30市场覆盖率与销量分层',price:'价格带竞争分析',position:'品牌产品定位分析',chip:'芯片平台竞争分析',age:'新老代际结构分析',cross:'多维产品竞争分析'};
   // A single topic registry drives both research navigation and publication chooser.
   const researchCategories=[
     {label:'产品销量研究',keys:['model','generation','tier']},
@@ -595,7 +595,7 @@
     '<div><label class="lbl" for="chipMetric">统计指标</label><select id="chipMetric" class="field ui-field"><option value="share">销量占比</option><option value="volume">销量（万台）</option><option value="count">入榜数量</option></select></div>'+
     '<div><label class="lbl" for="chipLimit">图表最多保留主要类别</label><input id="chipLimit" class="field ui-field" type="number" min="1" max="12" step="1" value="8"></div></div>'+
     '<div id="researchAgeControls" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px">'+
-    '<div><label class="lbl" for="ageView">研究视图</label><select id="ageView" class="field ui-field"><option value="stack">上市年龄结构趋势</option><option value="line">上市年龄折线趋势</option><option value="brand">末周品牌 × 上市年龄</option><option value="new">品牌新品销量贡献趋势</option></select></div>'+
+    '<div><label class="lbl" for="ageView">研究视图</label><select id="ageView" class="field ui-field"><option value="stack">代际年龄结构趋势</option><option value="line">代际年龄折线趋势</option><option value="brand">末周品牌 × 代际年龄</option><option value="new">品牌新代际销量贡献趋势</option></select></div>'+
     '<div id="ageMetricWrap"><label class="lbl" for="ageMetric">指标</label><select id="ageMetric" class="field ui-field"><option value="share">样本销量占比</option><option value="volume">销量（万台）</option><option value="count">入榜统计项数</option></select></div>'+
     '<div id="ageBrandWrap"><label class="lbl" for="ageBrandLevel">品牌层级</label><select id="ageBrandLevel" class="field ui-field"><option value="brand_group">母品牌</option><option value="brand">品牌</option></select></div></div>'+
     '<div id="researchCrossControls" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px">'+
@@ -1363,18 +1363,18 @@
     return rows.flatMap(r=>cols.map(c=>{const v=matrix.cells.get(r)?.get(c)||{sales:0,count:0};return [range,periods.join(' / '),periods.length,r,c,v.count,numberText(v.sales,4),numberText(Product.matrixValue(matrix,r,c,'share')),numberText(Product.matrixValue(matrix,r,c,'row_share')),numberText(Product.matrixValue(matrix,r,c,'col_share')),numberText(matrix.total,4),...cov.map(x=>numberText(x))];}));
   }
   const crossHeaders=['统计区间','有效自然周','有效周数','行类别','列类别','入榜统计项次','样本销量/万台','全样本销量占比/%','行内销量占比/%','列内销量占比/%','全部样本销量/万台','行属性覆盖率/%','列属性覆盖率/%','双属性覆盖率/%'];
-  function renderCrossStudy(per,weeks,cfg,general,sample){
+  function renderCrossStudy(per,weeks,cfg,general,sample,ageOf){
     const notice=$('researchNotice'),fields=new Map(Product.AGE_FIELDS),limit=Number(cfg.limit);
     const hasPrice=cfg.row==='price_band'||cfg.column==='price_band';
     visible($('crossPriceWrap'),hasPrice);
-    $('researchDesc').textContent=general+' 可交叉两个不同属性；区间汇总是有效榜单的样本销量之和，不是完整市场累计。同一机型每周入榜计一次；上市年龄按当周计算。行内/列内占比的分母包含该行/列未知类别。';
+    $('researchDesc').textContent=general+' 可交叉两个不同属性；区间汇总是有效榜单的样本销量之和，不是完整市场累计。同一机型每周入榜计一次；代际年龄以完整主数据中同品牌、同系列、同代际的最早有效正式开售日为起点，按当周计算，后续成员上市不重置。行内/列内占比的分母包含该行/列未知类别。';
     if(cfg.row===cfg.column||!fields.has(cfg.row)||!fields.has(cfg.column)){notice.textContent='请选择两个不同的有效属性。';return;}
     if(!Number.isSafeInteger(limit)||limit<1||limit>8){notice.textContent='每轴主要已知类别须为1–8之间的整数。';return;}
     const cuts=hasPrice?Product.parseCuts(cfg.priceCuts):Product.DEFAULT_CUTS;
     if(hasPrice&&!cuts){notice.textContent='请输入1–8个严格递增的正整数价格分界线（不超过1000000元）。';return;}
     const selected=cfg.range==='last'?[per.at(-1)]:per,usable=selected.filter(nonempty),periods=usable.map(w=>w.period);
     if(!usable.length){notice.textContent=cfg.range==='last'?'所选末周无有效样本，不自动换周。':'所选区间无有效筛选后样本。';return;}
-    const dimension=(entry,field)=>field==='price_band'?Product.priceBand(entry.model,cuts):Product.dimension(entry,field);
+    const dimension=(entry,field)=>field==='price_band'?Product.priceBand(entry.model,cuts):Product.dimension(entry,field,ageOf);
     const entries=usable.flatMap(w=>w.entries),rowOf=x=>dimension(x,cfg.row),colOf=x=>dimension(x,cfg.column),matrix=Product.cross(entries,rowOf,colOf);
     // Keep price bands in numeric order even though non-price attributes are ranked by sales.
     const priceLabels=Product.bandLabels(cuts),priceIndex=new Map(priceLabels.map((label,i)=>[label,i]));
@@ -1389,39 +1389,40 @@
     researchTable(crossHeaders.map((h,i)=>i===3?rowLabel:i===4?colLabel:h),crossRecords(matrix,rows,cols,range,periods));
     const chart=crossHeatmap(collapsed,r.labels,c.labels,cfg.metric,periods,rowLabel,colLabel);
     if(chart.lines.some(l=>l.values.some(Number.isFinite)))attrPlot(chart,rowLabel+' × '+colLabel);
+    const ageDetail=cfg.row==='age_band'||cfg.column==='age_band'?'代际年龄按同品牌、同系列、同代际最早有效正式开售日计算；后发成员不重置；合并项跨年龄区间或无法判断归未知；':'';
     const coverage=pct(matrix.knownBoth,matrix.total),priceDetail=hasPrice?'价格分界线 '+cuts.join(' / ')+' 元；':'';
-    setAttributeInfo(rowLabel+' × '+colLabel+' · '+metricLabel,periods,'未知独立；次要类别合并；颜色按数值统一标尺；非全市场',priceDetail+'所选区间 '+range+'；实际有效 '+periods.length+'/'+selected.length+' 周；完整 '+rows.length+'×'+cols.length+' 矩阵见 CSV；合并后图表 '+r.labels.length+'×'+c.labels.length+'；双属性销量覆盖率 '+(coverage===null?'—':coverage.toFixed(2)+'%')+'；'+general);
+    setAttributeInfo(rowLabel+' × '+colLabel+' · '+metricLabel,periods,'未知独立；次要类别合并；颜色按数值统一标尺；非全市场',priceDetail+ageDetail+'所选区间 '+range+'；实际有效 '+periods.length+'/'+selected.length+' 周；完整 '+rows.length+'×'+cols.length+' 矩阵见 CSV；合并后图表 '+r.labels.length+'×'+c.labels.length+'；双属性销量覆盖率 '+(coverage===null?'—':coverage.toFixed(2)+'%')+'；'+general);
     notice.textContent=sample+' · '+metricLabel+' · '+periods.length+'/'+selected.length+' 周有样本 · 完整 '+rows.length+'×'+cols.length+'，图表 '+r.labels.length+'×'+c.labels.length+' · 双属性覆盖率 '+(coverage===null?'—':coverage.toFixed(2)+'%');
   }
-  function renderAgeStudy(per,weeks,cfg,general,sample){
-    const notice=$('researchNotice'),last=per.at(-1),valid=per.filter(nonempty),classify=x=>Product.ageBand(x.model,x.week),labels=[...Product.ageLabels(),Product.UNKNOWN],metric=cfg.metric;
+  function renderAgeStudy(per,weeks,cfg,general,sample,ageOf){
+    const notice=$('researchNotice'),last=per.at(-1),valid=per.filter(nonempty),classify=ageOf,labels=[...Product.ageLabels(),Product.UNKNOWN],metric=cfg.metric;
     const brandView=cfg.view==='brand'||cfg.view==='new';
     visible($('ageBrandWrap'),brandView);visible($('ageMetricWrap'),cfg.view!=='new');
-    $('researchDesc').textContent=general+' 年龄基于每条观测对应自然周及正式开售日，P0 为不完整开售周。默认 P0–W4、W5–W12、W13–W26、W27–W52、W53及以上；年龄无法判断的统计项计入未知。新品为 P0–W4，不以首次上榜代替上市。';
-    const note='按正式开售日及当周周龄；未知计入分母；非全市场';
-    let effective=[],metricLabel='上市年龄'+attrMetricLabel(metric);
+    $('researchDesc').textContent=general+' 代际年龄以完整主数据中同品牌、同系列、同代际的最早有效正式开售日为起点，按观测自然周计算；后发成员不重置周龄，P0 为不完整首销周。默认 P0–W4、W5–W12、W13–W26、W27–W52、W53及以上；跨代合并项仅在全部成员代际年龄区间一致时归类；其余无法判断的统计项计入未知。新代际为 P0–W4，不以首次上榜代替上市。';
+    const note='按同代最早有效正式开售日计算代际周龄；后发成员不重置；未知计入分母；非全市场';
+    let effective=[],metricLabel='代际年龄'+attrMetricLabel(metric);
     if(cfg.view==='brand'){
       if(!nonempty(last)){notice.textContent='所选末周无有效样本，不自动换周。';return;}
       const brand=x=>Product.value(x.model,cfg.brandLevel),matrix=Product.cross(last.entries,brand,classify),rows=Product.rankedKeys(matrix.rows),r=Product.displayDimension(matrix.rows,8);
       const collapsed=Product.cross(last.entries,x=>r.collapse(brand(x)),classify);effective=[last.period];
-      researchTable(crossHeaders.map((h,i)=>i===3?'品牌':i===4?'上市年龄':h),crossRecords(matrix,rows,labels,last.period,effective));
-      attrPlot(crossHeatmap(collapsed,r.labels,labels,metric,effective,'品牌','上市年龄'),'品牌 × 上市年龄');
+      researchTable(crossHeaders.map((h,i)=>i===3?'品牌':i===4?'代际年龄':h),crossRecords(matrix,rows,labels,last.period,effective));
+      attrPlot(crossHeatmap(collapsed,r.labels,labels,metric,effective,'品牌','代际年龄'),'品牌 × 代际年龄');
     }else if(cfg.view==='new'){
       const brand=x=>Product.value(x.model,cfg.brandLevel),ranked=Product.rankGroups(per,brand),known=ranked.filter(k=>k!==Product.UNKNOWN),major=known.slice(0,8),other='其他已知类别';
       const shown=[...major,...(known.length>major.length?[other]:[]),...(ranked.includes(Product.UNKNOWN)?[Product.UNKNOWN]:[])],chartBrand=x=>{const k=brand(x);return k===Product.UNKNOWN||major.includes(k)?k:other;};
       function stats(entries){const total=entries.reduce((s,x)=>s+x.units,0),newSales=entries.filter(x=>classify(x)===labels[0]).reduce((s,x)=>s+x.units,0),unknown=entries.filter(x=>classify(x)===Product.UNKNOWN).reduce((s,x)=>s+x.units,0);return {total,newSales,unknown,share:pct(newSales,total),coverage:pct(total-unknown,total)};}
       const rows=per.flatMap(w=>ranked.map(k=>{const a=stats(w.entries.filter(x=>brand(x)===k));return [w.period,w.status,k,w.valid?numberText(a.total,4):'',w.valid?numberText(a.newSales,4):'',w.valid?numberText(a.unknown,4):'',w.valid?numberText(a.coverage):'',w.valid?numberText(a.share):''];}));
-      researchTable(['周期','样本状态','品牌','品牌样本销量/万台','新品销量/万台','未知年龄销量/万台','年龄覆盖率/%','新品占品牌样本/%'],rows);
+      researchTable(['周期','样本状态','品牌','品牌样本销量/万台','新代际销量/万台','未知代际年龄销量/万台','代际年龄覆盖率/%','新代际占品牌样本/%'],rows);
       const lines=shown.map((name,i)=>({name,color:attrColor(name,i),values:per.map(w=>nonempty(w)?stats(w.entries.filter(x=>chartBrand(x)===name)).share:null)}));
-      effective=per.filter((w,i)=>lines.some(l=>Number.isFinite(l.values[i]))).map(w=>w.period);metricLabel='品牌新品销量贡献率（P0–W4）';
+      effective=per.filter((w,i)=>lines.some(l=>Number.isFinite(l.values[i]))).map(w=>w.period);metricLabel='品牌新代际销量贡献率（P0–W4）';
       if(effective.length)attrPlot({periods:per.map(w=>w.period),calendarPeriods:effective,unit:'%',limit:100,lines},metricLabel);
     }else{
-      researchTable(attrHeaders,attrRows(per,labels,classify,classify));
+      researchTable(attrHeaders.map((h,i)=>i===4?'代际年龄':i===8?'未知代际年龄销量/万台':i===9?'代际年龄覆盖率/%':h),attrRows(per,labels,classify,classify));
       const chart=attrTrend(per,labels,classify,metric,cfg.view);effective=chart.calendarPeriods;if(effective.length)attrPlot(chart,metricLabel);
     }
     const unknown=last?.entries.filter(x=>classify(x)===Product.UNKNOWN).reduce((s,x)=>s+x.units,0)||0,coverage=last?.total>0?pct(last.total-unknown,last.total):null;
-    setAttributeInfo(metricLabel,effective,note,'年龄分组 '+labels.join(' / ')+'；新品贡献以品牌全部筛选样本为分母；未知年龄计入分母；完整分类见 CSV。');
-    notice.textContent=metricLabel+' · '+sample+' · '+valid.length+'/'+weeks.length+' 周有样本 · 末周年龄覆盖率 '+(coverage===null?'—':coverage.toFixed(2)+'%');
+    setAttributeInfo(metricLabel,effective,note,'代际年龄分组 '+labels.join(' / ')+'；新代际贡献以品牌全部筛选样本为分母；未知年龄计入分母；完整分类见 CSV。');
+    notice.textContent=metricLabel+' · '+sample+' · '+valid.length+'/'+weeks.length+' 周有样本 · 末周代际年龄覆盖率 '+(coverage===null?'—':coverage.toFixed(2)+'%');
   }
   function renderAttributeStudy(scope,weeks){
     const key=researchView,notice=$('researchNotice'),cfg=attributeSettings(key);
@@ -1430,8 +1431,12 @@
     const general=scope.expanded?'使用统一去重后的扩展销量，再应用属性筛选；合计项仅采用一致的属性，不拆分销量，未知或跨类别属性保留为未知。占比以筛选后全部扩展样本销量为分母；统计项数量不是SKU数。非全市场，不插补。':'先按原始排名确定有效榜单，再限定属性筛选；仅原始观测，不插补。占比以筛选后全部入榜样本销量为分母，未知属性仍计入分母；非全市场。历史堆叠图相邻有效周以半透明色带连接同一类别，缺失周断连；色带不代表用户或销量转移。';
     const suffix=' · '+sample+' · '+valid.length+'/'+weeks.length+' 周有筛选后样本';
     if(!masterCatalog){notice.textContent='机型主数据未加载，产品属性专题暂不可用；其他销量研究不受影响。';return;}
-    if(key==='cross'){renderCrossStudy(per,weeks,cfg,general,sample);return;}
-    if(key==='age'){renderAgeStudy(per,weeks,cfg,general,sample);return;}
+    if(key==='cross'||key==='age'){
+      const ageOf=Product.generationAgeClassifier(masterCatalog);
+      if(key==='cross')renderCrossStudy(per,weeks,cfg,general,sample,ageOf);
+      else renderAgeStudy(per,weeks,cfg,general,sample,ageOf);
+      return;
+    }
     if(key==='price'){
       const cuts=Product.parseCuts(cfg.cuts);visible($('priceBrandWrap'),cfg.view==='matrix');
       $('researchDesc').textContent=general+' 首发价为起售价，不是成交价；含其他版本的统计项按主数据代表性首发价归类，不拆分销量。';
@@ -1639,7 +1644,7 @@
   for(const id of ['researchTailAge','researchTailCount','researchTailWindow','researchTailRecent','researchTailStatus'])$(id).onchange=renderResearch;$('researchTailView').onchange=renderResearch;$('researchNewWeeks').onchange=renderResearch;
   $('researchExport').onclick=()=>exportCSVBlob(researchExportRows,'sales-research-'+researchView+'.csv');
 
-  const researchSubtitles={model:'重点机型销量走势与排名',generation:'两代合计周增量与新代替代率',structure:'不同产品类型的销量表现',tier:'同价位新旧机型销量对比',tail:'哪些老机型仍保持榜单活跃？',flow:'哪些机型进入或退出榜单？',brand:'各品牌上榜表现与集中度',dual:'品牌份额与增长来源',coverage:'市场规模与销量分层',price:'各首发价位的销量表现',position:'品牌首发价位与销量分布',chip:'各芯片平台的上榜表现',age:'新品与老机型销量占比',cross:'不同产品属性的销量分布'};
+  const researchSubtitles={model:'重点机型销量走势与排名',generation:'两代合计周增量与新代替代率',structure:'不同产品类型的销量表现',tier:'同价位新旧机型销量对比',tail:'哪些老机型仍保持榜单活跃？',flow:'哪些机型进入或退出榜单？',brand:'各品牌上榜表现与集中度',dual:'品牌份额与增长来源',coverage:'市场规模与销量分层',price:'各首发价位的销量表现',position:'品牌首发价位与销量分布',chip:'各芯片平台的上榜表现',age:'新旧代际销量占比',cross:'不同产品属性的销量分布'};
   const researchSend=document.createElement('button');researchSend.type='button';researchSend.className='primary';researchSend.textContent='用当前专题生成图卡';
   const researchPNG=document.createElement('button');researchPNG.id='researchDirectPNG';researchPNG.type='button';researchPNG.className='secondary';researchPNG.textContent='导出当前图表 PNG';researchPNG.disabled=true;
   const researchActions=document.createElement('div');researchActions.style.cssText='display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0';

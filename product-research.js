@@ -95,7 +95,7 @@ function observed(weeks,master,col,filters={}){
    return {period:w.period,start:w.start,end:w.end,valid:true,entries,total,count:entries.length,knownPrice:entries.reduce((s,x)=>s+(validPrice(x.model)!==null?x.units:0),0),status:entries.length?'有效扩展样本':'属性筛选后无样本'};
   }
   if(!w.hasBoard)return {period:w.period,valid:false,entries:[],total:null,knownPrice:null,count:null,status:w.comparisonStatus||'无有效榜单'};
-  const entries=[...w.map].map(([key,r])=>({key,model:master?.get(key)||null,units:Number(r[col.estimated_wan]),brand:r[col.brand_group],week:{period:w.period,start:w.start,end:w.end}})).filter(x=>Number.isFinite(x.units)&&x.units>=0&&matches(x.model,filters));
+  const entries=[...w.map].map(([key,r])=>({key,model:master?.get(key)||null,units:Number(r[col.estimated_wan]),brand:r[col.brand_group],rank_name:r[col.model],week:{period:w.period,start:w.start,end:w.end}})).filter(x=>Number.isFinite(x.units)&&x.units>=0&&matches(x.model,filters));
   const total=entries.reduce((s,x)=>s+x.units,0);
   return {period:w.period,start:w.start,end:w.end,valid:true,entries,total,count:entries.length,knownPrice:entries.reduce((s,x)=>s+(validPrice(x.model)!==null?x.units:0),0),status:entries.length?'有效样本':'属性筛选后无样本'};
  });
@@ -115,13 +115,43 @@ function rankGroups(per,classify){
  return [...totals].sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0],'zh-CN',{numeric:true})).map(([k])=>k);
 }
 const AGE_CUTS=Object.freeze([4,12,26,52]);
-const AGE_FIELDS=Object.freeze([...FIELDS,Object.freeze(['age_band','上市年龄'])]);
+const AGE_FIELDS=Object.freeze([...FIELDS,Object.freeze(['age_band','代际年龄'])]);
 function ageLabels(cuts=AGE_CUTS){return ['P0–W'+cuts[0],...cuts.slice(1).map((n,i)=>'W'+(cuts[i]+1)+'–W'+n),'W'+(cuts.at(-1)+1)+'及以上'];}
 function ageBand(model,week,cuts=AGE_CUTS){
  const age=lifecycle(model,week);if(!age)return UNKNOWN;
  const i=cuts.findIndex(n=>age.index<=n);return ageLabels(cuts)[i<0?cuts.length:i];
 }
-function dimension(entry,field){return field==='age_band'?ageBand(entry.model,entry.week):value(entry.model,field);}
+// Generation ages use the entire master catalog, never the filtered/observed subset.
+const generationKey=m=>m?.brand&&m.series&&m.generation?JSON.stringify([m.brand,m.series,m.generation].map(normalize)):null;
+function generationAgeClassifier(catalog,cuts=AGE_CUTS){
+ const dates=new Map(),rankCache=new Map();
+ for(const m of catalog?.models||[]){
+  const key=generationKey(m),date=m.sale_start_date;
+  if(!key||!date||root.SalesSeries.parseDate(date)===null)continue;
+  if(!dates.has(key)||date<dates.get(key))dates.set(key,date);
+ }
+ return entry=>{
+  let members;
+  if(Array.isArray(entry.member_ids)){
+   members=entry.member_ids.map(id=>catalog?.get(id));
+  }else if(entry.rank_name&&root.SalesFusion&&catalog?.models){
+   // Use the same coverage recognition as fusion, without changing raw rank or sales.
+   if(!rankCache.has(entry.rank_name)){
+    const match=root.SalesFusion.rankMatch(catalog,entry.rank_name);
+    rankCache.set(entry.rank_name,match.ids.map(id=>catalog.get(id)));
+   }
+   members=rankCache.get(entry.rank_name);
+  }else members=[entry.model];
+  if(!members.length)return UNKNOWN;
+  const bands=members.map(m=>{
+   const date=dates.get(generationKey(m));
+   return date?ageBand({sale_start_date:date},entry.week,cuts):UNKNOWN;
+  });
+  // Cross-generation totals are attributable only when all known age bands agree.
+  return bands[0]!==UNKNOWN&&bands.every(b=>b===bands[0])?bands[0]:UNKNOWN;
+ };
+}
+function dimension(entry,field,ageOf){return field==='age_band'?(ageOf?ageOf(entry):UNKNOWN):value(entry.model,field);}
 function cross(entries,rowOf,colOf){
  const rows=new Map(),cols=new Map(),cells=new Map();let total=0,count=0,knownBoth=0,knownRow=0,knownCol=0;
  const add=(map,k,x)=>{const v=map.get(k)||{sales:0,count:0};v.sales+=x.units;v.count++;map.set(k,v);};
@@ -141,5 +171,5 @@ function matrixValue(matrix,r,c,metric){
  const denominator=metric==='row_share'?(matrix.rows.get(r)?.sales||0):metric==='col_share'?(matrix.cols.get(c)?.sales||0):matrix.total;
  return denominator>0?100*v.sales/denominator:null;
 }
-root.ProductResearch=Object.freeze({FIELDS,UNKNOWN,PRICE_BANDS,value,matches,priceFilterError,options,groups,lifecycle,aligned,lifecycleAxis,retention,entryType,DEFAULT_CUTS,parseCuts,bandLabels,validPrice,priceBand,observed,aggregate,priceStats,rankGroups,AGE_CUTS,AGE_FIELDS,ageLabels,ageBand,dimension,cross,rankedKeys,displayDimension,matrixValue});
+root.ProductResearch=Object.freeze({FIELDS,UNKNOWN,PRICE_BANDS,value,matches,priceFilterError,options,groups,lifecycle,aligned,lifecycleAxis,retention,entryType,DEFAULT_CUTS,parseCuts,bandLabels,validPrice,priceBand,observed,aggregate,priceStats,rankGroups,AGE_CUTS,AGE_FIELDS,ageLabels,ageBand,generationAgeClassifier,dimension,cross,rankedKeys,displayDimension,matrixValue});
 })(typeof globalThis!=='undefined'?globalThis:this);

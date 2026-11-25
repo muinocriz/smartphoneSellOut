@@ -13,7 +13,7 @@ function canvasText(ctx,text,x,y,size,color,weight='600',align='left',maxWidth=n
  const measured=measureMixedCanvas(ctx,original,size,weight);
  const scale=maxWidth!==null&&measured.width>maxWidth?maxWidth/measured.width:1;
  if(original.trim()&&mobilePosterActive(ctx)&&size*scale<MOBILE_POSTER_TYPE.min*(posterAudits.get(ctx).referenceWidth||1080)/1080)
-  auditIssue(ctx,'部分文字低于手机阅读目标（400px宽时12px），建议减少项目或改用9:16');
+  auditIssue(ctx,'部分文字低于手机阅读目标（360px宽时12px），建议精简重复信息或减少展示项目');
  let start=x-(align==='right'?measured.width*scale:align==='center'?measured.width*scale/2:0);
  // 独立数字行使用字形左边界做光学补偿（特别是数字 1）。
  if(align==='left'&&/^[+\-−]?\d[\d.,:%％×\s+\-−]*$/.test(original)){
@@ -498,7 +498,7 @@ function drawResearchHeatmap(ctx,chart,box,p,note=''){
  if(note)posterFitText(ctx,note,left,bottom-5,Math.min(16,font),p.sub,'550','left',width);
 }
 // Shared research-poster axis typography (the live preview uses its own UI scale).
-const RESEARCH_POSTER_AXIS=Object.freeze({title:36,tick:36,period:36,titleWeight:'600',tickWeight:'550'});
+const RESEARCH_POSTER_AXIS=Object.freeze({title:39,tick:39,period:36,titleWeight:'600',tickWeight:'550'});
 // Shared poster typography; dense panels may cap the nominal font size.
 function researchPosterAxisText(ctx,value,x,y,role,color,align='left',maxWidth=Infinity,sizeLimit=Infinity){
  const axis=RESEARCH_POSTER_AXIS;

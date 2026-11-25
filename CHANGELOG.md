@@ -4,6 +4,10 @@
 
 本项目尚未采用严格的语义化版本号；以下按提交／合并日期（UTC）归纳重要变更，并链接相关 PR 或提交。
 
+## 2026-11-26
+
+- [2cbf6be](https://github.com/muinocriz/smartphoneSellOut/commit/2cbf6be) / [f79df62](https://github.com/muinocriz/smartphoneSellOut/commit/f79df62)：模块3采用360逻辑单位、4单位间距及3:4优先排版；公共页眉页脚按字形实测排版，品牌榜按内容分配行高，单个双周流向图使用实测文字列、对比度适配、标签避碰及小色块引导标注，取消重复图例；pp纳入数字字体，公共坐标轴字号及独立双周图高度调整。保留原比例、安全区、水印、导出分辨率及数据口径。复杂矩阵、多面板和其他专项尚未全部重排。未执行测试或构建。
+
 ## 2026-11-25
 
 - [d379166](https://github.com/muinocriz/smartphoneSellOut/commit/d379166) / [8624fab](https://github.com/muinocriz/smartphoneSellOut/commit/8624fab) / [c60f086](https://github.com/muinocriz/smartphoneSellOut/commit/c60f086) / [fac16ba](https://github.com/muinocriz/smartphoneSellOut/commit/fac16ba) / [a69e458](https://github.com/muinocriz/smartphoneSellOut/commit/a69e458) / [e4ae402](https://github.com/muinocriz/smartphoneSellOut/commit/e4ae402) / [0b29afc](https://github.com/muinocriz/smartphoneSellOut/commit/0b29afc) / [3f17ac5](https://github.com/muinocriz/smartphoneSellOut/commit/3f17ac5)：模块3第一轮移动端海报排版：1080参考坐标保留，等效400px逻辑设计；标题72、副标题43、核心40、图例及坐标轴36、附注33，低于阅读目标提示。趋势/追踪/代际双轴图例换行、周次疏化，独立趋势PNG按系列增加高度，页眉页脚自动换行，直接表格增大字号与行高；新增320/360/390/400px展示预览。密集矩阵、多面板及部分榜单局部尺寸仍有空间限制，未完成所有专题的独立重排。原比例、分辨率、安全区、水印及统计数据保留。未执行测试或构建。

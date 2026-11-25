@@ -41,7 +41,7 @@ const BRAND_FOOTER_NOTE='品牌合并：小米/REDMI · OPPO/一加/realme · vi
 // A per-render audit uses the actual sizes and plot dimensions used by the renderer.
 // It never alters the user's safety margins, chart data, or export resolution.
 const posterAudits=new WeakMap();
-// Reference coordinates preserve export sizes: 1080 units = 400 mobile CSS px.
+// Reference coordinates preserve export sizes: 1080 units = 360 logical design units.
 // 360 logical design units; preserve the existing 1080-coordinate rendering API.
 const POSTER_DESIGN=Object.freeze({baseWidth:360,referenceWidth:1080,spacing:Object.freeze({xs:4,sm:8,md:12,lg:16,xl:24,xxl:32}),type:Object.freeze({title:24,subtitle:14,body:14,label:13,note:12,min:12}),chart:Object.freeze({line:2,marker:2.5})});
 const posterDp=v=>v*POSTER_DESIGN.referenceWidth/POSTER_DESIGN.baseWidth;
@@ -250,7 +250,7 @@ function drawBrands(ctx,L,o,p){
  const left=cardX+S.md,right=cardRight-S.md,width=right-left,n=brands.length,first=brands[0].pixels||1;
  const heading=posterWrap(ctx,`品牌系列榜 · ${n} 组｜上榜合计 ${o.models.length} 条`,width,T.note,'500');
  const head=posterBlock(ctx,heading,T.note,'500',bodyTop+S.md);
- const top=bodyTop+S.md+head.height+S.xs,step=(bodyBottom-S.md-top)/n;
+ const top=bodyTop+S.md+head.height+S.xs;
  const rows=brands.map((b,i)=>{
   const name=`${i+1}. ${b.brand}（${b.count}款）`,sale=`${displaySale(b.sale)} · ${fmt(b.share*100,1)}%`;
   const labelWidth=measureMixedCanvas(ctx,name,T.label,'600').width,saleWidth=measureMixedCanvas(ctx,sale,T.note,'700').width;
@@ -260,12 +260,13 @@ function drawBrands(ctx,L,o,p){
   const heroBlock=posterBlock(ctx,hero,T.note,'400',0);
   return {b,name,sale,stacked,hero,heroBlock,needed:Math.max(T.label,main.y+T.label*.15)+extra+posterDp(2+3+2)+heroBlock.height+posterDp(4)};
  });
- const minStep=Math.max(...rows.map(r=>r.needed));
- if(step<minStep){auditIssue(ctx,'品牌榜当前文案、安全区及行数无法同时满足手机字号与留白，请精简重复说明或减少安全区；必要时使用9:16',true);return;}
+ const totalNeeded=rows.reduce((sum,r)=>sum+r.needed,0),available=bodyBottom-S.md-top;
+ if(available<totalNeeded){auditIssue(ctx,'品牌榜当前文案、安全区及行数无法同时满足手机字号与留白，请精简重复说明或减少安全区；必要时使用9:16',true);return;}
  drawDataCard(ctx,cardX,bodyTop,cardWidth,bodyBottom-bodyTop,p);
  heading.forEach((v,i)=>posterFitText(ctx,v,left,head.y+i*head.step,T.note,p.sub,'500','left',width));
+ let rowTop=top;const extraGap=(available-totalNeeded)/n;
  rows.forEach(({b,name,sale,stacked,hero,heroBlock,needed},i)=>{
-  const y=top+i*step+(step-needed)/2,hot=i===0;
+  const y=rowTop+extraGap/2,hot=i===0;rowTop+=needed+extraGap;
   posterFitText(ctx,name,left,y+T.label*.85,T.label,p.ink,'600','left',width);
   let baseline=y+T.label*.85;
   if(stacked)baseline+=T.note+S.xs;
@@ -534,7 +535,8 @@ function researchDirectGeometry(s){
  if(kind==='brandGrowth'){width=Math.max(1080,n*106+160);height=1120;}
  if(kind==='dualBrandFlowMulti'){width=Math.max(1150,n*125+140);height=1080;}
  if(kind==='dualBrandFlow'){width=1080;height=1070;}
- if(kind==='brandStack'||kind==='brandRibbon'){width=Math.max(1080,n*78+160);height=Math.max(650,480+Math.ceil(count/3)*36);}
+ if(kind==='brandStack'){width=Math.max(1080,n*78+160);height=Math.max(650,480+Math.ceil(count/3)*36);}
+ if(kind==='brandRibbon'){width=1080;height=Math.max(820,108+count*posterDp(16)+posterDp(24));}
  if(kind==='heatmap'){width=Math.max(1080,count*96+220);height=Math.max(560,n*44+150);}
  if(kind==='scatter'){width=1080;height=Math.max(660,420+Math.ceil(n/2)*29);}
  if(kind==='bars'){width=1080;height=Math.max(560,n*65+100);}

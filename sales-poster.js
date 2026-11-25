@@ -357,6 +357,7 @@ function drawResearchChartContent(ctx,p,s,box){
  if(notes.length>6)auditIssue(ctx,'图表内附注超过6行，建议精简');
  if(!auditPlot(ctx,width,chartBox.height,'研究图表内容区',360,230))return;
  if(['trackerBoth','trackerRank','trackerMatrix'].includes(s.chart?.kind)){drawTrackerTrendPoster(ctx,p,{...s,chartNote:''},chartBox);drawNotes();return;}
+ if(s.chart?.kind==='boardFlow'){ResearchCharts.canvasBoardFlow(ctx,s.chart,chartBox,p);drawNotes();return;}
  if(s.chart?.kind==='coverageLayers'){drawCoverageLayers(ctx,s.chart,chartBox,p);drawNotes();return;}
  if(s.chart?.kind==='brandContributionPair'){drawBrandContributionPair(ctx,s.chart,chartBox,p);drawNotes();return;}
  if(s.chart?.kind==='dualBrandShareComparison'){drawDualBrandShareComparison(ctx,s.chart,chartBox,p);drawNotes();return;}
@@ -404,6 +405,7 @@ function researchDirectGeometry(s){
  const c=s.chart,n=c?.periods?.length||0,count=c?.lines?.length||0,kind=c?.kind||'line';
  let width=Math.max(1080,n*60+150),height=560+Math.ceil(count/4)*36;
  if(kind==='trackerBoth')height=1000+Math.ceil(count/4)*36;
+ if(kind==='boardFlow')height=570;
  if(kind==='trackerMatrix'){width=Math.max(1080,n*56+280);height=Math.max(420,count*44+70);}
  if(kind==='trackerRank')height=560+Math.ceil(count/4)*36;
  if(kind==='generationDualAxis')height=560;

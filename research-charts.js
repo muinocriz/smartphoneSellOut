@@ -297,6 +297,9 @@ function drawBrandContributionPair(ctx,chart,box,p){
  const labelW=Math.min(width*.30,Math.max(110*f,width*.21)),x0=left+labelW+9*f,x1=right-27*f,mid=(x0+x1)/2;
  const cap=chart.scaleMax||2,step=chart.scaleStep||cap/2,x=v=>mid+v/cap*(x1-x0)/2;
  const gridTop=top+48*f,gridBottom=bottom-39*f,rowH=(gridBottom-gridTop)/n;
+ // Use the shared research UI font for every complete label, including
+ // signed numbers and units. Do not split the label into numeric/CJK runs.
+ const text=(ctx,value,x,y,size,color,weight='400',align='left',maxWidth=Infinity)=>crossAxisText(ctx,value,x,y,size,color,align,maxWidth,weight);
  const inColor='#4079D5',outColor='#A5C1E8',positive='#dc3535',negative='#15956f';
  const fmt=v=>Number.isFinite(v)?v.toFixed(1)+'%':'—';
  const pp=v=>{if(!Number.isFinite(v))return '—';const d=Math.round(v*10)/10;return (d>0?'+':'')+d.toFixed(1)+' pp';};
@@ -305,17 +308,17 @@ function drawBrandContributionPair(ctx,chart,box,p){
  function diamond(cx,cy,r){ctx.save();ctx.beginPath();ctx.moveTo(cx,cy-r);ctx.lineTo(cx+r,cy);ctx.lineTo(cx,cy+r);ctx.lineTo(cx-r,cy);ctx.closePath();ctx.fillStyle=p.ink;ctx.fill();ctx.lineWidth=1.7*f;ctx.strokeStyle=p.card||'#fff';ctx.stroke();ctx.restore();}
  const legendY=top+18*f,legendStart=left+Math.max(0,(width-425*f)/2);
  for(const [i,color,label] of [[0,inColor,'榜内贡献'],[1,outColor,'榜外贡献']]){
-  const lx=legendStart+i*135*f;ctx.fillStyle=color;ctx.fillRect(lx,legendY-9*f,16*f,12*f);canvasText(ctx,label,lx+22*f,legendY,small,p.sub,'600');
+  const lx=legendStart+i*135*f;ctx.fillStyle=color;ctx.fillRect(lx,legendY-9*f,16*f,12*f);text(ctx,label,lx+22*f,legendY,small,p.sub,'600');
  }
- diamond(legendStart+278*f,legendY-3*f,7*f);canvasText(ctx,'总份额变化',legendStart+290*f,legendY,small,p.sub,'600');
+ diamond(legendStart+278*f,legendY-3*f,7*f);text(ctx,'总份额变化',legendStart+290*f,legendY,small,p.sub,'600');
  const ticks=Math.round(cap/step);
- for(let i=-ticks;i<=ticks;i++){const v=i*step,xx=x(v);line(xx,gridTop,xx,gridBottom,i===0?p.sub:p.hair,i===0?1.5:1);canvasText(ctx,tick(v),xx,gridBottom+20*f,small,p.sub,'500','center',Math.max(25,(x1-x0)/(2*ticks+1)));}
- canvasText(ctx,'百分点（pp）',right,gridBottom+36*f,small*.85,p.sub,'500','right');
+ for(let i=-ticks;i<=ticks;i++){const v=i*step,xx=x(v);line(xx,gridTop,xx,gridBottom,i===0?p.sub:p.hair,i===0?1.5:1);text(ctx,tick(v),xx,gridBottom+20*f,small,p.sub,'500','center',Math.max(25,(x1-x0)/(2*ticks+1)));}
+ text(ctx,'百分点（pp）',right,gridBottom+36*f,small*.85,p.sub,'500','right');
  rows.forEach((g,i)=>{
   const yy=gridTop+(i+.5)*rowH,barH=Math.min(31*f,rowH*.45),a=g.inside.delta,b=g.outside.delta,d=g.market.delta;
   ctx.fillStyle=g.color;ctx.fillRect(left+2*f,yy-16*f,4*f,32*f);
-  canvasText(ctx,g.label,left+13*f,yy-5*f,font,p.ink,'750','left',labelW-16*f);
-  canvasText(ctx,fmt(g.market.a.value)+' → '+fmt(g.market.b.value),left+13*f,yy+15*f,small,p.sub,'500','left',labelW-16*f);
+  text(ctx,g.label,left+13*f,yy-5*f,font,p.ink,'700','left',labelW-16*f);
+  text(ctx,fmt(g.market.a.value)+' → '+fmt(g.market.b.value),left+13*f,yy+15*f,small,p.sub,'500','left',labelW-16*f);
   if(Number.isFinite(a)&&Number.isFinite(b)){
    let pos=0,neg=0;
    for(const [v,color] of [[a,inColor],[b,outColor]]){
@@ -323,14 +326,14 @@ function drawBrandContributionPair(ctx,chart,box,p){
     if(v!==0){ctx.fillStyle=color;ctx.fillRect(Math.min(x(origin),x(end)),yy-barH/2,Math.abs(x(end)-x(origin)),barH);}
    }
    if(g.inside.status==='估算方向不确定'||g.outside.status==='估算方向不确定'){
-    canvasText(ctx,'贡献方向不确定',mid,yy+barH/2+15*f,small*.85,p.sub,'500','center',x1-x0);
+    text(ctx,'贡献方向不确定',mid,yy+barH/2+15*f,small*.85,p.sub,'500','center',x1-x0);
    }
-  }else canvasText(ctx,'贡献不可估算',mid,yy+barH/2+15*f,small,p.sub,'500','center',x1-x0);
+  }else text(ctx,'贡献不可估算',mid,yy+barH/2+15*f,small,p.sub,'500','center',x1-x0);
   if(Number.isFinite(d)){
    const xx=x(d),r=Math.min(8*f,barH*.43),rounded=Math.round(d*10)/10;
    diamond(xx,yy,r);
-   canvasText(ctx,pp(d),Math.max(x0+23*f,Math.min(x1-23*f,xx)),yy-barH/2-5*f,font*.85,rounded>0?positive:rounded<0?negative:p.sub,'750','center',75*f);
-  }else canvasText(ctx,'总变化缺失',mid,yy-barH/2-5*f,small,p.sub,'500','center',x1-x0);
+   text(ctx,pp(d),Math.max(x0+23*f,Math.min(x1-23*f,xx)),yy-barH/2-5*f,font*.85,rounded>0?positive:rounded<0?negative:p.sub,'700','center',75*f);
+  }else text(ctx,'总变化缺失',mid,yy-barH/2-5*f,small,p.sub,'500','center',x1-x0);
  });
 }
 

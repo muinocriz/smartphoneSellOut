@@ -1,5 +1,6 @@
 /* Module 3 publishing workflow, immutable export snapshots and local preferences. */
 const socialState={template:'top',ratio:'3:4',theme:'editorial_paper',duelA:0,duelB:1,lastDS:null,duelOptions:null,safeEnabled:true,safeRight:13,safeBottom:10,safeGuides:true};
+let posterTypographyConfig={},syncTypographyControls=()=>{};
 const watermarkDefaults=PosterWatermark.defaults;
 const watermarkState={...watermarkDefaults};
 const socialCopyState={title:'',subtitle:'',tagLabel:'',markLeft:'',markRight:'',disclaimer:'',chartNote:''};
@@ -246,7 +247,7 @@ function updateSocial(rewriteStory=true){if(researchStudioActive()){updateResear
  $('copyChartNoteField').hidden=true;$('copyDisclaimerLabel').textContent='免责附注（支持换行↙）';$('exportChartData').hidden=true;$('studioSource').textContent=o.d.archiveRows?'图文数据源：历史榜单 · '+o.d.archiveDisplayLabel:'图文数据源：当前标定榜单 · '+o.d.label;syncStudioSourceActions();
  guard.textContent=flag;$('downloadCard').disabled=publicationJob.busy||!canDownloadSocial(o,socialState.template);$('downloadAllCards').disabled=publicationJob.busy||!canDownloadSocial(o,'bundle');
  $('duelSetup').hidden=socialState.template!=='versus';$('previewSize').textContent=socialState.ratio==='3:4'?'1080 × 1440':'1080 × 1920';
- $('insightSummary').innerHTML=renderInsightSummary(o);updateSafeLabels();syncPaletteChooser();syncPosterCopyUI(socialState.template,o);drawPoster(socialState.template,$('posterCanvas'),o,true);if(rewriteStory){const pack=generateHeadlinePack(socialState.template,o);$('storyText').value=generateStory(socialState.template,o);$('xhsTitle').value=pack.xhs;$('dyTitle').value=pack.dy;$('carouselText').value=pack.carousel;}
+ $('insightSummary').innerHTML=renderInsightSummary(o);updateSafeLabels();syncPaletteChooser();syncPosterCopyUI(socialState.template,o);syncTypographyControls();drawPoster(socialState.template,$('posterCanvas'),o,true);if(rewriteStory){const pack=generateHeadlinePack(socialState.template,o);$('storyText').value=generateStory(socialState.template,o);$('xhsTitle').value=pack.xhs;$('dyTitle').value=pack.dy;$('carouselText').value=pack.carousel;}
 }
 function renderInsightSummary(o){if(!o.models.length)return '<p>尚无数据。</p>';const p=o.models[0],two=o.models[1];let cards=[['上榜条目',o.models.length+' 条'],['榜首 / 第二名',displayTimes(o.ratio)],['TOP3样本占比',displayPct(o.top3)],['识别品牌',o.brands.length+' 个']];if(o.fit.k!==null)cards[0]=['上榜样本估算合计',displayWan(o.models.reduce((sum,m)=>sum+m.sale,0))+' 万台'];return '<div class="insight-grid">'+cards.map(c=>`<div class="insight-cell"><div class="lab">${e(c[0])}</div><b>${e(c[1])}</b></div>`).join('')+'</div><div class="insight-note">'+e(`${p.name} 的柱长为 ${p.pixels}px；${two?two.name+' 为 '+two.pixels+'px；':''}品牌系列仅统计当前入榜条目；小米/REDMI、一加/OPPO、vivo/iQOO分别归并，不能据此推算全市场份额。`)+'</div>'}
 function generateStory(type,o){if(isResearchTemplate(type)&&socialResearchSnapshot){const p=publicResearchCopy(socialResearchSnapshot);return [p.title+'｜'+p.tagLabel,'【看点】\n'+p.subtitle,p.chartNote?'【阅读提示】\n'+p.chartNote:'','【来源与说明】\n'+p.disclaimer].filter(Boolean).join('\n\n');}if(o.models.length<2)return '请先导入至少两条有效柱状图数据。';if(!o.canPublish)return `【待标定 / 暂不可发布】\n${o.d.label} 已识别 ${o.models.length} 条柱长。第一名：${o.models[0].name}（${o.models[0].pixels} px）；第二名：${o.models[1].name}（${o.models[1].pixels} px）。柱长比为 ${displayTimes(o.ratio)}。\n\n请在上方输入同一榜单至少一组已知销量，解决可能存在的标定冲突后，再生成可发布的估算销量文案。\n\n注意：像素长度本身不是销量数值。`;
@@ -296,7 +297,7 @@ function updateResearchStudio(rewriteStory){
  $('duelSetup').hidden=true;$('previewSize').textContent=socialState.ratio==='3:4'?'1080 × 1440':'1080 × 1920';
  $('exportInsight').textContent='下载完整专题统计 CSV';$('exportBrands').hidden=true;$('contentColumn').disabled=true;
  $('insightSummary').innerHTML='<div class="insight-note">'+e([s.context,s.summary,s.detail,s.note].filter(Boolean).join('；'))+'</div>';
- updateSafeLabels();syncPaletteChooser();syncPosterCopyUI(socialState.template,o);drawPoster(socialState.template,$('posterCanvas'),o,true);
+ updateSafeLabels();syncPaletteChooser();syncPosterCopyUI(socialState.template,o);syncTypographyControls();drawPoster(socialState.template,$('posterCanvas'),o,true);
  if(rewriteStory){const pack=generateHeadlinePack(socialState.template,o);$('storyText').value=generateStory(socialState.template,o);$('xhsTitle').value=pack.xhs;$('dyTitle').value=pack.dy;$('carouselText').value=pack.carousel;}
 }
 
@@ -345,7 +346,7 @@ function researchChartRows(s){
  return rows;
 }
 function researchManifest(s,pub){
- return {schema_version:1,snapshot_schema:s.schemaVersion,topic:s.key,title:s.title,subtitle:s.subtitle,display_metric:s.displayMetric,source:s.source,range:s.range,effective_periods:s.effectivePeriods,configuration:s.config,chart:s.chart?{kind:s.chart.kind||'line',axis:s.chart.axis||null,unit:s.chart.unit||null,periods:s.chart.periods,series:s.chart.lines.map(l=>l.name),...(s.chart.tail?{tail_window:s.chart.tailWindow,tail_points:s.chart.tailPoints,mean_definition:'observed_ranked_weeks_only',marker_area:'recent_count',marker_fill:'end_week_status'}:{}),...(['coverageTrend','coverageLayers'].includes(s.chart.kind)?{apple_anchor_scenario:{sku_enabled:s.chart.skuEnabled,trend_enabled:s.chart.trendEnabled,max_missing_apple_skus:s.chart.maxMissingAppleSkus,weekly_cutoff:'original-rank-30',market_trend_tolerance_pp:s.chart.trendTolerancePp,derived_capture_rate_min:s.chart.derivedCaptureLow,derived_capture_rate_max:s.chart.derivedCaptureHigh,market_lower:s.chart.marketLower,market_upper:s.chart.marketUpper,bands:s.chart.bands,alerts:s.chart.alerts,alert_reasons:s.chart.alertReasons,center:'arithmetic_midpoint_of_feasible_range_only',automatic_correction:false,confidence_interval:false}}:{}),...(s.chart.kind==='coverageLayers'?{panels:[{id:'scale',unit:'万台'},{id:'layers',unit:'%',denominator:'market-scenario-midpoint',missing_without_feasible_interval:true}],series_units:s.chart.lines.map(l=>({name:l.name,unit:l.unit,panel:l.panel}))}:{}),...(s.chart.kind==='dualBrandShareComparison'?{layout:'three-panel-dumbbell',scale_max:s.chart.scaleMax,market_model:s.chart.marketModel,model_error:s.chart.modelError,scenarios:s.chart.scenarios,denominators:['TOP30','market-minus-TOP30','market'],panels:s.chart.panels,confidence_interval:false}:{}),...(s.chart.kind==='brandCompetitionHeatmap'?{layout:'brands-by-weeks',metric:'market-share-delta-pp',source:'market-share.csv',delta:'adjacent-iso-week-within-range',missing:'null',normalization:'none',scale:'symmetric-zero-centered',series_details:s.chart.lines.map(l=>({name:l.name,statuses:l.statuses,current_shares:l.currentShares,previous_shares:l.previousShares,previous_periods:l.previousPeriods}))}:{}),...(s.chart.kind==='brandGrowth'?{layout:'3-rows-2-columns',scale:'shared-signed',series_units:s.chart.lines.map(l=>({name:l.name,brand:l.brand,metric:l.metric,unit:l.unit,role:l.role,...(l.role==='tail'?{lower:l.lower,upper:l.upper}:{}),statuses:l.statuses}))}:{}),...(s.chart.kind==='generationDualAxis'?{metrics:s.chart.lines.map(l=>({label:l.metric,unit:l.unit})),right_axis:{min:0,max:100,references:[50,80],definition:'new_generation_weekly_volume / combined_weekly_volume * 100'}}:{}),...(s.chart.kind==='trackerBoth'?{metrics:[{label:s.chart.salesLabel,unit:'万台'},{label:'原始榜单排名',unit:'名'}]}:{})}:{kind:'table',rows_displayed:Math.min(10,s.table?.rows.length||0)},poster:{ratio:pub.state.ratio,width:pub.width,height:pub.height,theme:pub.state.theme,safe_enabled:pub.state.safeEnabled,safe_right:pub.state.safeRight,safe_bottom:pub.state.safeBottom},limitations:[s.note,s.chartNote],fingerprint:StudioPref.fingerprint([s.config,s.chart,s.csv])};
+ return {schema_version:1,snapshot_schema:s.schemaVersion,topic:s.key,title:s.title,subtitle:s.subtitle,display_metric:s.displayMetric,source:s.source,range:s.range,effective_periods:s.effectivePeriods,configuration:s.config,chart:s.chart?{kind:s.chart.kind||'line',axis:s.chart.axis||null,unit:s.chart.unit||null,periods:s.chart.periods,series:s.chart.lines.map(l=>l.name),...(s.chart.tail?{tail_window:s.chart.tailWindow,tail_points:s.chart.tailPoints,mean_definition:'observed_ranked_weeks_only',marker_area:'recent_count',marker_fill:'end_week_status'}:{}),...(['coverageTrend','coverageLayers'].includes(s.chart.kind)?{apple_anchor_scenario:{sku_enabled:s.chart.skuEnabled,trend_enabled:s.chart.trendEnabled,max_missing_apple_skus:s.chart.maxMissingAppleSkus,weekly_cutoff:'original-rank-30',market_trend_tolerance_pp:s.chart.trendTolerancePp,derived_capture_rate_min:s.chart.derivedCaptureLow,derived_capture_rate_max:s.chart.derivedCaptureHigh,market_lower:s.chart.marketLower,market_upper:s.chart.marketUpper,bands:s.chart.bands,alerts:s.chart.alerts,alert_reasons:s.chart.alertReasons,center:'arithmetic_midpoint_of_feasible_range_only',automatic_correction:false,confidence_interval:false}}:{}),...(s.chart.kind==='coverageLayers'?{panels:[{id:'scale',unit:'万台'},{id:'layers',unit:'%',denominator:'market-scenario-midpoint',missing_without_feasible_interval:true}],series_units:s.chart.lines.map(l=>({name:l.name,unit:l.unit,panel:l.panel}))}:{}),...(s.chart.kind==='dualBrandShareComparison'?{layout:'three-panel-dumbbell',scale_max:s.chart.scaleMax,market_model:s.chart.marketModel,model_error:s.chart.modelError,scenarios:s.chart.scenarios,denominators:['TOP30','market-minus-TOP30','market'],panels:s.chart.panels,confidence_interval:false}:{}),...(s.chart.kind==='brandCompetitionHeatmap'?{layout:'brands-by-weeks',metric:'market-share-delta-pp',source:'market-share.csv',delta:'adjacent-iso-week-within-range',missing:'null',normalization:'none',scale:'symmetric-zero-centered',series_details:s.chart.lines.map(l=>({name:l.name,statuses:l.statuses,current_shares:l.currentShares,previous_shares:l.previousShares,previous_periods:l.previousPeriods}))}:{}),...(s.chart.kind==='brandGrowth'?{layout:'3-rows-2-columns',scale:'shared-signed',series_units:s.chart.lines.map(l=>({name:l.name,brand:l.brand,metric:l.metric,unit:l.unit,role:l.role,...(l.role==='tail'?{lower:l.lower,upper:l.upper}:{}),statuses:l.statuses}))}:{}),...(s.chart.kind==='generationDualAxis'?{metrics:s.chart.lines.map(l=>({label:l.metric,unit:l.unit})),right_axis:{min:0,max:100,references:[50,80],definition:'new_generation_weekly_volume / combined_weekly_volume * 100'}}:{}),...(s.chart.kind==='trackerBoth'?{metrics:[{label:s.chart.salesLabel,unit:'万台'},{label:'原始榜单排名',unit:'名'}]}:{})}:{kind:'table',rows_displayed:Math.min(10,s.table?.rows.length||0)},poster:{ratio:pub.state.ratio,width:pub.width,height:pub.height,theme:pub.state.theme,safe_enabled:pub.state.safeEnabled,safe_right:pub.state.safeRight,safe_bottom:pub.state.safeBottom,typography:PosterTypography.exportConfig(pub.typography)},limitations:[s.note,s.chartNote],fingerprint:StudioPref.fingerprint([s.config,s.chart,s.csv])};
 }
 function capturePublication(types,o){
  const state=Object.fromEntries(['template','ratio','theme','duelA','duelB','safeEnabled','safeRight','safeBottom'].map(k=>[k,socialState[k]]));
@@ -353,7 +354,7 @@ function capturePublication(types,o){
  const folder=slugName(research?research.range+'_'+research.title:o.d.label);
  const cards=types.map(type=>({type,ready:canDownloadSocial(o,type),copy:getPosterCopy(type,o),name:storyName(type),story:type===active?$('storyText').value:generateStory(type,o)}));
  const original=research?null:{insight:insightRows(o),brands:brandRows(o),calibrations:calibrationCount(o),source:socialSourceName(o)};
- const snapshot={state,width,height:getPosterExportHeight(width,state.ratio),folder,label:studioExportLabel(o),research,original,cards,data:o,palette:socialPalettes[state.theme],watermark:{...watermarkState},texts:StudioPref.values(publicationTextIds)};
+ const snapshot={state,typography:PosterTypography.clean(posterTypographyConfig),width,height:getPosterExportHeight(width,state.ratio),folder,label:studioExportLabel(o),research,original,cards,data:o,palette:socialPalettes[state.theme],watermark:{...watermarkState},texts:StudioPref.values(publicationTextIds)};
  return freezePublication(JSON.parse(JSON.stringify(snapshot)));
 }
 const publicationJob=PosterExport.createJob({
@@ -443,6 +444,7 @@ async function saveBundle(){
   files.push({name:folder+'/数据/品牌入榜样本分析.csv',bytes:enc.encode(toCSV(pub.original.brands))});
   const readme=['本压缩包由手机销量柱长像素标定器生成','榜单：'+pub.data.d.label,'图卡比例：'+ratio,'PNG 分辨率：'+pub.width+' × '+pub.height+' px','已知销量标定：'+pub.original.calibrations+'组','拟合系数：'+pub.data.fit.k+' 台/像素','状态：'+pub.data.fit.fitMode,'','【重要限制】','1. 所有绝对销量均根据'+pub.original.source+'截图与用户已知数据按像素比例估算，并非官方或全市场销量。','2. 品牌上榜样本占比只统计本图中有柱条的条目，不得解释为市场份额。','3. 合并行按一条记录处理，不能拆分机型销量。','4. 数值显示的小数精度不代表测算具有同等精度。','5. 如输入标定来自累计销量差值，应确保时间窗口与当前榜单一致。'].join('\n');
   files.push({name:folder+'/使用说明.txt',bytes:enc.encode(readme)});
+  files.push({name:folder+'/排版配置.json',bytes:enc.encode(JSON.stringify(PosterTypography.exportConfig(pub.typography),null,2))});
   publicationJob.report('正在打包 ZIP 文件…');
   downloadBlob(zipArchive(files),folder+'_图文发布包.zip');publicationResult('四张图卡、文案及 CSV 已打包');
  }catch(err){publicationResult('打包失败：'+err.message,'error')}finally{endPublication()}
@@ -451,14 +453,15 @@ async function saveBundle(){
 function redrawSafeAreaPreview(){
  updateSafeLabels();
  const o=socialData();
- drawPoster(socialState.template,$('posterCanvas'),o,true);
+ syncTypographyControls();drawPoster(socialState.template,$('posterCanvas'),o,true);
 }
 
 const StudioPref=window.StudioPreferences;
 const visualKeys=['ratio','theme','safeEnabled','safeRight','safeBottom','safeGuides'];
 const publicationTextIds=['storyText','xhsTitle','dyTitle','carouselText'];
-function getVisualPreferences(){return {state:Object.fromEntries(visualKeys.map(k=>[k,socialState[k]])),controls:StudioPref.values(['posterExportWidth','contentColumn']),watermark:{...watermarkState}};}
+function getVisualPreferences(){return {state:Object.fromEntries(visualKeys.map(k=>[k,socialState[k]])),controls:StudioPref.values(['posterExportWidth','contentColumn']),watermark:{...watermarkState},typography:PosterTypography.clean(posterTypographyConfig)};}
 function setVisualPreferences(p){
+ posterTypographyConfig=PosterTypography.clean(p?.typography);
  const state=p?.state||{};
  if(['3:4','9:16'].includes(state.ratio))socialState.ratio=state.ratio;
  if(Object.prototype.hasOwnProperty.call(socialPalettes,state.theme))socialState.theme=state.theme;
@@ -468,7 +471,7 @@ function setVisualPreferences(p){
  StudioPref.apply(p?.controls,['posterExportWidth','contentColumn']);
  if(p?.watermark)for(const k of Object.keys(watermarkDefaults))if(typeof p.watermark[k]===typeof watermarkDefaults[k])watermarkState[k]=p.watermark[k];
  if(watermarkState.diagonalEnabled&&watermarkState.centerEnabled)watermarkState.centerEnabled=false;
- updatePosterExportOptions();PosterWatermark.sync(watermarkState);updateSafeLabels();syncPaletteChooser();
+ updatePosterExportOptions();PosterWatermark.sync(watermarkState);updateSafeLabels();syncPaletteChooser();syncTypographyControls();
 }
 function publicationIdentity(){const o=socialData();return StudioPref.fingerprint(researchStudioActive()?[socialResearchSnapshot.key,socialResearchSnapshot.config,socialResearchSnapshot.chart,socialResearchSnapshot.csv]:[o.d.label,o.models.map(m=>[m.rank,m.name,m.pixels,m.sale]),o.fit.k]);}
 function savePublicationScheme(){
@@ -512,6 +515,7 @@ function initPublicationPreferences(){
 }
 
 function initSocial(){PosterWatermark.mount(()=>watermarkState,()=>updateSocial(false));
+ syncTypographyControls=PosterTypography.mount($('posterTypographyControls'),()=>socialState.template,()=>posterTypographyConfig,config=>{posterTypographyConfig=config;StudioPref.write('visual',getVisualPreferences());},()=>redrawSafeAreaPreview(),downloadBlob,()=>watermarkState);
  const previewWidth=$('posterPreviewWidth'),viewport=$('posterCanvas').parentElement;
  if(previewWidth)previewWidth.onchange=()=>{
   const value=previewWidth.value;

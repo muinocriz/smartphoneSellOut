@@ -379,6 +379,27 @@
       <div class="story-buttons"><button type="button" class="secondary" id="regenHeadline">根据当前数据重新生成</button><button type="button" class="secondary" id="downloadHeadline">保存标题与轮播 TXT</button></div>
     </section>
   </div>
+  <section id="posterTypographyControls" class="story-card" style="margin-top:16px">
+    <h3>字体与排版工作台</h3>
+    <p class="copy-mini">选择文字元素，在右侧实际图卡中实时查看。字号以 360px 逻辑宽度为基准，留空继承原布局。</p>
+    <label class="lbl" for="typoElements">文字元素</label>
+    <select id="typoElements" class="field ui-field"></select>
+    <p id="typoScope" class="copy-mini"></p>
+    <label class="lbl" for="typoSize">字号（逻辑 px）</label>
+    <div style="display:grid;grid-template-columns:minmax(0,1fr) 86px;gap:8px;align-items:center">
+      <input id="typoSizeRange" class="range" type="range" min="4" max="60" step="0.5" aria-label="字号滑块">
+      <input id="typoSize" class="field ui-field" type="number" min="4" max="60" step="0.5" aria-label="字号数值">
+    </div>
+    <div class="copy-two">
+      <div><label class="lbl" for="typoFamily">字体方案</label><select id="typoFamily" class="field ui-field"><option value="default">原始混排</option><option value="sans">黑体</option><option value="serif">宋体</option><option value="mono">等宽字体</option></select></div>
+      <div><label class="lbl" for="typoStyle">字形</label><select id="typoStyle" class="field ui-field"><option value="normal">正常</option><option value="italic">斜体</option></select></div>
+      <div><label class="lbl" for="typoWeight">字重（100–900）</label><input id="typoWeight" class="field ui-field" type="number" min="100" max="900" step="1"></div>
+      <div><label class="lbl" for="typoBold">加粗快捷切换</label><label class="safe-check"><input id="typoBold" type="checkbox"> 加粗</label></div>
+    </div>
+    <p id="typoWatermarkHint" class="copy-mini" hidden>水印需先启用；本处设置字号后优先于原水印字号，单项重置恢复原水印控件。</p>
+    <p class="copy-mini">字号过大时可能出现空间不足或局部适配，请结合预览检查。字体实际字形与可用字重取决于系统字体。</p>
+    <div class="story-buttons"><button id="typoResetOne" class="secondary" type="button">恢复此元素默认</button><button id="typoResetAll" class="secondary" type="button">全部重置为默认</button><button id="typoExport" class="primary" type="button">导出 JSON</button></div>
+  </section>
     </div>
     <div class="studio-preview">
       <div class="preview-titlebar"><span>实时画面预览</span><label>展示宽度 <select id="posterPreviewWidth" aria-label="手机展示宽度"><option value="">适应窗口</option><option value="320">320px</option><option value="360">360px</option><option value="390">390px</option><option value="400">400px</option></select></label><span id="previewSize">1080 × 1440</span></div>
@@ -390,6 +411,7 @@
 
 </main><div class="toast" id="toast" role="status"></div>
 <script src="sales-chart-layout.js"></script>
+<script src="poster-typography.js"></script>
 <script src="research-charts.js"></script>
 <script src="sales-poster.js"></script>
 <script src="sales-estimator.js"></script>

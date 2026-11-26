@@ -14,6 +14,7 @@
 | 3 研究预览、多周色带、双轴或跨市场图 | sales-estimate-archive.js、research-charts.js | 从 `initResearch` 查专题与参数；`drawAdjacentStackRibbons`、`drawGenerationDualAxis`、`drawDualBrandShareComparison` 分别定位绘制 |
 | 3 机型销量与排名纵轴、专题散点刻度 | sales-estimate-archive.js、research-charts.js、sales-poster.js | `addTrackerHeading` 和 `renderTrackerRank` 定位独立开关与原榜排名；`logAxis` 供折线预览及图卡使用；`lineAxis` / `rankAxis` 定位线性刻度；`SalesChartLayout.integerAxis` 供模块 3 动态数值纵轴及模块 5 网页、桌面和移动 PNG 共用 |
 | 3 图卡文案、模板与发布包 | sales-studio.js、sales-poster.js | `posterCopyDefaults`、`freezePublication`、`saveCardVersions`、`saveBundle`；模板布局进 sales-poster.js。2/3 共用 poster-export.js、poster-watermark.js、poster-themes.js |
+| 3 图卡字体与排版 | poster-typography.js、sales-studio.js、sales-poster.js、research-charts.js | `PosterTypography.mount` → `getVisualPreferences` / `capturePublication` → `drawPoster`；`posterRoleFit`、`posterFont` 与轴/图例/堆叠测量同步；配置 JSON 独立导出。 |
 | 4 网格编辑、特殊值、核查、撤销 | sales-data-editor.html | `commitInput` / `openSpecial`、`runChecks`、`travelHistory`、`persistDraft` |
 | 4 项目/本地宽表或会话草稿导入 | sales-data-editor.html | `trackingCSV`、`previewWideSync` → `buildSyncPlan`；模块 5 入口 `incrementDraft`；导出查 `salesContent` / `masterContent` |
 | 5 图表、横纵轴和 PNG | sales-increment.html、sales-increment.js | `loadSource` → `seriesRows` → `plot`；桌面 `exportChart`、手机 `exportMobileChart`，共享排版见上 |

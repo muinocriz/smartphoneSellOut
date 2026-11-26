@@ -14,6 +14,8 @@
 
 模块 1、5 的临时编辑通过当前标签页的 sessionStorage（SalesSite）交给模块 4；模块 4 自身可恢复本地草稿。刷新、跨页返回、导出文件、提交正式数据是不同操作。处理数据同步时同时定位生产者、接收者与确认写入路径。榜单估算表 sales-estimates.csv 与跟踪长表 sales-long.csv 各自独立。
 
+模块 3 出图台排版覆盖值随 `StudioPreferences` 的 visual / publication 本地保存；公共元素跨图卡共享，主体按模板或研究专题隔离，缺省继承原渲染器。发布快照冻结排版配置，与 PNG、ZIP 同步；排版 JSON 仅含视觉设置。专题研究页直接导出不受出图台排版覆盖值影响。
+
 ## 运行、发布与验收
 
 - 本地在仓库根目录执行 `python3 -m http.server 8000`，访问 `http://localhost:8000/`；模块 3 本地入口为 `/sales-estimator.html`。本地静态预览无需构建。

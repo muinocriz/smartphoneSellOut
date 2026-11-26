@@ -599,7 +599,10 @@ function mobileExportSeries(set,name,theme,style,showSymbol){
   const observed=SalesChartLayout.observedLine({
     name,data:points.map(point=>point?.op==='='?point.value:null),color,panel:theme.pn,style,showSymbol
   });
-  const hollowStyle={color:theme.pn,borderColor:color,borderWidth:2};
+  const hollowStroke=1;
+  // Match the visible diameter after the solid point's background outline and the hollow point's colored outline.
+  const hollowSize=observed.symbolSize-observed.itemStyle.borderWidth-hollowStroke;
+  const hollowStyle={color:theme.pn,borderColor:color,borderWidth:hollowStroke};
   const estimatedEdge=(left,right)=>left&&right&&(left.estimated||right.estimated);
   const series=[observed];
   // Keep estimated runs separate so unrelated or observed intervals aren't drawn twice.
@@ -612,7 +615,7 @@ function mobileExportSeries(set,name,theme,style,showSymbol){
     if(start<0)continue;
     // Line symbols use the same automatic category-axis sampling as the solid series.
     series.push({
-      ...observed,silent:true,itemStyle:hollowStyle,
+      ...observed,silent:true,symbolSize:hollowSize,itemStyle:hollowStyle,
       data:points.map((point,j)=>{
         if(j<start||j>=i)return null;
         return point.op==='≈'?point.value:{value:point.value,symbol:'none'};
@@ -632,7 +635,7 @@ function mobileExportSeries(set,name,theme,style,showSymbol){
     }
     if(point.op==='≈'){
       if(estimatedEdge(points[i-1],point)||estimatedEdge(point,points[i+1]))return [];
-      return {value,symbolSize:style.sym,itemStyle:hollowStyle};
+      return {value,symbolSize:hollowSize,itemStyle:hollowStyle};
     }
     return {
       value,symbolSize:9,itemStyle:{color:'transparent'},

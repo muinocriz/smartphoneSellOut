@@ -284,9 +284,7 @@ function draw(){
     set.points=ticks.map(t=>lookup.get(t));
   }
   current={sets,ticks,rangeLabel,axis};
-  for(const [id,value] of [['loSlider',from],['hiSlider',to]]){
-    const slider=byId(id);slider.max=Math.max(0,axis.length-1);slider.value=value;slider.disabled=!axis.length;
-  }
+  byId('fullRange').disabled=!axis.length;
   byId('hoverReadout').textContent='';
   const matrix=byId('matrix');matrix.replaceChildren();
   matrix.createCaption().textContent='多机对比 · '+filterLabel('metric')+'（万台）';
@@ -504,8 +502,6 @@ function changeRange(lo,hi){
   byId('to').selectedIndex=Math.max(byId('from').selectedIndex,Math.min(hi,end));
   draw();
 }
-byId('loSlider').oninput=e=>changeRange(+e.target.value,byId('to').selectedIndex);
-byId('hiSlider').oninput=e=>changeRange(Math.min(byId('from').selectedIndex,+e.target.value),+e.target.value);
 byId('fullRange').onclick=()=>changeRange(0,current.axis.length-1);
 const screenChart=document.querySelector('svg');
 // Keep page scrolling while preventing zoom gestures over the chart.

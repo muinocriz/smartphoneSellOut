@@ -561,8 +561,7 @@
   const researchButtons={};
   let researchView='model';
   const scopeControl=$('trackerScope');
-  // The research navigation follows the retained heading, not optional descriptive copy.
-  tracker.querySelector('h2').after(researchNav);
+  tracker.prepend(researchNav);
   const researchPanel=document.createElement('div');
   researchPanel.innerHTML='<h3 id="researchTitle"></h3><p id="researchDesc" class="mini"></p>'+
     '<div id="researchGroupControls"><p class="mini">固定成员可手动编辑；应用自动分组会替换现有分组。筛选不会自动减少已配置的固定成员。</p>'+
@@ -627,7 +626,7 @@
   tracker.append(researchPanel);
   // Scope is always visible. The original chart/filter controls are retained for the model view.
   const commonGrid=scopeControl.parentElement.parentElement;
-  const modelNodes=Array.from(tracker.children).filter(n=>n!==researchNav&&n!==researchPanel&&n!==parameterPanel&&n!==productPanel&&n!==$('modelMasterStatus')&&n!==$('modelMasterRetry')&&n!==commonGrid&&n!==tracker.querySelector('h2')&&n!==$('trackerExport'));
+  const modelNodes=Array.from(tracker.children).filter(n=>n!==researchNav&&n!==researchPanel&&n!==parameterPanel&&n!==productPanel&&n!==$('modelMasterStatus')&&n!==$('modelMasterRetry')&&n!==commonGrid&&n!==$('trackerExport'));
   const metricNode=$('trackerMode').parentElement,axisNode=$('trackerAxis').parentElement;
   function visible(node,show){if(!node)return;node.hidden=!show;node.style.display=show?(node.dataset.researchDisplay||''):'none';}
   for(const n of [...modelNodes,productPanel,metricNode,axisNode,researchPanel,$('researchGroupControls'),$('researchTierControls'),$('researchTopControls'),$('researchBrandControls'),$('researchCoverageControls'),$('researchDualControls'),$('researchTailControls'),$('researchPriceControls'),$('researchPositionControls'),$('researchChipControls'),$('researchAgeControls'),$('researchCrossControls')])if(n)n.dataset.researchDisplay=n.style.display||'';

@@ -155,34 +155,44 @@ function posterCompactLegendText(ctx,value,x,y,color,previewSize,previewWeight='
  if(fit<size)auditIssue(ctx,'局部图例空间不足，字号低于10逻辑单位');
  ctx.save();ctx.font=posterFont(ctx,fit,POSTER_DESIGN.weight.legend,CJK_FONT,'legend');if(PosterTypography.hasAny()){const m=ctx.measureText(str);PosterTypography.auditText(ctx,x,y,m.width,m.actualBoundingBoxAscent??fit*.8,m.actualBoundingBoxDescent??fit*.2,align,'legend');}ctx.fillStyle=color;ctx.textAlign=align;ctx.textBaseline='alphabetic';ctx.fillText(str,x,y);ctx.restore();
 }
-function posterLineLegend(ctx,items,box,p){
- const {left,top,width}=box,T=MOBILE_POSTER_TYPE,size=T.legend,step=Math.max(posterDp(POSTER_DESIGN.chart.legendLine),size*1.4),symbol=posterDp(8),gap=posterDp(4),prefix=symbol+gap,itemGap=posterDp(8);
+function posterLegendLayout(ctx,items,left,width){
+ const size=MOBILE_POSTER_TYPE.legend,step=Math.max(posterDp(POSTER_DESIGN.chart.legendLine),size*1.4),symbol=posterDp(8),prefix=symbol+posterDp(4),itemGap=posterDp(8);
  const colors=['#2563eb','#ea580c','#059669','#9333ea','#db2777','#0891b2','#92400e','#64748b','#be123c','#4d7c0f','#0369a1','#7c3aed'];
  const rows=[];let row=[],used=0;
  for(const [i,l] of items.entries()){
   const text=String(l.name??''),w=posterLegendMeasure(ctx,text,size);
   const wrapped=w<=width-prefix&&!/[\r\n]/.test(text)?[text]:posterLegendWrap(ctx,text,width-prefix,size);
   const itemW=prefix+Math.max(0,...wrapped.map(v=>posterLegendMeasure(ctx,v,size)));
-  if(itemW>width){auditIssue(ctx,'图例完整英文词或机型名称超出可用宽度，请调整安全区',true);return box.bottom??top;}
+  if(itemW>width){auditIssue(ctx,'图例完整英文词或机型名称超出可用宽度，请调整安全区',true);return null;}
   if(row.length&&used+itemGap+itemW>width){rows.push(row);row=[];used=0;}
   if(row.length)used+=itemGap;
   row.push({...l,color:l.color||colors[i%colors.length],wrapped,x:left+used});used+=itemW;
  }
  if(row.length)rows.push(row);
- const needed=rows.reduce((sum,r)=>sum+Math.max(1,...r.map(l=>l.wrapped.length))*step,0);
- if(Number.isFinite(box.bottom)&&top+needed+posterDp(52)>box.bottom){auditIssue(ctx,'图例占用空间过多，请减少机型或拆分图卡',true);return box.bottom;}
+ const height=rows.reduce((sum,row)=>sum+Math.max(1,...row.map(l=>l.wrapped.length))*step,0);
+ return {rows,height,size,step,symbol,prefix};
+}
+function drawPosterLegend(ctx,layout,top,p,swatches=false){
+ const {rows,size,step,symbol,prefix}=layout,T=MOBILE_POSTER_TYPE;
  let yy=top;
  for(const group of rows){
   for(const l of group){
    const x=l.x,base=yy+size,mid=base-size*.33;
-   if(l.legendBand){ctx.save();ctx.fillStyle=l.color;ctx.globalAlpha=.45;ctx.fillRect(x,mid-posterDp(2),symbol,posterDp(4));ctx.restore();}
+   if(swatches){ctx.fillStyle=l.color;ctx.fillRect(x,mid-posterDp(3),symbol,posterDp(6));}
+   else if(l.legendBand){ctx.save();ctx.fillStyle=l.color;ctx.globalAlpha=.45;ctx.fillRect(x,mid-posterDp(2),symbol,posterDp(4));ctx.restore();}
    else if(l.marker)ResearchCharts.canvasMarker(ctx,l.marker,x+symbol/2,mid,T.marker,l.color);
    else {ctx.fillStyle=l.color;ctx.fillRect(x,mid-T.line/2,symbol,T.line);}
    l.wrapped.forEach((v,k)=>posterLegendText(ctx,v,x+prefix,base+k*step,p));
   }
   yy+=Math.max(1,...group.map(l=>l.wrapped.length))*step;
  }
- return yy+(rows.length?posterDp(4):0);
+}
+function posterLineLegend(ctx,items,box,p){
+ const {left,top,bottom,width}=box,layout=posterLegendLayout(ctx,items,left,width);
+ if(!layout)return bottom??top;
+ if(Number.isFinite(bottom)&&top+layout.height+posterDp(52)>bottom){auditIssue(ctx,'图例占用空间过多，请减少机型或拆分图卡',true);return bottom;}
+ drawPosterLegend(ctx,layout,top,p);
+ return top+layout.height+(layout.rows.length?posterDp(4):0);
 }
 function auditIssue(ctx,message,blocking=false){
  const a=posterAudits.get(ctx);if(a)(blocking?a.errors:a.warnings).add(message);

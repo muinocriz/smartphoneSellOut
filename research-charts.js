@@ -145,9 +145,11 @@ function drawBrandComposition(ctx,chart,box,p,note=''){
  const f=Math.min(width/780,height/466,1.4);
  const textSize=Math.max(10,14*f),small=Math.max(9,12*f);
  const cols=Math.max(1,Math.min(lines.length,Math.floor(width/(108*Math.max(.8,f)))));
- const mobile=mobilePosterActive(ctx),legRows=Math.ceil(lines.length/cols),legStep=mobile?Math.max(posterDp(POSTER_DESIGN.chart.legendLine),23*f):Math.max(16,23*f),legH=legRows*legStep;
- const foot=note?Math.max(18,29*f):0;
- const legendY=bottom-foot-legH+legStep*.7;
+ const mobile=mobilePosterActive(ctx),legend=mobile?posterLegendLayout(ctx,lines,left,width):null;
+ if(mobile&&!legend)return;
+ const legStep=Math.max(16,23*f),foot=note?Math.max(18,29*f):0;
+ const legendTop=bottom-foot-(legend?.height??Math.ceil(lines.length/cols)*legStep);
+ const legendY=legendTop+(legend?.size??legStep*.7);
  const drawText=(role,v,x,y,size,color=p.ink,weight='600',align='left',max=Infinity)=>posterRoleFit(ctx,role,v,x,y,size,color,weight,align,max);
  function rect(x,y,w,h,color){if(w<=0||h<=0)return;ctx.fillStyle=color;ctx.fillRect(x,y,w,h);}
  function line(x1,y1,x2,y2){ctx.strokeStyle=p.hair;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();}
@@ -178,7 +180,7 @@ function drawBrandComposition(ctx,chart,box,p,note=''){
  }else{
   const weekly=periods.every(v=>/^\d{4}-W\d{2}$/.test(String(v))),posterWeeks=weekly&&mobile;
   const axisBaselineOffset=posterWeeks?posterDp(15):small+6;
-  const reserve=mobile?axisBaselineOffset+posterAxisLegendDistance(ctx,periods.map(v=>posterWeekLabel(v,periods)),posterWeeks?MOBILE_POSTER_TYPE.axis:small,lines.map(l=>l.name),MOBILE_POSTER_TYPE.legend,small*.68,posterWeeks?POSTER_DESIGN.weight.axis:'550'):Math.max(35,48*f);
+  const reserve=mobile?axisBaselineOffset+posterAxisLegendDistance(ctx,periods.map(v=>posterWeekLabel(v,periods)),posterWeeks?MOBILE_POSTER_TYPE.axis:small,lines.map(l=>l.name),legend.size,legend.size*.33+posterDp(3),posterWeeks?POSTER_DESIGN.weight.axis:'550'):Math.max(35,48*f);
   const tickLabel=v=>String(v)+(pct?'%':'');
   const x0=left+(mobile?posterAxisGutter(ctx,yTicks,tickLabel):Math.max(36,57*f)),x1=right-Math.max(10,18*f),y0=top+(mobile?posterDp(19):Math.max(16,22*f)),y1=legendY-reserve;
   const plotH=y1-y0,slot=(x1-x0)/n,preferred=Math.min(slot*.72,92*Math.max(.8,f));
@@ -217,7 +219,8 @@ function drawBrandComposition(ctx,chart,box,p,note=''){
   });
    if(posterWeeks)posterWeekTicks(ctx,periods,i=>x0+slot*(i+.5),y1+posterDp(15),x0,x1,p);
  }
- lines.forEach((l,i)=>{const x=left+(i%cols)*width/cols,y=legendY+Math.floor(i/cols)*legStep;rect(x,y-small*.68,small*.85,small*.7,l.color);posterCompactLegendText(ctx,l.name,x+small+4,y,p.ink,small,'600','left',width/cols-small-7);});
+ if(legend)drawPosterLegend(ctx,legend,legendTop,p,true);
+ else lines.forEach((l,i)=>{const x=left+(i%cols)*width/cols,y=legendY+Math.floor(i/cols)*legStep;rect(x,y-small*.68,small*.85,small*.7,l.color);posterCompactLegendText(ctx,l.name,x+small+4,y,p.ink,small,'600','left',width/cols-small-7);});
  if(note)drawText('chartNote',note,left,bottom-3,small,p.sub,'550','left',width);
 }
 

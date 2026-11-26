@@ -716,7 +716,7 @@ async function exportChart(mobile){
   //const draftNote=hasDraft()?'含本标签页临时数据，仅供参考':'';
   if(mobile){
     //exportMobileChart(library,current,log,[footer,draftNote].filter(Boolean).join('\n'),filename);
-    exportMobileChart(library,current,log,footer.filter(Boolean).join('\n'),filename);
+    exportMobileChart(library,current,log,footer || '',filename);
     return;
   }
   const width=1200,base=675,scale=2;

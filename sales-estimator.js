@@ -1,4 +1,4 @@
-/* Module 3 calibration and raw estimate UI. */
+/* Popular Models and Ranking Research calibration and raw estimate UI. */
 'use strict';
 let currentDataset={id:'custom',label:'未导入榜单',base:0,width:0,height:0,bars:[],calibrations:[]};
 let mode='single', picked=[], timer;

@@ -1,4 +1,4 @@
-/* Module 3 poster typography. Overrides are sparse: absence preserves the original adaptive design. */
+/* Popular Models and Ranking Research poster typography. Overrides are sparse: absence preserves the original adaptive design. */
 const PosterTypography=(()=>{
  const common={
   markLeft:['左侧页眉',12,600],markRight:['右侧页眉',12,600],title:['主标题',24,750],subtitle:['副标题',14,500],tag:['标签',12,650],footer:['来源及免责声明（页脚）',8,400],watermark:['水印文字',null,700]

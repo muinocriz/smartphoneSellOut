@@ -1,4 +1,4 @@
-/* Module 3 canonical model catalog. No history rows are rewritten. Browser + Node. */
+/* Popular Models and Ranking Research canonical model catalog. No history rows are rewritten. Browser + Node. */
 (function(root){
 'use strict';
 const Series=root.SalesSeries, Brand=root.BrandUtils;

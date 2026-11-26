@@ -1,4 +1,4 @@
-/* Module 3 publishing workflow, immutable export snapshots and local preferences. */
+/* Popular Models and Ranking Research publishing workflow, immutable export snapshots and local preferences. */
 const socialState={template:'top',ratio:'3:4',theme:'editorial_paper',duelA:0,duelB:1,lastDS:null,duelOptions:null,safeEnabled:true,safeRight:13,safeBottom:10,safeGuides:true};
 let posterTypographyConfig={},syncTypographyControls=()=>{};
 const watermarkDefaults=PosterWatermark.defaults;

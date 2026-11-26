@@ -38,7 +38,7 @@
       byId('wm'+key+'Value').textContent=wm[key[0].toLowerCase()+key.slice(1)]+unit;
     }
   }
-  // Read the current object on every event: resetting module 2 replaces its state.
+  // Read the current object on every event: resetting the watermark settings replaces their state.
   function mount(getState,onChange){
     byId('watermarkControls').insertAdjacentHTML('beforeend',markup);
     for(const [id,key,kind] of fields){

@@ -37,7 +37,7 @@ function matches(m,filters={}){
 }
 function options(models,field){return [...new Set(models.map(m=>value(m,field)))].sort((a,b)=>a===b?0:a===UNKNOWN?1:b===UNKNOWN?-1:a.localeCompare(b,'zh-CN',{numeric:true}));}
 function groups(entries,field,filters={}){const map=new Map();for(const {key,model} of entries){if(!matches(model,filters))continue;const name=value(model,field);if(!map.has(name))map.set(name,[]);map.get(name).push(key);}return [...map].map(([name,keys])=>({name,keys:[...new Set(keys)]})).sort((a,b)=>a.name.localeCompare(b.name,'zh-CN',{numeric:true}));}
-// Reuse module 1's ISO date utility, not its sales data.
+// Reuse the shared ISO date utility originally used by the legacy Sales Tracking page.
 const Iso=root.IsoSalesWeek;
 function lifecycle(model,week){
  const date=model?.sale_start_date;if(!date||!week?.start)return null;

@@ -130,7 +130,7 @@ function drawAdjacentStackRibbons(ctx,columns){
  }
 }
 
-/* Module 2 style stacked bands; shared by live research canvas and PNG poster.
+/* Stacked bands based on the retired Market Share page; shared by live research canvas and PNG poster.
  * Geometry derives from the independently reserved horizontal and vertical bounds. */
 function drawBrandComposition(ctx,chart,box,p,note=''){
  const {left,right,top,bottom,width,height}=box;

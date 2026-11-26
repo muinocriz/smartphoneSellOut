@@ -1,5 +1,5 @@
 /* ISO calendar-week and device full-sales-week utilities.
- * Single source of truth for browser module 1 and future Node-based pipelines.
+ * Single source of truth for the legacy Sales Tracking page and future Node-based pipelines.
  * All timestamps are UTC midnight for date-only arithmetic, not sale-event timestamps.
  */
 (function (root, factory) {

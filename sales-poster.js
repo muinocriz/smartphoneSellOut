@@ -23,7 +23,7 @@ function drawPosterBackdrop(ctx,W,H,p){
  }
  ctx.restore();ctx.restore();
 }
-// Inner cards use the same white surface and themed border as module 2.
+// Inner cards use the same white surface and themed border as the retired Market Share page.
 function drawDataCard(ctx,x,y,w,h,p,r=Math.round(1080*window.PosterThemes.layout.innerRadiusRatio)){
  ctx.save();
  const pixelRatio=ctx.getTransform().a;

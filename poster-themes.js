@@ -1,5 +1,5 @@
 /* Shared poster themes for market-share.html (SVG) and sales-estimator.html (Canvas).
- * Canonical theme values originate from module 2; independent brand identification
+ * Canonical theme values originate from the retired Market Share page; independent brand identification
  * colors remain in the chart data and do not become theme accents.
  * Update palette values HERE, not in individual HTML files.
  */

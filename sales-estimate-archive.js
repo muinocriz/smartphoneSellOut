@@ -1,4 +1,4 @@
-/* Module 3: normalized historical estimates. No backend or write token is needed.
+/* Popular Models and Ranking Research: normalized historical estimates. No backend or write token is needed.
  * The deployed studio reads the committed CSV; the maintainer uploads the merged export.
  * History contains final estimates, not the original image/calibration workspace.
  */
@@ -882,7 +882,7 @@
     $('researchNotice').textContent=pairs.length+' 个档位 · '+(life?'完整销售周同期':'自然周同期')+' · 图表展示选定档位；CSV 包含全部档位。空值不代表零。';
   }
 
-  // Cross-module analysis uses the same validated parent-brand parser as module 2.
+  // Cross-market analysis uses the shared, validated parent-brand parser.
   let marketCache=null,marketError='',marketPending=null,coveragePublicationInfo=null,dualPublicationInfo=null;
   function ensureMarketData(force=false){
     if(marketPending)return marketPending;
@@ -925,7 +925,7 @@
       return {...w,valid,sales,counts,count:valid?count:null,total:valid?total:null,shares,countShares,...brandConcentration(shares),status};
     });
   }
-  // Fixed TOP30 and module-2 shares are never mixed in the denominator.
+  // Fixed TOP30 and whole-market shares are never mixed in the denominator.
   let dualWeekScope='';
   function fillDualWeeks(scope){
     const periods=scope.weeks.map(w=>w.period),identity=scope.id+'|'+periods.join(',');

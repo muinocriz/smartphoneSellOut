@@ -34,14 +34,29 @@ const PosterTypography=(()=>{
  let profile=null,activeType='',activeRole='';
  function withProfile(config,type,draw){const old=[profile,activeType,activeRole];profile=config||{};activeType=type;activeRole='';try{return draw();}finally{[profile,activeType,activeRole]=old;}}
  function withRole(role,draw){const old=activeRole;activeRole=role;try{return draw();}finally{activeRole=old;}}
- function current(role=activeRole||'chartLabel'){return profile?.[scope(activeType,role)]?.[role]||{};}
+ function current(role=activeRole){return profile?.[scope(activeType,role)]?.[role]||{};}
  function size(role,fallback){const n=current(role).size;return n==null?fallback:n*3;}
- function font(size,weight,base,role=activeRole||'chartLabel'){
+ function font(size,weight,base,role=activeRole){
   const a=current(role),family=a.family==='sans'?CJK_FONT:a.family==='serif'?'"Source Han Serif SC","Noto Serif CJK SC","Songti SC",SimSun,serif':a.family==='mono'?NUM_FONT+','+CJK_FONT:base;
   return (a.style==='italic'?'italic ':'')+(a.weight??weight)+' '+size+'px '+family;
  }
- function effectiveWeight(role,weight){return current(role).weight??weight;}
- function exportConfig(config){return {schema_version:1,reference_width:360,unit:'logical_px',defaults:{common,...groups},font_families:families,override_policy:'missing_property_inherits_original_renderer; common_shared; each_template_or_research_topic_independent',overrides:clean(config)};}
+ function has(role){return Object.keys(current(role)).length>0;}
+ function hasAny(){return !!(profile&&(Object.keys(profile.common||{}).length||Object.keys(profile[activeType]||{}).length));}
+ function auditText(ctx,x,y,width,ascent,descent,align,role=activeRole){
+  if(!role||!hasAny()||![x,y,width,ascent,descent].every(Number.isFinite)||width<=0)return;
+  const a=posterAudits.get(ctx);if(!a)return;
+  const left=x-(align==='right'?width:align==='center'?width/2:0),b={l:left,r:left+width,t:y-ascent,b:y+descent,custom:has(role)};
+  if(b.custom&&(b.l<-2||b.r>(a.safeRight??Infinity)+2||b.t<-2||b.b>(a.safeBottom??Infinity)+2))auditIssue(ctx,'自定义排版文字可能超出安全区域，请检查预览');
+  const boxes=a.typographyBoxes??=[];
+  if(boxes.some(v=>(b.custom||v.custom)&&Math.min(b.r,v.r)-Math.max(b.l,v.l)>3&&Math.min(b.b,v.b)-Math.max(b.t,v.t)>3))auditIssue(ctx,'自定义排版可能造成文字重叠，请缩小字号或调整图幅');
+  if(boxes.length<600)boxes.push(b);
+ }
+ function exportConfig(config){
+  const defaults=Object.fromEntries(Object.entries({common,...groups}).map(([scope,items])=>[scope,Object.fromEntries(Object.entries(items).map(([role,[label,size,weight]])=>[role,{label,size,weight,family:'default',style:'normal',bold:weight>=700}]))]));
+  const overrides=clean(config);
+  for(const values of Object.values(overrides))for(const v of Object.values(values))if(v.weight!=null)v.bold=v.weight>=700;
+  return {schema_version:1,reference_width:360,unit:'logical_px',defaults,font_families:families,defaults_note:'Reference defaults; null or geometry-dependent values inherit the original adaptive renderer. Weight determines bold.',override_policy:'missing_property_inherits_original_renderer; common_shared; each_template_or_research_topic_independent',overrides};
+ }
  function mount(host,getType,getConfig,setConfig,redraw,download,watermark){
   let selected='title',lastType='';
   const el=id=>host.querySelector('#'+id);
@@ -50,13 +65,15 @@ const PosterTypography=(()=>{
   const currentValue=()=>getConfig()?.[scope(type(),selected)]?.[selected]||{};
   function sync(){
    const t=type(),all=available();
-   if(t!==lastType){if(!all[selected])selected='title';lastType=t;}
-   el('typoElements').replaceChildren(...Object.entries(all).map(([key,v])=>{const o=document.createElement('option');o.value=key;o.textContent=(isCommon(key)?'公共 · ':'当前图卡 · ')+v[0];return o;}));
+   if(t!==lastType){
+    if(!all[selected])selected='title';lastType=t;
+    el('typoElements').replaceChildren(...Object.entries(all).map(([key,v])=>{const o=document.createElement('option');o.value=key;o.textContent=(isCommon(key)?'公共 · ':'当前图卡 · ')+v[0];return o;}));
+   }
    el('typoElements').value=selected;
    const v=currentValue(),d=all[selected],wm=watermark(),defaultSize=selected==='watermark'?(wm.diagonalEnabled?wm.diagonalSize:wm.centerSize)/3:d[1];
    const defaultWeight=d[2],value=v.size??defaultSize;
-   el('typoScope').textContent=(isCommon(selected)?'所有图卡共享':'仅当前图卡 / 研究专题')+'；默认字号：'+(defaultSize==null?'随布局自动':Number(defaultSize.toFixed(2))+' px')+'，默认字重：'+defaultWeight;
-   el('typoSize').value=value??'';el('typoSize').placeholder='自动';el('typoSizeRange').value=value??12;
+   el('typoScope').textContent=(isCommon(selected)?'所有图卡共享':'仅当前图卡 / 研究专题')+'；参考默认字号：'+(defaultSize==null?'随布局自动':Number(defaultSize.toFixed(2))+' px')+'，参考默认字重：'+defaultWeight;
+   el('typoSize').value=value==null?'':Number(value.toFixed(2));el('typoSize').placeholder='自动';el('typoSizeRange').value=value??12;
    el('typoFamily').value=v.family||'default';el('typoStyle').value=v.style||'normal';
    el('typoWeight').value=v.weight??defaultWeight;el('typoBold').checked=(v.weight??defaultWeight)>=700;
    el('typoWatermarkHint').hidden=selected!=='watermark';
@@ -68,17 +85,19 @@ const PosterTypography=(()=>{
   }
   el('typoElements').onchange=e=>{selected=e.target.value;sync();};
   el('typoSizeRange').oninput=e=>patch({size:Number(e.target.value)});
+  el('typoSize').oninput=e=>{const n=Number(e.target.value);if(e.target.value!==''&&n>=4&&n<=60)patch({size:n});};
   el('typoSize').onchange=e=>patch({size:e.target.value===''?null:Number(e.target.value)});
   el('typoFamily').onchange=e=>patch({family:e.target.value});
   el('typoStyle').onchange=e=>patch({style:e.target.value});
-  el('typoWeight').onchange=e=>{if(e.target.value===''){sync();return;}patch({weight:Number(e.target.value)});};
+  el('typoWeight').oninput=e=>{const n=Number(e.target.value);if(e.target.value!==''&&n>=100&&n<=900)patch({weight:n});};
+  el('typoWeight').onchange=e=>patch({weight:e.target.value===''?null:Number(e.target.value)});
   el('typoBold').onchange=e=>patch({weight:e.target.checked?700:400});
   el('typoResetOne').onclick=()=>{const c=clean(getConfig()),k=scope(type(),selected);if(c[k]){delete c[k][selected];if(!Object.keys(c[k]).length)delete c[k];}setConfig(c);sync();redraw();};
   el('typoResetAll').onclick=()=>{setConfig({});sync();redraw();};
   el('typoExport').onclick=()=>download(new Blob([JSON.stringify(exportConfig(getConfig()),null,2)],{type:'application/json;charset=utf-8'}),'module3-typography.json');
   sync();return sync;
  }
- return Object.freeze({clean,withProfile,withRole,size,font,effectiveWeight,exportConfig,mount});
+ return Object.freeze({clean,withProfile,withRole,size,font,has,hasAny,auditText,exportConfig,mount});
 })();
 function posterFont(ctx,size,weight,base,role){return PosterTypography.font(size,weight,base,role);}
 function posterTypeSize(role,size){return PosterTypography.size(role,size);}

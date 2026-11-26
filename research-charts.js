@@ -5,7 +5,7 @@ const NUM_FONT='"IBM Plex Mono",ui-monospace,Menlo,monospace';
 const CANVAS_NUMERIC_PATTERN=/^[+\-−]?\d[\d.,:/–-]*(?:\s*(?:%|％|pp|倍|万台|台|px))?(?:\s*[·•]\s*[+\-−]?\d[\d.,:/–-]*(?:\s*(?:%|％|pp|倍|万台|台|px))?)*$/;
 function measureMixedCanvas(ctx,text,size,weight='600'){
  weight=posterBodyWeight(ctx,weight);const runs=PosterThemes.numericTextRuns(text,CANVAS_NUMERIC_PATTERN);let width=0;
- const measured=runs.map(run=>{ctx.font=posterFont(ctx,size,weight,run.number?NUM_FONT:CJK_FONT);const w=ctx.measureText(run.text).width;width+=w;return {...run,width:w}});
+ const measured=runs.map(run=>{ctx.font=posterFont(ctx,size,weight,run.number?NUM_FONT:CJK_FONT);const m=ctx.measureText(run.text),w=m.width;width+=w;return {...run,width:w,ascent:m.actualBoundingBoxAscent??size*.8,descent:m.actualBoundingBoxDescent??size*.2}});
  return {runs:measured,width};
 }
 function canvasText(ctx,text,x,y,size,color,weight='600',align='left',maxWidth=null){
@@ -15,6 +15,7 @@ function canvasText(ctx,text,x,y,size,color,weight='600',align='left',maxWidth=n
  if(original.trim()&&mobilePosterActive(ctx)&&size*scale<posterReadabilityMin(ctx))
   auditIssue(ctx,'部分文字低于手机阅读目标（360px宽时12px），建议精简重复信息或减少展示项目');
  let start=x-(align==='right'?measured.width*scale:align==='center'?measured.width*scale/2:0);
+ PosterTypography.auditText(ctx,x,y,measured.width*scale,Math.max(0,...measured.runs.map(r=>r.ascent)),Math.max(0,...measured.runs.map(r=>r.descent)),align);
  // 独立数字行使用字形左边界做光学补偿（特别是数字 1）。
  if(align==='left'&&/^[+\-−]?\d[\d.,:%％×\s+\-−]*$/.test(original)){
   ctx.font=posterFont(ctx,size,weight,NUM_FONT);
@@ -525,7 +526,7 @@ function drawMobileResearchHeatmap(ctx,chart,box,p,note=''){
  const headingLines=posterRoleWrap(ctx,'axisTitle',heading,width,T.axisTitle,S.axisTitle),headingBlock=posterRoleBlock(ctx,'axisTitle',headingLines,T.axisTitle,S.axisTitle,top);
  const headerBottom=top+headingBlock.height+gap+Math.max(...colLines.map(blockH));
  const y0=headerBottom+gap,legendH=T.legend+2*gap;
- const noteLines=note?posterWrap(ctx,note,width,T.caption,S.caption):[],noteBlock=posterBlock(ctx,noteLines,T.caption,S.caption,0);
+ const noteLines=note?posterRoleWrap(ctx,'chartNote',note,width,T.caption,S.caption):[],noteBlock=posterRoleBlock(ctx,'chartNote',noteLines,T.caption,S.caption,0);
  const y1=bottom-legendH-(noteLines.length?noteBlock.height+gap:0),rh=(y1-y0)/rows.length;
  if(!auditPlot(ctx,x1-x0,y1-y0,'热力矩阵绘图区',220,150))return;
  if(rh<=2*pad||cw<=2*pad){auditIssue(ctx,'热力矩阵单元过小，请减少属性类别数',true);return;}
@@ -735,7 +736,7 @@ function drawMobileCoverageLayers(ctx,chart,box,p){
   count++;let accumulated=0;
   layers.forEach((l,j)=>{const v=l.values[i];ctx.save();ctx.fillStyle=l.color;ctx.globalAlpha=j===3?.65:1;ctx.fillRect(x(i)-bw/2,yp(accumulated+v),bw,yp(accumulated)-yp(accumulated+v));ctx.restore();accumulated+=v;});
  });
- if(!count)posterFitText(ctx,'无可行市场区间，分层暂不绘制',(x0+x1)/2,(lowerTop+lowerBottom)/2,T.value,p.sub,'500','center',x1-x0);
+ if(!count)posterRoleFit(ctx,'chartLabel','无可行市场区间，分层暂不绘制',(x0+x1)/2,(lowerTop+lowerBottom)/2,T.value,p.sub,'500','center',x1-x0);
  posterWeekTicks(ctx,chart.periods,x,lowerBottom+posterDp(16),left,right,p);
 }
 function drawCoverageLayers(ctx,chart,box,p,preview=false){
@@ -832,7 +833,7 @@ function drawBrandGrowth(ctx,chart,box,p,preview=false){
  groups.forEach((g,j)=>{
   const lines=chart.lines.filter(l=>l.brandKey===g.key),listed=lines.find(l=>l.role==='listed'),tail=lines.find(l=>l.role==='tail'),total=lines.find(l=>l.role==='total');
   const xx=left+(j%2)*(cellW+gap),yy=top+legendH+Math.floor(j/2)*(cellH+gap);
-  if(preview)crossAxisText(ctx,g.label,xx,yy+head,head,p.ink,'left',cellW*.6,'600');else posterRoleFit(ctx,'axisTitle',g.label,xx,yy+head,head,p.ink,'600','left',cellW*.6);
+  if(!posterAudits.get(ctx)?.bodyTypography)crossAxisText(ctx,g.label,xx,yy+head,head,p.ink,'left',cellW*.6,'600');else posterRoleFit(ctx,'axisTitle',g.label,xx,yy+head,head,p.ink,'600','left',cellW*.6);
   if(preview)crossAxisText(ctx,'万台',xx+cellW,yy+head,font,p.sub,'right',cellW*.3);else researchPosterAxisText(ctx,'万台',xx+cellW,yy+head,'title',p.sub,'right',cellW*.3,font);
   const ticks=yTicks;
    const x0=xx+(preview?Math.max(29,40*f):posterAxisGutter(ctx,ticks)),x1=xx+cellW-(preview?6*f:posterDp(2)),y0=yy+(preview?head+10*f:posterDp(17)),y1=yy+cellH-(preview?font+10*f:posterDp(j>=4?18:5)),slot=(x1-x0)/n,bw=Math.min(slot*.28,18*f),x=i=>x0+(i+.5)*slot,y=v=>y1-(v+cap)/(2*cap)*(y1-y0);
@@ -844,7 +845,7 @@ function drawBrandGrowth(ctx,chart,box,p,preview=false){
    const v=l.values[i];if(!Number.isFinite(v)||v===0)continue;ctx.save();ctx.fillStyle=g.color;ctx.globalAlpha=alpha;ctx.fillRect(x(i)+offset-bw/2,Math.min(y(v),y(0)),bw,Math.abs(y(v)-y(0)));ctx.restore();
   }
   ResearchCharts.canvasLine(ctx,{periods:chart.periods,lines:[{...total,color:p.ink,marker:'○'}]},{x,y});
-  if(!lines.some(l=>l.values.some(Number.isFinite)))crossAxisText(ctx,'无相邻有效周',(x0+x1)/2,(y0+y1)/2,font,p.sub,'center',x1-x0-4*f);
+  if(!lines.some(l=>l.values.some(Number.isFinite))){if(posterAudits.get(ctx)?.bodyTypography)posterRoleFit(ctx,'chartLabel','无相邻有效周',(x0+x1)/2,(y0+y1)/2,font,p.sub,'500','center',x1-x0-4*f);else crossAxisText(ctx,'无相邻有效周',(x0+x1)/2,(y0+y1)/2,font,p.sub,'center',x1-x0-4*f);}
   if(preview)crossPeriodTicks(ctx,chart.periods,x,y1+font+5*f,x1-x0,font,p,true);else if(j>=4)posterWeekTicks(ctx,chart.periods,x,y1+posterDp(15),xx,xx+cellW,p,3);
  });
 }
@@ -1049,7 +1050,7 @@ const ResearchCharts=(()=>{
    const y0=yy+titleH,y1=y0+panel.h,{low,high,ticks}=panel.axis,scale={x,y:v=>y1-(v-low)/(high-low)*panel.h};
    researchPosterAxisText(ctx,panel.title,x0,y0-posterDp(5),'title',p.ink,'left',x1-x0);
    posterYTicks(ctx,ticks,scale.y,x0,x1,p);
-   if(!panel.hasValues)posterFitText(ctx,'无相邻可比较周',(x0+x1)/2,(y0+y1)/2,T.value,p.sub,'500','center',x1-x0);
+   if(!panel.hasValues)posterRoleFit(ctx,'chartLabel','无相邻可比较周',(x0+x1)/2,(y0+y1)/2,T.value,p.sub,'500','center',x1-x0);
    panel.lines.forEach((l,j)=>{
     const i=panel.offset+j,color=l.color||COLORS[i%COLORS.length],dash=boardFlowDash(i);
     points({...chart,lines:[l]},scale,pt=>{

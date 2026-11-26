@@ -377,11 +377,12 @@ function plot(svg,{sets,ticks,rangeLabel},width,height,{mobile=false,interactive
   let tickCount=4;
   let tickStep=(high-low)/tickCount;
   if(!log){
-    // Snap the whole linear scale to integer steps, keeping all data inside the axis.
-    const roughStep=Math.max(1,tickStep);
+    // Follow the mobile chart's five-interval target and nice-step thresholds.
+    const roughStep=Math.max(1,(high-low)/5);
     const unit=10**Math.floor(Math.log10(roughStep));
-    const factor=[1,2,2.5,5,10].find(value=>value>=roughStep/unit)??10;
-    tickStep=Math.ceil(factor*unit);
+    const scaledStep=roughStep/unit;
+    const factor=[[1.5,1],[2.5,2],[4,3],[7,5]].find(([limit])=>scaledStep<limit)?.[1]??10;
+    tickStep=factor*unit;
     const firstTick=Math.floor(low/tickStep);
     const lastTick=Math.ceil(high/tickStep);
     low=firstTick*tickStep;

@@ -24,14 +24,6 @@ function canvasText(ctx,text,x,y,size,color,weight='600',align='left',maxWidth=n
  for(const run of measured.runs){ctx.font=weight+' '+size+'px '+(run.number?NUM_FONT:CJK_FONT);ctx.fillText(run.text,offset,0);offset+=run.width}
  ctx.restore();
 }
-// Match the integer step thresholds used by the sales increment chart.
-function integerScatterTicks(maximum){
- const roughStep=Math.max(1,maximum/5),unit=10**Math.floor(Math.log10(roughStep));
- const scaledStep=roughStep/unit;
- const factor=[[1.5,1],[2.5,2],[4,3],[7,5]].find(([limit])=>scaledStep<limit)?.[1]??10;
- const step=factor*unit;
- return Array.from({length:Math.ceil(maximum/step)+1},(_,i)=>i*step);
-}
 function rounded(ctx,x,y,w,h,r,color){if(w<=0||h<=0)return;ctx.beginPath();const rad=Math.min(r,w/2,h/2);ctx.roundRect(x,y,w,h,rad);ctx.fillStyle=color;ctx.fill()}
 // Tail-only scatter: the same renderer serves preview and every PNG route.
 function drawTailScatter(ctx,chart,box,p){
@@ -41,7 +33,7 @@ function drawTailScatter(ctx,chart,box,p){
  const x0=left+58*f,x1=right-24*f,y0=top+58*f,y1=bottom-106*f-legendExtra;
  if(!auditPlot(ctx,x1-x0,y1-y0,'长尾韧性散点绘图区',260,160))return;
  const minX=84,maxX=Math.max(392,Math.ceil((Math.max(...xx)+20)/70)*70);
- const yTicks=integerScatterTicks(Math.max(1,...yy)),maxY=yTicks.at(-1);
+ const {ticks:yTicks,high:maxY}=SalesChartLayout.integerAxis(0,Math.max(1,...yy));
  const x=v=>x0+(v-minX)/(maxX-minX)*(x1-x0),y=v=>y1-v/maxY*(y1-y0);
  const color=p.bar||'#3167a4',bands=[[84,189,'W13–W26'],[189,371,'W27–W52'],[371,maxX,'W53及以上']];
  bands.forEach(([lo,hi,label],i)=>{ctx.save();ctx.fillStyle=color;ctx.globalAlpha=.045+i*.035;ctx.fillRect(x(lo),y0,x(hi)-x(lo),y1-y0);ctx.restore();canvasText(ctx,label,(x(lo)+x(hi))/2,y0-10*f,small,p.sub,'600','center',x(hi)-x(lo)-4);});
@@ -84,9 +76,7 @@ function drawHeadStaticPoster(ctx,p,s,box){
   const x0=left+62,x1=right-22,y0=top+28,y1=bottom-legendH-86-legendExtra;
   if(!auditPlot(ctx,x1-x0,y1-y0,'四象限绘图区',260,160))return;
   const minimum=s.chart.xLabel?0.01:1.25,mx=Math.max(minimum,...xx.filter(Number.isFinite))*1.1;
-  const peakY=Math.max(minimum,...yy.filter(Number.isFinite));
-  const yTicks=s.chart.integerY?integerScatterTicks(peakY):Array.from({length:5},(_,i)=>peakY*1.1*i/4);
-  const my=yTicks.at(-1);
+  const {ticks:yTicks,high:my}=SalesChartLayout.integerAxis(0,Math.max(1,...yy.filter(Number.isFinite)));
   const x=v=>x0+v/mx*(x1-x0),y=v=>y1-v/my*(y1-y0);
   posterFitText(ctx,'纵轴：'+(s.chart.yLabel||'单品销量强度指数'),left,top+17,22,p.sub,'600','left',width);
   for(let i=0;i<=4;i++){
@@ -95,7 +85,7 @@ function drawHeadStaticPoster(ctx,p,s,box){
   }
   for(const b of yTicks){
    ctx.beginPath();ctx.moveTo(x0,y(b));ctx.lineTo(x1,y(b));ctx.stroke();
-   posterFitText(ctx,s.chart.integerY?String(b):b.toFixed(2),x0-8,y(b)+6,18,p.sub,'550','right',52);
+   posterFitText(ctx,String(b),x0-8,y(b)+6,18,p.sub,'550','right',52);
   }
   if(!s.chart.xLabel){ctx.save();ctx.setLineDash([9,7]);ctx.strokeStyle=p.sub;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x(1),y0);ctx.lineTo(x(1),y1);ctx.moveTo(x0,y(1));ctx.lineTo(x1,y(1));ctx.stroke();ctx.restore();}
   periods.forEach((name,i)=>{if(!Number.isFinite(xx[i])||!Number.isFinite(yy[i]))return;ctx.fillStyle=window.BrandUtils.color(name)||colors[i%colors.length];ctx.beginPath();ctx.arc(x(xx[i]),y(yy[i]),6,0,Math.PI*2);ctx.fill();});
@@ -149,8 +139,7 @@ function drawBrandComposition(ctx,chart,box,p,note=''){
  const valid=i=>lines.every(l=>Number.isFinite(l.values[i]));
  const totals=periods.map((_,i)=>valid(i)?lines.reduce((a,l)=>a+l.values[i],0):null);
  const maximum=Math.max(1,...totals.filter(Number.isFinite));
- const tick=Math.pow(10,Math.floor(Math.log10(maximum)))/2;
- const cap=limit||Math.ceil(maximum/tick)*tick;
+ const {high:cap,ticks:yTicks}=SalesChartLayout.integerAxis(0,limit||maximum);
  const pct=unit==='%';
  const f=Math.min(width/780,height/466,1.4);
  const textSize=Math.max(10,14*f),small=Math.max(9,12*f);
@@ -189,7 +178,7 @@ function drawBrandComposition(ctx,chart,box,p,note=''){
   const weekly=periods.every(v=>/^\d{4}-W\d{2}$/.test(String(v))),posterWeeks=weekly&&mobile;
   const axisBaselineOffset=posterWeeks?posterDp(15):small+6;
   const reserve=mobile?axisBaselineOffset+posterAxisLegendDistance(ctx,periods.map(v=>posterWeekLabel(v,periods)),posterWeeks?MOBILE_POSTER_TYPE.axis:small,lines.map(l=>l.name),MOBILE_POSTER_TYPE.legend,small*.68,posterWeeks?POSTER_DESIGN.weight.axis:'550'):Math.max(35,48*f);
-  const yTicks=Array.from({length:5},(_,i)=>cap*i/4),tickLabel=v=>String(Number(v.toFixed(2)))+(pct?'%':'');
+  const tickLabel=v=>String(v)+(pct?'%':'');
   const x0=left+(mobile?posterAxisGutter(ctx,yTicks,tickLabel):Math.max(36,57*f)),x1=right-Math.max(10,18*f),y0=top+(mobile?posterDp(19):Math.max(16,22*f)),y1=legendY-reserve;
   const plotH=y1-y0,slot=(x1-x0)/n,preferred=Math.min(slot*.72,92*Math.max(.8,f));
   const bw=mobile?posterStackBarWidth(ctx,slot,preferred,lines.flatMap(l=>l.values.filter(Number.isFinite).filter(v=>v>0).map(fmt))):preferred;
@@ -200,7 +189,7 @@ function drawBrandComposition(ctx,chart,box,p,note=''){
    posterYTicks(ctx,yTicks,v=>y1-v/cap*plotH,x0,x1,p,tickLabel);
    researchPosterAxisText(ctx,unit,x0,y0-posterDp(5),'title',p.sub,'left',x1-x0);
   }else{
-   for(let i=0;i<=4;i++){const v=cap*i/4,y=y1-plotH*i/4;line(x0,y,x1,y);drawText(tickLabel(v),x0-6,y+small*.3,small,p.sub,'550','right',x0-left-7);}
+   for(const v of yTicks){const y=y1-v/cap*plotH;line(x0,y,x1,y);drawText(tickLabel(v),x0-6,y+small*.3,small,p.sub,'550','right',x0-left-7);}
    drawText(unit,x0,top+small*.7,small,p.sub,'600');
   }
   const stride=Math.max(1,Math.ceil(n/Math.max(1,Math.floor((x1-x0)/(65*Math.max(.8,f))))));
@@ -631,21 +620,14 @@ function drawGenerationDualAxis(ctx,chart,box,p,preview=false){
  const legendStep=Math.max(22,30*f),legendY=top+font+3;
  const legendBottom=preview?top+legendStep:posterLineLegend(ctx,[{...volume,color:barColor},{...rate,color:rateColor,marker:'○'}],box,p);
  const y0=legendBottom+Math.max(axis.title+14,31*f),y1=bottom-Math.max(axis.period+14,36*f);
- const posterVolume=preview?null:posterValueAxis(Math.max(1,...volume.values.filter(Number.isFinite))*1.05,y1-y0);
- const x0=left+(preview?Math.max(45,62*f):posterAxisGutter(ctx,posterVolume.ticks)),x1=right-(preview?Math.max(47,61*f):posterAxisGutter(ctx,[0,20,40,60,80,100],v=>v+'%'));
+ const volumeAxis=SalesChartLayout.integerAxis(0,Math.max(1,...volume.values.filter(Number.isFinite)));
+ const rateTicks=SalesChartLayout.integerAxis(0,100).ticks;
+ const previewRateTicks=[...rateTicks,50].sort((a,b)=>a-b);
+ const x0=left+(preview?Math.max(45,62*f):posterAxisGutter(ctx,volumeAxis.ticks)),x1=right-(preview?Math.max(47,61*f):posterAxisGutter(ctx,rateTicks,v=>v+'%'));
  if(!auditPlot(ctx,x1-x0,y1-y0,'代际替代双轴绘图区',260,150))return;
  const slot=(x1-x0)/n,bw=Math.min(slot*.62,76*f);
  if(bw<3){auditIssue(ctx,'代际替代图周次过多，柱宽不足',true);return;}
- // Scale only from finite weekly combined volumes; leave 5% headroom.
- // Select a readable step independently of the axis ceiling so a small
- // increase in peak volume cannot double the displayed range.
- const peak=volume.values.reduce((m,v)=>Number.isFinite(v)?Math.max(m,v):m,0);
- const target=peak>0?peak*1.05:1;
- const desired=target/4,magnitude=Math.pow(10,Math.floor(Math.log10(desired)));
- const raw=desired/magnitude;
- const step=[1,2,2.5,5,10].reduce((best,v)=>v<=raw+1e-10?v:best,1)*magnitude;
- const intervals=Math.max(1,Math.ceil(target/step-1e-10));
- const cap=preview?intervals*step:posterVolume.high,plotH=y1-y0;
+ const {high:cap,ticks:volumeTicks}=volumeAxis,plotH=y1-y0;
  const x=i=>x0+(i+.5)*slot,y=v=>y1-v/cap*plotH,yp=v=>y1-v/100*plotH;
  const text=(v,a,b,size,color=p.sub,weight='550',align='left',maxWidth=width)=>posterFitText(ctx,String(v),a,b,size,color,weight,align,maxWidth);
  const rule=(a,b,c,d,color,lw=1,dash=[])=>{ctx.save();ctx.strokeStyle=color;ctx.lineWidth=lw;ctx.setLineDash(dash);ctx.beginPath();ctx.moveTo(a,b);ctx.lineTo(c,d);ctx.stroke();ctx.restore();};
@@ -661,13 +643,13 @@ function drawGenerationDualAxis(ctx,chart,box,p,preview=false){
  }
  axisText('合计周增量 / 万台',x0,y0-12,'title',p.sub,'left',(x1-x0)/2);
  axisText('替代率 / %',x1,y0-12,'title',p.sub,'right',(x1-x0)/2);
- for(const v of preview?Array.from({length:intervals+1},(_,i)=>step*i):posterSpacedTicks(posterVolume.ticks,y)){
+ for(const v of preview?volumeTicks:posterSpacedTicks(volumeTicks,y)){
   const yy=y(v),fraction=v/cap;
   if(![.5,.8].some(ref=>Math.abs(fraction-ref)<1e-9))rule(x0,yy,x1,yy,p.hair,preview?1.2*f:posterDp(POSTER_DESIGN.chart.grid));
   if(preview)axisText(Number(v.toPrecision(12)),x0-10,yy+5,'tick',p.sub,'right',x0-left-12);
   else posterAxisText(ctx,posterAxisLabel(v),x0-posterDp(4),yy+MOBILE_POSTER_TYPE.axis*.32,p.sub,'right');
  }
- for(const v of preview?[0,20,40,50,60,80,100]:posterSpacedTicks([0,25,50,75,100],yp)){
+ for(const v of preview?previewRateTicks:posterSpacedTicks(rateTicks,yp)){
   if(preview)axisText(v+'%',x1+10,yp(v)+5,'tick',p.sub,'left',right-x1-12);
   else posterAxisText(ctx,v+'%',x1+posterDp(4),yp(v)+MOBILE_POSTER_TYPE.axis*.32,p.sub,'left');
  }
@@ -736,10 +718,10 @@ function drawMobileCoverageLayers(ctx,chart,box,p){
  const lowerLegendH=posterLineLegend(scratch,lowerLegend,{left:0,right:width,width,top:0},p);
  const plotH=(bottom-upperTop-titleH-gap-lowerLegendH-footerH-posterDp(8))/2;
  if(plotH<posterDp(32)){auditIssue(ctx,'市场规模与销量分层绘图区不足，请精简图例或拆图',true);return;}
- const axis=posterLineAxis(upper,plotH),pctTicks=[0,25,50,75,100];
+ const axis=ResearchCharts.lineAxis(upper),pctTicks=SalesChartLayout.integerAxis(0,100).ticks;
  const x0=left+Math.max(posterAxisGutter(ctx,axis.ticks),posterAxisGutter(ctx,pctTicks,v=>v+'%')),x1=right-posterDp(4),slot=(x1-x0)/n,x=i=>x0+(i+.5)*slot;
  if(!auditPlot(ctx,x1-x0,plotH,'市场销量分层绘图区',250,96))return;
- const upperBottom=upperTop+plotH,scale=posterLineScale(upper,{left:x0,right:x1,top:upperTop,bottom:upperBottom},axis);
+ const upperBottom=upperTop+plotH,scale=ResearchCharts.lineScale(upper,{left:x0,right:x1,top:upperTop,bottom:upperBottom},axis);
  posterYTicks(ctx,axis.ticks,scale.y,x0,x1,p);
  ResearchCharts.canvasLine(ctx,upper,{...scale,x});
  const lowerTitleTop=upperBottom+gap;
@@ -773,13 +755,13 @@ function drawCoverageLayers(ctx,chart,box,p,preview=false){
  legend.forEach((l,i)=>{const lx=left+i*width/legend.length,ly=top+head+15*f;ctx.save();ctx.fillStyle=l.color;ctx.globalAlpha=l.band?.25:1;ctx.fillRect(lx,ly-7*f,13*f,5*f);ctx.restore();crossAxisText(ctx,l.name,lx+18*f,ly,font,p.sub,'left',width/legend.length-21*f);});
  const scale=ResearchCharts.lineScale(upper,{left:x0,right:x1,top:topY,bottom:bottomY});
  const y=scale.y;
- for(let i=0;i<=4;i++){const v=scale.top*i/4,yy=y(v);crossRule(ctx,x0,yy,x1,yy,p.hair);if(preview)crossAxisText(ctx,Number(v.toFixed(2)),x0-8*f,yy+4*f,font,p.sub,'right',x0-left-9*f);else researchPosterAxisText(ctx,Number(v.toFixed(2)),x0-8*f,yy+4*f,'tick',p.sub,'right',x0-left-9*f,font);}
+ for(const v of scale.axis.ticks){const yy=y(v);crossRule(ctx,x0,yy,x1,yy,p.hair);if(preview)crossAxisText(ctx,v,x0-8*f,yy+4*f,font,p.sub,'right',x0-left-9*f);else researchPosterAxisText(ctx,v,x0-8*f,yy+4*f,'tick',p.sub,'right',x0-left-9*f,font);}
  ResearchCharts.canvasLine(ctx,upper,{...scale,x});
  crossPeriodTicks(ctx,chart.periods,x,bottomY+font+7*f,plotW,font,p,preview);
  crossAxisText(ctx,'市场销量分层（%）',left,secondTop+head,head,p.ink,'left',width,'600');
  layers.forEach((l,i)=>{const lx=left+i*width/layers.length,ly=secondTop+head+15*f;ctx.save();ctx.fillStyle=l.color;ctx.globalAlpha=i===3?.65:1;ctx.fillRect(lx,ly-8*f,13*f,8*f);ctx.restore();crossAxisText(ctx,l.name,lx+18*f,ly,font,p.sub,'left',width/layers.length-21*f);});
  const yp=v=>lowerBottom-v/100*(lowerBottom-lowerY);
- for(const v of [0,25,50,75,100]){const yy=yp(v);crossRule(ctx,x0,yy,x1,yy,p.hair);if(preview)crossAxisText(ctx,v+'%',x0-8*f,yy+4*f,font,p.sub,'right',x0-left-9*f);else researchPosterAxisText(ctx,v+'%',x0-8*f,yy+4*f,'tick',p.sub,'right',x0-left-9*f,font);}
+ for(const v of SalesChartLayout.integerAxis(0,100).ticks){const yy=yp(v);crossRule(ctx,x0,yy,x1,yy,p.hair);if(preview)crossAxisText(ctx,v+'%',x0-8*f,yy+4*f,font,p.sub,'right',x0-left-9*f);else researchPosterAxisText(ctx,v+'%',x0-8*f,yy+4*f,'tick',p.sub,'right',x0-left-9*f,font);}
  const bw=Math.min(slot*.63,76*f);
  let count=0;
  chart.periods.forEach((_,i)=>{
@@ -844,15 +826,15 @@ function drawBrandGrowth(ctx,chart,box,p,preview=false){
  const legendH=preview?35*f:posterLineLegend(ctx,entries.map(([name,color,role])=>({name,color,legendBand:role==='light',marker:role==='line'?'○':null})),box,p)-top;
  const cellW=(width-gap)/2,cellH=(height-legendH-gap*2)/3;
  if(!auditPlot(ctx,cellW-45*f,cellH-head-35*f,'六品牌增长贡献子图',120,68))return;
- const peak=chart.lines.reduce((m,l)=>l.values.reduce((a,v)=>Number.isFinite(v)?Math.max(a,Math.abs(v)):a,m),0),target=peak>0?peak*1.08:1;
- const mag=Math.pow(10,Math.floor(Math.log10(target))),cap=([1,2,2.5,5,10].find(v=>v>=target/mag)||10)*mag;
+ const peak=chart.lines.reduce((m,l)=>l.values.reduce((a,v)=>Number.isFinite(v)?Math.max(a,Math.abs(v)):a,m),1);
+ const {high:cap,ticks:yTicks}=SalesChartLayout.integerAxis(-peak,peak);
  if(preview)entries.forEach(([label,color,role],i)=>{const lx=left+i*width/3,ly=top+font;ctx.save();ctx.fillStyle=color;ctx.globalAlpha=role==='light'?.34:1;if(role==='line')crossRule(ctx,lx,ly-4*f,lx+18*f,ly-4*f,color,2*f);else ctx.fillRect(lx,ly-9*f,16*f,10*f);ctx.restore();crossAxisText(ctx,label,lx+22*f,ly,font,p.sub,'left',width/3-24*f);});
  groups.forEach((g,j)=>{
   const lines=chart.lines.filter(l=>l.brandKey===g.key),listed=lines.find(l=>l.role==='listed'),tail=lines.find(l=>l.role==='tail'),total=lines.find(l=>l.role==='total');
   const xx=left+(j%2)*(cellW+gap),yy=top+legendH+Math.floor(j/2)*(cellH+gap);
   crossAxisText(ctx,g.label,xx,yy+head,head,p.ink,'left',cellW*.6,'600');
   if(preview)crossAxisText(ctx,'万台',xx+cellW,yy+head,font,p.sub,'right',cellW*.3);else researchPosterAxisText(ctx,'万台',xx+cellW,yy+head,'title',p.sub,'right',cellW*.3,font);
-  const ticks=preview?[-cap,-cap/2,0,cap/2,cap]:[-cap,0,cap];
+  const ticks=yTicks;
    const x0=xx+(preview?Math.max(29,40*f):posterAxisGutter(ctx,ticks)),x1=xx+cellW-(preview?6*f:posterDp(2)),y0=yy+(preview?head+10*f:posterDp(17)),y1=yy+cellH-(preview?font+10*f:posterDp(j>=4?18:5)),slot=(x1-x0)/n,bw=Math.min(slot*.28,18*f),x=i=>x0+(i+.5)*slot,y=v=>y1-(v+cap)/(2*cap)*(y1-y0);
    if(!preview&&(x1<=x0||y1-y0<posterDp(16))){auditIssue(ctx,'品牌增长子图空间不足，请减少安全区或拆图',true);return;}
   if(preview){for(const v of ticks){const ypos=y(v);crossRule(ctx,x0,ypos,x1,ypos,v===0?p.sub:p.hair,v===0?1.3:1);crossAxisText(ctx,Number(v.toPrecision(8)),x0-5*f,ypos+4*f,font,p.sub,'right',x0-xx-6*f);}}
@@ -911,13 +893,27 @@ const ResearchCharts=(()=>{
   ticks.push(high);
   return {high,ticks,ratio,hasValues:positive.length>0};
  }
- function lineScale(chart,box){
-  const n=chart.periods.length,max=(chart.bands||[]).reduce((m,b)=>(b.upper||[]).reduce((a,v)=>Number.isFinite(v)?Math.max(a,v):a,m),chart.lines.reduce((m,l)=>l.values.reduce((a,v)=>Number.isFinite(v)?Math.max(a,v):a,m),1));
-  const step=Math.pow(10,Math.floor(Math.log10(max)))/2,top=chart.limit||Math.ceil(max/step)*step;
-  const axis=chart.logY?logAxis(chart.lines.flatMap(l=>l.values)):null;
+ function lineAxis(chart){
+  const values=chart.lines.flatMap(l=>l.values);
+  if(chart.logY)return logAxis(values);
+  if(chart.limit)return SalesChartLayout.integerAxis(0,chart.limit);
+  const highValues=values.concat((chart.bands||[]).flatMap(b=>b.upper||[])).filter(Number.isFinite);
+  const lowValues=values.concat((chart.bands||[]).flatMap(b=>b.lower||[])).filter(Number.isFinite);
+  return SalesChartLayout.integerAxis(Math.min(0,...lowValues),Math.max(0,...highValues));
+ }
+ function rankAxis(min,max){
+  const low=Math.max(1,min),high=Math.max(low,max);
+  const {step}=SalesChartLayout.integerAxis(low,high);
+  const ticks=Array.from({length:Math.floor((high-low)/step)+1},(_,i)=>low+i*step);
+  if(ticks.at(-1)!==high)ticks.push(high);
+  return {ticks,ratio:v=>high===low?0.5:(v-low)/(high-low)};
+ }
+ function lineScale(chart,box,axis=lineAxis(chart)){
+  const n=chart.periods.length;
   const x=i=>n===1?(box.left+box.right)/2:box.left+i*(box.right-box.left)/Math.max(1,n-1);
-  const y=v=>box.bottom-(axis?axis.ratio(v):v/top)*(box.bottom-box.top);
-  return {top:axis?.high??top,x,y,axis};
+  const ratio=axis.ratio??(v=>(v-axis.low)/(axis.high-axis.low));
+  const y=v=>box.bottom-ratio(v)*(box.bottom-box.top);
+  return {x,y,axis};
  }
  function points(chart,scale,visit){
   chart.lines.forEach((l,j)=>{const color=l.color||COLORS[j%COLORS.length];l.values.forEach((v,i)=>{
@@ -941,15 +937,14 @@ const ResearchCharts=(()=>{
  function svgLine(host,legend,chart,label,precision=2){
   const n=chart.periods.length;if(!n||!chart.lines.length)return;
   const W=Math.max(720,n*48+110),H=310,L=56,R=W-55,T=25,B=265;
-  const scale=lineScale(chart,{left:L,right:R,top:T,bottom:B}),{top,x,y,axis}=scale;
+  const scale=lineScale(chart,{left:L,right:R,top:T,bottom:B}),{x,y,axis}=scale;
   const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  let content='<text x="'+L+'" y="13" font-size="11" fill="currentColor">'+esc((chart.unit??'')+(axis?' · 对数':''))+'</text>';
-  const ticks=axis?.ticks??Array.from({length:5},(_,i)=>top*i/4);
-  for(const v of ticks){
-   const tick=axis?Number(v.toPrecision(12)):Number(v.toFixed(2));
+  let content='<text x="'+L+'" y="13" font-size="11" fill="currentColor">'+esc((chart.unit??'')+(chart.logY?' · 对数':''))+'</text>';
+  for(const v of axis.ticks){
+   const tick=chart.logY?Number(v.toPrecision(12)):v;
    content+='<line x1="'+L+'" x2="'+R+'" y1="'+y(v)+'" y2="'+y(v)+'" stroke="currentColor" opacity=".14"/><text x="'+(L-8)+'" y="'+(y(v)+4)+'" text-anchor="end" fill="currentColor" font-size="11">'+tick+'</text>';
   }
-  if(axis&&!axis.hasValues)content+='<text x="'+(L+R)/2+'" y="'+(T+B)/2+'" text-anchor="middle" fill="currentColor" font-size="13">当前区间无正销量记录</text>';
+  if(axis.hasValues===false)content+='<text x="'+(L+R)/2+'" y="'+(T+B)/2+'" text-anchor="middle" fill="currentColor" font-size="13">当前区间无正销量记录</text>';
   const stride=Math.max(1,Math.ceil(n/15));chart.periods.forEach((w,i)=>{if(i%stride===0||i===n-1)content+='<text x="'+x(i)+'" y="'+(B+20)+'" text-anchor="middle" fill="currentColor" font-size="10">'+esc(w)+'</text>';});
   for(const band of chart.bands||[])for(const run of bandRuns(chart,band)){
    const color=esc(band.color||'#7c3aed'),alpha=Number.isFinite(band.opacity)?Math.max(0,Math.min(1,band.opacity)):.18;
@@ -993,9 +988,9 @@ const ResearchCharts=(()=>{
     const padding=j===0?Math.max(1,Math.ceil((max-min)*.1)):0;
     low=j===0?Math.max(0,min-padding):0;high=Math.max(low+1,max+padding);
    }
-   const step=Math.max(1,Math.ceil((high-low)/4));
-   low=Math.max(0,Math.floor(low/step)*step);high=Math.max(low+step,Math.ceil(high/step)*step);
-   panel.ticks=Array.from({length:Math.round((high-low)/step)+1},(_,i)=>low+i*step);
+   const axis=SalesChartLayout.integerAxis(low,high);
+   ({low,high}=axis);
+   panel.ticks=axis.ticks;
    panel.scale={x,y:v=>panel.bottom-(v-low)/(high-low)*(panel.bottom-panel.top)};
    panel.hasValues=values.length>0;
   });
@@ -1045,8 +1040,7 @@ const ResearchCharts=(()=>{
    const values=panel.lines.flatMap(l=>l.values.filter(Number.isFinite)),min=values.length?Math.min(...values):0,max=values.length?Math.max(...values):1;
    const pad=j===0?Math.max(1,Math.ceil((max-min)*.1)):0;
    const low=j===0?Math.max(0,min-pad):0,high=Math.max(low+1,max+pad);
-   const step=Math.max(1,Math.ceil(posterNiceStep((high-low)/(posterTickCapacity(panel.h)-1)))),start=Math.max(0,Math.floor(low/step)*step),end=Math.max(start+step,Math.ceil(high/step)*step);
-   panel.axis={low:start,high:end,ticks:Array.from({length:Math.round((end-start)/step)+1},(_,i)=>start+i*step)};panel.hasValues=values.length>0;
+   panel.axis=SalesChartLayout.integerAxis(low,high);panel.hasValues=values.length>0;
   });
   const x0=left+Math.max(...panels.map(v=>posterAxisGutter(ctx,v.axis.ticks))),x1=right-posterDp(4),x=i=>n===1?(x0+x1)/2:x0+i*(x1-x0)/Math.max(1,n-1);
   if(!auditPlot(ctx,x1-x0,Math.min(upperH,lowerH),'榜单流动双图绘图区',260,84))return;
@@ -1135,5 +1129,5 @@ const ResearchCharts=(()=>{
    }).catch(()=>{});
   }
  }
- return Object.freeze({logAxis,lineScale,svgLine,canvasLine,renderComposition,markerAt,svgMarker,canvasMarker,svgBoardFlow,canvasBoardFlow});
+ return Object.freeze({logAxis,rankAxis,lineAxis,lineScale,svgLine,canvasLine,renderComposition,markerAt,svgMarker,canvasMarker,svgBoardFlow,canvasBoardFlow});
 })();

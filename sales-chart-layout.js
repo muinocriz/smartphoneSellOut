@@ -2,6 +2,20 @@
 (function(){
   "use strict";
   const needsBrand=m=>/^\d/.test(m)||[...m].length<=3;
+  // Select an integer interval and align both bounds to its multiples.
+  function integerAxis(minimum,maximum){
+    const upper=maximum===minimum?maximum+1:maximum;
+    const roughStep=Math.max(1,(upper-minimum)/5);
+    const unit=10**Math.floor(Math.log10(roughStep));
+    const scaledStep=roughStep/unit;
+    const factor=[[1.5,1],[2.5,2],[4,3],[7,5]].find(([limit])=>scaledStep<limit)?.[1]??10;
+    const step=factor*unit;
+    const first=Math.floor(minimum/step),last=Math.ceil(upper/step);
+    return {
+      low:first*step,high:last*step,step,
+      ticks:Array.from({length:last-first+1},(_,i)=>(first+i)*step)
+    };
+  }
   // 尺寸以设计画布为基准，图片还会按附注行数向下延伸。
   function exportSize(mobile){
     return mobile?{W:400,H:500,dpr:3}:{W:1200,H:675,dpr:2};
@@ -268,5 +282,5 @@
     return [weekly?"周增量":"总销量",name,salesWeek?"销售周":"自然周",mobile?"手机":"桌面",time].join("-")+".png";
   }
 
-  window.SalesChartLayout={formatSales,exportFilename,create,needsBrand,observedLine,exportSize,renderPNG};
+  window.SalesChartLayout={integerAxis,formatSales,exportFilename,create,needsBrand,observedLine,exportSize,renderPNG};
 })();

@@ -482,24 +482,22 @@
     const W=Math.max(720,n*48+110),H=310,L=56,R=W-55,T=25,B=265;
     const ranks=rank.lines.flatMap(l=>l.points.map(p=>p?.value)).filter(Number.isFinite);
     if(!ranks.length){const empty=document.createElement('p');empty.className='mini';empty.textContent='当前区间无原始排名记录。';host.append(empty);return;}
-    const min=Math.min(...ranks),max=Math.max(...ranks),span=max-min;
-    const axis=rank.logY?ResearchCharts.logAxis(ranks,{rank:true}):null;
+    const axis=rank.logY?ResearchCharts.logAxis(ranks,{rank:true}):ResearchCharts.rankAxis(Math.min(...ranks),Math.max(...ranks));
     const x=i=>n===1?(L+R)/2:L+i*(R-L)/(n-1);
-    const y=v=>axis?T+axis.ratio(v)*(B-T):span===0?(T+B)/2:T+(v-min)*(B-T)/span;
+    const y=v=>T+axis.ratio(v)*(B-T);
     const ns='http://www.w3.org/2000/svg',svg=document.createElementNS(ns,'svg');
     svg.setAttribute('viewBox','0 0 '+W+' '+H);svg.setAttribute('role','img');svg.setAttribute('aria-label','原始榜单排名走势，较高名次在顶部');svg.style.cssText='width:100%;min-width:560px';
     function node(tag,attrs,txt,parent=svg){const el=document.createElementNS(ns,tag);for(const [k,v] of Object.entries(attrs))el.setAttribute(k,v);if(txt!=null)el.textContent=txt;parent.append(el);return el;}
-    const step=Math.max(1,Math.ceil(span/8));
-    const ticks=axis?.ticks??[...new Set([...Array.from({length:Math.floor(span/step)+1},(_,i)=>min+i*step),max])];
+    const ticks=axis.ticks;
     let lastTickY=-Infinity;
     for(const v of ticks){
       const yy=y(v);
-      if(axis&&yy-lastTickY<15)continue;
+      if(yy-lastTickY<15)continue;
       node('line',{x1:L,x2:R,y1:yy,y2:yy,stroke:'currentColor',opacity:.14});
       node('text',{x:L-8,y:yy+4,'text-anchor':'end',fill:'currentColor','font-size':11},v);
       lastTickY=yy;
     }
-    node('text',{x:L,y:13,fill:'currentColor','font-size':11},'原始排名'+(axis?' · 对数':''));
+    node('text',{x:L,y:13,fill:'currentColor','font-size':11},'原始排名'+(rank.logY?' · 对数':''));
     const stride=Math.max(1,Math.ceil(n/15));rank.periods.forEach((p,i)=>{if(i%stride===0||i===n-1)node('text',{x:x(i),y:B+20,'text-anchor':'middle',fill:'currentColor','font-size':10},p);});
     rank.lines.forEach(l=>l.points.forEach((p,i)=>{
       if(!Number.isFinite(p?.value))return;
@@ -1508,7 +1506,7 @@
       if(cfg.view==='scatter'){
         const points=labels.map(k=>({k,...byWeek[0].get(k)})).filter(a=>nonempty(last)&&a.weightedPrice!==null&&a.sales>0).slice(0,12);
         metricLabel='品牌样本销量 × 加权首发价';effective=points.length?[last.period]:[];
-        if(points.length)chart={kind:'scatter',integerY:true,xLabel:'品牌样本销量（万台）',yLabel:'销量加权首发价（元）',periods:points.map(a=>a.k),calendarPeriods:effective,lines:[{name:'样本销量',values:points.map(a=>a.sales)},{name:'加权首发价',values:points.map(a=>a.weightedPrice)}]};
+        if(points.length)chart={kind:'scatter',xLabel:'品牌样本销量（万台）',yLabel:'销量加权首发价（元）',periods:points.map(a=>a.k),calendarPeriods:effective,lines:[{name:'样本销量',values:points.map(a=>a.sales)},{name:'加权首发价',values:points.map(a=>a.weightedPrice)}]};
       }else{
         const high=cfg.view==='high';metricLabel=high?'品牌高价位销量贡献率（≥'+threshold+'元）':'销量加权首发价（元）';
         const lines=labels.map((k,i)=>({name:k,color:attrColor(k,i),values:per.map((w,j)=>nonempty(w)?(high?byWeek[j].get(k).highShare:byWeek[j].get(k).weightedPrice):null)}));

@@ -375,17 +375,11 @@ function plot(svg,{sets,ticks,rangeLabel},width,height,{mobile=false,interactive
   let tickCount=4;
   let tickStep=(high-low)/tickCount;
   if(!log){
-    // Follow the mobile chart's five-interval target and nice-step thresholds.
-    const roughStep=Math.max(1,(high-low)/5);
-    const unit=10**Math.floor(Math.log10(roughStep));
-    const scaledStep=roughStep/unit;
-    const factor=[[1.5,1],[2.5,2],[4,3],[7,5]].find(([limit])=>scaledStep<limit)?.[1]??10;
-    tickStep=factor*unit;
-    const firstTick=Math.floor(low/tickStep);
-    const lastTick=Math.ceil(high/tickStep);
-    low=firstTick*tickStep;
-    high=lastTick*tickStep;
-    tickCount=lastTick-firstTick;
+    const axis=SalesChartLayout.integerAxis(low,high);
+    low=axis.low;
+    high=axis.high;
+    tickStep=axis.step;
+    tickCount=axis.ticks.length-1;
   }
   const left=52,right=width-(mobile?36:Math.min(170,width*.22)),top=26,bottom=height-43;
   const x=i=>ticks.length===1?(left+right)/2:left+i*(right-left)/(ticks.length-1);
@@ -701,6 +695,11 @@ function exportMobileChart(echarts,chart,log,footerText,filename){
     points.some(point=>point?.op==='<')?'↓为上限':''
   ];
   const opt=layout.chartOption(cats,series,o,log,metric);
+  if(!log){
+    const values=datas.flat().filter(Number.isFinite);
+    const axis=SalesChartLayout.integerAxis(Math.min(0,...values),Math.max(0,...values));
+    Object.assign(opt.yAxis,{min:axis.low,max:axis.high,interval:axis.step});
+  }
   layout.setExportTitle(opt,cats,sel,o,log,metric,notes);
   const url=SalesChartLayout.renderPNG(echarts,size,footer.height,theme.pn,inst=>{
     inst.setOption(opt);

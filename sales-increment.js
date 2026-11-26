@@ -599,6 +599,8 @@ function mobileExportSeries(set,name,theme,style,showSymbol){
   const observed=SalesChartLayout.observedLine({
     name,data:points.map(point=>point?.op==='='?point.value:null),color,panel:theme.pn,style,showSymbol
   });
+  // Follow visible category labels for both line types, independent of marker diameter.
+  observed.showAllSymbol=false;
   const hollowStroke=1;
   // Match the visible diameter after the solid point's background outline and the hollow point's colored outline.
   const hollowSize=observed.symbolSize-observed.itemStyle.borderWidth-hollowStroke;
@@ -613,7 +615,7 @@ function mobileExportSeries(set,name,theme,style,showSymbol){
       continue;
     }
     if(start<0)continue;
-    // Line symbols use the same automatic category-axis sampling as the solid series.
+    // Inherit the solid line's category-label sampling for every estimated run.
     series.push({
       ...observed,silent:true,symbolSize:hollowSize,itemStyle:hollowStyle,
       data:points.map((point,j)=>{

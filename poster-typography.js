@@ -8,7 +8,7 @@ const PosterTypography=(()=>{
   versus:{rank:['参考 / 对比机型及排名',null,500],model:['机型名称',13,500],metric:['指标名称',null,500],sale:['销量数值',null,500],ratio:['销量倍数',null,500],difference:['销量差值',null,500]},
   brands:{metric:['榜单概览',12,500],brand:['品牌名称',13,500],sale:['销量与样本占比',12,500],model:['主力机型',12,500]},
   leader:{rank:['榜首标识',null,500],model:['榜首机型名称',13,500],sale:['榜首销量',null,500],metric:['指标名称',null,500],ratio:['领先倍数',null,500],difference:['领先销量',null,500],share:['集中度占比',null,500]},
-  research:{axisTitle:['坐标轴 / 子图标题',13,500],axis:['轴刻度 / 周次',12,400],legend:['图例',10,400],chartLabel:['图内名称 / 分类标签',null,500],chartValue:['图内数据标签',null,500],stackLabel:['堆叠 / 流向分组名称',13,500],stackValue:['堆叠区块数值',10,400],tableHead:['表头',null,500],tableBody:['表格内容',null,500],chartNote:['图表说明',8,400]}
+  research:{axisTitle:['坐标轴 / 子图标题',13,500],axis:['轴刻度 / 周次',12,400],legend:['图例',10,400],chartLabel:['图内名称 / 分类标签',null,500],chartValue:['图内数据标签',null,500],stackLabel:['堆叠 / 流向分组名称',13,500],stackValue:['堆叠区块数值',8,400],tableHead:['表头',null,500],tableBody:['表格内容',null,500],chartNote:['图表说明',8,400]}
  };
  const families={default:'原始中英数字混排',sans:'黑体 / 无衬线',serif:'宋体 / 衬线',mono:'等宽字体'};
  const validScope=k=>['top','versus','brands','leader'].includes(k)||/^research:[A-Za-z0-9_-]+$/.test(k);
@@ -35,7 +35,11 @@ const PosterTypography=(()=>{
  function withProfile(config,type,draw){const old=[profile,activeType,activeRole];profile=config||{};activeType=type;activeRole='';try{return draw();}finally{[profile,activeType,activeRole]=old;}}
  function withRole(role,draw){const old=activeRole;activeRole=role;try{return draw();}finally{activeRole=old;}}
  function current(role=activeRole){return profile?.[scope(activeType,role)]?.[role]||{};}
- function size(role,fallback){const n=current(role).size;return n==null?fallback:n*3;}
+ function size(role,fallback){
+  const studioDefault=profile&&activeType.startsWith('research:')&&role==='stackValue'?groups.research.stackValue[1]:null;
+  const n=current(role).size??studioDefault;
+  return n==null?fallback:n*3;
+ }
  function font(size,weight,base,role=activeRole){
   const a=current(role),family=a.family==='sans'?CJK_FONT:a.family==='serif'?'"Source Han Serif SC","Noto Serif CJK SC","Songti SC",SimSun,serif':a.family==='mono'?NUM_FONT+','+CJK_FONT:base;
   return (a.style==='italic'?'italic ':'')+(a.weight??weight)+' '+size+'px '+family;

@@ -1930,7 +1930,7 @@
     if (!list || !list.length) return;
     if (!socialArchiveDataset || socialArchiveDataset.id !== list[0][col.dataset_id] ||
         JSON.stringify(socialArchiveDataset.archiveRows) !== JSON.stringify(list)) setSocialArchiveDataset(studioDataset(list));
-    if (scroll) { if(researchStudioActive()){leaveResearchStudio('top');updateSocial(true);} activateModuleTab('social'); $('socialStudio').scrollIntoView({behavior:'smooth',block:'start'}); }
+    if (scroll) { if(researchStudioActive()){leaveResearchStudio('top');updateSocial();} activateModuleTab('social'); $('socialStudio').scrollIntoView({behavior:'smooth',block:'start'}); }
   }
   $('archiveSelect').onchange = () => { showHistoryRows(); bindSelectedHistory(); };
   $('archiveUseStudio').onclick = () => bindSelectedHistory(true);

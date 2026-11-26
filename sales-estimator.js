@@ -43,7 +43,7 @@ function renderCalibrationView(changeOptions=true){let d=ds();if(changeOptions)r
 function renderAll(changeOptions=true,switched=false){
  if(switched)$('outlier').value='0.15';
  renderCalibrationView(changeOptions);
- if(!socialArchiveDataset&&!researchStudioActive())updateSocial(true);
+ if(!socialArchiveDataset&&!researchStudioActive())updateSocial();
  if(switched&&socialArchiveDataset)setSocialArchiveDataset(null);
  window.SalesEstimateArchive.updateControls(switched);
 }

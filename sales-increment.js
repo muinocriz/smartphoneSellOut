@@ -101,9 +101,9 @@ function seriesRows(key){
     for(let j=0;j<count;j++){
       const row=rows[start+j+1],delta=total*weights[j]/sum;
       cumulative+=delta;
-      row.weekly={value:delta,op:'≈',estimated:true};
+      row.weekly={value:delta,op:'≈',estimated:true,lowerBound:lower};
       row.source=(lower?'里程碑参考 · ':'')+(slope?'历史趋势约束':'线性估算');
-      if(j<count-1)row.cumulative={value:cumulative,op:'≈',estimated:true};
+      if(j<count-1)row.cumulative={value:cumulative,op:'≈',estimated:true,lowerBound:lower};
     }
   }
   return rows;
@@ -343,13 +343,6 @@ function fitText(context,text,width){
   while(chars.length&&context.measureText(chars.join('')+'…').width>width)chars.pop();
   return chars.length?chars.join('')+'…':'';
 }
-function mobileLegendName(context,key,width,multiBrand){
-  const [brand,model]=metadata[key];
-  const needsBrand=/^\d/.test(model)||Array.from(model).length<=3;
-  const full=multiBrand||needsBrand?brand+' '+model:model;
-  if(context.measureText(full).width<=width)return full;
-  return fitText(context,needsBrand?full:model,width);
-}
 function segHitsBox(x1,y1,x2,y2,r){ // Liang–Barsky
   let t0=0,t1=1;const dx=x2-x1,dy=y2-y1;
   for(const [p,q] of [[-dx,x1-r.x0],[dx,r.x1-x1],[-dy,y1-r.y0],[dy,r.y1-y1]]){
@@ -358,13 +351,11 @@ function segHitsBox(x1,y1,x2,y2,r){ // Liang–Barsky
 function boxesOverlap(a,b){
   return a.left<b.right&&a.right>b.left&&a.top<b.bottom&&a.bottom>b.top;
 }
-function plot(svg,{sets,ticks,rangeLabel},width,height,{mobile=false,interactive=false,numbered=null}={}){
+function plot(svg,{sets,ticks,rangeLabel},width,height,{mobile=false,interactive=false}={}){
   const paper=themeColor('--paper'),ink=themeColor('--ink'),grid=themeColor('--grid');
   const ranked=sets.filter(s=>Number.isFinite(lastVisible(s))).sort((a,b)=>lastVisible(b)-lastVisible(a));
-  numbered??=ranked;
   const labels=[],pointLabels=[],occupied=[],segments=[],markers=[];
-  const mobileExport=mobile&&!interactive;
-  const showPointLabels=byId('labels').checked&&!mobileExport;
+  const showPointLabels=byId('labels').checked;
   const lineWidth=2,markerGap=1;
   const dotRadius=lineWidth*.8,ringRadius=lineWidth*.65,ringStroke=1,arrowSize=9;
   const markerArrow=point=>point.op==='>='?'↑':point.op==='<'?'↓':'';
@@ -401,7 +392,7 @@ function plot(svg,{sets,ticks,rangeLabel},width,height,{mobile=false,interactive
     const group=svgNode(svg,'g',{opacity:interactive&&focused&&focused!==s.key?0.18:1});
     const end=s.points.findLastIndex(visible);
     if(end>=0){
-      const rank=numbered.indexOf(s),text=mobile?(rank<0?'':String(rank+1)):nameOf(s.key);
+      const rank=ranked.indexOf(s),text=mobile?(rank<0?'':String(rank+1)):nameOf(s.key);
       if(text)labels.push({text,color:s.color,key:s.key,x:x(end),y:y(s.points[end].value)});
     }
     s.points.forEach((point,i)=>{
@@ -587,15 +578,131 @@ function takeChartText(svg){
     return {lines,font,fill,align,baseline,stroke,strokeWidth};
   });
 }
+let exportChartLibrary;
+function loadExportChartLibrary(){
+  exportChartLibrary??=new Promise((resolve,reject)=>{
+    const script=document.createElement('script');
+    script.src='https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js';
+    script.onload=()=>resolve(window.echarts);
+    script.onerror=()=>{
+      script.remove();
+      exportChartLibrary=null;
+      reject(new Error('图表库加载失败'));
+    };
+    document.head.append(script);
+  });
+  return exportChartLibrary;
+}
+
+function mobileExportSeries(set,name,theme,style,showSymbol){
+  const {points,color}=set;
+  const observed=SalesChartLayout.observedLine({
+    name,data:points.map(point=>point?.op==='='?point.value:null),color,panel:theme.pn,style,showSymbol
+  });
+  const series=[observed];
+  // Keep estimated runs separate so unrelated or observed intervals aren't drawn twice.
+  let start=-1;
+  for(let i=1;i<=points.length;i++){
+    const left=points[i-1],right=points[i];
+    if(left&&right&&(left.estimated||right.estimated)){
+      if(start<0)start=i-1;
+      continue;
+    }
+    if(start<0)continue;
+    series.push({
+      name,type:'line',silent:true,showSymbol:false,connectNulls:false,
+      data:points.map((point,j)=>j>=start&&j<i?point.value:null),
+      lineStyle:{color,width:style.lw,type:'dashed'}
+    });
+    start=-1;
+  }
+
+  const markers=points.flatMap((point,i)=>{
+    if(!point)return [];
+    const value=[i,point.value];
+    if(point.op==='='){
+      // A lone observation has no solid line segment to keep it visible between ticks.
+      if(points[i-1]?.op==='='||points[i+1]?.op==='=')return [];
+      return {value,symbolSize:style.sym,itemStyle:observed.itemStyle};
+    }
+    if(point.op==='≈')return {value,symbolSize:style.sym,itemStyle:{color:theme.pn,borderColor:color,borderWidth:2}};
+    return {
+      value,symbolSize:9,itemStyle:{color:'transparent'},
+      label:{show:true,position:'inside',formatter:point.op==='>='?'↑':'↓',color,fontFamily:bodyFont,fontSize:9}
+    };
+  });
+  if(markers.length)series.push({name,type:'scatter',silent:true,symbol:'circle',data:markers});
+  return series;
+}
+
+function exportMobileChart(echarts,chart,log,footerText,filename){
+  const size=SalesChartLayout.exportSize(true);
+  const {W,H}=size;
+  const theme={
+    pn:themeColor('--paper'),fg:themeColor('--ink'),mu:themeColor('--sub'),ln:themeColor('--grid'),
+    axisText:themeColor('--ink'),subtitle:themeColor('--ink'),legendName:set=>set.color
+  };
+  const sel=chart.sets
+    .map(set=>{
+      const [brand,model]=metadata[set.key];
+      return {brand,model,color:set.color,points:set.points.map(p=>p&&(!log||p.value>0)?p:null)};
+    })
+    .filter(set=>set.points.some(Boolean));
+  const multiBrand=new Set(sel.map(set=>set.brand)).size>1;
+  const label=set=>multiBrand||SalesChartLayout.needsBrand(set.model)?set.brand+' '+set.model:set.model;
+  const layout=SalesChartLayout.create({
+    font:()=>bodyFont,mono:numberFont,theme:()=>theme,colorOf:set=>set.color,label,
+    flagPrefix:point=>point?.op==='='||!point?'':point.op==='>='?'≥':point.op
+  });
+  const footer=layout.exportFooter(W,footerText);
+  const cats=chart.ticks.map(tick=>chart.rangeLabel(tick,'\n'));
+  const o={
+    exp:true,mobile:true,W,H,footerHeight:footer.height,lo:0,hi:cats.length-1,
+    estFlags:sel.map(set=>set.points),preserveSeriesColors:true
+  };
+  const datas=sel.map(set=>set.points.map(point=>point?.value??null));
+  layout.mobileRank(sel,datas,o);
+  const style=layout.spec(o);
+  // Keep one base series per model at the front for label coordinate conversion.
+  const layers=sel.map(set=>mobileExportSeries(set,label(set),theme,style,sel.length<=12));
+  const series=layers.map(layer=>layer[0]).concat(layers.flatMap(layer=>layer.slice(1)));
+  const metric=byId('metric').dataset.value==='cumulative'?'累计销量（万台）':'周环比增量（万台）';
+  const points=sel.flatMap(set=>set.points);
+  const notes=[
+    points.some(point=>point?.lowerBound)?'≈含里程碑估算':points.some(point=>point?.estimated)?'虚线/≈为估算':'',
+    points.some(point=>point?.op==='≈'&&!point.estimated)?'≈含录入约数':'',
+    points.some(point=>point?.op==='>=')?'↑为下限':'',
+    points.some(point=>point?.op==='<')?'↓为上限':''
+  ];
+  const opt=layout.chartOption(cats,series,o,log,metric);
+  layout.setExportTitle(opt,cats,sel,o,log,metric,notes);
+  const url=SalesChartLayout.renderPNG(echarts,size,footer.height,theme.pn,inst=>{
+    inst.setOption(opt);
+    layout.placeLabels(inst,{sel,datas,o,base:[...layout.mobileList(o),...footer.graphic]},o.lo,o.hi);
+  });
+  const link=document.createElement('a');link.download=filename;link.href=url;link.click();
+}
+
 async function exportChart(mobile){
-  if(!current?.sets.some(s=>s.points.some(p=>p&&(!byId('log').checked||p.value>0))))return alert('当前范围没有可导出的销量');
-  await Promise.allSettled([
-    document.fonts.load('400 12px "Noto Sans SC"',current.sets.map(s=>nameOf(s.key)).join('')+'销量增量追踪'),
+  if(!current?.sets.some(s=>Number.isFinite(lastVisible(s))))return alert('当前范围没有可导出的销量');
+  const fonts=Promise.allSettled([
+    document.fonts.load('400 12px "Noto Sans SC"',current.sets.map(s=>nameOf(s.key)).join('')+'销量增量追踪新机↑↓'),
+    document.fonts.load('700 18px "Noto Sans SC"','销量增量追踪新机0123456789'),
     document.fonts.load('400 12px "IBM Plex Mono"','0123456789.≥<≈'),
     document.fonts.ready
   ]);
+  const [library]=await Promise.all([mobile?loadExportChartLibrary():null,fonts]);
   if(activeEdit)return alert('请先保存或取消当前编辑');
-  const width=mobile?400:1200,base=mobile?500:675,scale=mobile?3:2;
+  const log=byId('log').checked;
+  if(!current?.sets.some(s=>Number.isFinite(lastVisible(s))))return alert('当前范围没有可导出的销量');
+  const filename='销量增量追踪-'+filterLabel('metric')+'-'+(mobile?'手机':'桌面')+'.png';
+  const footer=byId('footer').value.trim();
+  const draftNote=hasDraft()?'含本标签页临时数据，仅供参考':'';
+  if(mobile){
+    exportMobileChart(library,current,log,[footer,draftNote].filter(Boolean).join('\n'),filename);
+    return;
+  }
+  const width=1200,base=675,scale=2;
   const canvas=document.createElement('canvas'),ctx=canvas.getContext('2d'),font='14px '+bodyFont;
   ctx.font=font;
   const lines=text=>{
@@ -607,24 +714,18 @@ async function exportChart(mobile){
     }
     return result;
   };
-  const footer=byId('footer').value.trim(),notes=footer?lines(footer):[];
-  if(hasDraft())notes.push('含本标签页临时数据，仅供参考');
+  const notes=footer?lines(footer):[];
+  if(draftNote)notes.push(draftNote);
   const ranked=current.sets.filter(s=>Number.isFinite(lastVisible(s))).sort((a,b)=>lastVisible(b)-lastVisible(a));
-  const cols=mobile&&ranked.length>4?2:1,limit=mobile?cols*6:Infinity;
-  const shown=ranked.length>limit?ranked.slice(0,limit-1):ranked;
-  const multiBrand=new Set(ranked.map(s=>metadata[s.key][0])).size>1;
-  const legend=mobile?shown.map((s,i)=>({key:s.key,rank:i+1,value:legendValue(s),color:s.color})):[];
-  if(shown.length<ranked.length)legend.push({text:'另有 '+(ranked.length-shown.length)+' 款',color:themeColor('--sub')});
-  const legendRows=Math.ceil(legend.length/cols);
-  const height=Math.max(base,245+20*legendRows)+notes.length*20;
+  const height=base+notes.length*20;
   canvas.width=width*scale;canvas.height=height*scale;ctx.scale(scale,scale);
   ctx.fillStyle=themeColor('--paper');ctx.fillRect(0,0,width,height);
   ctx.fillStyle=themeColor('--ink');ctx.font='700 22px '+bodyFont;ctx.fillText('销量增量追踪',18,34);
   ctx.font=font;
   const sub=byId('heading').textContent+' · 万台 · '+current.rangeLabel(current.ticks[0])+' 至 '+current.rangeLabel(current.ticks.at(-1));
   ctx.fillText(sub,18,61,width-36);
-  const chartH=height-92-20*(legendRows+notes.length);
-  const svg=document.createElementNS(svgNS,'svg');plot(svg,{...current,sets:ranked},width,chartH,{mobile,numbered:shown});
+  const chartH=height-92-20*notes.length;
+  const svg=document.createElementNS(svgNS,'svg');plot(svg,{...current,sets:ranked},width,chartH);
   svg.setAttribute('width',width);svg.setAttribute('height',chartH);
   const chartText=takeChartText(svg);
   const url=URL.createObjectURL(new Blob([new XMLSerializer().serializeToString(svg)],{type:'image/svg+xml'}));
@@ -642,26 +743,8 @@ async function exportChart(mobile){
     }
     ctx.textBaseline='alphabetic';
     let y=chartH+86;
-    for(const [i,item] of legend.entries()){
-      const col=Math.floor(i/legendRows),row=i%legendRows,colWidth=(width-36)/cols;
-      const left=18+col*colWidth,right=left+colWidth-8,baseline=y+row*20;
-      ctx.textAlign='left';ctx.font='13px '+bodyFont;
-      if(!item.key){ctx.fillStyle=item.color;ctx.fillText(item.text,left,baseline);continue}
-      ctx.fillStyle=item.color;
-      ctx.font='700 13px '+bodyFont;
-      ctx.fillText(String(item.rank),left,baseline);
-      const nameX=left+24;
-      ctx.font='12px '+numberFont;ctx.textAlign='right';ctx.fillStyle=themeColor('--sub');
-      const valueWidth=ctx.measureText(item.value).width;
-      ctx.fillText(item.value,right,baseline);
-      ctx.font='13px '+bodyFont;ctx.textAlign='left';ctx.fillStyle=item.color;
-      const nameWidth=right-nameX-valueWidth-10;
-      const name=mobileLegendName(ctx,item.key,nameWidth,multiBrand);
-      ctx.fillText(name,nameX,baseline);
-    }
-    y+=20*legendRows;
     ctx.textAlign='left';ctx.font=font;ctx.fillStyle=themeColor('--sub');for(const line of notes){ctx.fillText(line,18,y);y+=20}
-    const link=document.createElement('a');link.download='销量增量追踪-'+filterLabel('metric')+'-'+(mobile?'手机':'桌面')+'.png';link.href=canvas.toDataURL();link.click();
+    const link=document.createElement('a');link.download=filename;link.href=canvas.toDataURL();link.click();
   }finally{URL.revokeObjectURL(url)}
 }
 for(const id of ['window','from','to','log','labels'])byId(id).onchange=()=>{

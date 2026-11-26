@@ -1,5 +1,5 @@
 export const publicFiles=Object.freeze([
- 'data.csv','studio-ui.css','iso-sales-week.js',
+ 'data.csv','studio-ui.css','iso-sales-week.js','sales-chart-layout.js',
  // Module 4 is public; publish the shared model master and tracked sales at root as explicitly requested.
  'sales-increment.html','sales-increment.js','sales-data-editor.html','model-master.csv','sales-long.csv',
  // Module 2 is public; shared dependencies are also copied under /studio/ for Module 3.

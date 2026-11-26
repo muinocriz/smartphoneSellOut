@@ -127,10 +127,12 @@ function posterSpacedTicks(ticks,y){
 }
 function posterLineAxis(chart,height){
  const values=chart.lines.flatMap(l=>l.values).concat((chart.bands||[]).flatMap(b=>b.upper||[]));
+ if(chart.logY)return ResearchCharts.logAxis(values);
  return posterValueAxis(Math.max(1,Number.isFinite(chart.limit)?chart.limit:0,...values.filter(Number.isFinite)),height);
 }
 function posterLineScale(chart,box,axis){
- return {...ResearchCharts.lineScale(chart,box),top:axis.high,y:v=>box.bottom-v/axis.high*(box.bottom-box.top)};
+ const scale=ResearchCharts.lineScale(chart,box);
+ return {...scale,top:axis.high,y:v=>box.bottom-(axis.ratio?axis.ratio(v):v/axis.high)*(box.bottom-box.top)};
 }
 function posterYTicks(ctx,ticks,y,x0,x1,p,format=posterAxisLabel){
  for(const v of posterSpacedTicks(ticks,y)){
@@ -518,15 +520,18 @@ function drawTrackerTrendPoster(ctx,p,s,box){
  const plotTop=legendBottom,plotBottom=bottom-noteHeight,axisBottom=posterDp(20),titleH=posterDp(19),gap=both?posterDp(8):0;
  const plotH=(plotBottom-plotTop-axisBottom-gap-titleH*(both?2:1))/(both?2:1);
  if(plotH<posterDp(30)){auditIssue(ctx,'机型追踪绘图区不足，请减少图例或拆分图卡',true);return;}
- const salesAxis=posterLineAxis(chart,plotH),rankAxis=posterRankAxis(ranks.length?min:1,ranks.length?max:1,plotH);
+ const salesAxis=posterLineAxis(chart,plotH);
+ const rankAxis=chart.rankLogY?ResearchCharts.logAxis(ranks,{rank:true}):posterRankAxis(ranks.length?min:1,ranks.length?max:1,plotH);
  const gutter=Math.max(rankOnly?0:posterAxisGutter(ctx,salesAxis.ticks),both||rankOnly?posterAxisGutter(ctx,rankAxis.ticks):0),x0=left+gutter,x1=right-posterDp(4);
  if(!auditPlot(ctx,x1-x0,plotH,'机型追踪绘图区',260,95))return;
  function plot(isRank,yStart,showWeeks){
   const y0=yStart+titleH,y1=y0+plotH,series=isRank?rankLines:lines;
   const axis=isRank?rankAxis:salesAxis;
-  const scale=isRank?{x:i=>n===1?(x0+x1)/2:x0+i*(x1-x0)/(n-1),y:v=>y0+(v-axis.low)*(y1-y0)/(axis.high-axis.low)}:posterLineScale(chart,{left:x0,right:x1,top:y0,bottom:y1},axis);
-  researchPosterAxisText(ctx,isRank?'原始榜单排名':(chart.salesLabel||'销量走势')+' / 万台',x0,y0-posterDp(5),'title',p.ink,'left',x1-x0);
-  if(isRank&&!ranks.length){posterFitText(ctx,'无原始排名记录',(x0+x1)/2,(y0+y1)/2,MOBILE_POSTER_TYPE.value,p.sub,'500','center',x1-x0);}
+  const scale=isRank?{x:i=>n===1?(x0+x1)/2:x0+i*(x1-x0)/(n-1),y:v=>y0+(axis.ratio?axis.ratio(v):(v-axis.low)/(axis.high-axis.low))*(y1-y0)}:posterLineScale(chart,{left:x0,right:x1,top:y0,bottom:y1},axis);
+  const title=isRank?'原始榜单排名':(chart.salesLabel||'销量走势')+' / 万台';
+  researchPosterAxisText(ctx,title+(axis.ratio?' · 对数':''),x0,y0-posterDp(5),'title',p.ink,'left',x1-x0);
+  const empty=isRank&&!ranks.length?'无原始排名记录':!isRank&&axis.hasValues===false?'无正销量记录':'';
+  if(empty){posterFitText(ctx,empty,(x0+x1)/2,(y0+y1)/2,MOBILE_POSTER_TYPE.value,p.sub,'500','center',x1-x0);}
   else{posterYTicks(ctx,axis.ticks,scale.y,x0,x1,p);ResearchCharts.canvasLine(ctx,{...chart,lines:series},scale);}
   if(showWeeks)posterWeekTicks(ctx,chart.periods,scale.x,y1+posterDp(16),left,right,p);
  }
@@ -647,7 +652,7 @@ function drawResearchChartContent(ctx,p,s,box){
     const x0=left+posterAxisGutter(ctx,axis.ticks),x1=right-posterDp(4);
     if(!auditPlot(ctx,x1-x0,y1-y0,'折线图绘图区',260,220))return;
     const scale=posterLineScale(s.chart,{left:x0,right:x1,top:y0,bottom:y1},axis),{x,y}=scale;
-    researchPosterAxisText(ctx,unit,x0,y0-posterDp(5),'title',p.sub,'left',x1-x0);
+    researchPosterAxisText(ctx,unit+(s.chart.logY?' · 对数':''),x0,y0-posterDp(5),'title',p.sub,'left',x1-x0);
     posterYTicks(ctx,axis.ticks,y,x0,x1,p);
     posterWeekTicks(ctx,periods,x,y1+posterDp(16),left,right,p);
     ResearchCharts.canvasLine(ctx,s.chart,scale);

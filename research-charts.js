@@ -24,6 +24,14 @@ function canvasText(ctx,text,x,y,size,color,weight='600',align='left',maxWidth=n
  for(const run of measured.runs){ctx.font=weight+' '+size+'px '+(run.number?NUM_FONT:CJK_FONT);ctx.fillText(run.text,offset,0);offset+=run.width}
  ctx.restore();
 }
+// Match the integer step thresholds used by the sales increment chart.
+function integerScatterTicks(maximum){
+ const roughStep=Math.max(1,maximum/5),unit=10**Math.floor(Math.log10(roughStep));
+ const scaledStep=roughStep/unit;
+ const factor=[[1.5,1],[2.5,2],[4,3],[7,5]].find(([limit])=>scaledStep<limit)?.[1]??10;
+ const step=factor*unit;
+ return Array.from({length:Math.ceil(maximum/step)+1},(_,i)=>i*step);
+}
 function rounded(ctx,x,y,w,h,r,color){if(w<=0||h<=0)return;ctx.beginPath();const rad=Math.min(r,w/2,h/2);ctx.roundRect(x,y,w,h,rad);ctx.fillStyle=color;ctx.fill()}
 // Tail-only scatter: the same renderer serves preview and every PNG route.
 function drawTailScatter(ctx,chart,box,p){
@@ -32,12 +40,13 @@ function drawTailScatter(ctx,chart,box,p){
  const legendExtra=mobilePosterActive(ctx)?Math.max(0,posterAxisLegendDistance(ctx,[chart.xLabel],font,['末周在榜','末周未上榜','末周未知'],small,4*f+Math.max(3,4.3*f)+Math.max(1.5,1.8*f)/2,'600','600')-24*f):0;
  const x0=left+58*f,x1=right-24*f,y0=top+58*f,y1=bottom-106*f-legendExtra;
  if(!auditPlot(ctx,x1-x0,y1-y0,'长尾韧性散点绘图区',260,160))return;
- const minX=84,maxX=Math.max(392,Math.ceil((Math.max(...xx)+20)/70)*70),maxY=Math.max(1,Math.max(...yy)*1.15);
+ const minX=84,maxX=Math.max(392,Math.ceil((Math.max(...xx)+20)/70)*70);
+ const yTicks=integerScatterTicks(Math.max(1,...yy)),maxY=yTicks.at(-1);
  const x=v=>x0+(v-minX)/(maxX-minX)*(x1-x0),y=v=>y1-v/maxY*(y1-y0);
  const color=p.bar||'#3167a4',bands=[[84,189,'W13–W26'],[189,371,'W27–W52'],[371,maxX,'W53及以上']];
  bands.forEach(([lo,hi,label],i)=>{ctx.save();ctx.fillStyle=color;ctx.globalAlpha=.045+i*.035;ctx.fillRect(x(lo),y0,x(hi)-x(lo),y1-y0);ctx.restore();canvasText(ctx,label,(x(lo)+x(hi))/2,y0-10*f,small,p.sub,'600','center',x(hi)-x(lo)-4);});
- for(let i=0;i<=4;i++){
-  const v=maxY*i/4;ctx.strokeStyle=p.hair;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x0,y(v));ctx.lineTo(x1,y(v));ctx.stroke();canvasText(ctx,v.toFixed(1),x0-8*f,y(v)+4*f,small,p.sub,'500','right');
+ for(const v of yTicks){
+  ctx.strokeStyle=p.hair;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x0,y(v));ctx.lineTo(x1,y(v));ctx.stroke();canvasText(ctx,String(v),x0-8*f,y(v)+4*f,small,p.sub,'500','right');
  }
  const step=Math.max(70,Math.ceil((maxX-minX)/6/70)*70);
  for(let v=Math.ceil(minX/step)*step;v<=maxX;v+=step){ctx.strokeStyle=p.hair;ctx.beginPath();ctx.moveTo(x(v),y0);ctx.lineTo(x(v),y1);ctx.stroke();canvasText(ctx,String(v),x(v),y1+20*f,small,p.sub,'500','center');}
@@ -74,13 +83,19 @@ function drawHeadStaticPoster(ctx,p,s,box){
   const legendSize=Math.min(20,legendStep*.77),legendExtra=mobilePosterActive(ctx)?Math.max(0,posterAxisLegendDistance(ctx,[s.chart.xLabel||'头部销量富集指数'],20,periods,legendSize,12,'600','600')-19):0;
   const x0=left+62,x1=right-22,y0=top+28,y1=bottom-legendH-86-legendExtra;
   if(!auditPlot(ctx,x1-x0,y1-y0,'四象限绘图区',260,160))return;
-  const minimum=s.chart.xLabel?0.01:1.25,mx=Math.max(minimum,...xx.filter(Number.isFinite))*1.1,my=Math.max(minimum,...yy.filter(Number.isFinite))*1.1;
+  const minimum=s.chart.xLabel?0.01:1.25,mx=Math.max(minimum,...xx.filter(Number.isFinite))*1.1;
+  const peakY=Math.max(minimum,...yy.filter(Number.isFinite));
+  const yTicks=s.chart.integerY?integerScatterTicks(peakY):Array.from({length:5},(_,i)=>peakY*1.1*i/4);
+  const my=yTicks.at(-1);
   const x=v=>x0+v/mx*(x1-x0),y=v=>y1-v/my*(y1-y0);
   posterFitText(ctx,'纵轴：'+(s.chart.yLabel||'单品销量强度指数'),left,top+17,22,p.sub,'600','left',width);
   for(let i=0;i<=4;i++){
-   const a=mx*i/4,b=my*i/4;ctx.strokeStyle=p.hair;ctx.lineWidth=1.4;ctx.beginPath();ctx.moveTo(x(a),y0);ctx.lineTo(x(a),y1);ctx.moveTo(x0,y(b));ctx.lineTo(x1,y(b));ctx.stroke();
+   const a=mx*i/4;ctx.strokeStyle=p.hair;ctx.lineWidth=1.4;ctx.beginPath();ctx.moveTo(x(a),y0);ctx.lineTo(x(a),y1);ctx.stroke();
    posterFitText(ctx,a.toFixed(2),x(a),y1+22,18,p.sub,'550','center',54);
-   posterFitText(ctx,b.toFixed(2),x0-8,y(b)+6,18,p.sub,'550','right',52);
+  }
+  for(const b of yTicks){
+   ctx.beginPath();ctx.moveTo(x0,y(b));ctx.lineTo(x1,y(b));ctx.stroke();
+   posterFitText(ctx,s.chart.integerY?String(b):b.toFixed(2),x0-8,y(b)+6,18,p.sub,'550','right',52);
   }
   if(!s.chart.xLabel){ctx.save();ctx.setLineDash([9,7]);ctx.strokeStyle=p.sub;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x(1),y0);ctx.lineTo(x(1),y1);ctx.moveTo(x0,y(1));ctx.lineTo(x1,y(1));ctx.stroke();ctx.restore();}
   periods.forEach((name,i)=>{if(!Number.isFinite(xx[i])||!Number.isFinite(yy[i]))return;ctx.fillStyle=window.BrandUtils.color(name)||colors[i%colors.length];ctx.beginPath();ctx.arc(x(xx[i]),y(yy[i]),6,0,Math.PI*2);ctx.fill();});
@@ -873,16 +888,43 @@ const ResearchCharts=(()=>{
   if(vertices){vertices.forEach(([a,b],i)=>i?ctx.lineTo(a,b):ctx.moveTo(a,b));ctx.closePath();}else ctx.arc(x,y,r,0,Math.PI*2);
   ctx.fillStyle=estimated||hollow?'#ffffff':color;ctx.strokeStyle=color;ctx.lineWidth=mobilePosterActive(ctx)?posterDp(POSTER_DESIGN.chart.markerStroke):1.8;ctx.fill();ctx.stroke();ctx.restore();
  }
+ function logAxis(values,{rank=false}={}){
+  const positive=values.filter(v=>Number.isFinite(v)&&v>0);
+  const min=positive.length?Math.min(...positive):1,max=positive.length?Math.max(...positive):10;
+  const start=Math.floor(Math.log10(min)),end=Math.max(start+1,Math.ceil(Math.log10(max)));
+  const low=rank?min:10**start,high=rank?(max===min?min+1:max):10**end;
+  const logLow=Math.log10(low),logSpan=Math.log10(high)-logLow;
+  const ratio=v=>v>0?(Math.log10(v)-logLow)/logSpan:NaN;
+  const ticks=[];
+  if(rank){
+   ticks.push(low);
+   for(let power=start;power<=end;power++){
+    for(const factor of [1,2,5]){
+     const tick=factor*10**power;
+     if(tick>low&&tick<high)ticks.push(tick);
+    }
+   }
+  }else{
+   const stride=Math.ceil((end-start)/8);
+   for(let power=start;power<end;power+=stride)ticks.push(10**power);
+  }
+  ticks.push(high);
+  return {high,ticks,ratio,hasValues:positive.length>0};
+ }
  function lineScale(chart,box){
   const n=chart.periods.length,max=(chart.bands||[]).reduce((m,b)=>(b.upper||[]).reduce((a,v)=>Number.isFinite(v)?Math.max(a,v):a,m),chart.lines.reduce((m,l)=>l.values.reduce((a,v)=>Number.isFinite(v)?Math.max(a,v):a,m),1));
   const step=Math.pow(10,Math.floor(Math.log10(max)))/2,top=chart.limit||Math.ceil(max/step)*step;
-  return {top,x:i=>n===1?(box.left+box.right)/2:box.left+i*(box.right-box.left)/Math.max(1,n-1),y:v=>box.bottom-v/top*(box.bottom-box.top)};
+  const axis=chart.logY?logAxis(chart.lines.flatMap(l=>l.values)):null;
+  const x=i=>n===1?(box.left+box.right)/2:box.left+i*(box.right-box.left)/Math.max(1,n-1);
+  const y=v=>box.bottom-(axis?axis.ratio(v):v/top)*(box.bottom-box.top);
+  return {top:axis?.high??top,x,y,axis};
  }
  function points(chart,scale,visit){
   chart.lines.forEach((l,j)=>{const color=l.color||COLORS[j%COLORS.length];l.values.forEach((v,i)=>{
    if(!Number.isFinite(v))return;
-   const prev=i>0&&Number.isFinite(l.values[i-1]),estimated=!!l.imputed?.[i];
-   visit({name:l.name,period:chart.periods[i],value:v,color,marker:l.marker,x:scale.x(i),y:scale.y(v),estimated,previous:prev?{x:scale.x(i-1),y:scale.y(l.values[i-1]),dashed:estimated||!!l.imputed?.[i-1]}:null});
+   const y=scale.y(v);if(!Number.isFinite(y))return;
+   const prevY=i>0&&Number.isFinite(l.values[i-1])?scale.y(l.values[i-1]):NaN,estimated=!!l.imputed?.[i];
+   visit({name:l.name,period:chart.periods[i],value:v,color,marker:l.marker,x:scale.x(i),y,estimated,previous:Number.isFinite(prevY)?{x:scale.x(i-1),y:prevY,dashed:estimated||!!l.imputed?.[i-1]}:null});
   });});
  }
  // Segment only adjacent valid weeks. A missing point never contributes to a band.
@@ -899,10 +941,15 @@ const ResearchCharts=(()=>{
  function svgLine(host,legend,chart,label,precision=2){
   const n=chart.periods.length;if(!n||!chart.lines.length)return;
   const W=Math.max(720,n*48+110),H=310,L=56,R=W-55,T=25,B=265;
-  const scale=lineScale(chart,{left:L,right:R,top:T,bottom:B}),{top,x,y}=scale;
+  const scale=lineScale(chart,{left:L,right:R,top:T,bottom:B}),{top,x,y,axis}=scale;
   const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  let content='<text x="'+L+'" y="13" font-size="11" fill="currentColor">'+esc(chart.unit)+'</text>';
-  for(let i=0;i<=4;i++){const v=top*i/4;content+='<line x1="'+L+'" x2="'+R+'" y1="'+y(v)+'" y2="'+y(v)+'" stroke="currentColor" opacity=".14"/><text x="'+(L-8)+'" y="'+(y(v)+4)+'" text-anchor="end" fill="currentColor" font-size="11">'+Number(v.toFixed(2))+'</text>';}
+  let content='<text x="'+L+'" y="13" font-size="11" fill="currentColor">'+esc((chart.unit??'')+(axis?' · 对数':''))+'</text>';
+  const ticks=axis?.ticks??Array.from({length:5},(_,i)=>top*i/4);
+  for(const v of ticks){
+   const tick=axis?Number(v.toPrecision(12)):Number(v.toFixed(2));
+   content+='<line x1="'+L+'" x2="'+R+'" y1="'+y(v)+'" y2="'+y(v)+'" stroke="currentColor" opacity=".14"/><text x="'+(L-8)+'" y="'+(y(v)+4)+'" text-anchor="end" fill="currentColor" font-size="11">'+tick+'</text>';
+  }
+  if(axis&&!axis.hasValues)content+='<text x="'+(L+R)/2+'" y="'+(T+B)/2+'" text-anchor="middle" fill="currentColor" font-size="13">当前区间无正销量记录</text>';
   const stride=Math.max(1,Math.ceil(n/15));chart.periods.forEach((w,i)=>{if(i%stride===0||i===n-1)content+='<text x="'+x(i)+'" y="'+(B+20)+'" text-anchor="middle" fill="currentColor" font-size="10">'+esc(w)+'</text>';});
   for(const band of chart.bands||[])for(const run of bandRuns(chart,band)){
    const color=esc(band.color||'#7c3aed'),alpha=Number.isFinite(band.opacity)?Math.max(0,Math.min(1,band.opacity)):.18;
@@ -1088,5 +1135,5 @@ const ResearchCharts=(()=>{
    }).catch(()=>{});
   }
  }
- return Object.freeze({lineScale,svgLine,canvasLine,renderComposition,markerAt,svgMarker,canvasMarker,svgBoardFlow,canvasBoardFlow});
+ return Object.freeze({logAxis,lineScale,svgLine,canvasLine,renderComposition,markerAt,svgMarker,canvasMarker,svgBoardFlow,canvasBoardFlow});
 })();

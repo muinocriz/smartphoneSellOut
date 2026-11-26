@@ -20,6 +20,13 @@
 .filter-options.seg button{border:0;border-radius:0}
 .filter-options button[aria-pressed="true"]{color:white;background:#1761ae;border-color:#1761ae}
 .filter-options button:focus-visible{outline:2px solid currentColor;outline-offset:-3px}
+.source-actions,.list-actions{display:flex;align-items:center;flex-wrap:wrap;gap:8px}
+.source-actions label,.list-actions label{margin:0;min-width:0;max-width:100%}
+.source-actions input,.list-actions input{min-width:0;max-width:100%}
+.source-actions + #loadState{margin:8px 0 0}
+#chartControls{margin-top:12px}
+.milestone-row{margin-top:12px}
+.milestone-row input{width:12em;max-width:100%}
 </style>
 </head>
 <body>
@@ -28,21 +35,19 @@
 <main>
 <h1>销量增量追踪</h1>
 <p>精选机型 · 单位：万台</p>
-<label>导入本地销量长表<input id="localFile" type="file" accept=".csv,text/csv"></label>
-<button id="reloadProject" type="button" hidden>切回项目长表</button>
-<p id="loadState" role="status">正在读取项目长表…</p>
-<div id="content" hidden>
 <section>
+<div class="source-actions">
+  <label>导入本地销量长表<input id="localFile" type="file" accept=".csv,text/csv"></label>
+  <button id="reloadProject" type="button" hidden>切回项目长表</button>
+</div>
+<p id="loadState" role="status">正在读取项目长表…</p>
+<div id="chartControls" hidden>
 <div class="filter-row"><span id="brand-label">品牌</span><div class="filter-options brands" id="brand" role="group" aria-labelledby="brand-label" data-value="">
 
 </div></div>
 <label>明细与编辑对象<select id="model">
 </select>
 </label>
-<div class="filter-row"><span id="metric-label">显示指标</span><div class="filter-options seg" id="metric" role="group" aria-labelledby="metric-label" data-value="cumulative">
-<button type="button" data-value="cumulative" aria-pressed="true">累计销量</button>
-<button type="button" data-value="weekly" aria-pressed="false">周销量增量</button>
-</div></div>
 <details open><summary>对比机型与列表</summary>
 <button id="all">全选当前品牌</button> <button id="brandTops">每品牌近期增量最高</button> <button id="none">清空对比</button>
 <div id="choices"></div>
@@ -50,10 +55,21 @@
 <span id="lists-label">机型列表</span>
 <div id="lists" class="filter-options brands" role="group" aria-labelledby="lists-label"></div>
 </div>
-<label>里程碑间隔（万台）<input id="milestoneStep" type="number" min="1" max="9007199254740991" step="1" value="50"></label>
-<input id="listName" aria-label="列表名称" placeholder="列表名称"><button id="saveList">保存当前选择</button> <button id="deleteList" disabled>删除自建列表</button>
-<button id="exportLists">导出列表 JSON</button><label>导入列表<input type="file" id="importLists" accept=".json"></label>
+<div class="list-actions">
+  <input id="listName" aria-label="列表名称" placeholder="列表名称">
+  <button id="saveList">保存当前选择</button>
+  <button id="deleteList" disabled>删除自建列表</button>
+  <button id="exportLists">导出列表 JSON</button>
+  <label>导入列表<input type="file" id="importLists" accept=".json"></label>
+</div>
+<div class="milestone-row">
+  <label>里程碑间隔（万台）<input id="milestoneStep" type="number" min="1" max="9007199254740991" step="1" value="50"></label>
+</div>
 </details>
+<div class="filter-row"><span id="metric-label">显示指标</span><div class="filter-options seg" id="metric" role="group" aria-labelledby="metric-label" data-value="cumulative">
+<button type="button" data-value="cumulative" aria-pressed="true">累计销量</button>
+<button type="button" data-value="weekly" aria-pressed="false">周销量增量</button>
+</div></div>
 <div class="filter-row"><span id="axis-label">横轴</span><div class="filter-options seg" id="axis" role="group" aria-labelledby="axis-label" data-value="iso">
 <button type="button" data-value="iso" aria-pressed="true">自然周</button>
 <button type="button" data-value="life" aria-pressed="false">完整销售第 N 周</button>
@@ -75,7 +91,9 @@
 <div id="legend"></div><small>● 精确值 · ○ 约数 · ↑ 至少达到该值 · ↓ 低于该值。虚线为区间估算。</small>
 <p><button id="desktopPNG">桌面 PNG</button> <button id="mobilePNG">手机 PNG</button></p><label>导出免责附注<textarea id="footer" rows="2">数据来源于微博等平台，仅供参考
 具体数字与走势为估算结果，不作为购买建议</textarea></label> <button id="defaultFooter">恢复默认文案</button>
+</div>
 </section>
+<div id="content" hidden>
 <section class="scroll"><table id="matrix"><caption>所选机型对比（万台）</caption></table></section>
 <section class="scroll">
 <table id="detail">

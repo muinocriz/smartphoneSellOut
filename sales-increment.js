@@ -957,6 +957,7 @@ function loadSource(text,key){
     }
   }
   model.value=[...selected][0]||''; choices();refresh();
+  byId('chartControls').hidden=false;
   byId('content').hidden=false;byId('loadState').hidden=true;
   byId('reloadProject').hidden=!sourceKey.startsWith('increments.draft.local.');
   updateIncrementImport();

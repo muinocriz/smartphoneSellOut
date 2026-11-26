@@ -176,12 +176,37 @@ function applyKeys(keys){
   drawEditor();
   choices();draw();
 }
-function listOptions(){
-  const lists=byId('lists'),old=lists.value;lists.replaceChildren();
-  presets().forEach((l,i)=>lists.add(new Option(l.name+'（'+l.keys.filter(k=>metadata[k]).length+'）',i)));
-  if(old&&Number(old)<lists.length)lists.value=old;
+const presetCount=3;
+let activeList=-1;
+function selectList(index){
+  activeList=index;
+  for(const button of byId('lists').children){
+    button.setAttribute('aria-pressed',String(Number(button.dataset.index)===index));
+  }
+  byId('deleteList').disabled=index<presetCount;
+}
+function renderLists(){
+  const lists=byId('lists');
+  lists.replaceChildren();
+  presets().forEach((list,index)=>{
+    const keys=list.keys.filter(key=>metadata[key]);
+    const button=document.createElement('button');
+    button.type='button';
+    button.dataset.index=index;
+    button.textContent=list.name+'（'+keys.length+'）';
+    button.disabled=keys.length===0&&index<presetCount;
+    button.onclick=()=>{
+      if(activeEdit)return;
+      if(activeList===index){selectList(-1);return}
+      selectList(index);
+      if(keys.length)applyKeys(keys);
+    };
+    lists.append(button);
+  });
+  selectList(activeList);
 }
 function syncBrand(){
+  selectList(-1);
   const brand=byId('brand').dataset.value;
   const keys=Object.keys(metadata).filter(k=>!brand||metadata[k][0]===brand);
   model.replaceChildren(...keys.map(k=>new Option(nameOf(k),k)));
@@ -197,10 +222,10 @@ byId('brandTops').onclick=()=>{
     const brand=metadata[key][0],prior=best.get(brand);
     if(!prior||row.period>prior.row.period||(row.period===prior.row.period&&row.weekly.value>prior.row.weekly.value))best.set(brand,{key,row});
   }
+  selectList(-1);
   applyKeys([...best.values()].map(item=>item.key));
 };
-byId('none').onclick=()=>applyKeys([]);
-byId('applyList').onclick=()=>applyKeys(presets()[Number(byId('lists').value)].keys);
+byId('none').onclick=()=>{selectList(-1);applyKeys([])};
 byId('milestoneStep').onchange=event=>{
   const input=event.target,value=input.valueAsNumber;
   if(!Number.isSafeInteger(value)||value<1){
@@ -209,18 +234,24 @@ byId('milestoneStep').onchange=event=>{
     return;
   }
   milestoneStep=value;
-  listOptions();
+  renderLists();
 };
-function saveLists(){try{localStorage.setItem('increments.lists',JSON.stringify(savedLists))}catch{}listOptions()}
+function saveLists(){try{localStorage.setItem('increments.lists',JSON.stringify(savedLists))}catch{}renderLists()}
 byId('saveList').onclick=()=>{
   const name=byId('listName').value.trim();if(!name||!selected.size)return alert('请填写列表名称并选择机型');
   const index=savedLists.findIndex(l=>l.name===name);
   if(index>=0&&!confirm('更新同名列表？'))return;
   const list={name,keys:[...selected]};
   if(index>=0)savedLists[index]=list;else savedLists.push(list);
+  activeList=presetCount+(index>=0?index:savedLists.length-1);
   saveLists();
 };
-byId('deleteList').onclick=()=>{const i=Number(byId('lists').value)-3;if(i>=0&&confirm('删除这个自建列表？')){savedLists.splice(i,1);saveLists()}};
+byId('deleteList').onclick=()=>{
+  if(activeList<presetCount||!confirm('删除这个自建列表？'))return;
+  savedLists.splice(activeList-presetCount,1);
+  activeList=-1;
+  saveLists();
+};
 
 const svgNS='http://www.w3.org/2000/svg';
 function svgNode(parent,tag,attrs={},content){
@@ -493,6 +524,16 @@ byId('loSlider').oninput=e=>changeRange(+e.target.value,byId('to').selectedIndex
 byId('hiSlider').oninput=e=>changeRange(Math.min(byId('from').selectedIndex,+e.target.value),+e.target.value);
 byId('fullRange').onclick=()=>changeRange(0,current.axis.length-1);
 const screenChart=document.querySelector('svg');
+// Keep page scrolling while preventing zoom gestures over the chart.
+screenChart.addEventListener('wheel',event=>{
+  if(event.ctrlKey||event.metaKey)event.preventDefault();
+},{passive:false});
+screenChart.addEventListener('touchmove',event=>{
+  if(event.touches.length>1&&event.cancelable)event.preventDefault();
+},{passive:false});
+for(const type of ['gesturestart','gesturechange']){
+  screenChart.addEventListener(type,event=>event.preventDefault(),{passive:false});
+}
 let drag=null;
 function plotLocation(event){
   if(!screenChart.dataset.plot||!current?.ticks.length)return null;
@@ -572,7 +613,7 @@ async function exportChart(mobile){
   const cols=mobile&&ranked.length>4?2:1,limit=mobile?cols*6:Infinity;
   const shown=ranked.length>limit?ranked.slice(0,limit-1):ranked;
   const multiBrand=new Set(ranked.map(s=>metadata[s.key][0])).size>1;
-  const legend=shown.map((s,i)=>({key:s.key,rank:i+1,value:legendValue(s),color:s.color}));
+  const legend=mobile?shown.map((s,i)=>({key:s.key,rank:i+1,value:legendValue(s),color:s.color})):[];
   if(shown.length<ranked.length)legend.push({text:'另有 '+(ranked.length-shown.length)+' 款',color:themeColor('--sub')});
   const legendRows=Math.ceil(legend.length/cols);
   const height=Math.max(base,245+20*legendRows)+notes.length*20;
@@ -606,18 +647,16 @@ async function exportChart(mobile){
       const left=18+col*colWidth,right=left+colWidth-8,baseline=y+row*20;
       ctx.textAlign='left';ctx.font='13px '+bodyFont;
       if(!item.key){ctx.fillStyle=item.color;ctx.fillText(item.text,left,baseline);continue}
-      if(mobile){
-        ctx.fillStyle=item.color;
-        ctx.font='700 13px '+bodyFont;
-        ctx.fillText(String(item.rank),left,baseline);
-      }
-      const nameX=left+(mobile?24:0);
+      ctx.fillStyle=item.color;
+      ctx.font='700 13px '+bodyFont;
+      ctx.fillText(String(item.rank),left,baseline);
+      const nameX=left+24;
       ctx.font='12px '+numberFont;ctx.textAlign='right';ctx.fillStyle=themeColor('--sub');
       const valueWidth=ctx.measureText(item.value).width;
       ctx.fillText(item.value,right,baseline);
       ctx.font='13px '+bodyFont;ctx.textAlign='left';ctx.fillStyle=item.color;
       const nameWidth=right-nameX-valueWidth-10;
-      const name=mobile?mobileLegendName(ctx,item.key,nameWidth,multiBrand):fitText(ctx,nameOf(item.key),nameWidth);
+      const name=mobileLegendName(ctx,item.key,nameWidth,multiBrand);
       ctx.fillText(name,nameX,baseline);
     }
     y+=20*legendRows;
@@ -723,7 +762,7 @@ function drawEditor(){
     }
   }
 }
-function refresh(){listOptions();draw();drawEditor()}
+function refresh(){renderLists();draw();drawEditor()}
 document.querySelector('#addWeek').onclick=()=>{if(periods.length-initialPeriods.length>=52)return alert('最多临时新增52周');periods.push(iso(monday(periods.at(-1))+604800000));persistDraft();refresh()};
 document.querySelector('#reset').onclick=()=>{if(confirm('清除临时修改，恢复项目长表？')){records.splice(0,records.length,...structuredClone(initial));periods.splice(0,periods.length,...initialPeriods);persistDraft();refresh()}};
 function longCSV(){
@@ -797,6 +836,7 @@ function loadSource(text,key){
   selectFilter('brand','');
   selected.clear();
   const recent=presets()[0].keys;
+  activeList=recent.length?0:-1;
   for(const k of recent.length?recent:[model.value])selected.add(k);
   model.value=[...selected][0]; choices();refresh();
   byId('content').hidden=false;byId('loadState').hidden=true;notifyEditor();

@@ -32,16 +32,19 @@
 <label>明细与编辑对象<select id="model">
 </select>
 </label>
-<div class="filter-row"><span id="metric-label">显示指标</span><div class="filter-options seg" id="metric" role="group" aria-labelledby="metric-label" data-value="weekly">
-<button type="button" data-value="weekly" aria-pressed="true">周销量增量</button>
-<button type="button" data-value="cumulative" aria-pressed="false">累计销量</button>
+<div class="filter-row"><span id="metric-label">显示指标</span><div class="filter-options seg" id="metric" role="group" aria-labelledby="metric-label" data-value="cumulative">
+<button type="button" data-value="cumulative" aria-pressed="true">累计销量</button>
+<button type="button" data-value="weekly" aria-pressed="false">周销量增量</button>
 </div></div>
 <details open><summary>对比机型与列表</summary>
 <button id="all">全选当前品牌</button> <button id="brandTops">每品牌近期增量最高</button> <button id="none">清空对比</button>
 <div id="choices"></div>
-<label>机型列表<select id="lists"></select></label><button id="applyList">应用</button>
+<div class="filter-row">
+<span id="lists-label">机型列表</span>
+<div id="lists" class="filter-options brands" role="group" aria-labelledby="lists-label"></div>
+</div>
 <label>里程碑间隔（万台）<input id="milestoneStep" type="number" min="1" max="9007199254740991" step="1" value="50"></label>
-<input id="listName" aria-label="列表名称" placeholder="列表名称"><button id="saveList">保存当前选择</button> <button id="deleteList">删除自建列表</button>
+<input id="listName" aria-label="列表名称" placeholder="列表名称"><button id="saveList">保存当前选择</button> <button id="deleteList" disabled>删除自建列表</button>
 <button id="exportLists">导出列表 JSON</button><label>导入列表<input type="file" id="importLists" accept=".json"></label>
 </details>
 <div class="filter-row"><span id="axis-label">横轴</span><div class="filter-options seg" id="axis" role="group" aria-labelledby="axis-label" data-value="iso">

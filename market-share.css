@@ -19,7 +19,6 @@ body.market-share-light{
   width:100%;padding:20px;min-width:0;
   background:light-dark(#f5f7fb,var(--site-bg));border-bottom:1px solid #e0e7f1;
 }
-.market-share-light .ms-intro{display:flex;flex-direction:column;gap:12px;padding-bottom:4px}
 .market-share-light .ms-sidebar p{margin:0}
 .market-share-light .ms-card{
   min-width:0;display:flex;flex-direction:column;gap:12px;

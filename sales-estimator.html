@@ -103,7 +103,7 @@
     height:auto;max-height:none;min-height:0;
     overflow:visible;
   }
-  .studio-preview{height:auto;overflow:visible;display:block}
+  .studio-grid > .studio-preview{order:-1;height:auto;min-width:0;overflow:visible;display:block}
 }
 @media (max-height:650px) and (min-width:1001px){
   .studio-grid{height:calc(100dvh - var(--site-header-height) - 90px);min-height:350px}
@@ -125,7 +125,6 @@
 .studio-research-topics>section>.topic-category-title{font-weight:550}
 .studio-layout-warning{min-height:3.4em;box-sizing:border-box;overflow-wrap:anywhere}
 .studio-layout-warning.bad{color:#9e3d34;background:#fff0ec;border-color:#f3c4c0}
-.studio-ui .module3-title{margin:10px 0 16px}
 
 /* Actual CSS-pixel phone preview; never changes exported canvas dimensions. */
 .preview-titlebar{flex-wrap:wrap;align-items:center}
@@ -147,7 +146,6 @@
 </style><link rel="stylesheet" href="studio-ui.css"></head><body class="studio-ui">
 <header class="site-header"></header>
 <main class="shell">
-<h1 class="ui-page-title module3-title">热销机型与榜单研究</h1>
 <nav id="module3-nav" aria-label="模块3功能" role="tablist" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin:0 0 16px"><button type="button" role="tab" id="module3-tab-estimate" aria-controls="module3-estimate" aria-selected="true" class="module-tab-button">榜单估算</button><button type="button" role="tab" id="module3-tab-history" aria-controls="module3-history" aria-selected="false" class="module-tab-button">历史榜单</button><button type="button" role="tab" id="module3-tab-tracker" aria-controls="module3-tracker" aria-selected="false" class="module-tab-button">热销机型追踪</button><button type="button" role="tab" id="module3-tab-social" aria-controls="socialStudio" aria-selected="false" class="module-tab-button">图文工作台</button></nav>
 <div id="module3-estimate" role="tabpanel" aria-labelledby="module3-tab-estimate">
 <div class="metrics"><div class="metric"><div class="k">识别到的机型</div><div class="v" id="mRows">0 款</div></div><div class="metric"><div class="k">最长柱条</div><div class="v" id="mMax">0 px</div></div><div class="metric"><div class="k">有效标定数据</div><div class="v" id="mCal">0 组</div></div><div class="metric"><div class="k">拟合比例 · 台 / px</div><div class="v" id="mRate">尚未标定</div></div></div>

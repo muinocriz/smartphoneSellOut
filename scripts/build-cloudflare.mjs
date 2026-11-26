@@ -23,4 +23,4 @@ for (const file of studioFiles) {
   }else await copyFile(join(root,file),destination);
 }
 await generateSalesPanel(join(root,'sales-estimates.csv'),join(dist,'studio'));
-console.log('Cloudflare assets: five independent modules');
+console.log('Cloudflare assets: four independent modules');

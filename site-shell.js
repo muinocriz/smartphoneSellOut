@@ -4,7 +4,6 @@
   const base = new URL('.', script.src);
   const pages = [
     ['sales', '销量追踪', ''],
-    ['market-share', '市场份额', 'market-share.html'],
     ['sales-estimator', '热销机型与榜单研究', 'sales-estimator.html'],
     ['sales-data-editor', '销量数据处理', 'sales-data-editor.html'],
     ['sales-increment', '销量增量追踪', 'sales-increment.html']

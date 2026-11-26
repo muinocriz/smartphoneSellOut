@@ -5,7 +5,7 @@ const watermarkDefaults=PosterWatermark.defaults;
 const watermarkState={...watermarkDefaults};
 const socialCopyState={title:'',subtitle:'',tagLabel:'',markLeft:'',markRight:'',disclaimer:'',chartNote:''};
 const socialCopyDirty={title:false,subtitle:false,tagLabel:false,markLeft:false,markRight:false,disclaimer:false,chartNote:false};
-// Shared theme system: market-share SVG and estimator Canvas use identical tokens.
+// Shared poster theme tokens for the estimator Canvas.
 const socialPalettes=window.PosterThemes.estimatorPalettes;
 function derivedData(){return deriveDataset(ds(),getFit())}
 let socialArchiveDataset=null;
@@ -129,7 +129,7 @@ function publicResearchCopy(s){
  const source=[s.config?.source,s.config?.series].filter(Boolean).join(' / ')||s.source||'历史销量榜';
  const cross=['dual','coverage'].includes(s.key);
  if(s.config?.sampleMode==='expanded'){if(s.key==='brand'){title='品牌销量结构与集中度';subtitle='扩展样本中的品牌销量表现';}if(s.key==='chip')subtitle='不同芯片平台的样本销量表现';return {title,subtitle,tagLabel,chartNote:publicResearchChartNote(s),disclaimer:'来源：重点机型周增量／累计差分 + '+source+' TOP30估算\n扩展样本按覆盖范围去重，不代表全市场销量或份额'};}
- if(s.chart?.kind==='brandCompetitionHeatmap')return {title,subtitle,tagLabel,chartNote:publicResearchChartNote(s),disclaimer:'来源：模块2全市场品牌份额CSV\n仅展示六大母品牌；保留全市场原始分母'};
+ if(s.chart?.kind==='brandCompetitionHeatmap')return {title,subtitle,tagLabel,chartNote:publicResearchChartNote(s),disclaimer:'来源：全市场品牌份额CSV\n仅展示六大母品牌；保留全市场原始分母'};
  let disclaimer='来源：'+source+(cross?'；对照：全市场品牌份额数据':' · 榜单销量为估算值');
  if(s.key==='dual')disclaimer+=s.chart?.kind==='dualBrandShareComparison'?'\n榜外为条件性估算，范围非统计置信区间；不重新归一化':s.chart?.kind==='brandGrowth'?'\n榜外与品牌总销量为条件性估算，不是官方统计':'\nTOP30仅代表入榜样本；下图为整体市场份额';
  else if(s.key==='coverage')disclaimer+='\n市场总销量为条件性估算，不是官方统计';

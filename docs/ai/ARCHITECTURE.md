@@ -1,16 +1,17 @@
 # 架构与数据流
 
-五个模块是独立 HTML 文档，根目录直接运行。页面以普通 script 按顺序加载依赖，模块 1、2、4 的核心逻辑有相当部分内联在 HTML。共享外壳 site-shell.js 生成导航、转换旧首页 hash 链接、同步主题。外观偏好存 localStorage，主题切换发出 `site-theme-change`。函数入口见 [代码索引](CODE_MAP.md)。
+四个模块（保留原编号 1、3、4、5）是独立 HTML 文档，根目录直接运行。页面以普通 script 按顺序加载依赖，模块 1、4 的核心逻辑有相当部分内联在 HTML。共享外壳 site-shell.js 生成导航、转换旧首页 hash 链接、同步主题。外观偏好存 localStorage，主题切换发出 `site-theme-change`。函数入口见 [代码索引](CODE_MAP.md)。
 
 ## 输入、派生和持久化
 
 | 模块 | 仓库输入 | 计算和输出 |
 | --- | --- | --- |
 | 1 销量追踪 | data.csv，机型累计宽表，周列单位万台 | 按机型、自然周或销售周绘图；相邻观测差分、区间内可选估算。临时编辑可导出完整宽表，图上插补不写回。 |
-| 2 市场份额 | market-share.csv，每周品牌份额和大盘趋势 | 选择基准周和对比周，计算份额差及规模比例，生成 SVG 海报和 PNG。支持本地导入与手动调整。 |
 | 3 热销机型与榜单研究 | 截图标定 → sales-estimates.csv；model-master.csv 关联身份；按专题读取 sales-long.csv、market-share.csv | 原始排名 → 历史与研究；扩展模式融合跟踪销量。研究结果进入网页预览、工作台发布快照，再导出 PNG、CSV 或 ZIP。构建派生的 weekly-sales-panel 与浏览器即时计算分别生成。 |
 | 4 销量数据处理 | sales-long.csv、model-master.csv；可预览同步 data.csv、模块 1 修改后的宽表，或导入模块 5 会话草稿 | 编辑累计/周增量、特殊值及主数据；冲突确认、撤销/重做、本地草稿。导出长表或机型表后由维护者提交相应 CSV。 |
 | 5 销量增量追踪 | sales-long.csv，区分累计/周增量及运算符 | 自然周/完整销售周对比、缺周估算、选中机型表格编辑；导出 PNG/长表；可把编辑结果交给模块 4。 |
+
+原模块 2 的独立页面已下线。`market-share.csv`（每周品牌份额和大盘趋势）和 `market-share-data.js` 保留为模块 3 的数据层，由 `ensureMarketData` 直接读取与校验；维护者继续提交根目录 CSV。生产保留根路径及 `/studio/` 数据副本，不改变公开访问策略。
 
 模块 1、5 的临时编辑通过当前标签页的 sessionStorage（SalesSite）交给模块 4；模块 4 自身可恢复本地草稿。刷新、跨页返回、导出文件、提交正式数据是不同操作。处理数据同步时同时定位生产者、接收者与确认写入路径。榜单估算表 sales-estimates.csv 与跟踪长表 sales-long.csv 各自独立。
 

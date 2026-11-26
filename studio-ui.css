@@ -29,7 +29,7 @@
 
 /* Unified first-screen identity and choice typography in modules 2/3. */
 .studio-ui .ui-page-title {
-  margin:10px 0 0;color:#202a3d;font-family:var(--ui-font-body);
+  margin:10px 0 0;color:light-dark(#202a3d,var(--site-ink));font-family:var(--ui-font-body);
   font-size:var(--ui-text-metric);font-weight:800;line-height:1.35;
   letter-spacing:-.025em;overflow-wrap:break-word;
 }
@@ -40,7 +40,7 @@
   background:var(--ui-card);
   border:1px solid var(--ui-border);
   border-radius:16px;
-  color:#202a3d;
+  color:light-dark(#202a3d,var(--site-ink));
   box-shadow:0 2px 12px #2546740c;
 }
 .studio-ui .ui-section-title {
@@ -51,7 +51,7 @@
   font-weight:800;
   line-height:1.5;
   letter-spacing:0;
-  color:#344a68;
+  color:light-dark(#344a68,var(--site-ink));
   text-transform:none;
 }
 .studio-ui .ui-section-title.section-heading-spaced {margin-bottom:10px}
@@ -79,7 +79,7 @@
   box-sizing:border-box;
   min-width:0;
   width:100%;
-  background:#fff;
+  background:light-dark(#fff,var(--site-panel));
   color:var(--ui-ink);
   border:1px solid #d7e3f2;
   border-radius:10px;
@@ -99,7 +99,7 @@
   box-shadow:0 0 0 3px #dce9ff;
 }
 
-/* Same palette structure in both independent iframes. */
+/* Same palette structure in both studio pages. */
 .studio-ui .ui-palette-grid {
   display:grid;
   grid-template-columns:repeat(2,minmax(0,1fr));
@@ -118,7 +118,7 @@
   border-radius:12px;
   border:1px solid #dfe7f2;
   background:var(--ui-card-subtle);
-  color:#283c5a;
+  color:light-dark(#283c5a,var(--site-ink));
   text-align:left;
   cursor:pointer;
   font-family:var(--ui-font-body);
@@ -126,8 +126,8 @@
 }
 .studio-ui .ui-palette-card:hover {background:#eff5ff;border-color:#b9cff1}
 .studio-ui .ui-palette-card.is-selected {
-  background:#eaf2ff;
-  color:#245bbd;
+  background:light-dark(#eaf2ff,var(--site-selection));
+  color:light-dark(#245bbd,var(--site-accent));
   border-color:#3f82e9;
   box-shadow:inset 0 0 0 1px #9ac0ff;
 }
@@ -160,7 +160,7 @@
 .studio-ui .ui-watermark-card .ui-section-title {margin-bottom:5px}
 .studio-ui .wm-section {
   padding:13px;
-  background:#f8fafe;
+  background:light-dark(#f8fafe,var(--site-soft));
   border:1px solid #e1eaf5;
   border-radius:13px;
   margin-top:16px;
@@ -187,7 +187,7 @@
   width:18px;
   height:18px;
   border-radius:50%;
-  background:#fff;
+  background:light-dark(#fff,var(--site-panel));
   box-shadow:0 1px 4px #1626413b;
   transition:transform .16s;
 }
@@ -217,7 +217,7 @@
 }
 .studio-ui .ui-export-primary{color:#fff;background:var(--ui-accent);border:1px solid var(--ui-accent)}
 .studio-ui .ui-export-primary:hover:not(:disabled){background:#1e57c6}
-.studio-ui .ui-export-secondary{color:#45617f;background:#fff;border:1px solid #d9e2ef}
+.studio-ui .ui-export-secondary{color:#45617f;background:light-dark(#fff,var(--site-panel));border:1px solid #d9e2ef}
 .studio-ui .ui-export-secondary:hover:not(:disabled){background:#f1f5fb}
 .studio-ui .ui-export-primary:disabled,.studio-ui .ui-export-secondary:disabled{opacity:.55;cursor:not-allowed}
 .studio-ui .ui-export-primary[aria-busy="true"],.studio-ui .ui-export-secondary[aria-busy="true"]{cursor:progress}
@@ -234,10 +234,20 @@
 /* Manual fallback for browsers that block automatic multi-file downloads. */
 .studio-ui .ui-export-downloads{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
 .studio-ui .ui-export-retry{
-  border:1px solid #c6d6ee;border-radius:8px;background:#fff;color:var(--ui-accent);
+  border:1px solid #c6d6ee;border-radius:8px;background:light-dark(#fff,var(--site-panel));color:var(--ui-accent);
   padding:6px 10px;font:600 var(--ui-text-small)/1.5 var(--ui-font-body);cursor:pointer;
 }
 .studio-ui .ui-export-retry:hover{background:#f1f5fb}
 
 /* Hide healthy quality states without affecting validation or export controls. */
 .studio-ui #qualityGuard[hidden],.studio-ui #posterLayoutQuality[hidden]{display:none!important}
+
+:root[data-theme="dark"]{
+  --ui-ink:var(--site-ink);
+  --ui-muted:var(--site-muted);
+  --ui-text-muted:var(--site-muted);
+  --ui-border:var(--site-border);
+  --ui-card:var(--site-panel);
+  --ui-card-subtle:var(--site-soft);
+  --ui-accent:var(--site-accent);
+}

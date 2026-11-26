@@ -1,12 +1,15 @@
 <!doctype html>
 <html lang="zh-CN">
+<head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>销量增量追踪</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400&family=Noto+Sans+SC:wght@400;500;700&display=swap">
-<style>*{box-sizing:border-box}body{margin:0;background:#f4f6f9;color:#18243b;font:15px "Noto Sans SC",system-ui,sans-serif}main{max-width:980px;margin:auto;padding:32px 16px}h1{font-size:clamp(24px,5vw,38px);margin:4px 0}h2{font-size:18px;margin:0 0 14px}small,p{color:#50617a}section{background:white;border:1px solid #dbe2ea;border-radius:14px;padding:20px;margin:16px 0}label{display:inline-grid;gap:6px;margin:0 16px 8px 0}select{border:1px solid #aab7c9;border-radius:6px;background:white;padding:8px;font:inherit}svg{width:100%;height:auto;min-height:160px}table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}td,th{padding:8px 4px;text-align:right;border-bottom:1px solid #e4e8ef}td:first-child,th:first-child{text-align:left}caption{text-align:left;font-weight:bold;margin-bottom:10px}.scroll{overflow:auto}details{margin:10px 0 18px}summary,button{cursor:pointer}button,input,textarea{font:inherit}button{padding:5px 9px}#choices{max-height:160px;overflow:auto;margin:8px 0}#choices label,#legend span{display:inline-flex;align-items:center;gap:5px;margin:3px 10px 3px 0}#legend{margin:8px 0}#legend i{width:12px;height:3px}label[hidden]{display:none}#footer{width:min(480px,78vw)}td[tabindex]{cursor:text} :root{--paper:#fff;--ink:#18243b;--sub:#50617a;--grid:#dee3ea;--active:#e3efff;color-scheme:light} :root[data-theme=dark]{--paper:#182231;--ink:#edf2fb;--sub:#c3cfe0;--grid:#425066;--active:#263f62;color-scheme:dark} :root[data-theme=dark] body{background:#101824;color:var(--ink)}section,select{background:var(--paper);color:var(--ink);border-color:var(--grid)}small,p{color:var(--sub)}td,th{border-color:var(--grid)}#matrix td,#matrix th{white-space:nowrap}#matrix tr>:first-child{position:sticky;left:0;background:var(--paper)}.range-bar{display:flex;align-items:center;flex-wrap:wrap;gap:8px}.range-bar label{display:flex;align-items:center}.range-bar input{width:clamp(90px,18vw,200px)}#legend button{background:var(--paper);color:var(--ink);border:1px solid var(--grid);border-radius:6px;margin:3px}#legend button[aria-pressed=true],td.changed{background:var(--active)}td.changed{box-shadow:inset 0 -2px #498bea}#hoverReadout{display:block;min-height:1.5em;color:var(--sub)}svg{touch-action:pan-y}#legend i{display:inline-block;vertical-align:middle;margin-right:5px}
+<script src="site-shell.js" data-page="sales-increment"></script>
+<link rel="stylesheet" href="site-shell.css">
+<style>*{box-sizing:border-box}body{margin:0;background:#f4f6f9;color:#18243b;font:15px "Noto Sans SC",system-ui,sans-serif}main{max-width:980px;margin:auto;padding:32px 16px}h1{font-size:clamp(24px,5vw,38px);margin:4px 0}h2{font-size:18px;margin:0 0 14px}small,p{color:#50617a}section{background:white;border:1px solid #dbe2ea;border-radius:14px;padding:20px;margin:16px 0}main label{display:inline-grid;gap:6px;margin:0 16px 8px 0}select{border:1px solid #aab7c9;border-radius:6px;background:white;padding:8px;font:inherit}svg{width:100%;height:auto;min-height:160px}table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}td,th{padding:8px 4px;text-align:right;border-bottom:1px solid #e4e8ef}td:first-child,th:first-child{text-align:left}caption{text-align:left;font-weight:bold;margin-bottom:10px}.scroll{overflow:auto}main details{margin:10px 0 18px}summary,button{cursor:pointer}button,input,textarea{font:inherit}button{padding:5px 9px}#choices{max-height:160px;overflow:auto;margin:8px 0}#choices label,#legend span{display:inline-flex;align-items:center;gap:5px;margin:3px 10px 3px 0}#legend{margin:8px 0}#legend i{width:12px;height:3px}label[hidden]{display:none}#footer{width:min(480px,78vw)}td[tabindex]{cursor:text} :root{--paper:#fff;--ink:#18243b;--sub:#50617a;--grid:#dee3ea;--active:#e3efff;color-scheme:light} :root[data-theme=dark]{--paper:#182231;--ink:#edf2fb;--sub:#c3cfe0;--grid:#425066;--active:#263f62;color-scheme:dark} :root[data-theme=dark] body{background:#101824;color:var(--ink)}section,select{background:var(--paper);color:var(--ink);border-color:var(--grid)}small,p{color:var(--sub)}td,th{border-color:var(--grid)}#matrix td,#matrix th{white-space:nowrap}#matrix tr>:first-child{position:sticky;left:0;background:var(--paper)}.range-bar{display:flex;align-items:center;flex-wrap:wrap;gap:8px}.range-bar label{display:flex;align-items:center}.range-bar input{width:clamp(90px,18vw,200px)}#legend button{background:var(--paper);color:var(--ink);border:1px solid var(--grid);border-radius:6px;margin:3px}#legend button[aria-pressed=true],td.changed{background:var(--active)}td.changed{box-shadow:inset 0 -2px #498bea}#hoverReadout{display:block;min-height:1.5em;color:var(--sub)}svg{touch-action:pan-y}#legend i{display:inline-block;vertical-align:middle;margin-right:5px}
 .filter-row{display:flex;align-items:baseline;gap:12px;margin:10px 0}
 .filter-row>span{flex:0 0 4em;color:var(--sub)}
 .filter-options{display:flex;flex-wrap:wrap;min-width:0;max-width:100%}
@@ -18,17 +21,21 @@
 .filter-options button[aria-pressed="true"]{color:white;background:#1761ae;border-color:#1761ae}
 .filter-options button:focus-visible{outline:2px solid currentColor;outline-offset:-3px}
 </style>
+</head>
+<body>
+<header class="site-header"></header>
+
 <main>
 <h1>销量增量追踪</h1>
 <p>精选机型 · 单位：万台</p>
 <label>导入本地销量长表<input id="localFile" type="file" accept=".csv,text/csv"></label>
+<button id="reloadProject" type="button" hidden>切回项目长表</button>
 <p id="loadState" role="status">正在读取项目长表…</p>
 <div id="content" hidden>
 <section>
 <div class="filter-row"><span id="brand-label">品牌</span><div class="filter-options brands" id="brand" role="group" aria-labelledby="brand-label" data-value="">
 
 </div></div>
-<button id="theme" type="button">切换主题</button>
 <label>明细与编辑对象<select id="model">
 </select>
 </label>
@@ -99,4 +106,5 @@
 <script src="iso-sales-week.js"></script>
 <script src="sales-chart-layout.js"></script>
 <script src="sales-increment.js"></script>
+</body>
 </html>

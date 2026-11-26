@@ -3,10 +3,10 @@
  * Common form, palette and typography roles live in studio-ui.css.
  * The SVG poster has independent visual attributes and is not restyled here.
  */
-html{color-scheme:light;background:#f5f7fb}
+html{background:var(--site-bg)}
 body.market-share-light{
   margin:0;min-height:100vh;display:flex;flex-direction:column;
-  overflow-x:hidden;background:#f5f7fb;color:#202a3d;
+  overflow-x:hidden;background:light-dark(#f5f7fb,var(--site-bg));color:light-dark(#202a3d,var(--site-ink));
   font-family:var(--ui-font-body);
 }
 .market-share-light *,.market-share-light *::before,.market-share-light *::after{box-sizing:border-box}
@@ -17,13 +17,13 @@ body.market-share-light{
 .market-share-light .ms-sidebar{
   display:flex;flex-direction:column;gap:16px;flex-shrink:0;
   width:100%;padding:20px;min-width:0;
-  background:#f5f7fb;border-bottom:1px solid #e0e7f1;
+  background:light-dark(#f5f7fb,var(--site-bg));border-bottom:1px solid #e0e7f1;
 }
 .market-share-light .ms-intro{display:flex;flex-direction:column;gap:12px;padding-bottom:4px}
 .market-share-light .ms-sidebar p{margin:0}
 .market-share-light .ms-card{
   min-width:0;display:flex;flex-direction:column;gap:12px;
-  padding:16px;background:#fff;border:1px solid #e0e7f1;border-radius:16px;
+  padding:16px;background:light-dark(#fff,var(--site-panel));border:1px solid #e0e7f1;border-radius:16px;
 }
 .market-share-light .ms-row-between{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .market-share-light .ms-row-between > *{min-width:0}
@@ -33,12 +33,12 @@ body.market-share-light{
 .market-share-light .ms-chart-grid .chart-btn{
   display:flex;align-items:center;justify-content:center;gap:8px;min-width:0;
   padding:12px 10px;min-height:50px;
-  border:1px solid #e2eaf7;border-radius:12px;background:#f7f9fd;
+  border:1px solid #e2eaf7;border-radius:12px;background:light-dark(#f7f9fd,var(--site-soft));
   color:#2b3c58;line-height:1.45;
 }
 .market-share-light .ms-chart-grid .chart-btn:first-child{grid-column:span 2}
 .market-share-light .ms-chart-grid .chart-btn.tab-active{
-  border-color:#8fb8ff;background:#edf4ff;color:#245bbd;
+  border-color:#8fb8ff;background:light-dark(#edf4ff,var(--site-selection));color:light-dark(#245bbd,var(--site-accent));
   box-shadow:inset 0 0 0 1px #a2c1ff;
 }
 .market-share-light .ms-chart-grid .chart-btn:hover{background:#eff5ff;border-color:#b8cef3}
@@ -58,7 +58,7 @@ body.market-share-light{
 }
 .market-share-light .ms-toggle-track::before{
   content:"";position:absolute;left:3px;top:3px;width:18px;height:18px;
-  background:white;border-radius:50%;box-shadow:0 1px 2px #23344b33;
+  background:light-dark(white,var(--site-panel));border-radius:50%;box-shadow:0 1px 2px #23344b33;
   transition:transform .15s;
 }
 .market-share-light .ms-toggle input:checked + .ms-toggle-track{background:#2c6ce4}
@@ -67,11 +67,11 @@ body.market-share-light{
 .market-share-light .ms-toggle input:focus-visible + .ms-toggle-track{outline:2px solid #538de5;outline-offset:2px}
 .market-share-light .ms-subtle-button{
   border:1px solid #dce8fb;border-radius:9px;padding:7px 10px;
-  background:#edf4ff;color:#2d64bf;font-size:var(--ui-text-small);font-weight:700
+  background:light-dark(#edf4ff,var(--site-selection));color:light-dark(#2d64bf,var(--site-accent));font-size:var(--ui-text-small);font-weight:700
 }
 .market-share-light .ms-subtle-button:hover{background:#e2edff}
 .market-share-light .ms-editor-panel{display:grid;gap:12px;border-top:1px solid #e0e8f3;padding-top:12px}
-.market-share-light .ms-editor-shell{padding:8px;border:1px solid #e0e8f3;border-radius:12px;background:#f8fafe}
+.market-share-light .ms-editor-shell{padding:8px;border:1px solid #e0e8f3;border-radius:12px;background:light-dark(#f8fafe,var(--site-soft))}
 .market-share-light .ms-editor-row{
   display:grid;grid-template-columns:minmax(0,4fr) minmax(0,3fr) minmax(0,3fr) minmax(0,2fr);
   align-items:center;gap:4px;min-width:0;padding:5px 4px;font-size:var(--ui-text-small)
@@ -80,17 +80,17 @@ body.market-share-light{
 .market-share-light .ms-editor-row > :nth-child(2),.market-share-light .ms-editor-row > :nth-child(3){text-align:center}
 .market-share-light .ms-editor-row > :nth-child(4){text-align:right}
 .market-share-light .ms-editor-header{font-weight:700;color:#72829a;border-bottom:1px solid #e0e8f3}
-.market-share-light .ms-editor-group{font-weight:700;color:#263853;background:#eff4fa;border-radius:8px}
+.market-share-light .ms-editor-group{font-weight:700;color:light-dark(#263853,var(--site-ink));background:light-dark(#eff4fa,var(--site-soft));border-radius:8px}
 .market-share-light .ms-editor-sub{padding-left:12px;color:#72829a}
-.market-share-light .ms-editor-row:nth-child(even){background:#f8fafe}
+.market-share-light .ms-editor-row:nth-child(even){background:light-dark(#f8fafe,var(--site-soft))}
 .market-share-light .ms-brand-list{max-height:260px;overflow-y:auto;display:grid;gap:3px}
 .market-share-light .ms-brand-label{display:flex;align-items:center;gap:5px;min-width:0;overflow:hidden;text-overflow:ellipsis}
 .market-share-light .ms-editor-sub .ms-brand-label{display:block;white-space:nowrap}
 .market-share-light .ms-color-dot{display:inline-block;width:8px;height:8px;border-radius:50%;flex:0 0 8px}
 .market-share-light .ms-editor-row .data-num-input{
   width:100%;min-width:0;min-height:28px;padding:4px 3px;
-  border:1px solid #d7e3f2;border-radius:5px;background:#fff;
-  color:#263853;font-family:var(--ui-font-number);font-size:var(--ui-text-small);text-align:center
+  border:1px solid #d7e3f2;border-radius:5px;background:light-dark(#fff,var(--site-panel));
+  color:light-dark(#263853,var(--site-ink));font-family:var(--ui-font-number);font-size:var(--ui-text-small);text-align:center
 }
 .market-share-light .ms-editor-row .ms-num,.market-share-light .ms-number,.market-share-light .ms-change{
   font-family:var(--ui-font-number);font-variant-numeric:tabular-nums
@@ -103,7 +103,7 @@ body.market-share-light{
   margin-top:8px;padding-top:8px;border-top:1px solid #e0e8f3;font-size:var(--ui-text-small)
 }
 .market-share-light .ms-reset-row{display:flex;justify-content:flex-end}
-.market-share-light .ms-link-button{border:0;background:transparent;color:#2865db;text-decoration:underline;font-size:var(--ui-text-small);padding:4px 0}
+.market-share-light .ms-link-button{border:0;background:transparent;color:light-dark(#2865db,var(--site-accent));text-decoration:underline;font-size:var(--ui-text-small);padding:4px 0}
 .market-share-light .ms-link-button:hover{color:#174b99}
 /* Module 3 safety controls, scoped to module 2. */
 
@@ -113,11 +113,11 @@ body.market-share-light{
 .market-share-light #safeControlPanel .switchline input{position:absolute;right:0;top:50%;transform:translateY(-50%);width:54px;height:30px;margin:0;opacity:0;pointer-events:none}
 .market-share-light #safeControlPanel .switchline input:focus-visible + .switch-ui{outline:3px solid #9bc2ff;outline-offset:3px;background:#dce5f2;box-shadow:inset 0 0 0 1px #b7c6d9}
 .market-share-light #safeControlPanel .switch-ui{width:54px;height:30px;border-radius:999px;background:#3a4966;position:relative;box-shadow:inset 0 0 0 1px #5d6d8d;transition:background .18s ease}
-.market-share-light #safeControlPanel .switch-ui::after{content:'';position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;box-shadow:0 2px 8px #0004;transition:left .18s ease,background .18s ease}
+.market-share-light #safeControlPanel .switch-ui::after{content:'';position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:light-dark(#fff,var(--site-panel));box-shadow:0 2px 8px #0004;transition:left .18s ease,background .18s ease}
 .market-share-light #safeControlPanel .switchline input:checked + .switch-ui{background:#f44c72}
 .market-share-light #safeControlPanel .switchline input:checked + .switch-ui::after{left:27px}
 .market-share-light #safeControlPanel .safe-slider{margin-top:12px}
-.market-share-light #safeControlPanel .safe-slider-label span{color:#344866}
+.market-share-light #safeControlPanel .safe-slider-label span{color:light-dark(#344866,var(--site-ink))}
 .market-share-light #safeControlPanel .safe-slider-label b{color:#ef4367}
 .market-share-light #safeControlPanel .safe-slider.bottom .safe-slider-label b{color:#e6980c}
 .market-share-light #safeControlPanel .range{width:100%;appearance:none;height:8px;border-radius:999px;background:#e3ebf5;outline:none}
@@ -133,11 +133,11 @@ body.market-share-light{
 .market-share-light .ms-subsection{
   display:grid;gap:10px;padding-top:12px;margin-top:2px;border-top:1px solid #e0e8f3
 }
-.market-share-light .ms-subheading{color:#506581;font-size:var(--ui-text-body);font-weight:700}
+.market-share-light .ms-subheading{color:light-dark(#506581,var(--site-muted));font-size:var(--ui-text-body);font-weight:700}
 .market-share-light .ms-preview{
   flex:1;min-width:0;min-height:600px;padding:26px 16px 36px;
   display:flex;flex-direction:column;align-items:center;justify-content:flex-start;
-  background:#f0f4fb;border-left:1px solid #e1e8f2;color:#526780
+  background:light-dark(#f0f4fb,var(--site-soft));border-left:1px solid #e1e8f2;color:light-dark(#526780,var(--site-muted))
 }
 .market-share-light .ms-poster{
   position:relative;width:100%;max-width:540px;aspect-ratio:3/4;
@@ -157,16 +157,16 @@ body.market-share-light{
 .market-share-light .ms-upload-btn{
   display:inline-flex;align-items:center;border:1px solid #dce5ef;
   border-radius:9px;padding:8px 10px;background:#f1f5f9;
-  font-size:var(--ui-text-small);font-weight:700;color:#344866;cursor:pointer
+  font-size:var(--ui-text-small);font-weight:700;color:light-dark(#344866,var(--site-ink));cursor:pointer
 }
 .market-share-light .ms-upload-btn:hover{background:#e8eef6}
 .market-share-light .ms-csv-status{margin:0}
 .market-share-light .ms-csv-error{color:#b43c50}
 
 @media(min-width:1024px){
-  body.market-share-light{flex-direction:row}
+  .market-share-workspace{display:flex;flex:1}
   .market-share-light .ms-sidebar{
-    width:420px;height:100vh;overflow-y:auto;border-bottom:0;border-right:1px solid #e0e7f1;
+    width:420px;height:calc(100dvh - var(--site-header-height));overflow-y:auto;border-bottom:0;border-right:1px solid #e0e7f1;
     padding:24px;scrollbar-color:#bfcde1 #eef2f8
   }
 }
@@ -178,4 +178,14 @@ body.market-share-light{
   .market-share-light .ms-preview{padding:18px 12px 32px}
   .market-share-light .ms-row-between{flex-wrap:wrap}
   .market-share-light .ms-chart-grid .chart-btn{padding:10px 5px}
+}
+
+:root[data-theme="dark"] .market-share-light :is(.ms-sidebar,.ms-card,.ms-preview,.ms-editor-shell,.ms-editor-row input,.chart-btn,.ms-upload-btn){
+  border-color:var(--site-border);
+}
+:root[data-theme="dark"] .market-share-light :is(.chart-btn,.ms-upload-btn){
+  background:var(--site-soft);color:var(--site-ink);
+}
+:root[data-theme="dark"] .market-share-light .chart-btn.tab-active{
+  background:var(--site-selection);color:var(--site-accent);
 }

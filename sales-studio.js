@@ -545,6 +545,41 @@ ${$('carouselText').value}`],{type:'text/plain;charset=utf-8'}),slugName(studioE
  initPublicationPreferences();updateSafeLabels();syncPaletteChooser();resetPosterCopy(true);updateSocial(true);if(document.fonts?.ready)document.fonts.ready.then(()=>updateSocial(false));
 }
 
-// 用 IBM Plex Mono 单独包装网页中的数字，不影响旁边中文和英文的字体。
+const studioSessionKey='phoneSales.studioSession';
+function saveStudioSession(){
+ return SalesSite.sessionWrite(studioSessionKey,{
+  template:socialState.template, research:socialResearchSnapshot, researchHeader:savedResearchHeader,
+  archive:socialArchiveDataset, copy:{...socialCopyState}, dirty:{...socialCopyDirty},
+  texts:StudioPref.values(publicationTextIds), duel:[socialState.duelA,socialState.duelB]
+ });
+}
+function restoreStudioSession(){
+ const saved=SalesSite.sessionRead(studioSessionKey);
+ if(!saved)return;
+ if(saved.research&&!applyResearchTopicToStudio(saved.research))return;
+ if(!saved.research&&['top','versus','brands','leader'].includes(saved.template))leaveResearchStudio(saved.template);
+ if(saved.archive)socialArchiveDataset=saved.archive;
+ if(saved.research)savedResearchHeader=saved.researchHeader;
+ Object.assign(socialCopyState,saved.copy);
+ Object.assign(socialCopyDirty,saved.dirty);
+ updateDuelSelects(socialData());
+ if(Array.isArray(saved.duel)){
+  [socialState.duelA,socialState.duelB]=saved.duel;
+  updateDuelSelects();
+ }
+ updateSocial(false);
+ StudioPref.apply(saved.texts,publicationTextIds);
+}
+
 initSocial();
+restoreStudioSession();
+window.addEventListener('beforeunload',event=>{
+ const saved=saveStudioSession();
+ // Screenshot files and calibration are still in memory until exported.
+ if(ds().bars.length||!saved){
+  event.preventDefault();
+  event.returnValue='';
+ }
+});
+window.addEventListener('pagehide',saveStudioSession);
 

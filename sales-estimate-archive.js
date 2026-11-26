@@ -92,15 +92,31 @@
   const tracker=$('module3-tracker');
   const modulePanes={estimate:$('module3-estimate'),history:$('module3-history'),tracker,social:$('socialStudio')};
   const moduleButtons=Object.fromEntries(Object.keys(modulePanes).map(id=>[id,$('module3-tab-'+id)]));
+  const moduleTabKey='phoneSales.studioTab';
+  const historyChoiceKey='phoneSales.studioHistoryChoice';
+  let activeModuleTab;
   function activateModuleTab(key){
-    if(!modulePanes[key])return;
+    if(!Object.hasOwn(modulePanes,key))return;
+    activeModuleTab=key;
+    SalesSite.sessionWrite(moduleTabKey,key);
     for(const [id,pane] of Object.entries(modulePanes)){
       const active=id===key;pane.hidden=!active;pane.style.display=active?'':'none';
       moduleButtons[id].setAttribute('aria-selected',String(active));
     }
   }
   for(const [id,button] of Object.entries(moduleButtons))button.onclick=()=>activateModuleTab(id);
-  activateModuleTab('estimate');
+  const savedTab=SalesSite.sessionRead(moduleTabKey);
+  activateModuleTab(Object.hasOwn(modulePanes,savedTab)?savedTab:'estimate');
+  window.addEventListener('pagehide',()=>{
+    if(activeModuleTab)SalesSite.sessionWrite(moduleTabKey,activeModuleTab);
+    if($('archiveSelect').value)SalesSite.sessionWrite(historyChoiceKey,$('archiveSelect').value);
+  });
+  window.addEventListener('beforeunload',event=>{
+    if(pending){
+      event.preventDefault();
+      event.returnValue='';
+    }
+  });
 
   // Shared history presentation helpers must not depend on research initialization.
   function classifyBoardBrand(row){const m=masterCatalog?.resolve(row[col.model]);return window.BrandUtils.classify(m?.model_name||row[col.model],m?.brand_group||row[col.brand_group]);}
@@ -1842,7 +1858,7 @@
   }
   function showHistory(message) {
     const map = groups(history);
-    const select = $('archiveSelect'), old = select.value;
+    const select = $('archiveSelect'), old = select.value || SalesSite.sessionRead(historyChoiceKey) || socialArchiveDataset?.id;
     select.replaceChildren();
     for (const [id,list] of [...map.entries()].sort((a,b) => b[1][0][col.period_end].localeCompare(a[1][0][col.period_end]) || a[0].localeCompare(b[0]))) {
       const option = document.createElement('option'); option.value = id; option.textContent = labelOf(list[0]); select.append(option);

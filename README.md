@@ -15,10 +15,12 @@
 | 模块 | 用途 | 进入 |
 | --- | --- | --- |
 | **01 · 销量追踪** | 查看累计销量、周增量及完整销售周趋势；默认选择近12周新机，支持机型筛选、自建列表、跨期里程碑及桌面／手机 PNG 导出。 | [打开销量追踪](https://smartphonesellout.zirconium.workers.dev/) |
-| **02 · 市场份额** | 自动读取 `market-share.csv`，选择连续两周品牌份额，支持本地 CSV 导入与手动编辑；五种图表（含规模比例堆叠图）、六套主题和 3:4 高清 PNG 导出。 | [打开市场份额](https://smartphonesellout.zirconium.workers.dev/#market-share) |
-| **03 · 榜单推算与出图** | 导入截图并标定估算入榜销量，或直接选择历史榜单及十四个研究专题制作图卡；支持销量与原始排名联动追踪、排名矩阵、CSV 存档、3:4／9:16 高清 PNG 和 ZIP 导出。 | [打开榜单推算](https://smartphonesellout.zirconium.workers.dev/#sales-estimator) |
-| **04 · 手机销量数据处理工具 V3.3** | 自动读取项目销量宽表及机型主数据，支持累计/周增量编辑、特殊数值、检查、主数据维护、本地草稿和 CSV 导出。 | [打开销量数据处理](https://smartphonesellout.zirconium.workers.dev/#sales-data-editor) |
-| **05 · 销量增量追踪** | 读取销量长表，优先按相邻精确累计差分，支持多机型自然周／完整销售周对比、近12周与里程碑列表、缺周估算、逐周编辑及 PNG／CSV 导出。 | [打开销量增量追踪](https://smartphonesellout.zirconium.workers.dev/#sales-increment) |
+| **02 · 市场份额** | 自动读取 `market-share.csv`，选择连续两周品牌份额，支持本地 CSV 导入与手动编辑；五种图表（含规模比例堆叠图）、六套主题和 3:4 高清 PNG 导出。 | [打开市场份额](https://smartphonesellout.zirconium.workers.dev/market-share.html) |
+| **03 · 榜单推算与出图** | 导入截图并标定估算入榜销量，或直接选择历史榜单及十四个研究专题制作图卡；支持销量与原始排名联动追踪、排名矩阵、CSV 存档、3:4／9:16 高清 PNG 和 ZIP 导出。 | [打开榜单推算](https://smartphonesellout.zirconium.workers.dev/studio/sales-estimator.html) |
+| **04 · 手机销量数据处理工具 V3.3** | 自动读取项目销量宽表及机型主数据，支持累计/周增量编辑、特殊数值、检查、主数据维护、本地草稿和 CSV 导出。 | [打开销量数据处理](https://smartphonesellout.zirconium.workers.dev/sales-data-editor.html) |
+| **05 · 销量增量追踪** | 读取销量长表，优先按相邻精确累计差分，支持多机型自然周／完整销售周对比、近12周与里程碑列表、缺周估算、逐周编辑及 PNG／CSV 导出。 | [打开销量增量追踪](https://smartphonesellout.zirconium.workers.dev/sales-increment.html) |
+
+五个模块各有独立页面，共用顶部导航和外观设置。原来的首页栏目链接会跳转到对应页面。模块一、五的临时编辑可在当前标签页交给模块四导入。
 
 ## 快速使用
 

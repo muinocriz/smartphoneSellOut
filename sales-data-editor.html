@@ -1,12 +1,15 @@
 <!doctype html>
 <html lang="zh-CN">
 <head>
+<script src="site-shell.js" data-page="sales-data-editor"></script>
+<link rel="stylesheet" href="site-shell.css">
+
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>手机销量数据处理工具 V3.3</title>
 <style>
 :root{color-scheme:light dark;--bg:#f3f5f8;--panel:#fff;--fg:#202838;--muted:#667085;--line:#dce2ea;--soft:#f7f9fc;--accent:#315dcc;--green:#08794f;--blue:#2159c1;--red:#b83243;--gtbg:#e2f5eb;--ltbg:#fce8eb;--apbg:#e7efff;--shadow:0 8px 26px #1d29390c}
-@media(prefers-color-scheme:dark){:root{--bg:#12151c;--panel:#1b202b;--fg:#e7ecf6;--muted:#9ca9bd;--line:#343c4c;--soft:#222937;--accent:#92b0ff;--green:#7bd4a7;--blue:#a3beff;--red:#ff9aa6;--gtbg:#173d31;--ltbg:#472530;--apbg:#253b61;--shadow:none}}
+:root[data-theme="dark"]{--bg:#12151c;--panel:#1b202b;--fg:#e7ecf6;--muted:#9ca9bd;--line:#343c4c;--soft:#222937;--accent:#92b0ff;--green:#7bd4a7;--blue:#a3beff;--red:#ff9aa6;--gtbg:#173d31;--ltbg:#472530;--apbg:#253b61;--shadow:none}
 [hidden]{display:none!important}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.5 system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif}main{max-width:1600px;margin:auto;padding:24px clamp(12px,3vw,36px) 36px}header{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:18px}h1{font-size:25px;margin:0 0 3px;letter-spacing:-.02em}h2{font-size:17px;margin:0}p{margin:0}.muted{color:var(--muted);font-size:12px}.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;box-shadow:var(--shadow);margin-bottom:14px}.toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.spacer{flex:1}button,input,select{font:inherit;color:inherit}button,.file-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;background:var(--panel);border:1px solid var(--line);border-radius:7px;padding:7px 12px;cursor:pointer;white-space:nowrap}button:hover,.file-btn:hover{border-color:var(--accent)}button:disabled{opacity:.45;cursor:not-allowed}.primary{background:#315dcc;color:#fff;border-color:#315dcc}.primary:hover{background:#254db5}.subtle{color:var(--muted)}input:not([type=checkbox]),select{border:1px solid var(--line);border-radius:6px;background:var(--panel);padding:7px 9px;min-width:0}input:focus,select:focus,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}input[type=checkbox]{accent-color:#315dcc}label.check{display:flex;align-items:center;gap:7px}.import-options{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-top:10px}.import-options input[type=number]{width:88px}.summary{display:grid;grid-template-columns:repeat(5,minmax(100px,1fr));gap:8px;margin-bottom:14px}.metric{background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:11px 13px}.metric b{font:600 23px/1.4 ui-monospace,SFMono-Regular,Consolas,monospace;display:block}.metric span{color:var(--muted);font-size:12px}.legend{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}.tag{padding:3px 9px;border-radius:5px;font-weight:600;font-size:12px}.lt{background:var(--ltbg)!important;color:var(--red)!important}.ge{background:var(--gtbg)!important;color:var(--green)!important}.ap{background:var(--apbg)!important;color:var(--blue)!important}.table-wrap{overflow:auto;max-height:64vh;border:1px solid var(--line);border-radius:8px;position:relative;margin-top:10px}table{border-collapse:separate;border-spacing:0;width:max-content;min-width:100%;font-variant-numeric:tabular-nums}th,td{border-right:1px solid var(--line);border-bottom:1px solid var(--line);height:39px;padding:0;background:var(--panel);white-space:nowrap}th{position:sticky;top:0;z-index:4;background:var(--soft);font-size:12px;font-weight:600;padding:6px 8px;text-align:center}td{font-size:13px}td.brand,th.brand{position:sticky;left:0;z-index:2;width:88px;min-width:88px;max-width:88px}td.model,th.model{position:sticky;left:88px;z-index:2;width:195px;min-width:195px;max-width:195px;box-shadow:2px 0 0 var(--line)}th.brand,th.model{z-index:5}td.cat{width:125px}td.date{width:120px}td.week,th.week{width:103px;min-width:103px}td input.cell{display:block;border:0;border-radius:0;width:100%;height:38px;background:transparent;padding:5px 8px;outline-offset:-2px}td.week input.cell{text-align:right;font-family:ui-monospace,SFMono-Regular,Consolas,monospace}td input.cell:invalid{background:var(--ltbg);color:var(--red)}td button.special{display:block;width:100%;height:38px;border:0;border-radius:0;text-align:right;font:600 13px ui-monospace,SFMono-Regular,Consolas,monospace;padding:5px 8px}td button.special:hover{outline:2px solid var(--accent);outline-offset:-2px}td.week.is-selected{outline:2px solid var(--accent);outline-offset:-2px;position:relative}td.ops{padding:4px}.remove{padding:4px 8px;color:var(--red)}.empty{padding:40px 15px;text-align:center;color:var(--muted)}.status{min-height:22px;margin-top:9px;color:var(--muted);overflow-wrap:anywhere}.status.error{color:var(--red)}.status.success{color:var(--green)}.preview-wrap{overflow:auto;margin-top:10px;max-height:260px}.preview-wrap table{width:100%;min-width:650px}.preview-wrap th,.preview-wrap td{padding:6px 9px;text-align:left;height:auto}.preview-wrap th{top:0}dialog{color:var(--fg);background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:20px;width:min(480px,calc(100% - 24px));box-shadow:0 20px 80px #0004}dialog::backdrop{background:#10182788}.dialog-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}.dialog-head button{border:0;font-size:18px;padding:2px 8px}.field{display:grid;gap:5px;margin-bottom:12px}.field>label,.field>span{font-size:12px;color:var(--muted);font-weight:600}.field input,.field select{width:100%}.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}.op-choice{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.op-choice label{cursor:pointer;text-align:center;border:1px solid var(--line);border-radius:7px;padding:7px 3px}.op-choice label:has(input:checked){outline:2px solid var(--accent);outline-offset:1px}.op-choice input{margin:0 5px 0 0}.dialog-actions{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin-top:17px}.error-text{color:var(--red);font-size:12px;min-height:18px}.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}@media(max-width:650px){main{padding:14px 10px}.summary{grid-template-columns:repeat(2,1fr)}.metric:last-child{grid-column:span 2}.panel{padding:12px}h1{font-size:21px}.toolbar .spacer{display:none}.table-wrap{max-height:58vh}}
 
 .check-wrap{overflow:auto;max-height:420px;margin-top:10px}.check-wrap table{width:100%;min-width:700px}.check-wrap td,.check-wrap th{padding:7px 9px;white-space:normal;text-align:left;height:auto}.check-wrap td:last-child{white-space:nowrap}.check-wrap button{padding:4px 8px;margin:2px}.check-summary{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}.check-summary span{background:var(--soft);border:1px solid var(--line);border-radius:6px;padding:5px 9px}.issue-error{color:var(--red)}.issue-warn{color:#a66d1b}.issue-ok{color:var(--green)}#masterDialog{width:min(780px,calc(100% - 24px));max-height:88vh;overflow:auto}.master-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:0 12px}.master-fields .field{min-width:0}.master-fields input{width:100%}.mini-btn{font-size:12px}.check-wrap td:nth-child(3){min-width:220px}
@@ -14,7 +17,9 @@
 .source-label{min-width:7em}.source-row{margin-top:10px;padding-top:10px;border-top:1px solid var(--line)}
 </style>
 </head>
-<body><main>
+<body>
+<header class="site-header"></header>
+<main>
 <header><div><h1>手机销量数据处理工具 V3.3</h1><p class="muted">公开工具 · 自动读取项目 CSV · 编辑及草稿仅保存在本地</p></div><div class="muted">单位：万台 / ISO 自然周</div></header>
 <section class="panel" aria-label="导入与导出">
 <div class="toolbar" role="group" aria-label="扩展销量表"><strong class="source-label">扩展销量表：</strong><button class="primary" id="projectSales">从项目导入</button><button id="incrementDraft" disabled>从销量增量追踪导入</button><button id="newData">新建</button><button id="undoBtn" disabled>撤销</button><button id="redoBtn" disabled>重做</button><span class="spacer"></span><button id="longExport" disabled>导出</button></div>
@@ -120,7 +125,7 @@ for(const b of document.querySelectorAll('[data-close]'))b.onclick=()=>$(b.datas
 function download(name,rows){const url=URL.createObjectURL(new Blob([csvText(rows)],{type:'text/csv;charset=utf-8'})),a=node('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);}
 $('longExport').onclick=()=>{try{flush();const rows=longRows();if(!rows.length)throw Error('没有可导出的销量记录。');download('sales-long.csv',[LONG,...rows]);dirty=false;persistDraft();status(`已生成扩展销量表：${rows.length} 条记录（全部机型，空白不输出）。${salesContent()!==sourceSales?' 当前内容仍与导入源不同；正式更新请提交文件。':''}`);}catch(e){status(e.message,true);}};
 
-window.addEventListener('beforeunload',e=>{if(dirty||masterDirty){e.preventDefault();e.returnValue='';}});
+window.addEventListener('beforeunload',e=>{if((dirty||masterDirty)&&!persistDraft()){e.preventDefault();e.returnValue='';}});
 
 // Independent source catalog; preserve the project's exact header and any imported optional columns.
 const MASTER_HEADER='model_id,model_name,brand,brand_group,aliases,series,generation,variant,form_factor,sale_start_date,predecessor_id,launch_price,chip_vendor,chip_model,base_ram,base_rom,source_url,notes,verification,tracking_group'.split(',');
@@ -171,7 +176,7 @@ const DRAFT_KEY='phone-sales-editor.v3.3.draft';
 let undoStack=[],redoStack=[],lastSnapshot=null,restoring=false;
 function snapshot(){return JSON.stringify({state:{...state,rows:state.rows.map(r=>({...r,values:[...r.values],weekly:[...r.weekly]}))},master,serial,sourceSales,sourceMaster});}
 function updateHistory(){ $('undoBtn').disabled=!undoStack.length; $('redoBtn').disabled=!redoStack.length; }
-function persistDraft(){updateExportStyles();if(restoring||!$('autoDraft').checked)return;try{localStorage.setItem(DRAFT_KEY,JSON.stringify({version:1,snapshot:snapshot(),metric,dirty,masterDirty,savedAt:new Date().toISOString()}));$('draftStatus').textContent='草稿已保存 '+new Date().toLocaleTimeString();}catch(e){$('draftStatus').textContent='无法保存本地草稿（浏览器限制或容量不足），请导出 CSV。';}}
+function persistDraft(){updateExportStyles();if(restoring||!$('autoDraft').checked)return false;try{localStorage.setItem(DRAFT_KEY,JSON.stringify({version:1,snapshot:snapshot(),metric,dirty,masterDirty,savedAt:new Date().toISOString()}));$('draftStatus').textContent='草稿已保存 '+new Date().toLocaleTimeString();return true;}catch(e){$('draftStatus').textContent='无法保存本地草稿（浏览器限制或容量不足），请导出 CSV。';}}
 function captureChange(){if(restoring)return;const next=snapshot();if(lastSnapshot!==null&&next!==lastSnapshot){undoStack.push(lastSnapshot);if(undoStack.length>40)undoStack.shift();redoStack=[];}lastSnapshot=next;updateHistory();persistDraft();}
 function restoreSnapshot(raw,mode=metric){const data=JSON.parse(raw);if(!data.state||!Array.isArray(data.state.rows)||!Array.isArray(data.state.weeks))throw Error('草稿格式无效');const restoredRows=data.state.rows.map(r=>({...r,values:new Map(r.values),weekly:new Map(r.weekly)}));restoring=true;try{state={...data.state,rows:restoredRows};delete state.removed;master=data.master;serial=data.serial;sourceSales=typeof data.sourceSales==='string'?data.sourceSales:null;sourceMaster=typeof data.sourceMaster==='string'?data.sourceMaster:null;metric=mode==='weekly'?'weekly':'cumulative';activeCell=null;dirty=true;masterDirty=!!master;$('search').value='';updateMode();renderGrid();renderMaster();updateSummary();runChecks();lastSnapshot=snapshot();}finally{restoring=false;}updateHistory();updateExportStyles();}
 function travelHistory(back){try{flush();captureChange();const from=back?undoStack:redoStack,to=back?redoStack:undoStack;if(!from.length)return;const old=from.pop();to.push(snapshot());restoreSnapshot(old);persistDraft();status(back?'已撤销上一次修改。':'已重做上一次修改。');}catch(e){status(e.message,true);}}
@@ -269,14 +274,11 @@ function requireLongBaseline(){
  if(!state.ready||!state.isLong)throw Error('请先从项目导入扩展销量表，或新建扩展销量表，再导入数据表。旧版数据表草稿请先导出备份。');
 }
 let syncBusy=false;
-function trackingCSV(){
- try{if(window.parent!==window&&typeof window.parent.getTrackingUpdatedCSV==='function')return window.parent.getTrackingUpdatedCSV();}catch(_){}
- return null;
-}
+function trackingCSV(){return SalesSite.sessionRead("phoneSales.trackingImport");}
 function updateTrackingImport(){
  const available=trackingCSV()!==null,button=$('syncTracking');
  button.disabled=syncBusy||!available;
- button.title=available?'导入销量追踪当前会话中更新后的数据表':'销量追踪尚无临时更新（请在同一页面的销量追踪模块编辑）';
+ button.title=available?'导入销量追踪当前会话中更新后的数据表':'销量追踪尚无临时更新（请在当前标签页的销量追踪模块编辑）';
 }
 async function previewWideSync(read,sourceName){
  if(syncBusy||$('syncDialog').open)return;
@@ -298,7 +300,7 @@ $('syncTracking').onclick=()=>{
  if(text===null){updateTrackingImport();return;}
  return previewWideSync(()=>text,'销量追踪（当前会话更新后的数据表）');
 };
-try{if(window.parent!==window)window.parent.addEventListener('tracking-data-change',updateTrackingImport);}catch(_){}
+window.addEventListener("pageshow",updateTrackingImport);
 window.addEventListener('focus',updateTrackingImport);
 updateTrackingImport();
 $('syncLocal').onclick=()=>{try{requireLongBaseline();$('syncFile').click();}catch(err){status('增量同步失败：'+err.message,true);}};
@@ -314,16 +316,13 @@ $('syncApply').onclick=()=>{
  }catch(err){status('应用同步失败：'+err.message,true);$('syncDialog').close();}
 };
 $('syncDialog').addEventListener('close',()=>{pendingSync=null;});
-function incrementProvider(){
- try{return window.parent.document.getElementById('incrementFrame')?.contentWindow;}catch(_){return null;}
-}
+function incrementDraft(){return SalesSite.sessionRead("phoneSales.incrementImport");}
 function refreshIncrementImport(){
- const provider=incrementProvider();
- $('incrementDraft').disabled=!provider?.getIncrementDraft?.();
+ $('incrementDraft').disabled=!incrementDraft();
 }
 $('incrementDraft').onclick=()=>{
  try{
-  const draft=incrementProvider()?.getIncrementDraft?.();
+  const draft=incrementDraft();
   if(!draft)return refreshIncrementImport();
   const next=parseFile(draft.csv);
   if(!next.isLong)throw Error('缺少长表字段');
@@ -333,7 +332,8 @@ $('incrementDraft').onclick=()=>{
   replaceState(next);persistDraft();runChecks();status('已导入销量增量追踪的临时长表。');
  }catch(e){status('导入失败：'+e.message,true);}
 };
-if(parent!==window)parent.addEventListener('increment-data-change',refreshIncrementImport);
+window.addEventListener('pageshow',refreshIncrementImport);
+window.addEventListener('focus',refreshIncrementImport);
 refreshIncrementImport();
 $('projectSales').onclick=()=>loadProjectSales();
 $('projectMaster').onclick=()=>loadProjectMaster();

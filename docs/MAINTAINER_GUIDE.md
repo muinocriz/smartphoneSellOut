@@ -201,7 +201,7 @@ dataset_id,source,series,period_type,period,period_start,period_end,top_n,actual
 - **依赖**：销量追踪使用 Apache ECharts 5.4.3（cdnjs）；市场份额编辑器使用原生 HTML/CSS 与 SVG，不依赖 Tailwind；模块 3 使用 Canvas 图卡导出。字体仍使用 Google Fonts，失败时回退系统字体。完整离线部署仍需考虑 ECharts CDN 和字体资源。
 - **本地预览**：项目根目录执行 `python3 -m http.server 8000`，浏览器访问 `http://localhost:8000`；直接打开 HTML 可能触发 CSV 的本地文件访问限制。
 - **生产部署**：使用 Cloudflare Workers，正式入口为 https://smartphonesellout.zirconium.workers.dev/；GitHub 私有仓库的 `master` 为部署来源。原 GitHub Pages 已由维护者关闭，不再作为发布渠道，不得重新启用旧的公开根目录部署。
-- **直达链接**：`/` 为公开销量追踪，`/#market-share` 为模块 2，`/#sales-estimator` 为模块 3，`/#sales-data-editor` 为模块4；模块4直接加载公开根路径独立编辑器。模块 2 直接加载公开根目录资源，模块 3 直接加载 `/studio/` 下的资源。
+- **直达链接**：`/` 为公开销量追踪，`/market-share.html` 为模块 2，`/studio/sales-estimator.html` 为模块 3，`/sales-data-editor.html` 为模块4；模块4直接加载公开根路径独立编辑器。模块 2 直接加载公开根目录资源，模块 3 直接加载 `/studio/` 下的资源。
 - **公开性**：源仓库私有，四个模块和构建发布的 CSV 均支持匿名访问。
 
 
@@ -305,7 +305,7 @@ brand,model,category,date,period,metric,value_wan,operator
 
 ## 模块五 · 销量增量追踪
 
-入口 `/#sales-increment`，项目长表 `sales-long.csv`，页面和脚本为 `sales-increment.html`、`sales-increment.js`。本地导入也接受同一八字段格式。累计与直接周增量分别维护；仅相邻精确累计可生成精确差分，并优先于直接周增量。逐周明细中保留两种来源。
+入口 `/sales-increment.html`，项目长表 `sales-long.csv`，页面和脚本为 `sales-increment.html`、`sales-increment.js`。本地导入也接受同一八字段格式。累计与直接周增量分别维护；仅相邻精确累计可生成精确差分，并优先于直接周增量。逐周明细中保留两种来源。
 
 自然周和完整销售周使用共享 ISO 周工具。日期无效时仍可看自然周；P0 的原始累计在明细中可见。多机比较、动态与自建列表、缺口估算和双尺寸 PNG 都使用当前数据。线性或趋势估算只处理有两端的区间，允许参考下限端点；含直接周记录的整个区间保留原始观测。计算值不写入 CSV。趋势不明显或样本不足时回退线性。
 

@@ -58,14 +58,7 @@ const PAL=["#2f6fde","#e0592a","#1c9a6c","#b4489f","#d29a00","#0f9bb0","#7a5ae0"
 const styles=new Map();
 let focused=null;
 function themeColor(variable){return getComputedStyle(document.documentElement).getPropertyValue(variable).trim()}
-function chooseTheme(value){
-  document.documentElement.dataset.theme=value;
-  byId('theme').textContent=value==='dark'?'切换浅色':'切换深色';
-}
-const preferred=matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light';
-let mode=preferred;try{mode=localStorage.getItem('increments.theme')||mode}catch{}
-chooseTheme(mode);
-byId('theme').onclick=()=>{const next=document.documentElement.dataset.theme==='dark'?'light':'dark';chooseTheme(next);try{localStorage.setItem('increments.theme',next)}catch{}draw()};
+window.addEventListener('site-theme-change',()=>{if(sourceText)draw()});
 
 const weekMs=7*IsoSalesWeek.DAY;
 function seriesRows(key){
@@ -797,7 +790,7 @@ const editGrid=document.querySelector('#editGrid');
 
 let activeEdit=null;
 function finishEdit(){
-  activeEdit=null;notifyEditor();
+  activeEdit=null;updateIncrementImport();
   for(const el of document.querySelectorAll('[data-edit-locked]')){el.disabled=false;delete el.dataset.editLocked}
   refresh();
 }
@@ -821,7 +814,7 @@ function drawEditor(){
       cell.title=(changed?'临时修改 · ':'')+'原值：'+valueOf(original);
       function edit(){
         if(activeEdit)return;
-        activeEdit=cell;notifyEditor();
+        activeEdit=cell;updateIncrementImport();
         for(const el of document.querySelectorAll('main button, main select, main input, main textarea')){
           if(!el.disabled){el.disabled=true;el.dataset.editLocked='1'}
         }
@@ -872,8 +865,11 @@ function longCSV(){
  return lines.map(row=>row.map(quote).join(',')).join('\r\n');
 }
 function hasDraft(){return periods.length!==initialPeriods.length||JSON.stringify(records)!==JSON.stringify(initial)}
-window.getIncrementDraft=()=>!activeEdit&&sourceText&&hasDraft()?{csv:longCSV(),periods:periods.slice()}:null;
-function notifyEditor(){if(parent!==window)parent.dispatchEvent(new Event('increment-data-change'))}
+const incrementImportKey='phoneSales.incrementImport';
+function updateIncrementImport(){
+  const draft=hasDraft()?{csv:longCSV(),periods:periods.slice()}:null;
+  if(!SalesSite.sessionWrite(incrementImportKey,draft))alert('浏览器无法保存销量增量草稿。切换模块前请先导出 CSV。');
+}
 document.querySelector('#download').onclick=()=>{
  if(activeEdit)return alert('请先保存或取消当前编辑');
  const url=URL.createObjectURL(new Blob(['\uFEFF'+longCSV()],{type:'text/csv;charset=utf-8'}));
@@ -885,13 +881,22 @@ model.onchange=()=>{if(selected.size<=1)selected.clear();selected.add(model.valu
 
 let sourceText='',sourceKey='',loadSequence=0;
 function persistDraft(){
-  notifyEditor();
+  updateIncrementImport();
   try{
     const changed=periods.length!==initialPeriods.length||JSON.stringify(records)!==JSON.stringify(initial);
     if(changed)sessionStorage.setItem(sourceKey,JSON.stringify({sourceText,records,periods}));
     else sessionStorage.removeItem(sourceKey);
   }catch{}
 }
+const incrementViewKey='phoneSales.incrementView';
+const localSourceKey='phoneSales.incrementLocalSource';
+const viewFilters=['metric','axis','brand','gap'];
+window.addEventListener('pagehide',()=>{
+  if(!sourceText)return;
+  SalesSite.sessionWrite(incrementViewKey,{sourceKey,selected:[...selected],filters:Object.fromEntries(
+    viewFilters.filter(id=>byId(id)).map(id=>[id,byId(id).dataset.value])
+  )});
+});
 function loadSource(text,key){
   const [header,...rows]=parseCSV(text);
   const columns=FIELDS.map(f=>header?.indexOf(f)??-1);
@@ -938,8 +943,23 @@ function loadSource(text,key){
   const recent=presets()[0].keys;
   activeList=recent.length?0:-1;
   for(const k of recent.length?recent:[model.value])selected.add(k);
-  model.value=[...selected][0]; choices();refresh();
-  byId('content').hidden=false;byId('loadState').hidden=true;notifyEditor();
+  const view=SalesSite.sessionRead(incrementViewKey);
+  if(view?.sourceKey===sourceKey&&Array.isArray(view.selected)){
+    const restored=view.selected.filter(id=>Object.hasOwn(metadata,id));
+    if(restored.length||!view.selected.length){
+      selected.clear();
+      for(const id of restored)selected.add(id);
+      activeList=-1;
+    }
+    for(const id of viewFilters){
+      const value=view.filters?.[id];
+      if(byId(id)&&[...byId(id).querySelectorAll('button')].some(button=>button.dataset.value===value))selectFilter(id,value);
+    }
+  }
+  model.value=[...selected][0]||''; choices();refresh();
+  byId('content').hidden=false;byId('loadState').hidden=true;
+  byId('reloadProject').hidden=!sourceKey.startsWith('increments.draft.local.');
+  updateIncrementImport();
 }
 async function start(file){
   const sequence=++loadSequence;
@@ -949,13 +969,27 @@ async function start(file){
       const bytes=await file.arrayBuffer();
       try{text=new TextDecoder('utf-8',{fatal:true}).decode(bytes)}catch{text=new TextDecoder('gbk').decode(bytes)}
     }else{
+      const localSource=SalesSite.sessionRead(localSourceKey);
+      if(typeof localSource?.text==='string'&&typeof localSource?.name==='string'){
+        loadSource(localSource.text,'local.'+localSource.name);
+        return;
+      }
       const response=await fetch('sales-long.csv',{cache:'no-cache'});
       if(!response.ok)throw Error('项目长表读取失败（HTTP '+response.status+'）');
       text=await response.text();
     }
-    if(sequence===loadSequence)loadSource(text,file?'local.'+file.name:'project');
+    if(sequence===loadSequence){
+      loadSource(text,file?'local.'+file.name:'project');
+      if(file&&!SalesSite.sessionWrite(localSourceKey,{name:file.name,text})){
+        alert('浏览器无法保留导入的长表。切换模块前请先导出 CSV。');
+      }
+    }
   }catch(error){if(sequence===loadSequence){byId('loadState').hidden=false;byId('loadState').textContent=error.message}}
 }
+byId('reloadProject').onclick=()=>{
+  SalesSite.sessionWrite(localSourceKey,null);
+  start();
+};
 byId('localFile').onchange=event=>{const file=event.target.files[0];if(file)start(file);event.target.value=''};
 start();
 document.fonts?.addEventListener('loadingdone',()=>{if(current&&!activeEdit)draw()});

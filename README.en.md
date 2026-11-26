@@ -6,6 +6,8 @@ A smartphone data dashboard and social-poster toolkit deployed on Cloudflare Wor
 
 **[Open the live project](https://smartphonesellout.zirconium.workers.dev/)**
 
+**[GitHub Pages](https://muinocriz.github.io/smartphoneSellOut/)**
+
 <p align="center">
   <img src="screenshots/新机周销量-26折叠-发布后-总销量-桌面.png" alt="Historical sales chart example" width="760">
 </p>

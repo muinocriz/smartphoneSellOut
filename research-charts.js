@@ -871,32 +871,9 @@ const ResearchCharts=(()=>{
   if(vertices){vertices.forEach(([a,b],i)=>i?ctx.lineTo(a,b):ctx.moveTo(a,b));ctx.closePath();}else ctx.arc(x,y,r,0,Math.PI*2);
   ctx.fillStyle=estimated||hollow?'#ffffff':color;ctx.strokeStyle=color;ctx.lineWidth=mobilePosterActive(ctx)?posterDp(POSTER_DESIGN.chart.markerStroke):1.8;ctx.fill();ctx.stroke();ctx.restore();
  }
- function logAxis(values,{rank=false}={}){
-  const positive=values.filter(v=>Number.isFinite(v)&&v>0);
-  const min=positive.length?Math.min(...positive):1,max=positive.length?Math.max(...positive):10;
-  const start=Math.floor(Math.log10(min)),end=Math.max(start+1,Math.ceil(Math.log10(max)));
-  const low=rank?min:10**start,high=rank?(max===min?min+1:max):10**end;
-  const logLow=Math.log10(low),logSpan=Math.log10(high)-logLow;
-  const ratio=v=>v>0?(Math.log10(v)-logLow)/logSpan:NaN;
-  const ticks=[];
-  if(rank){
-   ticks.push(low);
-   for(let power=start;power<=end;power++){
-    for(const factor of [1,2,5]){
-     const tick=factor*10**power;
-     if(tick>low&&tick<high)ticks.push(tick);
-    }
-   }
-  }else{
-   const stride=Math.ceil((end-start)/8);
-   for(let power=start;power<end;power+=stride)ticks.push(10**power);
-  }
-  ticks.push(high);
-  return {high,ticks,ratio,hasValues:positive.length>0};
- }
  function lineAxis(chart){
   const values=chart.lines.flatMap(l=>l.values);
-  if(chart.logY)return logAxis(values);
+  if(chart.logY)return SalesChartLayout.logAxis(values);
   if(chart.limit)return SalesChartLayout.integerAxis(0,chart.limit);
   const highValues=values.concat((chart.bands||[]).flatMap(b=>b.upper||[])).filter(Number.isFinite);
   const lowValues=values.concat((chart.bands||[]).flatMap(b=>b.lower||[])).filter(Number.isFinite);
@@ -937,13 +914,15 @@ const ResearchCharts=(()=>{
  }
  function svgLine(host,legend,chart,label,precision=2){
   const n=chart.periods.length;if(!n||!chart.lines.length)return;
-  const W=Math.max(720,n*48+110),H=310,L=56,R=W-55,T=25,B=265;
-  const scale=lineScale(chart,{left:L,right:R,top:T,bottom:B}),{x,y,axis}=scale;
+  const axis=lineAxis(chart);
+  const L=chart.logY?Math.max(56,...axis.ticks.map(tick=>String(tick).length*7+10)):56;
+  const W=Math.max(720,n*48+110),H=310,R=W-55,T=25,B=265;
+  const scale=lineScale(chart,{left:L,right:R,top:T,bottom:B},axis),{x,y}=scale;
   const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   let content='<text x="'+L+'" y="13" font-size="11" fill="currentColor">'+esc((chart.unit??'')+(chart.logY?' · 对数':''))+'</text>';
-  for(const v of axis.ticks){
-   const tick=chart.logY?Number(v.toPrecision(12)):v;
-   content+='<line x1="'+L+'" x2="'+R+'" y1="'+y(v)+'" y2="'+y(v)+'" stroke="currentColor" opacity=".14"/><text x="'+(L-8)+'" y="'+(y(v)+4)+'" text-anchor="end" fill="currentColor" font-size="11">'+tick+'</text>';
+  for(const tick of axis.ticks){
+   const yy=y(tick);
+   content+='<line x1="'+L+'" x2="'+R+'" y1="'+yy+'" y2="'+yy+'" stroke="currentColor" opacity=".14"/><text x="'+(L-8)+'" y="'+(yy+4)+'" text-anchor="end" fill="currentColor" font-size="11">'+tick+'</text>';
   }
   if(axis.hasValues===false)content+='<text x="'+(L+R)/2+'" y="'+(T+B)/2+'" text-anchor="middle" fill="currentColor" font-size="13">当前区间无正销量记录</text>';
   const stride=Math.max(1,Math.ceil(n/15));chart.periods.forEach((w,i)=>{if(i%stride===0||i===n-1)content+='<text x="'+x(i)+'" y="'+(B+20)+'" text-anchor="middle" fill="currentColor" font-size="10">'+esc(w)+'</text>';});
@@ -1130,5 +1109,5 @@ const ResearchCharts=(()=>{
    }).catch(()=>{});
   }
  }
- return Object.freeze({logAxis,rankAxis,lineAxis,lineScale,svgLine,canvasLine,renderComposition,markerAt,svgMarker,canvasMarker,svgBoardFlow,canvasBoardFlow});
+ return Object.freeze({rankAxis,lineAxis,lineScale,svgLine,canvasLine,renderComposition,markerAt,svgMarker,canvasMarker,svgBoardFlow,canvasBoardFlow});
 })();

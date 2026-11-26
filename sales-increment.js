@@ -368,27 +368,21 @@ function plot(svg,{sets,ticks,rangeLabel},width,height,{mobile=false,interactive
   svg.replaceChildren();delete svg.dataset.plot;svg.setAttribute('viewBox','0 0 '+width+' '+height);
   svg.setAttribute('font-family',bodyFont);svg.setAttribute('font-size',fontSize);svg.setAttribute('fill',ink);
   const log=byId('log').checked,visible=p=>p!=null&&(!log||p.value>0);
-  const nums=sets.flatMap(s=>s.points.filter(visible).map(p=>log?Math.log10(p.value):p.value));
-  let low=nums.reduce((a,b)=>Math.min(a,b),log?Infinity:0),high=nums.reduce((a,b)=>Math.max(a,b),log?-Infinity:0);
+  const nums=sets.flatMap(s=>s.points.filter(visible).map(p=>p.value));
   if(!nums.length){svgNode(svg,'text',{x:width/2,y:height/2,'text-anchor':'middle'},sets.length?'当前范围没有可显示的数据':'请选择对比机型');return}
-  if(low===high)high+=1;
-  let tickCount=4;
-  let tickStep=(high-low)/tickCount;
-  if(!log){
-    const axis=SalesChartLayout.integerAxis(low,high);
-    low=axis.low;
-    high=axis.high;
-    tickStep=axis.step;
-    tickCount=axis.ticks.length-1;
-  }
-  const left=52,right=width-(mobile?36:Math.min(170,width*.22)),top=26,bottom=height-43;
+  const axis=log?SalesChartLayout.logAxis(nums):SalesChartLayout.integerAxis(
+    nums.reduce((a,b)=>Math.min(a,b),0),nums.reduce((a,b)=>Math.max(a,b),0)
+  );
+  const tickText=log?String:SalesChartLayout.formatSales;
+  const left=log?Math.max(52,...axis.ticks.map(v=>Math.ceil(measure.measureText(tickText(v)).width)+8)):52;
+  const right=width-(mobile?36:Math.min(170,width*.22)),top=26,bottom=height-43;
   const x=i=>ticks.length===1?(left+right)/2:left+i*(right-left)/(ticks.length-1);
-  const axisY=v=>bottom-(v-low)*(bottom-top)/(high-low);
-  const y=v=>axisY(log?Math.log10(v):v);
-  for(let i=0;i<=tickCount;i++){
-    const v=low+i*tickStep,pos=axisY(v);
+  const ratio=axis.ratio??(v=>(v-axis.low)/(axis.high-axis.low));
+  const y=v=>bottom-ratio(v)*(bottom-top);
+  for(const tick of axis.ticks){
+    const pos=y(tick);
     svgNode(svg,'line',{x1:left,x2:right,y1:pos,y2:pos,stroke:grid});
-    svgNode(svg,'text',{x:left-5,y:pos+4,'text-anchor':'end','font-family':numberFont},SalesChartLayout.formatSales(log?10**v:v));
+    svgNode(svg,'text',{x:left-5,y:pos+4,'text-anchor':'end','font-family':numberFont},tickText(tick));
   }
   const step=Math.max(1,Math.ceil(ticks.length/Math.max(2,Math.floor((right-left)/85))));
   ticks.forEach((t,i)=>{
@@ -694,9 +688,10 @@ function exportMobileChart(echarts,chart,log,footerText,filename){
     points.some(point=>point?.op==='>=')?'↑为下限':'',
     points.some(point=>point?.op==='<')?'↓为上限':''
   ];
+  const values=datas.flat().filter(Number.isFinite);
+  if(log)o.logAxis=SalesChartLayout.logAxis(values);
   const opt=layout.chartOption(cats,series,o,log,metric);
   if(!log){
-    const values=datas.flat().filter(Number.isFinite);
     const axis=SalesChartLayout.integerAxis(Math.min(0,...values),Math.max(0,...values));
     Object.assign(opt.yAxis,{min:axis.low,max:axis.high,interval:axis.step});
   }

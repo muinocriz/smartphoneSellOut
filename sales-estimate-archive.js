@@ -482,7 +482,7 @@
     const W=Math.max(720,n*48+110),H=310,L=56,R=W-55,T=25,B=265;
     const ranks=rank.lines.flatMap(l=>l.points.map(p=>p?.value)).filter(Number.isFinite);
     if(!ranks.length){const empty=document.createElement('p');empty.className='mini';empty.textContent='当前区间无原始排名记录。';host.append(empty);return;}
-    const axis=rank.logY?ResearchCharts.logAxis(ranks,{rank:true}):ResearchCharts.rankAxis(Math.min(...ranks),Math.max(...ranks));
+    const axis=rank.logY?SalesChartLayout.logAxis(ranks,{rank:true}):ResearchCharts.rankAxis(Math.min(...ranks),Math.max(...ranks));
     const x=i=>n===1?(L+R)/2:L+i*(R-L)/(n-1);
     const y=v=>T+axis.ratio(v)*(B-T);
     const ns='http://www.w3.org/2000/svg',svg=document.createElementNS(ns,'svg');

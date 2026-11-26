@@ -501,7 +501,7 @@ function drawTrackerTrendPoster(ctx,p,s,box){
  const plotH=(plotBottom-plotTop-axisBottom-gap-titleH*(both?2:1))/(both?2:1);
  if(plotH<posterDp(30)){auditIssue(ctx,'机型追踪绘图区不足，请减少图例或拆分图卡',true);return;}
  const salesAxis=rankOnly?null:ResearchCharts.lineAxis(chart);
- const rankAxis=chart.rankLogY?ResearchCharts.logAxis(ranks,{rank:true}):ResearchCharts.rankAxis(ranks.length?min:1,ranks.length?max:1);
+ const rankAxis=chart.rankLogY?SalesChartLayout.logAxis(ranks,{rank:true}):ResearchCharts.rankAxis(ranks.length?min:1,ranks.length?max:1);
  const gutter=Math.max(salesAxis?posterAxisGutter(ctx,salesAxis.ticks):0,both||rankOnly?posterAxisGutter(ctx,rankAxis.ticks):0),x0=left+gutter,x1=right-posterDp(4);
  if(!auditPlot(ctx,x1-x0,plotH,'机型追踪绘图区',260,95))return;
  function plot(isRank,yStart,showWeeks){

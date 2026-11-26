@@ -16,6 +16,57 @@
       ticks:Array.from({length:last-first+1},(_,i)=>(first+i)*step)
     };
   }
+  const roundTick=value=>Number(value.toPrecision(12));
+  function decadeTicks(low,high,factors){
+    const ticks=[];
+    for(let power=Math.floor(Math.log10(low));power<=Math.ceil(Math.log10(high));power++){
+      for(const factor of factors){
+        const tick=roundTick(factor*10**power);
+        if(tick>=low&&tick<=high)ticks.push(tick);
+      }
+    }
+    return ticks;
+  }
+
+  function logAxis(values,{rank=false}={}){
+    let low=Infinity,high=-Infinity;
+    for(const value of values){
+      if(!Number.isFinite(value)||value<=0||(rank&&!Number.isSafeInteger(value)))continue;
+      low=Math.min(low,value);
+      high=Math.max(high,value);
+    }
+    const hasValues=low<=high;
+    if(!hasValues){low=1;high=10;}
+
+    // Prefer familiar ticks within the data range, with fewer labels across many decades.
+    let ticks=decadeTicks(low,high,[1,2,5]);
+    if(ticks.length>8)ticks=decadeTicks(low,high,[1]);
+    if(ticks.length>8){
+      const stride=Math.ceil((ticks.length-1)/7);
+      ticks=ticks.filter((_,i)=>i%stride===0);
+    }
+    if(ticks.length<3){
+      if(low===high){
+        const padding=rank?Math.max(1,Math.ceil(low*.05)):low*.05;
+        high+=padding;
+        low=rank?Math.max(1,low-padding):low-padding;
+      }
+      // Subdivide narrow ranges with readable values, still positioned on a log scale.
+      const target=(high-low)/4;
+      const unit=10**Math.floor(Math.log10(target));
+      const factor=[1,2,5,10].find(f=>f*unit>=target)??10;
+      const step=rank?Math.max(1,roundTick(factor*unit)):roundTick(factor*unit);
+      const first=Math.floor(low/step),last=Math.ceil(high/step);
+      const narrowTicks=Array.from({length:last-first+1},(_,i)=>roundTick((first+i)*step));
+      ticks=[...new Set(narrowTicks.filter(v=>v>0))];
+      low=Math.min(low,ticks[0]??low);
+      high=Math.max(high,ticks.at(-1)??high);
+    }
+
+    const logLow=Math.log(low),span=Math.log(high)-logLow;
+    const ratio=value=>value>0?(Math.log(value)-logLow)/span:NaN;
+    return {low,high,ticks,ratio,hasValues};
+  }
   // 尺寸以设计画布为基准，图片还会按附注行数向下延伸。
   function exportSize(mobile){
     return mobile?{W:400,H:500,dpr:3}:{W:1200,H:675,dpr:2};
@@ -129,15 +180,19 @@
     function chartOption(catT,series,o,log,metric){
       const t=theme(),f=spec(o);
       const endW=Math.max(0,...o.names.filter(Boolean).map(x=>textW(x,f.end,500)));
+      const axis=o.logAxis;
+      const logGutter=axis?Math.ceil(Math.max(0,...axis.ticks.map(v=>textW(String(v),f.ax,400,MONO))))+8:0;
       return {
         animation:!o.exp,animationDuration:400,
         textStyle:{fontFamily:FONT()},
-        grid:{left:o.mobile?8:12,right:Math.ceil(endW)+(o.mobile?18:22),
+        grid:{left:(o.mobile?8:12)+logGutter,right:Math.ceil(endW)+(o.mobile?18:22),
           top:o.exp?(o.mobile?78:80):36,bottom:o.exp?o.footerHeight+(o.mobile?36+o.listH:40):(o.mobile?50:84),containLabel:true},
         xAxis:{type:"category",data:catT,boundaryGap:false,
           axisLine:{lineStyle:{color:t.ln}},axisLabel:{color:t.axisText??t.mu,fontSize:f.ax,hideOverlap:true},axisTick:{show:false}},
         yAxis:{type:log?"log":"value",name:o.exp?"":metric,nameTextStyle:{color:t.mu,fontSize:f.ax},
-          scale:!log,axisLabel:{formatter:formatSales,color:t.axisText??t.mu,fontFamily:MONO,fontSize:f.ax},splitLine:{lineStyle:{color:t.ln,type:"dashed"}}},
+          scale:!log,min:axis?.low,max:axis?.high,axisTick:axis?{show:false}:undefined,
+          axisLabel:{show:!axis,formatter:formatSales,color:t.axisText??t.mu,fontFamily:MONO,fontSize:f.ax},
+          splitLine:{show:!axis,lineStyle:{color:t.ln,type:"dashed"}}},
         series};
     }
 
@@ -255,6 +310,14 @@
         L.push(l);
       });
       const base=[...(ctx.base||[])];
+      // Use ECharts' log coordinates for the shared tick values and the series.
+      for(const tick of o.logAxis?.ticks??[]){
+        const y=inst.convertToPixel({yAxisIndex:0},tick);
+        base.push({type:"line",z:0,silent:true,shape:{x1:rect.x,y1:y,x2:right,y2:y},
+          style:{stroke:t.ln,lineWidth:1,lineDash:[4,4]}});
+        base.push({type:"text",z:1,x:rect.x-5,y,silent:true,
+          style:{text:String(tick),fill:t.axisText??t.mu,font:`400 ${f.ax}px ${MONO}`,textAlign:"right",textVerticalAlign:"middle"}});
+      }
       // 导出图：没有名字/序号的线改成浅灰细线，只表示「还有其他机型」，不用颜色误导；桌面导出在底部注明数量
       // （手机导出的数量写在下方列表末尾）
       if(o.exp&&!o.preserveSeriesColors){const done=new Set(L.map(l=>l.i));
@@ -282,5 +345,5 @@
     return [weekly?"周增量":"总销量",name,salesWeek?"销售周":"自然周",mobile?"手机":"桌面",time].join("-")+".png";
   }
 
-  window.SalesChartLayout={integerAxis,formatSales,exportFilename,create,needsBrand,observedLine,exportSize,renderPNG};
+  window.SalesChartLayout={integerAxis,logAxis,formatSales,exportFilename,create,needsBrand,observedLine,exportSize,renderPNG};
 })();

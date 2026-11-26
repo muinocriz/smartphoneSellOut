@@ -59,8 +59,8 @@ function posterBlock(ctx,lines,size,weight,top){
  return {y:top+ascent,step,height:lines.length?ascent+descent+(lines.length-1)*step:0};
 }
 function mobilePosterActive(ctx){return posterAudits.has(ctx);}
-// Shared captions use 8 logical units; legends use 10 and ordinary chart labels retain the 12-unit minimum.
-function posterReadabilityMin(ctx){const audit=posterAudits.get(ctx);return (audit?.minTextSize??MOBILE_POSTER_TYPE.min)*(audit?.referenceWidth||1080)/1080;}
+// Role-specific readability targets follow the active poster typography.
+function posterReadabilityMin(ctx){const audit=posterAudits.get(ctx);return (audit?.minTextSize??PosterTypography.readabilityMin(MOBILE_POSTER_TYPE.min))*(audit?.referenceWidth||1080)/1080;}
 function posterBodyWeight(ctx,weight){return posterAudits.get(ctx)?.bodyTypography&&Number(weight)>500?POSTER_DESIGN.weight.body:weight;}
 function withPosterBody(ctx,draw){const a=posterAudits.get(ctx),old=a?.bodyTypography;if(a)a.bodyTypography=true;try{return draw();}finally{if(a)a.bodyTypography=old;}}
 function posterCaption(ctx,value,x,y,color,align='left',width=Infinity){const a=posterAudits.get(ctx),old=a?.minTextSize;if(a)a.minTextSize=MOBILE_POSTER_TYPE.caption;try{posterRoleFitBounded(ctx,'chartNote',value,x,y,MOBILE_POSTER_TYPE.caption,color,POSTER_DESIGN.weight.caption,align,width);}finally{if(a){if(old===undefined)delete a.minTextSize;else a.minTextSize=old;}}}
@@ -94,7 +94,7 @@ function posterAxisMeasure(ctx,value,size=MOBILE_POSTER_TYPE.axis){ctx.save();ct
 function posterAxisText(ctx,value,x,y,color,align='left',maxWidth=Infinity,size=MOBILE_POSTER_TYPE.axis){
  const str=String(value??''),w=posterAxisMeasure(ctx,str,size),fit=w>maxWidth?size*maxWidth/w:size;
  if(!Number.isFinite(fit)||fit<=0){auditIssue(ctx,'坐标轴文字区域无有效宽度',true);return;}
- if(fit<MOBILE_POSTER_TYPE.axis)auditIssue(ctx,'局部坐标轴空间不足，字号低于12逻辑单位');
+ if(fit<MOBILE_POSTER_TYPE.axis)auditIssue(ctx,'局部坐标轴空间不足，刻度文字字号已缩小');
  ctx.save();ctx.font=posterFont(ctx,fit,POSTER_DESIGN.weight.axis,posterAxisFont(str),'axis');if(PosterTypography.hasAny()){const m=ctx.measureText(str);PosterTypography.auditText(ctx,x,y,m.width,m.actualBoundingBoxAscent??fit*.8,m.actualBoundingBoxDescent??fit*.2,align,'axis');}ctx.fillStyle=color;ctx.textAlign=align;ctx.textBaseline='alphabetic';ctx.fillText(str,x,y);ctx.restore();
 }
 function posterAxisGutter(ctx,ticks,format=posterAxisLabel){
@@ -152,7 +152,7 @@ function posterCompactLegendText(ctx,value,x,y,color,previewSize,previewWeight='
  if(!mobilePosterActive(ctx))return posterFitText(ctx,value,x,y,previewSize,color,previewWeight,align,width);
  const str=String(value??''),size=MOBILE_POSTER_TYPE.legend,w=posterLegendMeasure(ctx,str,size),fit=w>width?size*width/w:size;
  if(!Number.isFinite(fit)||fit<=0){auditIssue(ctx,'图例文字区域无有效宽度',true);return;}
- if(fit<size)auditIssue(ctx,'局部图例空间不足，字号低于10逻辑单位');
+ if(fit<size)auditIssue(ctx,'局部图例空间不足，图例文字字号已缩小');
  ctx.save();ctx.font=posterFont(ctx,fit,POSTER_DESIGN.weight.legend,CJK_FONT,'legend');if(PosterTypography.hasAny()){const m=ctx.measureText(str);PosterTypography.auditText(ctx,x,y,m.width,m.actualBoundingBoxAscent??fit*.8,m.actualBoundingBoxDescent??fit*.2,align,'legend');}ctx.fillStyle=color;ctx.textAlign=align;ctx.textBaseline='alphabetic';ctx.fillText(str,x,y);ctx.restore();
 }
 function posterLegendLayout(ctx,items,left,width){
@@ -226,7 +226,7 @@ function posterFitText(ctx,value,x,y,size,color,weight='600',align='left',width=
  const fit=measured>width?size*width/measured:size;
  if(str.trim()){
   if(!Number.isFinite(fit)||fit<=0){auditIssue(ctx,'文字区域无有效宽度',true);return;}
-  if(mobilePosterActive(ctx)&&fit<posterReadabilityMin(ctx))auditIssue(ctx,'部分文字低于手机阅读目标（360px宽时12px），建议精简重复信息或减少展示项目');else if(fit<14||fit<size*.60)auditIssue(ctx,'部分文字因空间不足而缩小');
+  if(mobilePosterActive(ctx)&&fit<posterReadabilityMin(ctx))auditIssue(ctx,'部分文字低于当前手机阅读目标，建议精简重复信息或减少展示项目');else if(fit<14||fit<size*.60)auditIssue(ctx,'部分文字因空间不足而缩小');
  }
  canvasText(ctx,str,x,y,Math.max(1,fit),color,weight,align);
 }

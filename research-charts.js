@@ -13,7 +13,7 @@ function canvasText(ctx,text,x,y,size,color,weight='600',align='left',maxWidth=n
  const measured=measureMixedCanvas(ctx,original,size,weight);
  const scale=maxWidth!==null&&measured.width>maxWidth?maxWidth/measured.width:1;
  if(original.trim()&&mobilePosterActive(ctx)&&size*scale<posterReadabilityMin(ctx))
-  auditIssue(ctx,'部分文字低于手机阅读目标（360px宽时12px），建议精简重复信息或减少展示项目');
+  auditIssue(ctx,'部分文字低于当前手机阅读目标，建议精简重复信息或减少展示项目');
  let start=x-(align==='right'?measured.width*scale:align==='center'?measured.width*scale/2:0);
  PosterTypography.auditText(ctx,x,y,measured.width*scale,Math.max(0,...measured.runs.map(r=>r.ascent)),Math.max(0,...measured.runs.map(r=>r.descent)),align);
  // 独立数字行使用字形左边界做光学补偿（特别是数字 1）。

@@ -19,5 +19,5 @@
 ## 运行、发布与验收
 
 - 本地在仓库根目录执行 `python3 -m http.server 8000`，访问 `http://localhost:8000/`（跳转销量增量追踪模块）；热销机型与榜单研究模块本地入口为 `/sales-estimator.html`。本地静态预览无需构建。
-- 生产走 Cloudflare Workers。根 package.json 的 `npm run build` 调用 scripts/build-cloudflare.mjs，根据 studio-assets.mjs 清单生成 dist/；构建时改写首页兼容跳转、热销机型与榜单研究模块导航与共享外壳相对路径，并生成榜单面板。线上入口为 `/studio/sales-estimator.html`。修改资源依赖时核对发布清单；部署细节见 [部署指南](../CLOUDFLARE_DEPLOYMENT.md)。
+- Cloudflare Workers 与 GitHub Pages 共用静态构建清单。根 package.json 的 `npm run build` 调用 scripts/build-cloudflare.mjs，根据 studio-assets.mjs 清单生成 dist/；构建时改写首页兼容跳转、热销机型与榜单研究模块导航与共享外壳相对路径，并生成榜单面板。热销机型与榜单研究模块使用站点相对路径 `studio/sales-estimator.html`。GitHub Pages 由 `.github/workflows/pages.yml` 独立发布 `dist/`。修改资源依赖时核对发布清单；部署细节见 [部署指南](../CLOUDFLARE_DEPLOYMENT.md)。
 - 项目以用户手动验收为主，package.json 无 test 脚本。维护者可从受影响页面打开相应 CSV、操作对应控件，并核对页面或导出结果；仅按 [工作约定](../../AGENTS.md) 中的授权执行测试。

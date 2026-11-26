@@ -6,9 +6,19 @@
 
 ## 2026-11-26
 
-- 销量增量追踪模块点击「全部品牌」时，默认勾选并仅显示「近12周新机」列表中的机型。
+- [53ca9e8](https://github.com/muinocriz/smartphoneSellOut/commit/53ca9e8) / [2bd2f76](https://github.com/muinocriz/smartphoneSellOut/commit/2bd2f76) / [eb0c50b](https://github.com/muinocriz/smartphoneSellOut/commit/eb0c50b)：热销机型与榜单研究模块出图台的堆叠区块数值、图例、轴刻度／周次默认均为 8、字重 400。新老代际结构、价格带等多周堆叠图以固定列宽逐项缩字，导致调字号不明显且同图图例大小不一。现按所选字号实测文字、自动换行并预留行高，图卡预览与导出共用布局。
 
-- 移除销量增量追踪模块底部的单机逐周明细表。点击图例仍可高亮对应曲线。
+- [d29a4ce](https://github.com/muinocriz/smartphoneSellOut/commit/d29a4ce)：销量增量追踪模块点击「全部品牌」时，默认勾选并仅显示「近12周新机」列表中的机型。
+
+- [0461e2e](https://github.com/muinocriz/smartphoneSellOut/commit/0461e2e)：移除销量增量追踪模块底部的单机逐周明细表。点击图例仍可高亮对应曲线，所选机型仍可在编辑表内维护。
+
+- [5aef191](https://github.com/muinocriz/smartphoneSellOut/commit/5aef191)：将 `sales-long.csv` 中 iQOO Z11 系列 2026-W46 的累计销量由 291.02 修正为 281.02 万台。
+
+- [8935d68](https://github.com/muinocriz/smartphoneSellOut/commit/8935d68) / [1e4dc0a](https://github.com/muinocriz/smartphoneSellOut/commit/1e4dc0a) / [c887180](https://github.com/muinocriz/smartphoneSellOut/commit/c887180) / [347f580](https://github.com/muinocriz/smartphoneSellOut/commit/347f580)：机型销量和原始排名各自支持线性／对数切换。销量增量追踪模块网页及双尺寸 PNG 与研究图共用动态整数刻度和对数折线刻度。对数优先采用 1、2、5 倍刻度，范围宽时疏化，范围窄时细分，排名刻度取正整数。修复研究模块线上缺少共享脚本导致图表报错的问题。
+
+- [1c8bf69](https://github.com/muinocriz/smartphoneSellOut/commit/1c8bf69)：销量增量追踪模块顶部提供项目长表、本地 CSV、当前标签页的销量数据处理更新三种来源。存在尚未接收的编辑更新时可导入，并带入新增空周。
+
+- [94114fc](https://github.com/muinocriz/smartphoneSellOut/commit/94114fc) / [37b0a71](https://github.com/muinocriz/smartphoneSellOut/commit/37b0a71)：新增 GitHub Pages 发布渠道，与 Cloudflare Workers 共用静态构建产物。Pages 将构建与部署拆分为两个任务，按重试次数命名产物，避免重试时同名产物冲突。
 
 - 修复销量增量追踪模块新增 GitHub 导航图标后图表误绘到导航的问题：绘图和交互锁定专用 SVG ID，图表样式与导航图标尺寸隔离。
 
@@ -23,6 +33,8 @@
 - 热销机型与榜单研究模块出图台左栏底部新增字体与排版工作台，支持按文字元素调整逻辑字号、字体、字形、字重及加粗，实时预览、局部/全部重置、本地记忆和 JSON 导出；图文发布快照包含排版配置。
 
 ## 2026-11-25
+
+- [f434c0e](https://github.com/muinocriz/smartphoneSellOut/commit/f434c0e)：双周品牌竞争改用发散式堆叠贡献图，深浅色柱显示榜内和榜外对全市场份额变化的贡献，菱形表示净变化，单位为百分点。更多口径见[维护与设计指南](docs/MAINTAINER_GUIDE.md)。
 
 - 销量增量追踪模块增加品牌选择、多机同期明细、编辑原值恢复与倒挂提醒。图表按旧版销量追踪模块品牌色系绘制，支持范围滑块、桌面拖动、同周读数、图例高亮、线尾标识和深浅主题；手机 PNG 按编号分列展示图例。
 

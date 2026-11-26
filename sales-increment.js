@@ -599,20 +599,25 @@ function mobileExportSeries(set,name,theme,style,showSymbol){
   const observed=SalesChartLayout.observedLine({
     name,data:points.map(point=>point?.op==='='?point.value:null),color,panel:theme.pn,style,showSymbol
   });
+  const hollowStyle={color:theme.pn,borderColor:color,borderWidth:2};
+  const estimatedEdge=(left,right)=>left&&right&&(left.estimated||right.estimated);
   const series=[observed];
   // Keep estimated runs separate so unrelated or observed intervals aren't drawn twice.
   let start=-1;
   for(let i=1;i<=points.length;i++){
-    const left=points[i-1],right=points[i];
-    if(left&&right&&(left.estimated||right.estimated)){
+    if(estimatedEdge(points[i-1],points[i])){
       if(start<0)start=i-1;
       continue;
     }
     if(start<0)continue;
+    // Line symbols use the same automatic category-axis sampling as the solid series.
     series.push({
-      name,type:'line',silent:true,showSymbol:false,connectNulls:false,
-      data:points.map((point,j)=>j>=start&&j<i?point.value:null),
-      lineStyle:{color,width:style.lw,type:'dashed'}
+      ...observed,silent:true,itemStyle:hollowStyle,
+      data:points.map((point,j)=>{
+        if(j<start||j>=i)return null;
+        return point.op==='≈'?point.value:{value:point.value,symbol:'none'};
+      }),
+      lineStyle:{...observed.lineStyle,type:'dashed'}
     });
     start=-1;
   }
@@ -625,7 +630,10 @@ function mobileExportSeries(set,name,theme,style,showSymbol){
       if(points[i-1]?.op==='='||points[i+1]?.op==='=')return [];
       return {value,symbolSize:style.sym,itemStyle:observed.itemStyle};
     }
-    if(point.op==='≈')return {value,symbolSize:style.sym,itemStyle:{color:theme.pn,borderColor:color,borderWidth:2}};
+    if(point.op==='≈'){
+      if(estimatedEdge(points[i-1],point)||estimatedEdge(point,points[i+1]))return [];
+      return {value,symbolSize:style.sym,itemStyle:hollowStyle};
+    }
     return {
       value,symbolSize:9,itemStyle:{color:'transparent'},
       label:{show:true,position:'inside',formatter:point.op==='>='?'↑':'↓',color,fontFamily:bodyFont,fontSize:9}

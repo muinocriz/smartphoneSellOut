@@ -31,8 +31,12 @@ function filterLabel(id){return byId(id).querySelector('[aria-pressed="true"]').
 for(const id of ['brand','metric','axis','gap']){
   byId(id).onclick=event=>{
     const button=event.target.closest('button[data-value]');
-    if(!button||button.disabled||byId(id).dataset.value===button.dataset.value)return;
-    selectFilter(id,button.dataset.value);
+    if(!button||button.disabled)return;
+    const value=button.dataset.value;
+    const resetRecent=id==='brand'&&value==='';
+    if(id==='brand'&&activeEdit)return;
+    if(!resetRecent&&byId(id).dataset.value===value)return;
+    selectFilter(id,value);
     if(id==='brand')syncBrand();
     else draw({resetRange:id==='metric'||id==='axis'});
   };
@@ -136,20 +140,28 @@ function milestoneLists(){
   }
   return [weekly,cross];
 }
-function presets(){
-  const [weekly,cross]=milestoneLists();
+function recentModelKeys(){
   const end=records.reduce((max,r)=>Math.max(max,monday(r[1])),-Infinity);
   const active=new Set(records.map(r=>r[0]));
-  const recent=Object.keys(metadata).filter(key=>{
+  return Object.keys(metadata).filter(key=>{
     const t=IsoSalesWeek.isoMonday(metadata[key][3].split(/[/.\-]/).map(Number));
     return active.has(key)&&t!=null&&t<=end&&t>=end-11*weekMs;
   });
-  return [{name:'近12周新机',keys:recent},{name:'本周里程碑',keys:weekly},{name:'跨期里程碑',keys:cross},...savedLists];
+}
+function presets(){
+  const [weekly,cross]=milestoneLists();
+  return [{name:'近12周新机',keys:recentModelKeys()},{name:'本周里程碑',keys:weekly},{name:'跨期里程碑',keys:cross},...savedLists];
+}
+function choiceKeys(){
+  if(activeList===recentListIndex)return recentChoices;
+  const brand=byId('brand').dataset.value;
+  return Object.keys(metadata).filter(key=>!brand||metadata[key][0]===brand);
 }
 function choices(){
   const box=byId('choices');box.replaceChildren();
-  for(const key of Object.keys(metadata)){
-    if(byId('brand').dataset.value&&byId('brand').dataset.value!==metadata[key][0])continue;
+  const keys=choiceKeys();
+  if(!keys.length&&activeList===recentListIndex)box.textContent='近12周暂无符合条件的新机';
+  for(const key of keys){
     const label=document.createElement('label'),input=document.createElement('input');
     input.type='checkbox';input.checked=selected.has(key);
     input.onchange=()=>{if(input.checked)selected.add(key);else selected.delete(key);draw();drawEditor()};
@@ -165,8 +177,10 @@ function applyKeys(keys){
   drawEditor();
   choices();draw();
 }
+const recentListIndex=0;
 const presetCount=3;
 let activeList=-1;
+let recentChoices=[];
 function selectList(index){
   activeList=index;
   for(const button of byId('lists').children){
@@ -184,25 +198,41 @@ function renderLists(){
     button.type='button';
     button.dataset.index=index;
     button.textContent=list.name+'（'+keys.length+'）';
-    button.disabled=keys.length===0&&index<presetCount;
+    button.disabled=keys.length===0&&index<presetCount&&index!==recentListIndex;
     button.onclick=()=>{
       if(activeEdit)return;
-      if(activeList===index){selectList(-1);return}
+      if(activeList===index){
+        selectList(-1);
+        choices();
+        return;
+      }
+      if(index===recentListIndex){
+        selectFilter('brand','');
+        syncBrand();
+        return;
+      }
       selectList(index);
       if(keys.length)applyKeys(keys);
+      else choices();
     };
     if(!button.parentNode)lists.append(button);
   });
   selectList(activeList);
 }
 function syncBrand(){
-  selectList(-1);
-  const brand=byId('brand').dataset.value;
-  const keys=Object.keys(metadata).filter(k=>!brand||metadata[k][0]===brand);
-  applyKeys(keys);
+  if(byId('brand').dataset.value){
+    selectList(-1);
+  }else{
+    recentChoices=recentModelKeys();
+    selectList(recentListIndex);
+  }
+  applyKeys(choiceKeys());
 }
 
-byId('all').onclick=()=>{for(const k of Object.keys(metadata))if(!byId('brand').dataset.value||metadata[k][0]===byId('brand').dataset.value)selected.add(k);choices();draw();drawEditor()};
+byId('all').onclick=()=>{
+  for(const key of choiceKeys())selected.add(key);
+  choices();draw();drawEditor();
+};
 byId('brandTops').onclick=()=>{
   const best=new Map();
   for(const key of Object.keys(metadata)){
@@ -214,7 +244,7 @@ byId('brandTops').onclick=()=>{
   selectList(-1);
   applyKeys([...best.values()].map(item=>item.key));
 };
-byId('none').onclick=()=>{selectList(-1);applyKeys([])};
+byId('none').onclick=()=>{if(activeList!==recentListIndex)selectList(-1);applyKeys([])};
 byId('milestoneStep').onchange=event=>{
   const input=event.target,value=input.valueAsNumber;
   if(!Number.isSafeInteger(value)||value<1){
@@ -234,6 +264,7 @@ byId('saveList').onclick=()=>{
   if(index>=0)savedLists[index]=list;else savedLists.push(list);
   activeList=presetCount+(index>=0?index:savedLists.length-1);
   saveLists();
+  choices();
 };
 byId('deleteList').onclick=()=>{
   if(activeList<presetCount||!confirm('删除这个自建列表？'))return;
@@ -1002,7 +1033,7 @@ const localSourceKey='phoneSales.incrementLocalSource';
 const viewFilters=['metric','axis','brand','gap'];
 window.addEventListener('pagehide',()=>{
   if(!sourceText)return;
-  SalesSite.sessionWrite(incrementViewKey,{sourceKey,selected:[...selected],filters:Object.fromEntries(
+  SalesSite.sessionWrite(incrementViewKey,{sourceKey,selected:[...selected],recentList:activeList===recentListIndex,filters:Object.fromEntries(
     viewFilters.filter(id=>byId(id)).map(id=>[id,byId(id).dataset.value])
   )});
 });
@@ -1052,16 +1083,17 @@ function loadSource(text,key,sourcePeriods=[]){
   }
   selectFilter('brand','');
   selected.clear();
-  const recent=presets()[0].keys;
-  activeList=recent.length?0:-1;
-  for(const k of recent.length?recent:[nextMetadata.keys().next().value])selected.add(k);
+  recentChoices=recentModelKeys();
+  activeList=recentListIndex;
+  for(const key of recentChoices)selected.add(key);
   const view=SalesSite.sessionRead(incrementViewKey);
   if(view?.sourceKey===sourceKey&&Array.isArray(view.selected)){
     const restored=view.selected.filter(id=>Object.hasOwn(metadata,id));
     if(restored.length||!view.selected.length){
       selected.clear();
-      for(const id of restored)selected.add(id);
-      activeList=-1;
+      activeList=view.recentList?recentListIndex:-1;
+      const visibleKeys=activeList===recentListIndex?new Set(recentChoices):null;
+      for(const id of restored)if(!visibleKeys||visibleKeys.has(id))selected.add(id);
     }
     for(const id of viewFilters){
       const value=view.filters?.[id];

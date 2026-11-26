@@ -713,9 +713,10 @@ async function exportChart(mobile){
     salesWeek:byId('axis').dataset.value==='life',mobile
   });
   const footer=byId('footer').value.trim();
-  const draftNote=hasDraft()?'含本标签页临时数据，仅供参考':'';
+  //const draftNote=hasDraft()?'含本标签页临时数据，仅供参考':'';
   if(mobile){
-    exportMobileChart(library,current,log,[footer,draftNote].filter(Boolean).join('\n'),filename);
+    //exportMobileChart(library,current,log,[footer,draftNote].filter(Boolean).join('\n'),filename);
+    exportMobileChart(library,current,log,footer.filter(Boolean).join('\n'),filename);
     return;
   }
   const width=1200,base=675,scale=2;
@@ -731,7 +732,7 @@ async function exportChart(mobile){
     return result;
   };
   const notes=footer?lines(footer):[];
-  if(draftNote)notes.push(draftNote);
+  //if(draftNote)notes.push(draftNote);
   const ranked=current.sets.filter(s=>Number.isFinite(lastVisible(s))).sort((a,b)=>lastVisible(b)-lastVisible(a));
   const height=base+notes.length*20;
   canvas.width=width*scale;canvas.height=height*scale;ctx.scale(scale,scale);

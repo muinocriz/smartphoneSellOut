@@ -35,7 +35,8 @@ for(const id of ['brand','metric','axis','gap']){
     const button=event.target.closest('button[data-value]');
     if(!button||button.disabled||byId(id).dataset.value===button.dataset.value)return;
     selectFilter(id,button.dataset.value);
-    if(id==='brand')syncBrand();else draw();
+    if(id==='brand')syncBrand();
+    else draw({resetRange:id==='metric'||id==='axis'});
   };
 }
 const selected=new Set();
@@ -255,7 +256,7 @@ function svgNode(parent,tag,attrs={},content){
 }
 let current;
 let labelPreferenceChanged=false;
-function draw(){
+function draw({resetRange=false}={}){
   if(activeEdit||!metadata[model.value])return;
   byId('editStatus').textContent=hasDraft()?'含临时数据，可导出长表保存。':'';
   const life=byId('axis').dataset.value==='life';
@@ -275,13 +276,9 @@ function draw(){
     if(!atEnd&&axis.some(t=>String(t)===old))input.value=old;
     else input.selectedIndex=id==='to'?axis.length-1:0;
   }
-  const from=byId('from').selectedIndex,to=Math.max(from,byId('to').selectedIndex);
-  byId('to').selectedIndex=to;
-  const ticks=axis.slice(from,to+1);
   const metric=byId('metric').dataset.value,log=byId('log').checked;
   for(const set of sets){
     set.lookup=new Map(set.rows.map(r=>[life?r.life:r.period,r[metric]]));
-    set.points=ticks.map(t=>set.lookup.get(t));
   }
   const hasVisiblePoint=week=>sets.some(set=>{
     const point=set.lookup.get(week);
@@ -289,7 +286,14 @@ function draw(){
   });
   const dataStart=axis.findIndex(hasVisiblePoint);
   const dataEnd=axis.findLastIndex(hasVisiblePoint);
-  current={sets,ticks,rangeLabel,axis,dataStart,dataEnd};
+  const useDataRange=resetRange&&dataStart>=0;
+  const from=useDataRange?dataStart:byId('from').selectedIndex;
+  const to=useDataRange?dataEnd:Math.max(from,byId('to').selectedIndex);
+  byId('from').selectedIndex=from;
+  byId('to').selectedIndex=to;
+  const ticks=axis.slice(from,to+1);
+  for(const set of sets)set.points=ticks.map(t=>set.lookup.get(t));
+  current={sets,ticks,rangeLabel,axis};
   byId('fullRange').disabled=dataStart<0;
   byId('hoverReadout').textContent='';
   const matrix=byId('matrix');matrix.replaceChildren();
@@ -508,9 +512,7 @@ function changeRange(lo,hi){
   byId('to').selectedIndex=Math.max(byId('from').selectedIndex,Math.min(hi,end));
   draw();
 }
-byId('fullRange').onclick=()=>{
-  if(current&&current.dataStart>=0)changeRange(current.dataStart,current.dataEnd);
-};
+byId('fullRange').onclick=()=>draw({resetRange:true});
 const screenChart=document.querySelector('svg');
 // Keep page scrolling while preventing zoom gestures over the chart.
 screenChart.addEventListener('wheel',event=>{

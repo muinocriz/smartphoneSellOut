@@ -307,7 +307,7 @@ function draw({resetRange=false}={}){
   }
   const title=filterLabel('metric')+' · '+filterLabel('axis');
   byId('heading').textContent=title;
-  const svg=document.querySelector('svg');
+  const svg=document.getElementById('incrementChart');
   const w=Math.max(300,Math.round(svg.getBoundingClientRect().width)||800);
   if(!labelPreferenceChanged)byId('labels').checked=w>600;
   plot(svg,current,w,Math.max(260,Math.min(420,w*.42)),{mobile:w<=600,interactive:true});
@@ -521,7 +521,7 @@ function changeRange(lo,hi){
   draw();
 }
 byId('fullRange').onclick=()=>draw({resetRange:true});
-const screenChart=document.querySelector('svg');
+const screenChart=document.getElementById('incrementChart');
 // Keep page scrolling while preventing zoom gestures over the chart.
 screenChart.addEventListener('wheel',event=>{
   if(event.ctrlKey||event.metaKey)event.preventDefault();

@@ -62,14 +62,13 @@ window.addEventListener('site-theme-change',()=>{if(sourceText)draw()});
 const weekMs=7*IsoSalesWeek.DAY;
 function seriesRows(key){
   const date=metadata[key][3].split(/[/.\-]/).map(Number);
-  const first=IsoSalesWeek.firstFullWeekMonday(date), partial=IsoSalesWeek.partialWeek(date);
+  const first=IsoSalesWeek.firstFullWeekMonday(date);
   const raw=new Map(records.filter(r=>r[0]===key).map(r=>[r[1]+r[2],{value:r[3],op:r[4]}]));
   const rows=periods.map((period,i)=>{
     const cumulative=raw.get(period+'cumulative'),previous=raw.get(periods[i-1]+'cumulative'),direct=raw.get(period+'weekly');
     const diff=cumulative?.op==='='&&previous?.op==='='?{value:cumulative.value-previous.value,op:'='}:null;
     const t=monday(period);
-    return {period,cumulative,direct,weekly:diff||direct,life:IsoSalesWeek.lifecycleWeekIndex(t,first),partial:partial?.isoMonday===t?partial.days:0,
-      source:diff?(direct?'累计差分（另录 '+display(direct)+'）':'相邻周累计差分'):direct?'直接记录':'—'};
+    return {period,cumulative,direct,weekly:diff||direct,life:IsoSalesWeek.lifecycleWeekIndex(t,first)};
   });
   if(byId('gap').dataset.value==='raw')return rows;
   let left=-1;
@@ -94,7 +93,6 @@ function seriesRows(key){
       const row=rows[start+j+1],delta=total*weights[j]/sum;
       cumulative+=delta;
       row.weekly={value:delta,op:'≈',estimated:true,lowerBound:lower};
-      row.source=(lower?'里程碑参考 · ':'')+(slope?'历史趋势约束':'线性估算');
       if(j<count-1)row.cumulative={value:cumulative,op:'≈',estimated:true,lowerBound:lower};
     }
   }
@@ -317,14 +315,6 @@ function draw({resetRange=false}={}){
     const mark=document.createElement('i');mark.style.background=s.color;
     const el=document.createElement('button');el.type='button';el.setAttribute('aria-pressed',String(focused===s.key));
     el.append(mark,(w<=600&&Number.isFinite(lastVisible(s))?(ranked.indexOf(s)+1)+'. ':'')+legendText(s));el.onclick=()=>{focused=focused===s.key?null:s.key;draw()};legend.append(el);
-  }
-  const detail=sets.find(set=>set.key===focused)??sets[0];
-  byId('detailTitle').textContent=detail?nameOf(detail.key)+' · 逐周明细（点击图例可切换）':'逐周明细 · 请选择对比机型';
-  const body=byId('detail').tBodies[0];body.replaceChildren();
-  for(const r of [...(detail?.rows??[])].reverse()){
-    const tr=body.insertRow();
-    const age=r.partial?'P0 · '+r.partial+'天':r.life==null?'—':'W'+r.life;
-    for(const v of [isoWeekLabel(r.period),age,display(r.cumulative),display(r.weekly),r.source])tr.insertCell().textContent=v;
   }
   byId('windowLabel').hidden=byId('gap').dataset.value!=='fit';
 }

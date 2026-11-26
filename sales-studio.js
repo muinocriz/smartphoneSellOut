@@ -61,14 +61,15 @@ const publicResearchHeadings={
  tail:['长尾韧性分析','哪些老机型仍保持榜单活跃？'],
  flow:['榜单流动分析','哪些机型进入或退出榜单？'],
  brand:['榜单品牌结构与集中度','各品牌上榜表现与集中度'],
- dual:['榜内与全市场品牌竞争分析','品牌份额与增长来源'],
- coverage:['TOP30市场覆盖率与销量分层','市场规模及销量分层'],
+ dual:['榜内与全市场品牌对比','品牌份额与增长来源'],
+ coverage:['市场覆盖率与销量分层','市场规模及销量分层'],
  price:['价格带竞争分析','不同首发价位的销量表现'],
  position:['品牌产品定位分析','各品牌首发价位与销量分布'],
  chip:['芯片平台竞争分析','不同芯片平台的上榜表现'],
  age:['新老代际结构分析','新旧代际销量占比'],
  cross:['多维产品竞争分析','不同产品属性的销量分布']
 };
+function researchPosterTitleLimit(key){return ['coverage','dual'].includes(key)?11:null;}
 function publicResearchTag(s){
  let tag=String(s.range||'').replace(/\s*→\s*/g,' vs ').replace(/（完整销售周）/g,' · 上市后周次').trim();
  if(!tag)return '';
@@ -115,6 +116,7 @@ function publicResearchCopy(s){
   else if(s.chart?.axis==='lifecycle')subtitle='上市后各周销量变化';
  }
  if(s.key==='tail'&&s.chart?.tail)subtitle='上市年龄与近期销售活跃度';
+ if(s.key==='dual'&&s.chart?.kind==='brandContributionPair'){title='双周品牌份额贡献';}
  if(s.key==='dual'&&s.chart?.kind==='dualBrandShareComparison'){title='双周品牌市场份额对比';subtitle='榜内、榜外估算与全市场份额及变化（pp）';}
  if(s.key==='dual'&&s.chart?.kind==='brandCompetitionHeatmap'){title='品牌竞争表现热力图';subtitle='六大母品牌全市场份额环比变化（pp）';}
  if(s.key==='dual'&&s.chart?.kind==='brandGrowth'){title='品牌销量增长贡献分解';subtitle='六大母品牌榜内与榜外环比变化';}
@@ -154,7 +156,21 @@ function posterCopyDefaults(type,o){
  return {title:hd.title,subtitle:hd.sub,tagLabel:defaultPosterTag(o),markLeft:'',markRight:'',
   disclaimer:'来源：'+socialSourceName(o)+' · 榜单销量为估算值\n仅统计本次榜单样本，不代表全市场销量或份额'};
 }
-function syncPosterCopyUI(type,o,force=false){const defs=posterCopyDefaults(type,o);const bind={title:'copyTitle',subtitle:'copySubtitle',tagLabel:'copyTagLabel',markLeft:'copyMarkLeft',markRight:'copyMarkRight',disclaimer:'copyDisclaimer',chartNote:'copyChartNote',chartHeader:'copyChartHeader',chartSubheader:'copyChartSubheader'};for(const [key,id] of Object.entries(bind)){if(force||!socialCopyDirty[key])socialCopyState[key]=defs[key]??'';if($(id) && $(id).value!==socialCopyState[key])$(id).value=socialCopyState[key];}}
+function syncPosterCopyUI(type,o,force=false){
+ const defs=posterCopyDefaults(type,o);
+ const limit=isResearchTemplate(type)?researchPosterTitleLimit(socialResearchSnapshot?.key):null;
+ const titleInput=$('copyTitle');
+ if(limit===null)titleInput.removeAttribute('maxlength');else titleInput.maxLength=limit;
+ const bind={title:'copyTitle',subtitle:'copySubtitle',tagLabel:'copyTagLabel',markLeft:'copyMarkLeft',markRight:'copyMarkRight',disclaimer:'copyDisclaimer',chartNote:'copyChartNote',chartHeader:'copyChartHeader',chartSubheader:'copyChartSubheader'};
+ for(const [key,id] of Object.entries(bind)){
+  if(force||!socialCopyDirty[key])socialCopyState[key]=defs[key]??'';
+  if(key==='title'&&limit!==null&&socialCopyState.title.length>limit){
+   socialCopyState.title=Array.from(socialCopyState.title).slice(0,limit).join('');
+  }
+  const input=$(id);
+  if(input&&input.value!==socialCopyState[key])input.value=socialCopyState[key];
+ }
+}
 function getPosterCopy(type,o){const defs=posterCopyDefaults(type,o);const copy={title:socialCopyDirty.title?socialCopyState.title:defs.title,subtitle:socialCopyDirty.subtitle?socialCopyState.subtitle:defs.subtitle,tagLabel:socialCopyDirty.tagLabel?socialCopyState.tagLabel:defs.tagLabel,markLeft:socialCopyDirty.markLeft?socialCopyState.markLeft:defs.markLeft,markRight:socialCopyDirty.markRight?socialCopyState.markRight:defs.markRight,disclaimer:socialCopyDirty.disclaimer?socialCopyState.disclaimer:defs.disclaimer};for(const k of ['chartNote'])copy[k]=socialCopyDirty[k]?socialCopyState[k]:(defs[k]??'');return copy;}
 function resetPosterCopy(force=false){if(researchStudioActive()){for(const k of researchContentFields)socialCopyDirty[k]=false;syncPosterCopyUI(socialState.template,socialData());if(!force)updateSocial(false);return;}for(const k of Object.keys(socialCopyDirty))socialCopyDirty[k]=false;const o=socialData();syncPosterCopyUI(socialState.template,o,true);if(!force)updateSocial(false)}
 function activeColumnMode(){if(researchStudioActive())return 'research';const chosen=$('contentColumn')?.value||'auto';if(chosen!=='auto')return chosen;return({top:'weekly',versus:'duel',brands:'brands',leader:'leader'})[socialState.template]||'weekly'}

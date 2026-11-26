@@ -721,6 +721,7 @@ function drawDirectResearchTable(ctx,p,table,box){
  });
 }
 async function exportResearchChartPNG(snapshot,{palette,watermark,width}){
+ const title=researchPosterTitleLimit(snapshot.key)===null?snapshot.title:publicResearchCopy(snapshot).title;
  await PosterExport.waitForFonts();
  let outputWidth=0,warnings=[];
  const blob=await PosterExport.canvasPNG(canvas=>{
@@ -728,7 +729,7 @@ async function exportResearchChartPNG(snapshot,{palette,watermark,width}){
   const measure=canvas.getContext('2d');
   const T=MOBILE_POSTER_TYPE,notes=[...new Set([snapshot.chartNote,snapshot.note].filter(Boolean))].flatMap(t=>posterWrap(measure,t,geometry.width,T.caption,'400'));
    const noteBlock=posterBlock(measure,notes,T.caption,'400',0);
-   const headings=[...posterWrap(measure,snapshot.title,geometry.width,T.title,'700').map(v=>({v,size:T.title,weight:'700'})),...posterWrap(measure,snapshot.displayMetric+' · '+snapshot.range,geometry.width,T.subtitle,'500').map(v=>({v,size:T.subtitle,weight:'500'})),...posterWrap(measure,'来源：'+snapshot.source,geometry.width,T.caption,'400').map(v=>({v,size:T.caption,weight:'400'}))];
+   const headings=[...posterWrap(measure,title,geometry.width,T.title,'700').map(v=>({v,size:T.title,weight:'700'})),...posterWrap(measure,snapshot.displayMetric+' · '+snapshot.range,geometry.width,T.subtitle,'500').map(v=>({v,size:T.subtitle,weight:'500'})),...posterWrap(measure,'来源：'+snapshot.source,geometry.width,T.caption,'400').map(v=>({v,size:T.caption,weight:'400'}))];
   const headerH=32+headings.reduce((h,v)=>h+v.size*1.3,0),footerH=noteBlock.height+40,logicalH=headerH+geometry.height+footerH;
   const scale=Math.min(width/logicalW,16000/logicalH,Math.sqrt(40000000/(logicalW*logicalH)));
   if(!Number.isFinite(scale)||scale<=0)throw Error('图表尺寸无效');

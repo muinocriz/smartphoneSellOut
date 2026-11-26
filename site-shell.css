@@ -35,6 +35,9 @@
 }
 .site-header a:hover,.site-header a[aria-current]{background:var(--site-selection);color:var(--site-accent)}
 .site-header a[aria-current]{font-weight:700}
+.site-header-actions{display:flex;align-items:center;gap:4px;flex-shrink:0}
+.site-header .site-github-link{gap:6px;padding:0 8px}
+.site-github-link svg{display:block;flex-shrink:0}
 .site-header label{white-space:nowrap}
 .site-header select{font:inherit;color:inherit;background:var(--site-panel);border:1px solid var(--site-border);border-radius:6px;padding:4px}
 .site-module-menu{display:none;min-width:0}
@@ -49,4 +52,8 @@
   .site-header>nav{display:none}
   .site-module-menu{display:block}
   .site-module-menu summary{padding:0 4px;font-size:14px;white-space:normal}
+}
+@media(max-width:480px){
+  .site-header .site-github-link{padding:0 7px}
+  .site-github-link span{display:none}
 }

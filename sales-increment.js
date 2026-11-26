@@ -21,7 +21,7 @@ function iso(t){
   return year+'-W'+String(1+(t-monday(year+'-W01'))/604800000).padStart(2,'0');
 }
 const periods=[];
-function display(point){return point?(point.op==='='?'':point.op==='>='?'≥':point.op)+fmt(point.value):'—'}
+function display(point,format=fmt){return point?(point.op==='='?'':point.op==='>='?'≥':point.op)+format(point.value):'—'}
 
 const byId=id=>document.getElementById(id);
 function selectFilter(id,value){
@@ -332,7 +332,7 @@ function draw(){
 function lastVisible(s){return s.points.filter(p=>p&&(!byId('log').checked||p.value>0)).at(-1)?.value??-Infinity}
 function legendValue(s){
   const point=s.points.filter(p=>p&&(!byId('log').checked||p.value>0)).at(-1);
-  return point?(point.op==='='?'':point.op==='>='?'≥':point.op)+point.value.toLocaleString('zh-CN',{maximumSignificantDigits:4}):'—';
+  return display(point,SalesChartLayout.formatSales);
 }
 function legendText(s){return nameOf(s.key)+'  '+legendValue(s)}
 const bodyFont='"Noto Sans SC", system-ui, sans-serif';
@@ -379,7 +379,7 @@ function plot(svg,{sets,ticks,rangeLabel},width,height,{mobile=false,interactive
   for(let i=0;i<=4;i++){
     const pos=bottom-(bottom-top)*i/4,v=low+(high-low)*i/4;
     svgNode(svg,'line',{x1:left,x2:right,y1:pos,y2:pos,stroke:grid});
-    svgNode(svg,'text',{x:left-5,y:pos+4,'text-anchor':'end','font-family':numberFont},fmt(log?10**v:v));
+    svgNode(svg,'text',{x:left-5,y:pos+4,'text-anchor':'end','font-family':numberFont},SalesChartLayout.formatSales(log?10**v:v));
   }
   const step=Math.max(1,Math.ceil(ticks.length/Math.max(2,Math.floor((right-left)/85))));
   ticks.forEach((t,i)=>{
@@ -422,8 +422,8 @@ function plot(svg,{sets,ticks,rangeLabel},width,height,{mobile=false,interactive
             cx,cy,r:exact?dotRadius:ringRadius,fill:exact?s.color:paper,
             stroke:s.color,'stroke-width':exact?0:ringStroke
           });
-      svgNode(node,'title',{},nameOf(s.key)+' · '+rangeLabel(ticks[i])+' · '+display(point)+' 万台');
-      if(showPointLabels)pointLabels.push({group,key:s.key,x:cx,y:cy-12,text:display(point)});
+      svgNode(node,'title',{},nameOf(s.key)+' · '+rangeLabel(ticks[i])+' · '+display(point,SalesChartLayout.formatSales)+' 万台');
+      if(showPointLabels)pointLabels.push({group,key:s.key,x:cx,y:cy-12,text:display(point,SalesChartLayout.formatSales)});
     });
   }
   function textBounds(text,x,y,align){
@@ -550,7 +550,7 @@ screenChart.onpointermove=e=>{
   }
   if(x<left||x>right){byId('hoverReadout').textContent='';return}
   const idx=Math.round((x-left)/(right-left)*Math.max(0,n-1));
-  byId('hoverReadout').textContent=[current.rangeLabel(current.ticks[idx]),...current.sets.map(s=>nameOf(s.key)+' '+display(s.points[idx]))].join(' · ');
+  byId('hoverReadout').textContent=[current.rangeLabel(current.ticks[idx]),...current.sets.map(s=>nameOf(s.key)+' '+display(s.points[idx],SalesChartLayout.formatSales))].join(' · ');
 };
 screenChart.onpointerup=screenChart.onpointercancel=screenChart.onlostpointercapture=()=>{drag=null};
 screenChart.onpointerleave=()=>{byId('hoverReadout').textContent=''};

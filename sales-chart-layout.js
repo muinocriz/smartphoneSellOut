@@ -86,7 +86,7 @@
       cells.forEach((c,n)=>{const col=Math.floor(n/rows),row=n%rows; // 先竖后横，阅读顺序 1→6 再 7→12
         const x=ML.pad+col*colW,y=top+row*ML.row+ML.row/2;
         if(c.more){g.push({type:"text",x,y,silent:true,style:{text:`另有 ${c.more} 个机型未列出${o.preserveSeriesColors?"":"（灰线）"}`,fill:t.mu,font:`12px ${FONT()}`,textVerticalAlign:"middle"}});return}
-        const {it,k}=c,num=String(k+1),vt=flagPrefix(it.flag)+it.v.toLocaleString("zh-CN",{maximumSignificantDigits:4}),col_=colorOf(it.r);
+        const {it,k}=c,num=String(k+1),vt=flagPrefix(it.flag)+formatSales(it.v),col_=colorOf(it.r);
         const vW=textW(vt,12,400,MONO);
         g.push({type:"text",x,y,silent:true,style:{text:num,fill:col_,font:`700 13px ${FONT()}`,textVerticalAlign:"middle"}});
         g.push({type:"line",silent:true,shape:{x1:x+nW,y1:y,x2:x+nW+sw,y2:y},style:{stroke:col_,lineWidth:3,lineCap:"round"}});
@@ -123,7 +123,7 @@
         xAxis:{type:"category",data:catT,boundaryGap:false,
           axisLine:{lineStyle:{color:t.ln}},axisLabel:{color:t.axisText??t.mu,fontSize:f.ax,hideOverlap:true},axisTick:{show:false}},
         yAxis:{type:log?"log":"value",name:o.exp?"":metric,nameTextStyle:{color:t.mu,fontSize:f.ax},
-          scale:!log,axisLabel:{color:t.axisText??t.mu,fontFamily:MONO,fontSize:f.ax},splitLine:{lineStyle:{color:t.ln,type:"dashed"}}},
+          scale:!log,axisLabel:{formatter:formatSales,color:t.axisText??t.mu,fontFamily:MONO,fontSize:f.ax},splitLine:{lineStyle:{color:t.ln,type:"dashed"}}},
         series};
     }
 
@@ -260,6 +260,7 @@
     return {textW,fitText,spec,lastIdx,mobileRank,listName,mobileList,exportFooter,chartOption,setExportTitle,placeLabels};
   }
 
+  const formatSales=new Intl.NumberFormat("zh-CN",{maximumFractionDigits:2}).format;
   function exportFilename({weekly,subject,salesWeek,mobile}){
     const now=new Date();
     const time=[now.getHours(),now.getMinutes(),now.getSeconds()].map(n=>String(n).padStart(2,"0")).join("");
@@ -267,5 +268,5 @@
     return [weekly?"周增量":"总销量",name,salesWeek?"销售周":"自然周",mobile?"手机":"桌面",time].join("-")+".png";
   }
 
-  window.SalesChartLayout={exportFilename,create,needsBrand,observedLine,exportSize,renderPNG};
+  window.SalesChartLayout={formatSales,exportFilename,create,needsBrand,observedLine,exportSize,renderPNG};
 })();

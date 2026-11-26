@@ -584,7 +584,7 @@ function syncRange(cats){
 const FONT=()=>css("--f-body")||"sans-serif";
 const MONO="IBM Plex Mono, monospace";
 const theme=()=>({fg:css("--fg"),mu:css("--muted"),ln:css("--line"),pn:css("--panel")});
-const fmtV=v=>(+v).toLocaleString("zh-CN",{maximumFractionDigits:2});
+const fmtV=SalesChartLayout.formatSales;
 const {textW,fitText,spec,lastIdx,mobileRank,listName,mobileList,exportFooter,chartOption,setExportTitle,placeLabels:layoutLabels}=
   SalesChartLayout.create({font:FONT,mono:MONO,theme,colorOf,label,flagPrefix});
 // 一个机型按当前横轴（自然周 / 完整销售第 N 周）排列的数值，图和表格共用
@@ -693,7 +693,7 @@ function renderRank(){
   el.style.gridTemplateRows=`repeat(${rows},auto)`;
   // 名字可用宽度：每列宽 − 序号 − 色条 − 数值 − 间距；完整名放不下时先去掉品牌
   const colW=(el.clientWidth||chart.getWidth())/cols-10;
-  el.innerHTML=o.rank.map((it,k)=>{const v=flagPrefix(it.flag)+it.v.toLocaleString("zh-CN",{maximumSignificantDigits:4});
+  el.innerHTML=o.rank.map((it,k)=>{const v=flagPrefix(it.flag)+fmtV(it.v);
     const max=colW-textW(String(n),13,700)-14-28-textW(v,12,400,MONO)-10;
     return `<li data-i="${it.i}" style="--c:${colorOf(it.r)}"${HL===it.i?' class="on"':""}><b>${k+1}</b><i></i><span>${esc(listName(it.r,max))}</span><em>${v}</em></li>`}).join("");
 }

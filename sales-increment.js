@@ -5,8 +5,6 @@ const metadata=Object.create(null);
 function numberText(raw){let s=String(raw).trim().replace(/，/g,',');if(!s)return null;if(/^\d{1,3}(,\d{3})+(\.\d+)?$/.test(s))s=s.replace(/,/g,'');if(!/^(?:\d+(?:\.\d*)?|\.\d+)$/.test(s)||!Number.isFinite(Number(s))||Number(s)<0)throw Error('请输入非负数字（单位：万台）。');if(s.startsWith('.'))s='0'+s;if(s.endsWith('.'))s=s.slice(0,-1);return s;}
 function parseCSV(text){const rows=[];let row=[],f='',q=false;const s=text.replace(/^\uFEFF/,'');for(let i=0;i<s.length;i++){const c=s[i];if(q){if(c==='"'){if(s[i+1]==='"'){f+='"';i++;}else q=false;}else f+=c;}else if(c==='"'&&f===''){q=true;}else if(c===','){row.push(f);f='';}else if(c==='\r'||c==='\n'){if(c==='\r'&&s[i+1]==='\n')i++;row.push(f);if(row.some(x=>x.trim()!==''))rows.push(row);row=[];f='';}else f+=c;}if(q)throw Error('CSV 引号未闭合。');row.push(f);if(row.some(x=>x.trim()!==''))rows.push(row);return rows;}
 
-const model=document.querySelector('#model');
-
 const fmt=n=>Number(n.toFixed(4)).toLocaleString('zh-CN',{maximumFractionDigits:4});
 function monday(period){
   const match=/^(\d{4})-W(\d{2})$/.exec(period);
@@ -156,17 +154,16 @@ function choices(){
     if(byId('brand').dataset.value&&byId('brand').dataset.value!==metadata[key][0])continue;
     const label=document.createElement('label'),input=document.createElement('input');
     input.type='checkbox';input.checked=selected.has(key);
-    input.onchange=()=>{if(input.checked)selected.add(key);else selected.delete(key);draw()};
+    input.onchange=()=>{if(input.checked)selected.add(key);else selected.delete(key);draw();drawEditor()};
     label.append(input,nameOf(key));box.append(label);
   }
 }
 function applyKeys(keys){
   if(activeEdit)return;
   if(keys.some(k=>metadata[k]&&byId('brand').dataset.value&&metadata[k][0]!==byId('brand').dataset.value)){
-    selectFilter('brand','');model.replaceChildren(...Object.keys(metadata).map(k=>new Option(nameOf(k),k)));
+    selectFilter('brand','');
   }
   selected.clear();keys.filter(key=>metadata[key]).forEach(key=>selected.add(key));
-  if(selected.size&&!selected.has(model.value))model.value=[...selected][0];
   drawEditor();
   choices();draw();
 }
@@ -181,10 +178,11 @@ function selectList(index){
 }
 function renderLists(){
   const lists=byId('lists');
-  lists.replaceChildren();
-  presets().forEach((list,index)=>{
+  const entries=presets();
+  while(lists.children.length>entries.length)lists.lastElementChild.remove();
+  entries.forEach((list,index)=>{
     const keys=list.keys.filter(key=>metadata[key]);
-    const button=document.createElement('button');
+    const button=lists.children[index]??document.createElement('button');
     button.type='button';
     button.dataset.index=index;
     button.textContent=list.name+'（'+keys.length+'）';
@@ -195,7 +193,7 @@ function renderLists(){
       selectList(index);
       if(keys.length)applyKeys(keys);
     };
-    lists.append(button);
+    if(!button.parentNode)lists.append(button);
   });
   selectList(activeList);
 }
@@ -203,11 +201,10 @@ function syncBrand(){
   selectList(-1);
   const brand=byId('brand').dataset.value;
   const keys=Object.keys(metadata).filter(k=>!brand||metadata[k][0]===brand);
-  model.replaceChildren(...keys.map(k=>new Option(nameOf(k),k)));
-  applyKeys(keys);drawEditor();
+  applyKeys(keys);
 }
 
-byId('all').onclick=()=>{for(const k of Object.keys(metadata))if(!byId('brand').dataset.value||metadata[k][0]===byId('brand').dataset.value)selected.add(k);choices();draw()};
+byId('all').onclick=()=>{for(const k of Object.keys(metadata))if(!byId('brand').dataset.value||metadata[k][0]===byId('brand').dataset.value)selected.add(k);choices();draw();drawEditor()};
 byId('brandTops').onclick=()=>{
   const best=new Map();
   for(const key of Object.keys(metadata)){
@@ -257,7 +254,7 @@ function svgNode(parent,tag,attrs={},content){
 let current;
 let labelPreferenceChanged=false;
 function draw({resetRange=false}={}){
-  if(activeEdit||!metadata[model.value])return;
+  if(!periods.length)return;
   byId('editStatus').textContent=hasDraft()?'含临时数据，可导出长表保存。':'';
   const life=byId('axis').dataset.value==='life';
   const dark=document.documentElement.dataset.theme==='dark';
@@ -321,9 +318,10 @@ function draw({resetRange=false}={}){
     const el=document.createElement('button');el.type='button';el.setAttribute('aria-pressed',String(focused===s.key));
     el.append(mark,(w<=600&&Number.isFinite(lastVisible(s))?(ranked.indexOf(s)+1)+'. ':'')+legendText(s));el.onclick=()=>{focused=focused===s.key?null:s.key;draw()};legend.append(el);
   }
-  byId('detailTitle').textContent=nameOf(model.value)+' · 逐周明细';
+  const detail=sets.find(set=>set.key===focused)??sets[0];
+  byId('detailTitle').textContent=detail?nameOf(detail.key)+' · 逐周明细（点击图例可切换）':'逐周明细 · 请选择对比机型';
   const body=byId('detail').tBodies[0];body.replaceChildren();
-  for(const r of seriesRows(model.value).reverse()){
+  for(const r of [...(detail?.rows??[])].reverse()){
     const tr=body.insertRow();
     const age=r.partial?'P0 · '+r.partial+'天':r.life==null?'—':'W'+r.life;
     for(const v of [isoWeekLabel(r.period),age,display(r.cumulative),display(r.weekly),r.source])tr.insertCell().textContent=v;
@@ -809,78 +807,183 @@ byId('importLists').onchange=async event=>{
  }catch{alert('无法导入机型列表')}finally{event.target.value=''}
 };
 let initial=[],initialPeriods=[];
-const editGrid=document.querySelector('#editGrid');
-
+const editGrid=byId('editGrid');
+const editMetric=byId('editMetric');
+const specialDialog=byId('specialEdit');
+const specialValue=byId('specialValue');
+const editHistory=[];
 let activeEdit=null;
-function finishEdit(){
-  activeEdit=null;updateIncrementImport();
-  for(const el of document.querySelectorAll('[data-edit-locked]')){el.disabled=false;delete el.dataset.editLocked}
-  refresh();
+
+function recordLabel(record){
+  return record?display({value:record[3],op:record[4]},String):'—';
+}
+function setEditRecord(slot,record){
+  const index=records.findIndex(r=>r[0]===slot.key&&r[1]===slot.week&&r[2]===slot.kind);
+  if(index>=0){
+    if(record)records[index]=record.slice();
+    else records.splice(index,1);
+  }else if(record){
+    records.splice(slot.index??records.length,0,record.slice());
+  }
+}
+function saveEdit(slot,next){
+  const {key,week,kind,record}=slot;
+  if(record?.[3]===next?.[3]&&record?.[4]===next?.[4])return true;
+  if(next&&kind==='cumulative'){
+    const exact=records.filter(r=>r[0]===key&&r[2]===kind&&r[4]==='=').sort((a,b)=>a[1].localeCompare(b[1]));
+    const before=exact.filter(r=>r[1]<week).at(-1),after=exact.find(r=>r[1]>week);
+    const [, , ,value,op]=next;
+    const tooLow=before&&(op==='='?value<before[3]:op==='<'&&value<=before[3]);
+    const tooHigh=after&&['=','>='].includes(op)&&value>after[3];
+    if((tooLow||tooHigh)&&!confirm('该累计值与前后精确累计记录倒挂，仍然保存？'))return false;
+  }
+  editHistory.push({key,week,kind,record,index:records.indexOf(record)});
+  setEditRecord(slot,next);
+  slot.record=next;
+  persistDraft();
+  renderLists();
+  draw();
+  drawEditCell(slot);
+  byId('undoEdit').disabled=false;
+  return true;
+}
+function openSpecialEdit(slot){
+  activeEdit=slot;
+  byId('specialContext').textContent=nameOf(slot.key)+' · '+isoWeekLabel(slot.week)+' · '+editMetric.selectedOptions[0].textContent;
+  byId('specialOriginal').textContent='原值：'+recordLabel(slot.original);
+  byId('specialOp').value=slot.record?.[4]==='='||!slot.record?'≈':slot.record[4];
+  specialValue.value=slot.record?.[3]??'';
+  specialValue.setCustomValidity('');
+  byId('restoreRecord').disabled=!slot.cell.classList.contains('changed');
+  byId('deleteRecord').disabled=!slot.record;
+  specialDialog.showModal();
+  specialValue.focus();
+}
+function editButton(label,description,action){
+  const button=document.createElement('button');
+  button.type='button';
+  button.textContent=label;
+  button.setAttribute('aria-label',description);
+  button.onclick=action;
+  return button;
+}
+function drawEditCell(slot){
+  const {cell,key,week,kind,record,original}=slot;
+  const description=nameOf(key)+' '+week+' '+editMetric.selectedOptions[0].textContent;
+  const changed=record?.[3]!==original?.[3]||record?.[4]!==original?.[4];
+  cell.classList.toggle('changed',changed);
+  cell.title=(changed?'临时修改 · ':'')+'原值：'+recordLabel(original);
+  if(record&&record[4]!=='='){
+    const button=editButton(recordLabel(record),description+' '+recordLabel(record)+'，编辑特殊数据',()=>openSpecialEdit(slot));
+    button.className='special-value';
+    cell.replaceChildren(button);
+    return;
+  }
+  let input=cell.querySelector('input');
+  if(!input){
+    input=document.createElement('input');
+    input.type='text';
+    input.inputMode='decimal';
+    input.placeholder='—';
+    input.setAttribute('aria-label',description+'（万台）');
+    input.onchange=()=>{
+      let value;
+      try{value=numberText(input.value)}
+      catch(error){
+        alert(error.message+' 特殊数据请使用弹窗录入。');
+        input.value=slot.record?.[3]??'';
+        return;
+      }
+      const next=value===null?slot.original:[key,week,kind,Number(value),'='];
+      saveEdit(slot,next);
+      input.value=slot.record?.[3]??'';
+    };
+    input.onkeydown=event=>{
+      if(event.key==='Enter'){event.preventDefault();input.blur()}
+      if(event.key==='Escape'){input.value=slot.record?.[3]??'';input.blur()}
+    };
+    const button=editButton('特殊',description+'，编辑特殊数据',()=>openSpecialEdit(slot));
+    button.className='cell-action';
+    cell.replaceChildren(input,button);
+  }
+  input.value=record?.[3]??'';
 }
 function drawEditor(){
   editGrid.replaceChildren();
-  const recent=[...periods].reverse(),key=model.value;
+  byId('editCount').textContent='（已选 '+selected.size+' 款）';
+  byId('undoEdit').disabled=!editHistory.length;
+  const weeks=[...periods].reverse(),kind=editMetric.value;
   const header=editGrid.createTHead().insertRow();
-  for(const label of ['指标',...recent.map(week=>isoWeekLabel(week))]){const th=document.createElement('th');th.textContent=label;header.append(th)}
-  const editorBody=editGrid.createTBody();
-  for(const [kind,label] of [['cumulative','累计销量'],['weekly','直接周增量']]){
-    const row=editorBody.insertRow();row.insertCell().textContent=label;
+  for(const label of ['机型',...weeks.map(week=>isoWeekLabel(week))]){
+    const th=document.createElement('th');
+    th.scope='col';
+    th.textContent=label;
+    header.append(th);
+  }
+  const body=editGrid.createTBody();
+  if(!selected.size){
+    body.insertRow().insertCell().textContent='请选择对比机型';
+    return;
+  }
+  for(const key of selected){
+    const row=body.insertRow();
+    const name=document.createElement('th');
+    name.scope='row';
+    name.textContent=nameOf(key);
+    row.append(name);
     const match=r=>r[0]===key&&r[2]===kind;
     const baseline=new Map(initial.filter(match).map(r=>[r[1],r]));
     const live=new Map(records.filter(match).map(r=>[r[1],r]));
-    for(const week of recent){
-      const cell=row.insertCell(),rec=live.get(week),original=baseline.get(week);
-      const valueOf=r=>r?display({value:r[3],op:r[4]}):'—';
-      const changed=rec?.[3]!==original?.[3]||rec?.[4]!==original?.[4];
-      cell.tabIndex=0;cell.style.whiteSpace='nowrap';cell.textContent=valueOf(rec);
-      cell.classList.toggle('changed',changed);
-      cell.title=(changed?'临时修改 · ':'')+'原值：'+valueOf(original);
-      function edit(){
-        if(activeEdit)return;
-        activeEdit=cell;updateIncrementImport();
-        for(const el of document.querySelectorAll('main button, main select, main input, main textarea')){
-          if(!el.disabled){el.disabled=true;el.dataset.editLocked='1'}
-        }
-        const op=document.createElement('select');op.setAttribute('aria-label','运算符');
-        for(const [v,t] of [['=','='],['>=','≥'],['<','<'],['≈','≈']])op.add(new Option(t,v));
-        op.value=rec?.[4]||'=';
-        const input=document.createElement('input');input.type='number';input.min='0';input.step='any';input.style.width='7em';input.value=rec?.[3]??'';
-        input.setAttribute('aria-label',label+'（万台）');
-        const hint=document.createElement('small');hint.textContent='原值 '+valueOf(original)+' · 先保存或取消，再导出';
-        function write(next){
-          const idx=records.indexOf(rec);
-          if(next){if(idx>=0)records[idx]=next.slice();else records.push(next.slice())}
-          else if(idx>=0)records.splice(idx,1);
-          persistDraft();finishEdit();
-        }
-        function save(){
-          if(input.validity.badInput||!input.checkValidity()){input.reportValidity();return}
-          if(input.value===''){write(original);return}
-          const v=input.valueAsNumber;
-          if(kind==='cumulative'&&(v!==rec?.[3]||op.value!==rec?.[4])){
-            const exact=records.filter(r=>match(r)&&r[4]==='=').sort((a,b)=>a[1].localeCompare(b[1]));
-            const before=exact.filter(r=>r[1]<week).at(-1),after=exact.find(r=>r[1]>week);
-            const tooLow=before&&(op.value==='='?v<before[3]:op.value==='<'&&v<=before[3]);
-            const tooHigh=after&&['=','>='].includes(op.value)&&v>after[3];
-            if((tooLow||tooHigh)&&!confirm('该累计值与前后精确累计记录倒挂，仍然保存？'))return;
-          }
-          write([key,week,kind,v,op.value]);
-        }
-        function button(text,action){const b=document.createElement('button');b.type='button';b.textContent=text;b.onclick=action;return b}
-        cell.replaceChildren(op,input,button('保存',save),button('取消',finishEdit));
-        if(changed)cell.append(button('恢复原值',()=>write(original)));
-        if(rec)cell.append(button('删除记录',()=>{if(confirm('删除这一条原始记录？可通过恢复原值撤回。'))write(null)}));
-        cell.append(document.createElement('br'),hint);
-        input.onkeydown=e=>{if(e.key==='Enter'){e.stopPropagation();save()}if(e.key==='Escape')finishEdit()};
-        input.focus();input.select();
-      }
-      cell.ondblclick=edit;cell.onkeydown=e=>{if(e.target===cell&&e.key==='Enter'){e.preventDefault();edit()}};
+    for(const week of weeks){
+      drawEditCell({cell:row.insertCell(),key,week,kind,record:live.get(week),original:baseline.get(week)});
     }
   }
 }
+editMetric.onchange=drawEditor;
+specialDialog.onclose=()=>{if(!specialDialog.open)activeEdit=null};
+specialValue.oninput=()=>specialValue.setCustomValidity('');
+byId('specialForm').onsubmit=event=>{
+  event.preventDefault();
+  if(!activeEdit)return;
+  let value;
+  try{value=numberText(specialValue.value);if(value===null)throw Error('请输入销量数值。')}
+  catch(error){
+    specialValue.setCustomValidity(error.message);
+    specialValue.reportValidity();
+    return;
+  }
+  const {key,week,kind}=activeEdit;
+  if(saveEdit(activeEdit,[key,week,kind,Number(value),byId('specialOp').value]))specialDialog.close();
+};
+byId('cancelSpecial').onclick=()=>specialDialog.close();
+byId('restoreRecord').onclick=()=>{
+  if(activeEdit&&saveEdit(activeEdit,activeEdit.original))specialDialog.close();
+};
+byId('deleteRecord').onclick=()=>{
+  if(activeEdit&&confirm('删除这一条销量记录？')&&saveEdit(activeEdit,null))specialDialog.close();
+};
 function refresh(){renderLists();draw();drawEditor()}
-document.querySelector('#addWeek').onclick=()=>{if(periods.length-initialPeriods.length>=52)return alert('最多临时新增52周');periods.push(iso(monday(periods.at(-1))+604800000));persistDraft();refresh()};
-document.querySelector('#reset').onclick=()=>{if(confirm('清除临时修改，恢复项目长表？')){records.splice(0,records.length,...structuredClone(initial));periods.splice(0,periods.length,...initialPeriods);persistDraft();refresh()}};
+byId('addWeek').onclick=()=>{
+  if(periods.length-initialPeriods.length>=52)return alert('最多临时新增52周');
+  editHistory.push({addedWeek:true});
+  periods.push(iso(monday(periods.at(-1))+weekMs));
+  persistDraft();refresh();
+};
+byId('undoEdit').onclick=()=>{
+  const prior=editHistory.pop();
+  if(!prior)return;
+  if(prior.addedWeek)periods.pop();
+  else setEditRecord(prior,prior.record);
+  persistDraft();refresh();
+};
+byId('reset').onclick=()=>{
+  if(!confirm('清除临时修改，恢复项目长表？'))return;
+  editHistory.length=0;
+  records.splice(0,records.length,...structuredClone(initial));
+  periods.splice(0,periods.length,...initialPeriods);
+  persistDraft();refresh();
+};
+
 function longCSV(){
  const header=FIELDS;
  const lines=[header,...records.map(([name,week,kind,v,op])=>[...metadata[name],week,kind,v,op])];
@@ -898,7 +1001,6 @@ document.querySelector('#download').onclick=()=>{
  const url=URL.createObjectURL(new Blob(['\uFEFF'+longCSV()],{type:'text/csv;charset=utf-8'}));
  const link=document.createElement('a');link.href=url;link.download='sales-long.csv';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
 };
-model.onchange=()=>{if(selected.size<=1)selected.clear();selected.add(model.value);choices();refresh()};
 
 
 
@@ -946,11 +1048,12 @@ function loadSource(text,key){
   records.length=0;for(const r of draft?.records??initial)records.push([...r]);
   periods.length=0;for(const w of draft?.periods??initialPeriods)periods.push(w);
   for(const k of Object.keys(metadata))delete metadata[k];
-  model.replaceChildren();
+  editHistory.length=0;
+  if(activeEdit){activeEdit=null;specialDialog.close()}
   byId('brand').replaceChildren();
   const brands=new Set();
   for(const [id,meta] of nextMetadata){
-    metadata[id]=meta;model.add(new Option(nameOf(id),id));brands.add(meta[0]);
+    metadata[id]=meta;brands.add(meta[0]);
   }
   styles.clear();
   const styleRows=[...nextMetadata].map(([id,meta])=>({id,brand:meta[0]}));
@@ -965,7 +1068,7 @@ function loadSource(text,key){
   selected.clear();
   const recent=presets()[0].keys;
   activeList=recent.length?0:-1;
-  for(const k of recent.length?recent:[model.value])selected.add(k);
+  for(const k of recent.length?recent:[nextMetadata.keys().next().value])selected.add(k);
   const view=SalesSite.sessionRead(incrementViewKey);
   if(view?.sourceKey===sourceKey&&Array.isArray(view.selected)){
     const restored=view.selected.filter(id=>Object.hasOwn(metadata,id));
@@ -979,7 +1082,7 @@ function loadSource(text,key){
       if(byId(id)&&[...byId(id).querySelectorAll('button')].some(button=>button.dataset.value===value))selectFilter(id,value);
     }
   }
-  model.value=[...selected][0]||''; choices();refresh();
+  choices();refresh();
   byId('chartControls').hidden=false;
   byId('content').hidden=false;byId('loadState').hidden=true;
   byId('reloadProject').hidden=!sourceKey.startsWith('increments.draft.local.');
@@ -1017,3 +1120,4 @@ byId('reloadProject').onclick=()=>{
 byId('localFile').onchange=event=>{const file=event.target.files[0];if(file)start(file);event.target.value=''};
 start();
 document.fonts?.addEventListener('loadingdone',()=>{if(current&&!activeEdit)draw()});
+

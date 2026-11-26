@@ -27,6 +27,20 @@
 #chartControls{margin-top:12px}
 .milestone-row{margin-top:12px}
 .milestone-row input{width:12em;max-width:100%}
+.edit-actions{display:flex;align-items:center;flex-wrap:wrap;gap:8px}
+.edit-actions label{margin:0}
+.edit-scroll{max-height:55vh}
+#editGrid{border-collapse:separate;border-spacing:0}
+#editGrid :is(th,td){white-space:nowrap}
+#editGrid thead th{position:sticky;top:0;z-index:2;background:var(--paper)}
+#editGrid tr>:first-child{position:sticky;left:0;z-index:1;background:var(--paper);text-align:left;padding-right:12px}
+#editGrid thead tr>:first-child{z-index:3}
+#editGrid input,#specialValue{width:8em}
+#editGrid input,#editGrid button,#specialValue{padding:5px 8px;background:var(--paper);color:var(--ink);border:1px solid var(--grid);border-radius:6px}
+#editGrid .cell-action{margin-left:4px;color:var(--sub)}
+#editGrid .special-value{min-width:8em;color:var(--ink);background:var(--active)}
+#specialEdit{max-width:calc(100% - 24px);background:var(--paper);color:var(--ink);border:1px solid var(--grid);border-radius:12px}
+#specialEdit::backdrop{background:#0006}
 </style>
 </head>
 <body>
@@ -43,9 +57,6 @@
 <div class="filter-row"><span id="brand-label">品牌</span><div class="filter-options brands" id="brand" role="group" aria-labelledby="brand-label" data-value="">
 
 </div></div>
-<label>明细与编辑对象<select id="model">
-</select>
-</label>
 <details open><summary>对比机型与列表</summary>
 <button id="all">全选当前品牌</button> <button id="brandTops">每品牌近期增量最高</button> <button id="none">清空对比</button>
 <div id="choices"></div>
@@ -96,6 +107,41 @@
 </section>
 <div id="content" hidden>
 <section class="scroll"><table id="matrix"><caption>所选机型对比（万台）</caption></table></section>
+<section>
+<h2>销量数据编辑 <small id="editCount"></small></h2>
+<div class="edit-actions">
+  <label>编辑指标<select id="editMetric"><option value="cumulative">累计销量</option><option value="weekly">直接周增量</option></select></label>
+  <button type="button" id="addWeek">新增周次</button>
+  <button type="button" id="undoEdit" disabled>撤销</button>
+  <button type="button" id="reset">重置临时数据</button>
+  <button type="button" id="download">导出长表 CSV</button>
+</div>
+<p>单位为万台。直接输入准确值，按 Enter 或离开输入框保存。清空输入可恢复原值。使用“特殊”录入约数或上下限，也可删除记录。</p>
+<p id="editStatus" role="status"></p>
+<div class="scroll edit-scroll"><table id="editGrid" aria-label="已选机型销量数据"></table></div>
+<dialog id="specialEdit" aria-labelledby="specialTitle">
+  <form id="specialForm">
+    <h2 id="specialTitle">编辑销量记录</h2>
+    <p id="specialContext"></p>
+    <div class="edit-actions">
+      <label>类型<select id="specialOp">
+        <option value="≈">≈ 约等于</option>
+        <option value="&gt;=">≥ 大于等于</option>
+        <option value="&lt;">＜ 小于</option>
+        <option value="=">＝ 准确值</option>
+      </select></label>
+      <label>销量（万台）<input id="specialValue" type="text" inputmode="decimal" required></label>
+    </div>
+    <p id="specialOriginal"></p>
+    <div class="edit-actions">
+      <button type="submit">保存</button>
+      <button type="button" id="cancelSpecial">取消</button>
+      <button type="button" id="restoreRecord">恢复原值</button>
+      <button type="button" id="deleteRecord">删除记录</button>
+    </div>
+  </form>
+</dialog>
+</section>
 <section class="scroll">
 <table id="detail">
 <caption id="detailTitle">逐周明细</caption>
@@ -111,15 +157,7 @@
 </tbody>
 </table>
 </section>
-<section>
-<h2>销量数据编辑</h2>
-<p>双击数值格或选中后按 Enter 编辑。清空后保存可恢复原值；删除原始记录请使用“删除记录”。</p>
-<p id="editStatus" role="status"></p><button id="addWeek">新增周次</button> <button id="reset">重置临时数据</button> <button id="download">导出长表 CSV</button>
-<div class="scroll">
-<table id="editGrid">
-</table>
-</div>
-</section>
+
 </div>
 </main>
 <script src="iso-sales-week.js"></script>
@@ -127,3 +165,4 @@
 <script src="sales-increment.js"></script>
 </body>
 </html>
+

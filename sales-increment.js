@@ -708,7 +708,11 @@ async function exportChart(mobile){
   if(activeEdit)return alert('请先保存或取消当前编辑');
   const log=byId('log').checked;
   if(!current?.sets.some(s=>Number.isFinite(lastVisible(s))))return alert('当前范围没有可导出的销量');
-  const filename='销量增量追踪-'+filterLabel('metric')+'-'+(mobile?'手机':'桌面')+'.png';
+  const list=activeList>=0?presets()[activeList]:null;
+  const filename=SalesChartLayout.exportFilename({
+    weekly:byId('metric').dataset.value==='weekly',subject:list?.name||byId('brand').dataset.value||'全部',
+    salesWeek:byId('axis').dataset.value==='life',mobile
+  });
   const footer=byId('footer').value.trim();
   const draftNote=hasDraft()?'含本标签页临时数据，仅供参考':'';
   if(mobile){

@@ -260,5 +260,12 @@
     return {textW,fitText,spec,lastIdx,mobileRank,listName,mobileList,exportFooter,chartOption,setExportTitle,placeLabels};
   }
 
-  window.SalesChartLayout={create,needsBrand,observedLine,exportSize,renderPNG};
+  function exportFilename({weekly,subject,salesWeek,mobile}){
+    const now=new Date();
+    const time=[now.getHours(),now.getMinutes(),now.getSeconds()].map(n=>String(n).padStart(2,"0")).join("");
+    const name=String(subject).replace(/[\\/:*?"<>|]/g,"_");
+    return [weekly?"周增量":"总销量",name,salesWeek?"销售周":"自然周",mobile?"手机":"桌面",time].join("-")+".png";
+  }
+
+  window.SalesChartLayout={exportFilename,create,needsBrand,observedLine,exportSize,renderPNG};
 })();

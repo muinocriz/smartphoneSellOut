@@ -729,12 +729,12 @@ async function exportPNG(mobile){
   }finally{btn.disabled=false;MULTI=prevM}
 }
 
-// 导出文件名：新机周销量-列表名或品牌-横轴-纵轴-桌面/手机.png
-// 选中了「我的列表」里的列表（自建的或自动生成的「本周里程碑」）时写列表名，不再写品牌
+// 自动列表和自定义列表均优先于当前品牌筛选。
 function exportName(mobile){
-  const l=S.list===MS_ID?MILE:S.list===CROSS_MS_ID?CROSS_MILE:S.list===RECENT_ID?RECENT:curList();
-  const parts=["新机周销量",l?l.name:S.brand,S.axis==="launch"?"完整销售周":"自然",S.val==="delta"?"周增量":"总销量",S.gap==="raw"?"":gapModeLabel(),mobile?"手机":"桌面"];
-  return parts.filter(Boolean).map(s=>String(s).replace(/[\\/:*?"<>|]/g,"_")).join("-")+".png"}
+  const list=S.list===MS_ID?MILE:S.list===CROSS_MS_ID?CROSS_MILE:S.list===RECENT_ID?RECENT:curList();
+  return SalesChartLayout.exportFilename({weekly:S.val==="delta",subject:list?.name||S.brand,
+    salesWeek:S.axis==="launch",mobile});
+}
 
 function renderNote(sel){
   const msgs=[];

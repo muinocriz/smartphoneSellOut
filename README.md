@@ -6,6 +6,8 @@
 
 **[在线打开项目](https://smartphonesellout.zirconium.workers.dev/)**
 
+**[GitHub Pages](https://muinocriz.github.io/smartphoneSellOut/)**
+
 <p align="center">
   <img src="screenshots/新机周销量-26折叠-发布后-总销量-桌面.png" alt="历史销量追踪图表示例" width="760">
 </p>

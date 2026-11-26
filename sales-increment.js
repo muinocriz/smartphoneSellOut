@@ -653,7 +653,7 @@ function exportMobileChart(echarts,chart,log,footerText,filename){
   const {W,H}=size;
   const theme={
     pn:themeColor('--paper'),fg:themeColor('--ink'),mu:themeColor('--sub'),ln:themeColor('--grid'),
-    axisText:themeColor('--ink'),subtitle:themeColor('--ink'),legendName:set=>set.color
+    axisText:themeColor('--ink'),subtitle:themeColor('--ink')
   };
   const sel=chart.sets
     .map(set=>{

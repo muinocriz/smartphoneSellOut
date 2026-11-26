@@ -91,7 +91,7 @@
         g.push({type:"text",x,y,silent:true,style:{text:num,fill:col_,font:`700 13px ${FONT()}`,textVerticalAlign:"middle"}});
         g.push({type:"line",silent:true,shape:{x1:x+nW,y1:y,x2:x+nW+sw,y2:y},style:{stroke:col_,lineWidth:3,lineCap:"round"}});
         const nmX=x+nW+sw+6,nmMax=colW-(nW+sw+6)-vW-10;
-        g.push({type:"text",x:nmX,y,silent:true,style:{text:listName(it.r,nmMax),fill:t.legendName?.(it.r)??t.fg,font:`13px ${FONT()}`,textVerticalAlign:"middle"}});
+        g.push({type:"text",x:nmX,y,silent:true,style:{text:listName(it.r,nmMax),fill:t.fg,font:`13px ${FONT()}`,textVerticalAlign:"middle"}});
         g.push({type:"text",x:x+colW-8,y,silent:true,style:{text:vt,fill:t.mu,font:`12px ${MONO}`,textAlign:"right",textVerticalAlign:"middle"}});
       });
       return g;

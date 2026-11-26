@@ -374,11 +374,26 @@ function plot(svg,{sets,ticks,rangeLabel},width,height,{mobile=false,interactive
   let low=nums.reduce((a,b)=>Math.min(a,b),log?Infinity:0),high=nums.reduce((a,b)=>Math.max(a,b),log?-Infinity:0);
   if(!nums.length){svgNode(svg,'text',{x:width/2,y:height/2,'text-anchor':'middle'},sets.length?'当前范围没有可显示的数据':'请选择对比机型');return}
   if(low===high)high+=1;
+  let tickCount=4;
+  let tickStep=(high-low)/tickCount;
+  if(!log){
+    // Snap the whole linear scale to integer steps, keeping all data inside the axis.
+    const roughStep=Math.max(1,tickStep);
+    const unit=10**Math.floor(Math.log10(roughStep));
+    const factor=[1,2,2.5,5,10].find(value=>value>=roughStep/unit)??10;
+    tickStep=Math.ceil(factor*unit);
+    const firstTick=Math.floor(low/tickStep);
+    const lastTick=Math.ceil(high/tickStep);
+    low=firstTick*tickStep;
+    high=lastTick*tickStep;
+    tickCount=lastTick-firstTick;
+  }
   const left=52,right=width-(mobile?36:Math.min(170,width*.22)),top=26,bottom=height-43;
   const x=i=>ticks.length===1?(left+right)/2:left+i*(right-left)/(ticks.length-1);
-  const y=v=>bottom-((log?Math.log10(v):v)-low)*(bottom-top)/(high-low);
-  for(let i=0;i<=4;i++){
-    const pos=bottom-(bottom-top)*i/4,v=low+(high-low)*i/4;
+  const axisY=v=>bottom-(v-low)*(bottom-top)/(high-low);
+  const y=v=>axisY(log?Math.log10(v):v);
+  for(let i=0;i<=tickCount;i++){
+    const v=low+i*tickStep,pos=axisY(v);
     svgNode(svg,'line',{x1:left,x2:right,y1:pos,y2:pos,stroke:grid});
     svgNode(svg,'text',{x:left-5,y:pos+4,'text-anchor':'end','font-family':numberFont},SalesChartLayout.formatSales(log?10**v:v));
   }

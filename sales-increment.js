@@ -278,13 +278,19 @@ function draw(){
   const from=byId('from').selectedIndex,to=Math.max(from,byId('to').selectedIndex);
   byId('to').selectedIndex=to;
   const ticks=axis.slice(from,to+1);
+  const metric=byId('metric').dataset.value,log=byId('log').checked;
   for(const set of sets){
-    const lookup=new Map(set.rows.map(r=>[life?r.life:r.period,r[byId('metric').dataset.value]]));
-    set.lookup=lookup;
-    set.points=ticks.map(t=>lookup.get(t));
+    set.lookup=new Map(set.rows.map(r=>[life?r.life:r.period,r[metric]]));
+    set.points=ticks.map(t=>set.lookup.get(t));
   }
-  current={sets,ticks,rangeLabel,axis};
-  byId('fullRange').disabled=!axis.length;
+  const hasVisiblePoint=week=>sets.some(set=>{
+    const point=set.lookup.get(week);
+    return point!=null&&(!log||point.value>0);
+  });
+  const dataStart=axis.findIndex(hasVisiblePoint);
+  const dataEnd=axis.findLastIndex(hasVisiblePoint);
+  current={sets,ticks,rangeLabel,axis,dataStart,dataEnd};
+  byId('fullRange').disabled=dataStart<0;
   byId('hoverReadout').textContent='';
   const matrix=byId('matrix');matrix.replaceChildren();
   matrix.createCaption().textContent='多机对比 · '+filterLabel('metric')+'（万台）';
@@ -502,7 +508,9 @@ function changeRange(lo,hi){
   byId('to').selectedIndex=Math.max(byId('from').selectedIndex,Math.min(hi,end));
   draw();
 }
-byId('fullRange').onclick=()=>changeRange(0,current.axis.length-1);
+byId('fullRange').onclick=()=>{
+  if(current&&current.dataStart>=0)changeRange(current.dataStart,current.dataEnd);
+};
 const screenChart=document.querySelector('svg');
 // Keep page scrolling while preventing zoom gestures over the chart.
 screenChart.addEventListener('wheel',event=>{

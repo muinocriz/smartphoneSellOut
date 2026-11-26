@@ -301,6 +301,25 @@ $('syncApply').onclick=()=>{
  }catch(err){status('应用同步失败：'+err.message,true);$('syncDialog').close();}
 };
 $('syncDialog').addEventListener('close',()=>{pendingSync=null;});
+window.addEventListener('pagehide',()=>{
+ const key='phoneSales.editorImport';
+ let transfer=null;
+ try{
+  const content=state.ready&&state.isLong?salesContent():null;
+  if(content!==null&&content!==sourceSales){
+   validMeta();
+   const rows=longRows();
+   if(rows.length){
+    const csv=csvText([LONG,...rows]);
+    const periods=state.weeks.slice();
+    const previous=SalesSite.sessionRead(key);
+    if(previous?.csv===csv&&JSON.stringify(previous.periods)===JSON.stringify(periods))return;
+    transfer={csv,periods,imported:false};
+   }
+  }
+ }catch{}
+ SalesSite.sessionWrite(key,transfer);
+});
 function incrementDraft(){return SalesSite.sessionRead("phoneSales.incrementImport");}
 function refreshIncrementImport(){
  $('incrementDraft').disabled=!incrementDraft();

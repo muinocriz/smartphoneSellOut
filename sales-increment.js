@@ -1003,12 +1003,12 @@ document.querySelector('#download').onclick=()=>{
 
 
 
-let sourceText='',sourceKey='',loadSequence=0;
+let sourceText='',sourceKey='',loadSequence=0,currentSourcePeriods=[];
 function persistDraft(){
   updateIncrementImport();
   try{
     const changed=periods.length!==initialPeriods.length||JSON.stringify(records)!==JSON.stringify(initial);
-    if(changed)sessionStorage.setItem(sourceKey,JSON.stringify({sourceText,records,periods}));
+    if(changed)sessionStorage.setItem(sourceKey,JSON.stringify({sourceText,records,periods,sourcePeriods:currentSourcePeriods}));
     else sessionStorage.removeItem(sourceKey);
   }catch{}
 }
@@ -1021,7 +1021,7 @@ window.addEventListener('pagehide',()=>{
     viewFilters.filter(id=>byId(id)).map(id=>[id,byId(id).dataset.value])
   )});
 });
-function loadSource(text,key){
+function loadSource(text,key,sourcePeriods=[]){
   const [header,...rows]=parseCSV(text);
   const columns=FIELDS.map(f=>header?.indexOf(f)??-1);
   if(header?.length!==FIELDS.length||columns.includes(-1))throw Error('长表字段不匹配');
@@ -1041,9 +1041,11 @@ function loadSource(text,key){
   if(!nextRecords.length)throw Error('长表暂无记录');
   initial=nextRecords;initialPeriods=[];
   for(let t=first;t<=last;t+=weekMs)initialPeriods.push(iso(t));
+  initialPeriods=[...new Set([...initialPeriods,...sourcePeriods.filter(period=>monday(period)!=null)])].sort();
+  currentSourcePeriods=sourcePeriods;
   sourceText=text;sourceKey='increments.draft.'+key;
   let draft;
-  try{const saved=JSON.parse(sessionStorage.getItem(sourceKey));if(saved?.sourceText===text)draft=saved}catch{}
+  try{const saved=JSON.parse(sessionStorage.getItem(sourceKey));if(saved?.sourceText===text&&JSON.stringify(saved.sourcePeriods??[])===JSON.stringify(sourcePeriods))draft=saved}catch{}
   records.length=0;for(const r of draft?.records??initial)records.push([...r]);
   periods.length=0;for(const w of draft?.periods??initialPeriods)periods.push(w);
   for(const k of Object.keys(metadata))delete metadata[k];
@@ -1084,39 +1086,71 @@ function loadSource(text,key){
   choices();refresh();
   byId('chartControls').hidden=false;
   byId('content').hidden=false;byId('loadState').hidden=true;
-  byId('reloadProject').hidden=!sourceKey.startsWith('increments.draft.local.');
   updateIncrementImport();
 }
-async function start(file){
+const editorImportKey='phoneSales.editorImport';
+function pendingEditorDraft(){
+  const draft=SalesSite.sessionRead(editorImportKey);
+  return typeof draft?.csv==='string'&&Array.isArray(draft.periods)&&!draft.imported?draft:null;
+}
+function refreshEditorImport(){
+  const button=byId('importEditorDraft');
+  button.disabled=!pendingEditorDraft();
+  byId('editorImportStatus').textContent=button.disabled?'销量数据处理暂无可导入的更新。':'销量数据处理有可导入的更新。';
+}
+function applySource(source){
+  const {text,name,kind,periods:sourcePeriods}=source;
+  const key=kind==='editor'?'editor':kind==='local'?'local.'+name:'project';
+  loadSource(text,key,sourcePeriods);
+  const label=kind==='editor'?'销量数据处理':kind==='local'?'本地 · '+name:'项目 · sales-long.csv';
+  byId('currentSource').textContent='当前来源：'+label;
+  byId('currentSource').hidden=false;
+}
+async function start(kind,file){
   const sequence=++loadSequence;
   try{
-    let text;
-    if(file){
-      const bytes=await file.arrayBuffer();
-      try{text=new TextDecoder('utf-8',{fatal:true}).decode(bytes)}catch{text=new TextDecoder('gbk').decode(bytes)}
-    }else{
-      const localSource=SalesSite.sessionRead(localSourceKey);
-      if(typeof localSource?.text==='string'&&typeof localSource?.name==='string'){
-        loadSource(localSource.text,'local.'+localSource.name);
-        return;
+    let source,draft;
+    if(kind==='restore'){
+      const saved=SalesSite.sessionRead(localSourceKey);
+      if(typeof saved?.text==='string'&&typeof saved?.name==='string'){
+        source={...saved,kind:saved.kind==='editor'?'editor':'local'};
       }
+    }else if(kind==='local'){
+      const bytes=await file.arrayBuffer();
+      let text;
+      try{text=new TextDecoder('utf-8',{fatal:true}).decode(bytes)}catch{text=new TextDecoder('gbk').decode(bytes)}
+      source={kind,name:file.name,text};
+    }else if(kind==='editor'){
+      draft=pendingEditorDraft();
+      if(!draft)return refreshEditorImport();
+      source={kind,name:'sales-long.csv',text:draft.csv,periods:draft.periods};
+    }
+    if(!source){
       const response=await fetch('sales-long.csv',{cache:'no-cache'});
       if(!response.ok)throw Error('项目长表读取失败（HTTP '+response.status+'）');
-      text=await response.text();
+      source={kind:'project',text:await response.text()};
     }
-    if(sequence===loadSequence){
-      loadSource(text,file?'local.'+file.name:'project');
-      if(file&&!SalesSite.sessionWrite(localSourceKey,{name:file.name,text})){
-        alert('浏览器无法保留导入的长表。切换模块前请先导出 CSV。');
-      }
+    if(sequence!==loadSequence)return;
+    if(kind!=='restore'&&activeEdit)return alert('请先保存或取消当前编辑。');
+    if(kind!=='restore'&&sourceText&&hasDraft()&&!confirm('切换数据来源将替换当前显示的临时修改。继续导入？'))return;
+    applySource(source);
+    if(kind!=='restore'){
+      const saved=SalesSite.sessionWrite(localSourceKey,source.kind==='project'?null:source);
+      if(draft&&saved)SalesSite.sessionWrite(editorImportKey,{...draft,imported:true});
+      if(!saved)alert('浏览器无法记住本次导入。切换模块前请先导出 CSV。');
     }
-  }catch(error){if(sequence===loadSequence){byId('loadState').hidden=false;byId('loadState').textContent=error.message}}
+  }catch(error){
+    if(sequence===loadSequence){byId('loadState').hidden=false;byId('loadState').textContent=error.message}
+  }finally{
+    if(sequence===loadSequence)refreshEditorImport();
+  }
 }
-byId('reloadProject').onclick=()=>{
-  SalesSite.sessionWrite(localSourceKey,null);
-  start();
-};
-byId('localFile').onchange=event=>{const file=event.target.files[0];if(file)start(file);event.target.value=''};
-start();
+byId('reloadProject').onclick=()=>start('project');
+byId('openLocalFile').onclick=()=>byId('localFile').click();
+byId('importEditorDraft').onclick=()=>start('editor');
+byId('localFile').onchange=event=>{const file=event.target.files[0];if(file)start('local',file);event.target.value=''};
+window.addEventListener('pageshow',refreshEditorImport);
+refreshEditorImport();
+start('restore');
 document.fonts?.addEventListener('loadingdone',()=>{if(current&&!activeEdit)draw()});
 

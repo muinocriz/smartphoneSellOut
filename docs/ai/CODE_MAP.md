@@ -16,6 +16,6 @@
 | 销量数据处理模块 · 网格编辑、特殊值、核查、撤销 | sales-data-editor.html | `commitInput` / `openSpecial`、`runChecks`、`travelHistory`、`persistDraft` |
 | 销量数据处理模块 · 项目/本地宽表或会话草稿导入 | sales-data-editor.html | `previewWideSync` → `buildSyncPlan`；销量增量追踪模块入口 `incrementDraft`；导出查 `salesContent` / `masterContent` |
 | 销量增量追踪模块 · 图表、横纵轴和 PNG | sales-increment.html、sales-increment.js | `loadSource` → `seriesRows` → `plot`；桌面 `exportChart`、手机 `exportMobileChart`，共享排版见上 |
-| 销量增量追踪模块 · 选中机型批量编辑、草稿与长表 | sales-increment.js | `drawEditor` → `drawEditCell`；`saveEdit` / `openSpecialEdit`、`persistDraft`、`longCSV` |
+| 销量增量追踪模块 · 选中机型批量编辑、草稿与长表 | sales-increment.js | `drawEditor` → `drawEditCell`；`saveEdit` / `openSpecialEdit`、`persistDraft`、`longCSV`；顶部导入查 `start` → `applySource` → `loadSource`，销量数据处理模块通过 `pagehide` 发布会话更新 |
 
 专题算法细节按标题查 [热销机型与榜单研究模块架构](../MODULE3_ARCHITECTURE.md)，出图文案按专题查 [公众图卡规范](../PUBLIC_POSTER_COPY_GUIDE.md)。旧文档与现状的已知差异见 [状态](STATE.md)。

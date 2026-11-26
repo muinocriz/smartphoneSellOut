@@ -1,3 +1,4 @@
+// index.html is only the home/legacy redirect; data.csv remains a public import source for module 4.
 export const publicFiles=Object.freeze([
  'index.html','site-shell.css','data.csv','studio-ui.css','iso-sales-week.js','sales-chart-layout.js',
  // Module 4 is public; publish the shared model master and tracked sales at root as explicitly requested.

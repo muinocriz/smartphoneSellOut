@@ -3,18 +3,11 @@
   const script = document.currentScript;
   const base = new URL('.', script.src);
   const pages = [
-    ['sales', '销量追踪', ''],
     ['sales-estimator', '热销机型与榜单研究', 'sales-estimator.html'],
     ['sales-data-editor', '销量数据处理', 'sales-data-editor.html'],
     ['sales-increment', '销量增量追踪', 'sales-increment.html']
   ];
   const current = script.dataset.page;
-  const legacy = current === 'sales' && pages.find(([id,, path]) => path && location.hash === '#' + id);
-  if (legacy) {
-    const destination = new URL(legacy[2], base);
-    destination.search = location.search;
-    location.replace(destination);
-  }
 
   const themeKey = 'phoneSales.theme';
   const system = matchMedia('(prefers-color-scheme: dark)');
@@ -57,7 +50,7 @@
     }
   }
 
-  window.SalesSite = {sessionRead, sessionWrite, redirecting: Boolean(legacy)};
+  window.SalesSite = {sessionRead, sessionWrite};
   applyTheme();
   system.addEventListener('change', applyTheme);
   window.addEventListener('storage', event => {

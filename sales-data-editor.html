@@ -22,9 +22,9 @@
 <main>
 <section class="panel" aria-label="导入与导出">
 <div class="toolbar" role="group" aria-label="扩展销量表"><strong class="source-label">扩展销量表：</strong><button class="primary" id="projectSales">从项目导入</button><button id="incrementDraft" disabled>从销量增量追踪导入</button><button id="newData">新建</button><button id="undoBtn" disabled>撤销</button><button id="redoBtn" disabled>重做</button><span class="spacer"></span><button id="longExport" disabled>导出</button></div>
-<div class="toolbar source-row" role="group" aria-label="数据表"><strong class="source-label">数据表：</strong><button id="syncProject">从项目导入</button><button id="syncTracking" disabled title="销量追踪尚无临时更新">从销量追踪导入</button><button id="syncLocal">从本地导入</button><input id="syncFile" class="sr-only" type="file" accept=".csv,text/csv"></div>
+<div class="toolbar source-row" role="group" aria-label="数据表"><strong class="source-label">数据表：</strong><button id="syncProject">从项目导入</button><button id="syncLocal">从本地导入</button><input id="syncFile" class="sr-only" type="file" accept=".csv,text/csv"></div>
 <div class="import-options"><label class="check muted">无年份周列使用年份 <input id="defaultYear" type="number" min="1900" max="9999" step="1" value="2026"></label></div>
-<p class="muted" style="margin-top:7px">默认读取项目扩展销量表（已有本地草稿优先恢复）。从项目、销量追踪或本地导入数据表时，先预览新增及冲突记录，再确认增量同步；保留已有独立周增量和特殊记录。销量追踪存在临时更新时才可从该处导入。</p>
+<p class="muted" style="margin-top:7px">默认读取项目扩展销量表（已有本地草稿优先恢复）。从项目或本地导入数据表时，先预览新增及冲突记录，再确认增量同步；保留已有独立周增量和特殊记录。</p>
 <div class="toolbar" style="margin-top:10px"><label class="check"><input type="checkbox" id="autoDraft" checked>本地自动保存草稿</label><button id="clearDraft" class="subtle">清除本地草稿</button><span id="draftStatus" class="muted"></span></div><div id="status" class="status" role="status" aria-live="polite">正在准备导入项目扩展销量表…</div>
 </section>
 <div class="summary" aria-label="记录统计"><div class="metric"><span>跟踪产品</span><b id="countModels">0</b></div><div class="metric"><span>自然周</span><b id="countWeeks">0</b></div><div class="metric"><span>精确记录</span><b id="countExact">0</b><small id="countByMetric"></small></div><div class="metric"><span>特殊记录</span><b id="countSpecial">0</b></div></div>
@@ -273,17 +273,11 @@ function requireLongBaseline(){
  if(!state.ready||!state.isLong)throw Error('请先从项目导入扩展销量表，或新建扩展销量表，再导入数据表。旧版数据表草稿请先导出备份。');
 }
 let syncBusy=false;
-function trackingCSV(){return SalesSite.sessionRead("phoneSales.trackingImport");}
-function updateTrackingImport(){
- const available=trackingCSV()!==null,button=$('syncTracking');
- button.disabled=syncBusy||!available;
- button.title=available?'导入销量追踪当前会话中更新后的数据表':'销量追踪尚无临时更新（请在当前标签页的销量追踪模块编辑）';
-}
 async function previewWideSync(read,sourceName){
  if(syncBusy||$('syncDialog').open)return;
  try{
   requireLongBaseline();
-  syncBusy=true;$('syncProject').disabled=$('syncLocal').disabled=true;updateTrackingImport();
+  syncBusy=true;$('syncProject').disabled=$('syncLocal').disabled=true;
   const base=salesSnapshot(),txt=await read();
   flush();
   if(base!==salesSnapshot())throw Error('读取期间销量数据已变化，请重新同步。');
@@ -291,17 +285,9 @@ async function previewWideSync(read,sourceName){
   if(wide.isLong)throw Error('所选文件是扩展销量表，请使用数据表 data.csv 进行增量同步。');
   pendingSync=buildSyncPlan(wide);pendingSync.sourceName=sourceName;renderSyncPlan(pendingSync);
  }catch(err){pendingSync=null;status('增量同步失败：'+err.message,true);}
- finally{syncBusy=false;$('syncProject').disabled=$('syncLocal').disabled=false;updateTrackingImport();}
+ finally{syncBusy=false;$('syncProject').disabled=$('syncLocal').disabled=false;}
 }
 $('syncProject').onclick=()=>previewWideSync(()=>readProject('data.csv'),'项目数据表 (data.csv)');
-$('syncTracking').onclick=()=>{
- const text=trackingCSV();
- if(text===null){updateTrackingImport();return;}
- return previewWideSync(()=>text,'销量追踪（当前会话更新后的数据表）');
-};
-window.addEventListener("pageshow",updateTrackingImport);
-window.addEventListener('focus',updateTrackingImport);
-updateTrackingImport();
 $('syncLocal').onclick=()=>{try{requireLongBaseline();$('syncFile').click();}catch(err){status('增量同步失败：'+err.message,true);}};
 $('syncFile').onchange=async e=>{const file=e.target.files[0];e.target.value='';if(file)await previewWideSync(()=>readLocal(file),'本地 '+file.name);};
 $('syncApply').onclick=()=>{

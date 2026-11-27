@@ -22,7 +22,7 @@
 <header class="site-header"></header>
 <main>
 <section class="panel" aria-label="导入与导出">
-<div class="toolbar" role="group" aria-label="扩展销量表"><strong class="source-label">扩展销量表：</strong><button class="primary" id="projectSales">从项目导入</button><button id="githubSalesSync" hidden>从 GitHub 导入扩展销量表</button><button id="weiboSalesImport" hidden disabled>微博导入</button><button id="incrementDraft" disabled>从销量增量追踪导入</button><button id="newData">新建</button><button id="undoBtn" disabled>撤销</button><button id="redoBtn" disabled>重做</button><span class="spacer"></span><a id="openDatabaseEditor" class="file-btn" href="/admin/" hidden>数据库录入</a><button id="saveDatabaseSales" class="primary" hidden disabled>保存到数据库</button><button id="longExport" disabled>导出</button></div>
+<div class="toolbar" role="group" aria-label="扩展销量表"><strong class="source-label">扩展销量表：</strong><button class="primary" id="projectSales">从项目导入</button><button id="githubSalesSync" hidden>从 GitHub 导入扩展销量表</button><button id="weiboSalesImport" hidden disabled>微博导入</button><button id="weiboLastReport" hidden>上次微博导入报告</button><button id="incrementDraft" disabled>从销量增量追踪导入</button><button id="newData">新建</button><button id="undoBtn" disabled>撤销</button><button id="redoBtn" disabled>重做</button><span class="spacer"></span><a id="openDatabaseEditor" class="file-btn" href="/admin/" hidden>数据库录入</a><button id="saveDatabaseSales" class="primary" hidden disabled>保存到数据库</button><button id="longExport" disabled>导出</button></div>
 <div class="toolbar source-row" role="group" aria-label="数据表"><strong class="source-label">数据表：</strong><button id="syncProject">从项目导入</button><button id="syncLocal">从本地导入</button><input id="syncFile" class="sr-only" type="file" accept=".csv,text/csv"></div>
 <div class="import-options"><label class="check muted">无年份周列使用年份 <input id="defaultYear" type="number" min="1900" max="9999" step="1" value="2026"></label></div>
 <p class="muted" id="editorImportHint" style="margin-top:7px">默认读取项目扩展销量表（已有本地草稿优先恢复）。从项目或本地导入数据表时，先预览新增及冲突记录，再确认增量同步；保留已有独立周增量和特殊记录。</p>
@@ -56,6 +56,7 @@
 <dialog id="modelDialog"><form id="modelForm"><div class="dialog-head"><h2>新增机型</h2><button type="button" data-close="modelDialog" aria-label="关闭">×</button></div><div class="field"><label for="newBrand">品牌</label><input id="newBrand" required></div><div class="field"><label for="newModel">机型</label><input id="newModel" required></div><div class="field"><label for="newCategory">类别（可选）</label><input id="newCategory"></div><div class="field"><label for="newDate">正式开售日期（可选）</label><input id="newDate" placeholder="例如 2026/11/24" title="优先填写正式开售日；无法查证时暂用正式发布日期"></div><p id="modelError" class="error-text"></p><div class="dialog-actions"><button type="button" data-close="modelDialog">取消</button><button class="primary" type="submit">添加机型</button></div></form></dialog>
 
 <dialog id="masterDialog"><form id="masterForm"><div class="dialog-head"><h2>编辑机型表</h2><button type="button" data-close="masterDialog">×</button></div><p class="muted" style="margin-bottom:10px">新机型 ID 根据品牌与标准名称自动生成，保存后保持不变。系列合计不是一个单机型，请为实际成员建立机型表。</p><div class="master-fields" id="masterFields"></div><p class="error-text" id="masterError"></p><div class="dialog-actions"><button type="button" data-close="masterDialog">取消</button><button class="primary" type="submit">保存机型表</button></div></form></dialog>
+<dialog id="weiboReportDialog" style="width:min(850px,calc(100% - 24px));max-height:88vh;overflow:auto"><div class="dialog-head"><h2>上次微博导入报告</h2><button type="button" data-close="weiboReportDialog" aria-label="关闭">×</button></div><p class="muted">本次会话的草稿导入结果，不代表数据库已发布；撤销或后续编辑不会改写该历史报告。</p><textarea id="weiboReportText" readonly rows="16" style="width:100%;box-sizing:border-box;resize:vertical"></textarea><div class="dialog-actions"><button type="button" id="weiboReportCopy">复制报告</button><button type="button" data-close="weiboReportDialog">关闭</button></div></dialog>
 <dialog id="weiboSalesDialog" style="width:min(850px,calc(100% - 24px));max-height:88vh;overflow:auto">
  <div class="dialog-head"><h2>微博文本导入</h2><button type="button" data-close="weiboSalesDialog" aria-label="关闭">×</button></div>
  <p class="muted">粘贴含 ISO 周次、SO 分类和机型销量的微博原文。支持多个品牌和周次；不识别的行会单独列出，不写入数据库。</p>
@@ -739,7 +740,7 @@ $('weiboCopyIssues').onclick=()=>{
   if(!weiboNotSelected(e,plan))continue;
   if(header&&header!==shown){out.push(header.raw);shown=header;}
   out.push(e.raw);
-  if(e.status==='failed'&&/(?:截至|截止|W\s*\d|SO)/i.test(e.clean)){header=null;shown=null;}
+  if(e.headerInvalid){header=null;shown=null;}
  }
  copyWeiboText(out.join('\n'));
 };
@@ -747,6 +748,13 @@ $('weiboCopyReport').onclick=()=>{
  const plan=pendingSync;if(!plan?.weibo)return;
  copyWeiboText(plan.weibo.lines.filter(e=>e.status!=='blank').map(e=>'第 '+e.line+' 行\t'+e.raw+'\t'+weiboLineOutcome(e,plan)).join('\n'));
 };
+$('weiboLastReport').onclick=()=>{$('weiboReportDialog').showModal();};
+$('weiboReportCopy').onclick=async()=>{const el=$('weiboReportText');try{await navigator.clipboard.writeText(el.value);}catch(_){el.focus();el.select();}};
+function saveWeiboReport(plan){
+ const s=plan.weibo.stats,added=plan.items.filter(x=>x.kind==='add'&&x.chosen).length,updated=plan.items.filter(x=>x.kind==='conflict'&&x.chosen).length;
+ const report=['已添加至本地草稿 '+added+' 条，覆盖 '+updated+' 条；尚需保存到数据库。','标题 '+s.headers+' 行，合法数据 '+s.data+' 行，未识别 '+s.failed+' 行，说明 '+s.ignored+' 行，批内重复 '+plan.weibo.duplicates.length+' 行，批内冲突 '+plan.weibo.conflicts.length+' 行。',...plan.weibo.lines.filter(e=>e.status!=='blank').map(e=>'第 '+e.line+' 行\t'+e.raw+'\t'+weiboLineOutcome(e,plan).replace(/^待追加/,'已追加').replace(/^待覆盖/,'已覆盖'))];
+ $('weiboReportText').value=report.join('\n');$('weiboLastReport').hidden=false;
+}
 function requireLongBaseline(){
  flush();
  if(!state.ready||!state.isLong)throw Error('请先从项目导入扩展销量表，或新建扩展销量表，再导入数据表。旧版数据表草稿请先导出备份。');
@@ -793,7 +801,8 @@ $('syncApply').onclick=()=>{
   const edits=plan.items.filter(x=>x.kind==='add'&&(!plan.weibo||x.chosen)||x.kind==='conflict'&&x.chosen);if(!edits.length)return;
   captureChange();const rows=new Map(state.rows.map(r=>[rowKey(r.brand,r.model),r]));
   for(const item of edits){const m=item.source,k=rowKey(m.brand,m.model);let row=rows.get(k);if(!row){row=newRow(META.map(field=>m[field]));rows.set(k,row);state.rows.push(row);}records(row,item.metric).set(item.period,{...item.incoming});addWeek(item.period);}
-  $('syncDialog').close();mark();renderGrid();runChecks();status('增量同步完成：追加 '+edits.filter(x=>x.kind==='add').length+' 条，人工确认替换 '+edits.filter(x=>x.kind==='conflict').length+' 条；保留其余原始记录。'+(adminEditor?'核对后可保存到数据库。':'请导出 sales-long.csv 后提交。'));
+  if(plan.weibo)saveWeiboReport(plan);
+   $('syncDialog').close();mark();renderGrid();runChecks();status((plan.weibo?'微博导入完成（可查看上次导入报告）：追加 ':'增量同步完成：追加 ')+edits.filter(x=>x.kind==='add').length+' 条，人工确认替换 '+edits.filter(x=>x.kind==='conflict').length+' 条；保留其余原始记录。'+(adminEditor?'核对后可保存到数据库。':'请导出 sales-long.csv 后提交。'));
  }catch(err){status('应用同步失败：'+err.message,true);$('syncDialog').close();}
 };
 $('syncDialog').addEventListener('close',()=>{pendingSync=null;});

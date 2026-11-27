@@ -784,8 +784,12 @@
     if(!groupStates.has(key))groupStates.set(key,groupPreset(scope));
     return groupStates.get(key);
   }
+  function tierPairPreset(scope){
+    const eligible=new Set(scope.models.map(m=>m.key));
+    return predecessorPreset(scope).filter(({old,next})=>eligible.has(old)&&eligible.has(next));
+  }
   function activePairs(scope){
-    if(!pairStates.has(scopeKey(scope.id)))pairStates.set(scopeKey(scope.id),predecessorPreset(scope));
+    if(!pairStates.has(scopeKey(scope.id)))pairStates.set(scopeKey(scope.id),tierPairPreset(scope));
     return pairStates.get(scopeKey(scope.id));
   }
   function labeledControl(label,control){const wrap=document.createElement('label');wrap.className='lbl';wrap.textContent=label;wrap.append(control);return wrap;}
@@ -1714,7 +1718,7 @@
   $('researchGroupField').onchange=()=>{if(currentScope()){if(observedGroups(researchView))syncResearchEditors();renderResearch();}};
   $('researchGroupMode').onchange=()=>{updateParamControls();syncResearchEditors();updateProductInfo(currentScope());renderResearch();};
   $('researchAddGroup').onclick=()=>{const s=currentScope();if(s){activeGroups(s).push({name:'',keys:[]});renderGroupEditor(s);renderResearch();}};
-  $('researchPairPreset').onclick=()=>{const s=currentScope();if(s){pairStates.set(scopeKey(s.id),predecessorPreset(s));pairFocusStates.delete(scopeKey(s.id));renderPairEditor(s);renderResearch();}};
+  $('researchPairPreset').onclick=()=>{const s=currentScope();if(s){pairStates.set(scopeKey(s.id),tierPairPreset(s));pairFocusStates.delete(scopeKey(s.id));renderPairEditor(s);renderResearch();}};
   $('researchAddPair').onclick=()=>{const s=currentScope();if(s){activePairs(s).push({name:'',old:'',next:''});renderPairEditor(s);renderResearch();}};
   $('researchPairFocus').onchange=()=>{const s=currentScope();if(s){pairFocusStates.set(scopeKey(s.id),Number($('researchPairFocus').value));renderResearch();}};
   $('researchTopMode').onchange=renderResearch;$('researchTopK').onchange=renderResearch;

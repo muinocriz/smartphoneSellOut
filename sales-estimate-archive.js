@@ -2064,9 +2064,9 @@
     $('archivePublishLogin').hidden = !error.loginRequired;
   }
 
-  $('archivePublish').hidden = !SalesSite.projectUsesDatabase;
+  $('archivePublish').hidden = !SalesSite.projectSupportsAdmin;
   if (SalesSite.projectUsesDatabase) {
-    $('archiveSaveHint').textContent = '管理员可以直接保存本期榜单。合并并导出完整历史 CSV 可用于备份或更新静态站。';
+    $('archiveSaveHint').textContent = SalesSite.projectSupportsAdmin ? '管理员可以直接保存本期榜单。合并并导出完整历史 CSV 可用于备份。' : '正式历史来自数据库。可合并并导出完整历史 CSV；正式发布请使用 Cloudflare 主站。';
     $('archiveReload').textContent = '刷新数据库历史';
   }
   $('archivePublish').onclick = async () => {

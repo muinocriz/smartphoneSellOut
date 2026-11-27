@@ -25,7 +25,7 @@ npx wrangler d1 execute DB --remote --file ../smartphone-sales-initial.sql
 
 部署后，在 Cloudflare 主站打开 `/api/counts`，将六张表的 `row_count` 与初始导入脚本打印的各表行数比较。若返回 503，查看该 Worker 的部署、D1 绑定和日志。
 
-`/api/models`、`/api/tracking`、`/api/rankings` 和 `/api/market-share` 以 `{ "data": [...] }` 返回已公开数据。接口仅接受 GET，销量与份额的十进制文本保留原精度，未披露的份额返回 null。这些 API 仅由 Cloudflare Worker 提供。Cloudflare 三个页面通过这些接口读取正式数据。GitHub Pages 和本地静态预览继续读取构建产物或仓库中的 CSV。Cloudflare 读取失败时显示错误，保留现有会话编辑。
+`/api/models`、`/api/tracking`、`/api/rankings` 和 `/api/market-share` 以 `{ "data": [...] }` 返回已公开数据。接口仅接受 GET，销量与份额的十进制文本保留原精度，未披露的份额返回 null。这些 API 仅由 Cloudflare Worker 提供。Cloudflare 与 GitHub Pages 三个页面均通过这些接口读取正式数据；四个公开接口允许无凭据跨域 GET。本地静态预览继续读取仓库 CSV。读取失败时显示错误，不静默回退旧快照，保留现有会话编辑。管理员入口仅在 Cloudflare 同源页面开放。
 
 ## GitHub Pages
 
@@ -33,7 +33,7 @@ npx wrangler d1 execute DB --remote --file ../smartphone-sales-initial.sql
 
 Pages 站点位于 `/smartphoneSellOut/`。Actions 从 Cloudflare 主站的 `/api/snapshot` 读取同一时点的四份公开数据，校验 CSV 的 SHA-256 后构建静态镜像。派生销量面板读取本次构建的榜单和机型 CSV。部署产物根路径的 `sales-snapshot.json` 记录抓取时间、各表的发布版本、发布时间和校验值。每次构建成功后，在 Actions 运行详情可下载 `d1-snapshot-*` 数据包。
 
-Cloudflare 发布数据后，在 GitHub 的 Actions 中手动运行 **Deploy GitHub Pages** 即可刷新镜像，无需再提交 CSV。代码推送也会触发镜像更新。工作流默认读取 README 的 Cloudflare 主站，可用仓库变量 `SALES_D1_ORIGIN` 调整来源。抓取或构建失败时，GitHub Pages 继续提供上次已部署的镜像。
+Cloudflare 发布数据后，GitHub Pages 重新读取或刷新页面即可获得最新正式数据，无需重新部署。若需刷新静态快照及派生产物，可手动运行 **Deploy GitHub Pages**。代码推送也会触发镜像更新。工作流默认读取 README 的 Cloudflare 主站，可用仓库变量 `SALES_D1_ORIGIN` 调整来源。抓取或构建失败时，GitHub Pages 继续提供上次已部署的镜像。
 
 ## 管理员身份验证
 
@@ -53,7 +53,7 @@ npx wrangler d1 migrations apply DB --remote
 
 若定时任务将 `sales-long.csv` 上传到 GitHub，在后台扩展销量表工具栏选择「从 GitHub 导入扩展销量表」。页面读取 master 的文件，按机型、周次和销量类型核对。新增记录加入草稿，同一记录的数值或运算符差异由管理员勾选。保留现有机型资料与仅存在于数据库的记录。应用同步后，确认「保存到数据库」才发布。
 
-正式更新在同一个 D1 事务中写入变更和发布记录，记录包含表名、版本、操作人、时间和改动数量。发现较新版本时，先导出当前草稿，再重新读取并合并要保留的改动。首次写入前可在 D1 控制台备份正式库。GitHub Pages 在下一次工作流部署后读取对应快照。
+正式更新在同一个 D1 事务中写入变更和发布记录，记录包含表名、版本、操作人、时间和改动数量。发现较新版本时，先导出当前草稿，再重新读取并合并要保留的改动。首次写入前可在 D1 控制台备份正式库。GitHub Pages 重新读取正式表时直接使用已发布的 D1 数据。
 
 在「热销机型与榜单研究」完成截图标定后，点击「保存本期榜单到数据库」。未登录时可在新标签页完成管理员登录，已有标定留在原页面。同一来源、系列和周期已有榜单时，核对后确认整期替换。榜单元数据、名次记录和发布日志在同一事务写入，日志的新增与修改数量按榜单期数记录。保存成功后页面重新读取数据库历史。若当前历史含本地 CSV 改动，先保留该历史草稿，待导出后再刷新。
 

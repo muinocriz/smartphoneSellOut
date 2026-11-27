@@ -294,7 +294,12 @@ export default {
     }
     if (url.pathname === '/api/github-csv-sync') return githubSyncRoute(request, env);
     if (url.pathname.startsWith('/api/')) {
-      return readData(request, env, url.pathname);
+      const response = await readData(request, env, url.pathname);
+      // Only the four public read endpoints are exposed to cross-origin browsers.
+      if (!DATA_QUERIES.has(url.pathname)) return response;
+      const headers = new Headers(response.headers);
+      headers.set('Access-Control-Allow-Origin', '*');
+      return new Response(response.body, { status: response.status, headers });
     }
     if (url.pathname === '/') {
       url.pathname = '/index.html';

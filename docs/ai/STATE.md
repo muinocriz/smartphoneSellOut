@@ -27,6 +27,7 @@
 | 销量增量追踪模块 · 导入来源 | 顶部支持项目、本地 CSV 和销量数据处理模块的同标签页更新导入。待用户验收更新按钮状态、新增空周和反向交接。 | `1c8bf69`，`applySource` / `pagehide` |
 | 热销机型与榜单研究模块 · 出图台字号 | 图例、轴刻度／周次、堆叠区块数值默认 8，字重 400。待用户验收新老代际结构及价格带图卡。 | `53ca9e8`、`eb0c50b`，`PosterTypography.size` |
 | 发布 · GitHub Pages | Pages 与 Cloudflare Workers 分别运行部署，共用静态构建产物。Pages 构建与部署分工，按重试次数区分产物。 | `94114fc`、`37b0a71`，`.github/workflows/pages.yml` |
+| 发布 · GitHub Pages 实时读取 D1 | 构建注入公开 Worker origin，四表运行时读取，管理入口仍限同源；待 Worker 和 Pages 部署及用户验收。 | `readProject` / `projectSupportsAdmin`，随本次改动 |
 | 发布 · D1 数据快照 | 四张公开数据表与版本在一次批处理内读取，GitHub Pages 由同一快照构建与存档。待 Cloudflare 路由部署及用户验收镜像。 | `readPublicSnapshot` / `verifySnapshot`，随本次改动 |
 | 发布 · GitHub CSV 自动同步 | 按上次 GitHub 基线对照 D1，保留冲突和来源缺行；写入后生成 Pages 快照并发送结果邮件。待应用 0005、配置同步密钥、iCloud 地址及 App 专用密码，随后由用户验收。 | `planSheet` / `applyGitHubCSV` / `deliverReports`，随本次改动 |
 

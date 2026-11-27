@@ -14,9 +14,14 @@ const assetSource = file => join(snapshot && SNAPSHOT_FILES.has(file) ? snapshot
 await rm(dist, {recursive:true, force:true});
 await mkdir(join(dist, 'studio'), {recursive:true});
 const siteShell = await readFile(join(root, 'site-shell.js'), 'utf8');
+const configuredOrigin = process.env.SALES_PAGES_API_ORIGIN;
+const pagesOrigin = configuredOrigin ? new URL(configuredOrigin) : null;
+if (pagesOrigin && (pagesOrigin.protocol !== 'https:' || pagesOrigin.username || pagesOrigin.password)) {
+  throw Error('SALES_PAGES_API_ORIGIN must be a public HTTPS origin');
+}
 await writeFile(join(dist, 'site-shell.js'),siteShell.replace(
   "'sales-estimator.html'", "'studio/sales-estimator.html'"
-));
+).replace("const projectAPIOrigin = '';", `const projectAPIOrigin = ${JSON.stringify(pagesOrigin?.origin || '')};`));
 for (const file of publicFiles) {
   if (file === 'index.html') {
     const html = await readFile(join(root, file), 'utf8');
@@ -29,7 +34,7 @@ for (const file of studioFiles) {
     const html=await readFile(join(root,file),'utf8');
     await writeFile(destination,html.replace('src="site-shell.js"','src="../site-shell.js"')
       .replace('href="site-shell.css"','href="../site-shell.css"'));
-  }else await copyFile(join(root,file),destination);
+  }else await copyFile(assetSource(file),destination);
 }
 if (snapshot) await copyFile(join(snapshot, MANIFEST_FILE), join(dist, MANIFEST_FILE));
 await generateSalesPanel(join(dist, 'studio', 'sales-estimates.csv'), join(dist, 'studio'));

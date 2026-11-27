@@ -50,7 +50,9 @@
     }
   }
 
-  const projectUsesDatabase = root.dataset.salesSource === 'd1';
+  const projectAPIOrigin = ''; // GitHub Pages build injects the public Worker origin.
+  const projectUsesDatabase = root.dataset.salesSource === 'd1' || Boolean(projectAPIOrigin);
+  const projectSupportsAdmin = root.dataset.salesSource === 'd1' && !projectAPIOrigin;
   const projectTables = new Map([
     ['sales-long.csv', ['/api/tracking', 'brand model category date period metric value_wan operator']],
     ['model-master.csv', ['/api/models', 'model_id model_name brand brand_group aliases series generation variant form_factor sale_start_date predecessor_id launch_price chip_vendor chip_model base_ram base_rom source_url notes verification tracking_group']],
@@ -60,7 +62,7 @@
 
   async function readProject(name, decode = response => response.text()) {
     const table = projectUsesDatabase && projectTables.get(name);
-    const response = await fetch(table ? table[0] : new URL(name, document.baseURI), {cache:'no-store'});
+    const response = await fetch(table ? new URL(table[0], projectAPIOrigin || location.origin) : new URL(name, document.baseURI), {cache:'no-store'});
     if (!response.ok) throw Error('HTTP ' + response.status);
     if (!table) return decode(response);
 
@@ -77,7 +79,7 @@
     return [(headings ? headings.split(',') : keys).map(quote).join(','), ...rows].join('\r\n');
   }
 
-  window.SalesSite = {sessionRead, sessionWrite, readProject, projectUsesDatabase};
+  window.SalesSite = {sessionRead, sessionWrite, readProject, projectUsesDatabase, projectSupportsAdmin};
   applyTheme();
   system.addEventListener('change', applyTheme);
   window.addEventListener('storage', event => {

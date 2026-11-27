@@ -846,7 +846,7 @@ window.addEventListener('focus',refreshIncrementImport);
 refreshIncrementImport();
 $('projectSales').onclick=()=>loadProjectSales();
 $('projectMaster').onclick=()=>loadProjectMaster();
-$('openDatabaseEditor').hidden=!SalesSite.projectUsesDatabase||adminEditor;
+$('openDatabaseEditor').hidden=!SalesSite.projectSupportsAdmin||adminEditor;
 if(adminEditor){
  $('projectSales').textContent='从数据库读取';
  $('githubSalesSync').hidden=false;

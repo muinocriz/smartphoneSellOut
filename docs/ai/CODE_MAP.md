@@ -5,6 +5,7 @@
 | 功能 / 用户现象 | 首读路径 | 关键入口及下一跳 |
 | --- | --- | --- |
 | 全站导航、主题、首页跳转、跨页临时数据 | index.html、site-shell.js | `routes`（默认销量增量追踪模块）、`pages`、`applyTheme`、`sessionRead` / `sessionWrite`；生产路径另看 scripts/build-cloudflare.mjs |
+| D1 运行时读取（含 GitHub Pages） | site-shell.js、scripts/build-cloudflare.mjs、cloudflare-worker.mjs、.github/workflows/pages.yml | `readProject` / `projectSupportsAdmin` → `readData`；构建注入 `SALES_PAGES_API_ORIGIN`，公开四表允许跨域 |
 | D1 数据快照、静态站发布与派生销量面板 | cloudflare-worker.mjs、scripts/export-db-snapshot.mjs、scripts/build-cloudflare.mjs、.github/workflows/pages.yml | `readPublicSnapshot` → `snapshotCSV` / `verifySnapshot` → `generateSalesPanel`；部署元数据 `sales-snapshot.json` |
 | GitHub CSV 自动同步与结果邮件 | .github/workflows/pages.yml、scripts/sync-github-csv.mjs、cloudflare-worker.mjs、github-csv-sync.mjs | `changedSchemas` / `planSheet` → `githubSyncRoute` → `applyGitHubCSV`；`deliverReports` → `scripts/send-icloud-mail.py` 通过 iCloud SMTP 发送结果 |
 | 热销机型与榜单研究模块与销量增量追踪模块 · 销售周、导出排版和文件名 | iso-sales-week.js、sales-chart-layout.js | `firstFullWeekMonday`、`partialWeek`、`lifecycleWeekIndex`；`renderPNG`、`exportFilename`；各页面调用点见热销机型与榜单研究模块、销量增量追踪模块 |

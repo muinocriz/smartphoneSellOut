@@ -60,6 +60,8 @@ jobs:
             sleep 20
           done
       - run: npm run build
+        env:
+          SALES_PAGES_API_ORIGIN: ${{ env.SALES_D1_ORIGIN }}
       - name: Archive the data snapshot
         uses: actions/upload-artifact@v4
         with:

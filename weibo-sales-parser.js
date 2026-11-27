@@ -37,12 +37,14 @@
  function header(s,options){
   const w=weekPattern.exec(s),c=categoryPattern.exec(s);
   if(!w||!c)throw Error('标题缺少可识别的 ISO 周次或 SO 分类');
+  if((s.match(new RegExp(weekPattern.source,'gi'))||[]).length!==1)throw Error('标题存在多个周次，无法确定记录归属');
   const y=w[1]?Number(w[1]):Number(options.defaultYear),n=Number(w[2]||w[3]),p=period(y,n);
   const cumulative=/截至|截止|累计|累销/i.test(s),weekly=/周销量|周增量|本周销量|单周|当周/i.test(s);
   if(cumulative&&weekly)throw Error('标题同时包含累计与周增量标记');
   const metric=cumulative?'cumulative':weekly?'weekly':options.defaultMetric;
   if(!['cumulative','weekly'].includes(metric))throw Error('未明确销量类型');
   const range=/\(\s*(\d{1,2})[.\/月](\d{1,2})日?\s*(?:-|~|至|到)\s*(\d{1,2})[.\/月](\d{1,2})日?\s*\)/.exec(s);
+  if(!range&&/\(\s*\d{1,2}[.\/月]\d{1,2}/.test(s))throw Error('标题日期范围格式无法识别');
   if(range){
    const a=new Date(isoStart(y)+(n-1)*week),b=new Date(+a+6*day);
    if([a.getUTCMonth()+1,a.getUTCDate(),b.getUTCMonth()+1,b.getUTCDate()].some((v,i)=>v!==Number(range[i+1])))throw Error('标题日期范围与 ISO 周次不一致');
@@ -51,6 +53,7 @@
   // Also accept a brand separated from the category by spaces, without treating arbitrary prose as a brand.
   const tail=s.slice(c.index+c[0].length).trim();
   if(!suffix.length){const b=aliasKeys.find(a=>tail.toLowerCase()===a||tail.toLowerCase().startsWith(a+'-'));if(b)suffix.push(...tail.split('-'));}
+  if(!suffix.length&&/^[-_/:：]/.test(tail))throw Error('标题分类后缺少有效品牌');
   const b=brand(suffix[0]);
   if(suffix.length&&!b)throw Error('标题品牌无法识别：'+suffix[0]);
   return {period:p,metric,brand:b,category:b==='荣耀'?[base,'荣耀',...suffix.slice(1)].join('-'):base};
@@ -82,7 +85,8 @@
   const o=opEnd.exec(item.trimEnd());
   if(o){op=o[1];item=item.trimEnd().slice(0,o.index);}
   else if(!/\s$|[:：]$/.test(item))throw Error('机型与数值之间缺少分隔符或运算符');
-  item=item.trim().replace(/[:：]\s*$/,'').replace(/^[•·●▪]\s*|^\d+[.)、]\s*/,'').trim();
+  item=item.trim().replace(/(?:累计销量|周销量|销量)\s*[:：]?\s*$/,'').replace(/[:：]\s*$/,'').replace(/^[•·●▪]\s*|^\d+[.)、]\s*/,'').trim();
+  if(!op&&/\d+\s+\d+\s*$/.test(item))throw Error('疑似空格分组数字，无法确定机型与销量边界');
   if(!item||/[-~至到]\s*$/.test(item)||/(?:\d[\d.,]*\s*[-~至到]|[<>≤≥≈=])\s*$/.test(item)||/\d[\d.,]*\s*(?:万|千|台|部)\s*$/.test(item))throw Error('机型为空、销量区间或混合运算符');
   if(m[3]&&op&&operators[op]!=='approx'&&operators[op]!=='near')throw Error('前后运算符冲突');
   const kind=operators[op]||(m[3]?'near':'='),operator=kind==='approx'?(options.approximateAsExact?'=':'≈'):kind==='near'?'≈':kind;
@@ -145,7 +149,7 @@
    if(headerLike(s)){
     ctx=null;
     try{ctx=header(s,options);result.stats.headers++;add(line,'header','',ctx);}
-    catch(e){result.stats.failed++;result.issues.push(add(line,'failed',e.message));}
+    catch(e){result.stats.failed++;result.issues.push(add(line,'failed',e.message,{headerInvalid:true}));}
     return;
    }
    if(/^(?:#[^#]+#\s*)+$/.test(s)||/^(?:[-_=*·•]\s*){3,}$/.test(s)){

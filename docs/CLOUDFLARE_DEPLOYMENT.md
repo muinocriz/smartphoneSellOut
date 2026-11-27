@@ -67,7 +67,7 @@ npx wrangler d1 migrations apply DB --remote
 
 ## 榜单截图机型识别
 
-沿用出图台已配置的 `DEEPSEEK_API_KEY` 和同一 Access 应用，无需新增 Secret。在 Cloudflare 主站上传榜单，展开「查看裁剪后的图片」，确认右边界后点击「识别机型」。同源 `/admin/api/ranking-ocr` 使用 DeepSeek OCR 的 `text_recognition`。确认名称草稿后点击「应用机型名称」。
+沿用出图台已配置的 `DEEPSEEK_API_KEY` 和同一 Access 应用，无需新增 Secret。在 Cloudflare 主站上传榜单，展开「查看裁剪后的图片」，确认标题主行和机型列的拼图后点击「识别机型和统计周期」。若返回有效周次，点击「填入统计周期」更新周榜。同源 `/admin/api/ranking-ocr` 使用 DeepSeek OCR 的 `text_recognition`。确认名称草稿后点击「应用机型名称」。
 
 ## GitHub CSV 自动同步和邮件
 

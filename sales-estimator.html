@@ -227,16 +227,11 @@
 <section class="panel" id="uploadPanel"><h2 class="panel-title">导入新榜单截图</h2><div class="uploadbox"><label class="lbl" for="imageUpload">图片文件（PNG / JPG / WebP）</label><input type="file" id="imageUpload" accept="image/png,image/jpeg,image/webp"></div><p id="uploadResult" class="stepnote">自动测量图中的蓝色水平柱长。请使用白底、蓝色水平柱条的榜单截图。</p>
 <details id="rankingCropPanel" hidden>
   <summary>查看裁剪后的图片</summary>
-  <div id="rankingTitlePreview" hidden>
-    <p class="lbl">榜单标题裁片</p>
-    <canvas id="rankingTitleCrop" role="img" aria-label="用于识别统计周期的榜单标题" style="display:block;max-width:100%;height:auto"></canvas>
-  </div>
   <label for="rankingCropRight">机型名称裁片右边界（原图像素）</label>
   <input id="rankingCropRight" type="number" min="1" step="1" class="field ui-field">
-  <div style="max-height:360px;overflow:auto"><canvas id="rankingCrop" role="img" aria-label="用于识别机型的截图裁片" style="display:block;max-width:100%;height:auto"></canvas></div>
+  <div style="max-height:360px;overflow:auto"><canvas id="rankingCrop" role="img" aria-label="上方为统计周期、下方为机型名称的 OCR 拼图" style="display:block;max-width:100%;height:auto"></canvas></div>
 </details>
-<button id="recognizeRankingNames" type="button" class="secondary" hidden>识别机型</button>
-<button id="recognizeRankingPeriod" type="button" class="secondary" hidden>识别统计周期</button>
+<button id="recognizeRankingNames" type="button" class="secondary" hidden>识别机型和统计周期</button>
 <p id="rankingPeriodStatus" class="msg" role="status" hidden></p>
 <button id="applyRankingPeriod" type="button" class="secondary" hidden>填入统计周期</button>
 <p id="rankingOcrStatus" class="msg" role="status" hidden></p>

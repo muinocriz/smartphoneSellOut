@@ -62,6 +62,7 @@ $('modeGroup').onclick=()=>{mode='group';$('singlePane').hidden=true;$('groupPan
 $('amount').addEventListener('input',previewAmount);$('inputUnit').addEventListener('change',previewAmount);$('poolSearch').addEventListener('input',renderPool);$('searchRows').addEventListener('input',()=>renderRows(getFit()));$('resetSearch').onclick=()=>{$('searchRows').value='';renderRows(getFit())};$('addCal').onclick=addCal;$('outlier').addEventListener('change',()=>renderAll(false));$('clearCal').onclick=()=>{ds().calibrations=[];renderAll(false)};$('exportCsv').onclick=exportCSV;
 let rankingImage;
 let rankingCropTop = 0;
+let rankingTitleHeight = 0;
 let rankingUploadVersion = 0;
 let rankingOcrRequest;
 const rankingCrop = $('rankingCrop');
@@ -70,6 +71,7 @@ const rankingOcrButton = $('recognizeRankingNames');
 const rankingOcrStatus = $('rankingOcrStatus');
 
 function resetRankingOCR() {
+  resetRankingPeriod();
   rankingOcrRequest?.abort();
   rankingOcrRequest = null;
   rankingOcrButton.disabled = false;
@@ -81,6 +83,52 @@ function resetRankingOCR() {
   $('rankingOcrRows').replaceChildren();
 }
 
+function findRankingTitle(image, bottom) {
+  if (!bottom) return null;
+  const sample = document.createElement('canvas');
+  sample.width = image.naturalWidth;
+  sample.height = bottom;
+  const context = sample.getContext('2d', { willReadFrequently: true });
+  context.drawImage(image, 0, 0);
+  const { data } = context.getImageData(0, 0, sample.width, bottom);
+  const bands = [];
+  for (let y = 0; y < bottom; y++) {
+    let left = sample.width;
+    let right = -1;
+    let count = 0;
+    for (let x = 0; x < sample.width; x++) {
+      const offset = (y * sample.width + x) * 4;
+      const r = data[offset], g = data[offset + 1], b = data[offset + 2];
+      if (data[offset + 3] < 128 || Math.max(r, g, b) > 190 ||
+          Math.max(r, g, b) - Math.min(r, g, b) > 20) continue;
+      left = Math.min(left, x);
+      right = x;
+      count++;
+    }
+    if (count < 4) continue;
+    const band = bands.at(-1);
+    if (band && y - band.bottom <= 2) {
+      band.bottom = y;
+      band.left = Math.min(band.left, left);
+      band.right = Math.max(band.right, right);
+      band.ink += count;
+    } else {
+      bands.push({ top: y, bottom: y, left, right, ink: count });
+    }
+  }
+  // The heading has more ink than the small byline. Ignore rules and borders.
+  const title = bands.filter(band => band.bottom - band.top >= 3 && band.right - band.left >= 18)
+    .sort((a, b) => b.ink - a.ink)[0];
+  if (!title) return null;
+  const left = Math.max(0, title.left - 4);
+  const top = Math.max(0, title.top - 2);
+  return {
+    left, top,
+    width: Math.min(sample.width, title.right + 5) - left,
+    height: Math.min(bottom, title.bottom + 3) - top
+  };
+}
+
 function drawRankingCrop() {
   if (!rankingImage) return;
   const { bars, height } = ds();
@@ -88,10 +136,21 @@ function drawRankingCrop() {
   const last = bars.at(-1).centerY;
   rankingCropTop = Math.max(0, Math.floor(first - (bars[1].centerY - first) / 2));
   const bottom = Math.min(height, Math.ceil(last + (last - bars.at(-2).centerY) / 2));
-  rankingCrop.width = Number(rankingCropRight.value);
-  rankingCrop.height = bottom - rankingCropTop;
-  rankingCrop.getContext('2d').drawImage(rankingImage, 0, rankingCropTop,
-    rankingCrop.width, rankingCrop.height, 0, 0, rankingCrop.width, rankingCrop.height);
+  const namesWidth = Number(rankingCropRight.value);
+  const namesHeight = bottom - rankingCropTop;
+  const title = findRankingTitle(rankingImage, rankingCropTop);
+  rankingTitleHeight = title ? title.height + 8 : 0;
+  rankingCrop.width = Math.max(namesWidth, title?.width ?? 0);
+  rankingCrop.height = rankingTitleHeight + namesHeight;
+  const ctx = rankingCrop.getContext('2d');
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, rankingCrop.width, rankingCrop.height);
+  if (title) {
+    ctx.drawImage(rankingImage, title.left, title.top, title.width, title.height,
+      Math.floor((rankingCrop.width - title.width) / 2), 0, title.width, title.height);
+  }
+  ctx.drawImage(rankingImage, 0, rankingCropTop, namesWidth, namesHeight,
+    rankingCrop.width - namesWidth, rankingTitleHeight, namesWidth, namesHeight);
 }
 
 rankingCropRight.onchange = () => {
@@ -102,7 +161,7 @@ rankingCropRight.onchange = () => {
   drawRankingCrop();
 };
 
-function alignRankingLabels(raw, bars, top, height) {
+function alignRankingLabels(raw, bars, top, height, titleHeight) {
   // DeepSeek reports coordinates relative to the submitted crop.
   const text = raw.replaceAll('｜', '|');
   const blocks = [...text.matchAll(/<\|ref\|>(.*?)<\|\/ref\|>\s*<\|(?:box|det)\|>\s*\[\[\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\]\](?:<\|\/(?:box|det)\|>)?/gs)];
@@ -120,6 +179,7 @@ function alignRankingLabels(raw, bars, top, height) {
     const name = (generic ? body : kind).replace(/^\s*(?:#\s*)?\d+(?:\s*[.、)）:：]\s*|\s+)/, '').trim();
     if (!name || /^\d+$|[\r\n]/.test(name)) continue;
 
+    if (Number(y1) * height / 1000 < titleHeight) continue;
     singleLineCount++;
     const boxTop = top + Number(y1) * height / 1000;
     const boxBottom = top + Number(y2) * height / 1000;
@@ -162,18 +222,12 @@ async function requestRankingOCR(canvas, request) {
   return result;
 }
 
-const rankingTitleCrop = $('rankingTitleCrop');
-const rankingPeriodButton = $('recognizeRankingPeriod');
 const rankingPeriodStatus = $('rankingPeriodStatus');
 const applyRankingPeriod = $('applyRankingPeriod');
-let rankingPeriodRequest;
 let recognizedRankingPeriod = '';
 
 function resetRankingPeriod() {
-  rankingPeriodRequest?.abort();
-  rankingPeriodRequest = null;
   recognizedRankingPeriod = '';
-  rankingPeriodButton.disabled = false;
   rankingPeriodStatus.hidden = true;
   applyRankingPeriod.hidden = true;
 }
@@ -186,34 +240,6 @@ function readRankingPeriod(raw) {
     ? '' : `${year}-W${week.padStart(2, '0')}`));
   return periods.size === 1 ? [...periods][0] : '';
 }
-
-rankingPeriodButton.onclick = async () => {
-  if (!rankingImage || !rankingTitleCrop.height || rankingPeriodRequest) return;
-  resetRankingPeriod();
-  const request = new AbortController();
-  rankingPeriodRequest = request;
-  rankingPeriodButton.disabled = true;
-  rankingPeriodStatus.hidden = false;
-  rankingPeriodStatus.textContent = '正在识别榜单标题…';
-  try {
-    const result = await requestRankingOCR(rankingTitleCrop, request);
-    if (request.signal.aborted) return;
-    recognizedRankingPeriod = readRankingPeriod(result.text);
-    if (!recognizedRankingPeriod) {
-      rankingPeriodStatus.textContent = '标题里未识别到唯一有效的 ISO 周次，请手动填写统计周期。';
-      return;
-    }
-    rankingPeriodStatus.textContent = `识别到 ${recognizedRankingPeriod}。确认后将填入周榜统计周期。`;
-    applyRankingPeriod.hidden = false;
-  } catch (error) {
-    if (!request.signal.aborted) rankingPeriodStatus.textContent = error.message;
-  } finally {
-    if (rankingPeriodRequest === request) {
-      rankingPeriodRequest = null;
-      rankingPeriodButton.disabled = false;
-    }
-  }
-};
 
 applyRankingPeriod.onclick = () => {
   if (!recognizedRankingPeriod) return;
@@ -236,9 +262,10 @@ rankingOcrButton.onclick = async () => {
   rankingOcrRequest = request;
   rankingOcrButton.disabled = true;
   rankingOcrStatus.hidden = false;
-  rankingOcrStatus.textContent = '正在识别裁片中的机型…';
+  rankingOcrStatus.textContent = '正在识别榜单标题和机型…';
   const { bars } = ds();
-  const top = rankingCropTop;
+  const titleHeight = rankingTitleHeight;
+  const top = rankingCropTop - titleHeight;
   const height = rankingCrop.height;
 
   try {
@@ -246,15 +273,26 @@ rankingOcrButton.onclick = async () => {
     if (request.signal.aborted) return;
     $('rankingOcrRawText').textContent = result.text || 'DeepSeek 返回了空文本。';
     $('rankingOcrRaw').hidden = false;
-    const alignment = alignRankingLabels(result.text, bars, top, height);
+    if (titleHeight) {
+      recognizedRankingPeriod = readRankingPeriod(result.text);
+      rankingPeriodStatus.hidden = false;
+      rankingPeriodStatus.textContent = recognizedRankingPeriod
+        ? `识别到 ${recognizedRankingPeriod}。确认后将填入周榜统计周期。`
+        : '标题里未识别到唯一有效的 ISO 周次，请手动填写统计周期。';
+      applyRankingPeriod.hidden = !recognizedRankingPeriod;
+    }
+    const alignment = alignRankingLabels(result.text, bars, top, height, titleHeight);
     let { labels } = alignment;
     const { blockCount, singleLineCount } = alignment;
     const plainText = Boolean(result.text.trim()) && !/<[^>]*>|\[\[|^```/m.test(result.text);
     if (plainText) {
       const lines = result.text.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
+      if (titleHeight && (/\bTOP\s*\d+\b/i.test(lines[0]) || readRankingPeriod(lines[0] || ''))) {
+        lines.shift();
+      }
       if (lines.length !== bars.length) {
         $('rankingOcrRaw').open = true;
-        throw Error(`DeepSeek 返回 ${lines.length} 行文字，检测到 ${bars.length} 条柱条。请查看原始返回并手动核对排名。`);
+        throw Error(`去掉可识别的标题后剩余 ${lines.length} 行文字，检测到 ${bars.length} 条柱条。请查看原始返回并手动核对排名。`);
       }
       labels = lines.map(line => [line]);
     }
@@ -315,9 +353,6 @@ $('imageUpload').onchange = async event => {
   if (!file) return;
   const version = ++rankingUploadVersion;
   resetRankingOCR();
-  resetRankingPeriod();
-  rankingPeriodButton.hidden = true;
-  $('rankingTitlePreview').hidden = true;
   rankingImage = null;
   $('rankingCropPanel').hidden = true;
   rankingOcrButton.hidden = true;
@@ -340,15 +375,7 @@ $('imageUpload').onchange = async event => {
     rankingCropRight.value = data.base;
     drawRankingCrop();
     $('rankingCropPanel').hidden = false;
-    rankingTitleCrop.width = data.width;
-    rankingTitleCrop.height = rankingCropTop;
-    if (rankingCropTop > 0) {
-      rankingTitleCrop.getContext('2d').drawImage(image, 0, 0, data.width, rankingCropTop,
-        0, 0, data.width, rankingCropTop);
-      $('rankingTitlePreview').hidden = false;
-    }
     rankingOcrButton.hidden = !window.SalesSite?.projectSupportsAdmin;
-    rankingPeriodButton.hidden = rankingOcrButton.hidden || !rankingCropTop;
     notify(`识别完成：${data.bars.length} 条柱条`);
   } catch (error) {
     if (version !== rankingUploadVersion) return;

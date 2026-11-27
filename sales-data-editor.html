@@ -14,7 +14,7 @@
 
 .check-wrap{overflow:auto;max-height:420px;margin-top:10px}.check-wrap table{width:100%;min-width:700px}.check-wrap td,.check-wrap th{padding:7px 9px;white-space:normal;text-align:left;height:auto}.check-wrap td:last-child{white-space:nowrap}.check-wrap button{padding:4px 8px;margin:2px}.check-summary{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}.check-summary span{background:var(--soft);border:1px solid var(--line);border-radius:6px;padding:5px 9px}.issue-error{color:var(--red)}.issue-warn{color:#a66d1b}.issue-ok{color:var(--green)}#masterDialog{width:min(780px,calc(100% - 24px));max-height:88vh;overflow:auto}.master-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:0 12px}.master-fields .field{min-width:0}.master-fields input{width:100%}.mini-btn{font-size:12px}.check-wrap td:nth-child(3){min-width:220px}
  .mode-switch{display:inline-flex;gap:3px;padding:3px;border:1px solid var(--line);background:var(--soft);border-radius:8px}.mode-switch button{border:0;background:transparent;padding:5px 10px}.mode-switch button[aria-pressed=true]{background:var(--panel);color:var(--accent);box-shadow:0 1px 4px #0002;font-weight:650}.cell.derived::placeholder{color:var(--muted);font-style:italic;opacity:1}.derived-tag{border:1px dashed var(--line);color:var(--muted);font-style:italic}.metric small{display:block;color:var(--muted);font-size:11px}.mode-hint{margin-top:6px;color:var(--muted);font-size:12px}
-#openDatabaseEditor{text-decoration:none}#masterRows input{min-width:125px}
+#openDatabaseEditor{text-decoration:none}#masterRows input{min-width:125px}#marketRows input{min-width:78px}#marketRows td:nth-child(2) input{min-width:140px}
 .source-label{min-width:7em}.source-row{margin-top:10px;padding-top:10px;border-top:1px solid var(--line)}
 </style>
 </head>
@@ -37,6 +37,19 @@
 <p class="muted" id="masterStatus" role="status" style="margin:8px 0">正在准备从项目导入机型表…</p><div class="toolbar"><button id="checkNow" class="primary">立即检查</button><label class="check"><input type="checkbox" id="autoCheck" checked>编辑后自动检查</label><label class="check"><input type="checkbox" id="showGaps">列出内部缺周</label><span class="spacer"></span><select id="issueFilter" aria-label="检查结果筛选"><option value="issues">异常及待确认</option><option value="all">全部结果</option><option value="master">机型表问题</option><option value="sales">销量问题</option></select></div><div class="check-summary" id="checkSummary"></div><div class="check-wrap"><table><thead><tr><th>状态</th><th>产品 / 周次</th><th>检查结果</th><th>操作</th></tr></thead><tbody id="checkRows"></tbody></table></div><p class="muted" style="margin-top:8px">单机按标准名称及别名匹配；系列优先按品牌及累计统计组精确匹配；未设置统计组时仅按产品系列提供待确认候选。明确统计组不等于已核实采集范围。榜外缺失、上市前和停止跟踪后的空白不视为销量为零。不会自动修改任何数据。</p><details style="margin-top:14px"><summary id="masterManager">机型表管理</summary><div class="toolbar" style="margin-top:8px"><input id="masterSearch" type="search" placeholder="搜索机型表 ID / 名称 / 系列"><button id="masterAdd" disabled>＋ 机型</button><span class="muted" id="masterCount"></span></div><div class="check-wrap"><table><thead id="masterHead"><tr><th>机型 ID</th><th>标准机型名称</th><th>品牌 / 产品系列</th><th>累计统计组</th><th>别名</th><th>操作</th></tr></thead><tbody id="masterRows"></tbody></table></div></details></section>
 <section class="panel"><div class="toolbar"><h2>扩展销量表预览</h2><span class="spacer"></span><span id="previewCount" class="muted">0 条记录</span></div><p class="muted">固定字段：brand, model, category, date, period, metric, value_wan, operator。累计与周增量独立存储；仅导出原始记录，不导出计算值或空白。</p><div class="preview-wrap"><table><thead><tr><th>brand</th><th>model</th><th>category</th><th>date</th><th>period</th><th>metric</th><th>value_wan</th><th>operator</th></tr></thead><tbody id="preview"></tbody></table></div><p class="muted" style="margin-top:8px">仅预览前 12 条；完整扩展销量表由「导出」生成。全空机型或周次不进入扩展销量表。</p></section>
 <footer class="muted">本工具仅读取公开项目 CSV；文件、编辑和草稿在浏览器本地处理，不上传文件，不修改 GitHub 项目。</footer>
+<section class="panel" id="marketEditor" hidden>
+ <div class="toolbar">
+  <h2>市场份额表</h2>
+  <button id="projectMarket">从数据库读取</button>
+  <button id="addMarketWeek" disabled>＋ 周次</button>
+  <span class="spacer"></span>
+  <button id="saveDatabaseMarket" class="primary" disabled>保存到数据库</button>
+  <button id="marketExport" disabled>导出市场份额 CSV</button>
+ </div>
+ <p class="mode-hint">份额填百分比数值，例如 18.5。华为、OPPO、vivo 填集团份额。OSTA 未披露时留空，已知为零时填 0。</p>
+ <div class="table-wrap"><table><thead><tr id="marketHead"></tr></thead><tbody id="marketRows"></tbody></table></div>
+ <p id="marketStatus" class="status" role="status"></p>
+</section>
 </main>
 <dialog id="specialDialog"><form id="specialForm"><div class="dialog-head"><h2>添加 / 编辑特殊数据</h2><button type="button" data-close="specialDialog" aria-label="关闭">×</button></div><div class="field"><label for="specialModel">机型</label><select id="specialModel" required></select></div><div class="two"><div class="field"><label for="specialYear">ISO 年</label><input id="specialYear" type="number" min="1900" max="9999" step="1" required></div><div class="field"><label for="specialWeek">ISO 周</label><input id="specialWeek" type="number" min="1" max="53" step="1" required></div></div><div class="field"><span>数据类型</span><div class="op-choice"><label class="lt"><input type="radio" name="op" value="&lt;" required>&lt;</label><label class="ge"><input type="radio" name="op" value="&gt;=" required>≥</label><label class="ap"><input type="radio" name="op" value="≈" required>≈</label></div></div><div class="field"><label for="specialValue" id="specialValueLabel">累计销量 / 参考值（万台）</label><input id="specialValue" inputmode="decimal" placeholder="" required></div><p class="muted" id="specialHint"></p><p id="specialError" class="error-text" role="alert"></p><div class="dialog-actions"><button id="removeSpecial" type="button" class="remove" hidden>删除该记录</button><button type="button" data-close="specialDialog">取消</button><button type="submit" class="primary">保存</button></div></form></dialog>
 <dialog id="weekDialog"><form id="weekForm"><div class="dialog-head"><h2>新增 ISO 自然周</h2><button type="button" data-close="weekDialog" aria-label="关闭">×</button></div><div class="two"><div class="field"><label for="weekYear">ISO 年</label><input id="weekYear" type="number" min="1900" max="9999" step="1" required></div><div class="field"><label for="weekNumber">ISO 周</label><input id="weekNumber" type="number" min="1" max="53" step="1" required></div></div><p id="weekError" class="error-text"></p><div class="dialog-actions"><button type="button" data-close="weekDialog">取消</button><button class="primary" type="submit">添加周次</button></div></form></dialog>
@@ -60,7 +73,10 @@ let state={rows:[],weeks:[],ready:false},dirty=false,serial=0,activeCell=null,me
 // Imported source baselines are independent of the existing "not yet exported" flags.
 let sourceSales=null,sourceMaster=null;
 const adminEditor = document.documentElement.dataset.salesAdmin === 'true';
-const databaseRevision = { tracking: null, models: null };
+const MARKET_COLUMNS='period trend apple huawei osta xiaomi oppo oneplus realme vivo iqoo honor'.split(' ');
+const MARKET_HEADER='ISO 周,趋势,苹果,华为,OSTA,小米,OPPO,一加,realme,vivo,iQOO,荣耀'.split(',');
+const databaseRevision = { tracking: null, models: null, 'market-share': null };
+let marketRows=null,sourceMarket=null;
 function status(msg,error=false){$('status').textContent=msg;$('status').className='status '+(error?'error':'success');}
 function mark(){dirty=true;updateSummary();refreshDerived();scheduleCheck();}
 function isoStart(y){const d=new Date(Date.UTC(y,0,4));return +d-((d.getUTCDay()+6)%7)*86400000;}
@@ -106,6 +122,10 @@ function masterContent(m=master){if(!m)return null;const head=[...m.head].sort()
 function updateExportStyles(){
  if(adminEditor){
   $('saveDatabaseSales').disabled=!state.ready||databaseRevision.tracking===null||$('projectSales').disabled;
+  const marketReady=!!marketRows&&!$('projectMarket').disabled;
+  $('saveDatabaseMarket').disabled=!marketReady||databaseRevision['market-share']===null;
+  $('addMarketWeek').disabled=!marketReady;
+  $('marketExport').disabled=!marketRows;
   $('saveDatabaseMaster').disabled=!master||databaseRevision.models===null||$('projectMaster').disabled;
  }
  const salesChanged=state.ready&&(sourceSales===null?longRows().length>0:salesContent()!==sourceSales);
@@ -139,7 +159,7 @@ for(const b of document.querySelectorAll('[data-close]'))b.onclick=()=>$(b.datas
 function download(name,rows){const url=URL.createObjectURL(new Blob([csvText(rows)],{type:'text/csv;charset=utf-8'})),a=node('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);}
 $('longExport').onclick=()=>{try{flush();const rows=longRows();if(!rows.length)throw Error('没有可导出的销量记录。');download('sales-long.csv',[LONG,...rows]);dirty=false;persistDraft();status(`已生成扩展销量表：${rows.length} 条记录（全部机型，空白不输出）。${salesContent()!==sourceSales?' 当前内容仍与导入源不同；正式更新请提交文件。':''}`);}catch(e){status(e.message,true);}};
 
-window.addEventListener('beforeunload',e=>{if((dirty||masterDirty)&&!persistDraft()){e.preventDefault();e.returnValue='';}});
+window.addEventListener('beforeunload',e=>{if((dirty||masterDirty||marketContent()!==sourceMarket)&&!persistDraft()){e.preventDefault();e.returnValue='';}});
 
 // Independent source catalog; preserve the project's exact header and any imported optional columns.
 const MASTER_HEADER='model_id,model_name,brand,brand_group,aliases,series,generation,variant,form_factor,sale_start_date,predecessor_id,launch_price,chip_vendor,chip_model,base_ram,base_rom,source_url,notes,verification,tracking_group'.split(',');
@@ -188,11 +208,11 @@ $('checkNow').onclick=()=>{try{flush();}catch(e){status(e.message,true);return;}
 // V3.3: independent editing workspace history + local drafts. Map entries are serialized explicitly.
 const DRAFT_KEY='phone-sales-editor.v3.3.draft'+(adminEditor?'.database':'');
 let undoStack=[],redoStack=[],lastSnapshot=null,restoring=false;
-function snapshot(){return JSON.stringify({state:{...state,rows:state.rows.map(r=>({...r,values:[...r.values],weekly:[...r.weekly]}))},master,serial,sourceSales,sourceMaster});}
+function snapshot(){return JSON.stringify({state:{...state,rows:state.rows.map(r=>({...r,values:[...r.values],weekly:[...r.weekly]}))},master,serial,sourceSales,sourceMaster,...(adminEditor?{marketRows,sourceMarket}:{})});}
 function updateHistory(){ $('undoBtn').disabled=!undoStack.length; $('redoBtn').disabled=!redoStack.length; }
 function persistDraft(){updateExportStyles();if(restoring||!$('autoDraft').checked)return false;try{localStorage.setItem(DRAFT_KEY,JSON.stringify({version:1,snapshot:snapshot(),metric,dirty,masterDirty,...(adminEditor?{databaseRevision}:{}),savedAt:new Date().toISOString()}));$('draftStatus').textContent='草稿已保存 '+new Date().toLocaleTimeString();return true;}catch(e){$('draftStatus').textContent='无法保存本地草稿（浏览器限制或容量不足），请导出 CSV。';}}
 function captureChange(){if(restoring)return;const next=snapshot();if(lastSnapshot!==null&&next!==lastSnapshot){undoStack.push(lastSnapshot);if(undoStack.length>40)undoStack.shift();redoStack=[];}lastSnapshot=next;updateHistory();persistDraft();}
-function restoreSnapshot(raw,mode=metric){const data=JSON.parse(raw);if(!data.state||!Array.isArray(data.state.rows)||!Array.isArray(data.state.weeks))throw Error('草稿格式无效');const restoredRows=data.state.rows.map(r=>({...r,values:new Map(r.values),weekly:new Map(r.weekly)}));restoring=true;try{state={...data.state,rows:restoredRows};delete state.removed;master=data.master;serial=data.serial;sourceSales=typeof data.sourceSales==='string'?data.sourceSales:null;sourceMaster=typeof data.sourceMaster==='string'?data.sourceMaster:null;metric=mode==='weekly'?'weekly':'cumulative';activeCell=null;dirty=true;masterDirty=!!master;$('search').value='';updateMode();renderGrid();renderMaster();updateSummary();runChecks();lastSnapshot=snapshot();}finally{restoring=false;}updateHistory();updateExportStyles();}
+function restoreSnapshot(raw,mode=metric){const data=JSON.parse(raw);if(!data.state||!Array.isArray(data.state.rows)||!Array.isArray(data.state.weeks))throw Error('草稿格式无效');const restoredRows=data.state.rows.map(r=>({...r,values:new Map(r.values),weekly:new Map(r.weekly)}));restoring=true;try{state={...data.state,rows:restoredRows};delete state.removed;master=data.master;marketRows=Array.isArray(data.marketRows)?data.marketRows:null;sourceMarket=data.sourceMarket??null;serial=data.serial;sourceSales=typeof data.sourceSales==='string'?data.sourceSales:null;sourceMaster=typeof data.sourceMaster==='string'?data.sourceMaster:null;metric=mode==='weekly'?'weekly':'cumulative';activeCell=null;dirty=true;masterDirty=!!master;$('search').value='';updateMode();renderGrid();renderMaster();if(adminEditor)renderMarketGrid();updateSummary();runChecks();lastSnapshot=snapshot();}finally{restoring=false;}updateHistory();updateExportStyles();}
 function travelHistory(back){try{flush();captureChange();const from=back?undoStack:redoStack,to=back?redoStack:undoStack;if(!from.length)return;const old=from.pop();to.push(snapshot());restoreSnapshot(old);persistDraft();status(back?'已撤销上一次修改。':'已重做上一次修改。');}catch(e){status(e.message,true);}}
 $('undoBtn').onclick=()=>travelHistory(true);$('redoBtn').onclick=()=>travelHistory(false);
 $('autoDraft').onchange=()=>{if($('autoDraft').checked)persistDraft();else $('draftStatus').textContent='自动保存已关闭；原有草稿仍保留。';};
@@ -294,19 +314,113 @@ async function readDatabase(sheet,columns){
  const {revision,data}=await databaseRequest(sheet);
  if(!Number.isSafeInteger(revision)||revision<0||!Array.isArray(data))throw Error('数据库返回的表格格式无效。');
  const rows=data.map(record=>columns.map(column=>record[column]??''));
- return {revision,text:csvText([columns,...rows])};
+ return {revision,rows,text:csvText([columns,...rows])};
 }
+
+function marketContent(){
+ return marketRows&&JSON.stringify(marketRows.map(row=>JSON.stringify(row)).sort());
+}
+
+function renderMarketGrid(){
+ const body=$('marketRows');
+ body.replaceChildren();
+ if(!marketRows)return;
+ const fragment=document.createDocumentFragment();
+ for(const [index,row] of marketRows.entries()){
+  const tr=node('tr');
+  row.forEach((value,column)=>{
+   const td=node('td'),input=node('input',undefined,'cell');
+   input.value=value;
+   if(column>=2)input.inputMode='decimal';
+   input.setAttribute('aria-label',(row[0]||'新周次')+' · '+MARKET_HEADER[column]);
+   input.addEventListener('change',()=>{
+    const next=input.value.trim();
+    if(row[column]===next)return;
+    row[column]=next;
+    captureChange();
+   });
+   input.addEventListener('paste',event=>{
+    const text=event.clipboardData?.getData('text/plain');
+    if(!text||!/[\t\r\n]/.test(text))return;
+    event.preventDefault();
+    const lines=text.replace(/\r\n?/g,'\n').replace(/\n$/,'').split('\n').map(line=>line.split('\t'));
+    if(index+lines.length>marketRows.length||lines.some(line=>column+line.length>MARKET_COLUMNS.length)){
+     $('marketStatus').textContent='粘贴范围超出表格。请先添加需要的周次。';
+     return;
+    }
+    lines.forEach((line,r)=>line.forEach((cell,c)=>{marketRows[index+r][column+c]=cell.trim();}));
+    captureChange();
+    renderMarketGrid();
+    $('marketStatus').textContent='已粘贴到市场份额草稿。';
+   });
+   td.append(input);
+   tr.append(td);
+  });
+  const action=node('td'),remove=node('button','删除','remove');
+  remove.onclick=()=>{
+   marketRows.splice(index,1);
+   captureChange();
+   renderMarketGrid();
+  };
+  action.append(remove);
+  tr.append(action);
+  fragment.append(tr);
+ }
+ body.append(fragment);
+}
+
+function readMarketRows(data){
+ marketRows=data.rows;
+ sourceMarket=marketContent();
+ renderMarketGrid();
+ $('marketStatus').textContent='已读取 '+marketRows.length+' 周市场份额。';
+}
+
+async function loadMarketShares(initial=false){
+ const button=$('projectMarket');
+ if(button.disabled)return;
+ const current=marketContent();
+ if(!initial&&current!==sourceMarket&&!confirm('重新读取会替换市场份额草稿。继续吗？'))return;
+ button.disabled=true;
+ updateExportStyles();
+ try{
+  const data=await readDatabase('market-share',MARKET_COLUMNS);
+  if(current!==marketContent())throw Error('读取期间草稿有新改动，已保留草稿。');
+  databaseRevision['market-share']=data.revision;
+  readMarketRows(data);
+  if(initial)lastSnapshot=snapshot();
+  else captureChange();
+  persistDraft();
+ }catch(error){$('marketStatus').textContent='市场份额读取失败：'+error.message;}
+ finally{button.disabled=false;updateExportStyles();}
+}
+
+$('projectMarket').onclick=()=>loadMarketShares();
+$('addMarketWeek').onclick=()=>{
+ const last=marketRows.map(row=>row[0]).sort().at(-1);
+ let period;
+ try{period=last?nextPeriod(parsePeriod(last,NaN)):nowPeriod();}
+ catch{period=nowPeriod();}
+ marketRows.push([period,...MARKET_COLUMNS.slice(1).map(()=>'')]);
+ captureChange();
+ renderMarketGrid();
+ $('marketRows').lastElementChild.querySelector('input').focus();
+};
+$('marketExport').onclick=()=>download('market-share.csv',[
+ MARKET_HEADER,...marketRows.map(([period,...values])=>[period.replace('-W','W'),...values])
+]);
 
 let databaseSave=null,savingDatabase=false;
 const databaseDialog=$('databaseDialog');
-function sheetContent(sheet){return sheet==='tracking'?salesContent():masterContent();}
+function sheetContent(sheet){return sheet==='tracking'?salesContent():sheet==='models'?masterContent():marketContent();}
 
 async function reviewDatabase(sheet){
- const isTracking=sheet==='tracking',name=isTracking?'扩展销量表':'机型表';
+ const isTracking=sheet==='tracking',isMarket=sheet==='market-share';
+ const name=isTracking?'扩展销量表':isMarket?'市场份额表':'机型表';
  let pending;
  try{
   if(isTracking)flush();
-  else{
+  else if(!isMarket){
    const unknown=master.head.filter(field=>!MASTER_HEADER.includes(field));
    if(unknown.length)throw Error('存在额外字段，无法完整保存到数据库：'+unknown.join('、'));
    const errors=catalogIssues(master.rows).filter(issue=>issue.level==='error');
@@ -315,7 +429,9 @@ async function reviewDatabase(sheet){
     throw Error('机型表有 '+errors.length+' 项错误。请在数据检查中修正后重试。');
    }
   }
-  const rows=isTracking?longRows():master.rows.map(record=>MASTER_HEADER.map(field=>record[field]??''));
+  const rows=isTracking?longRows():isMarket
+   ? marketRows.map(([period,...shares])=>[parsePeriod(period,NaN),...shares])
+   : master.rows.map(record=>MASTER_HEADER.map(field=>record[field]??''));
   pending={sheet,name,content:sheetContent(sheet),rows,revision:databaseRevision[sheet]};
   databaseSave=pending;
   $('databaseTitle').textContent='保存'+name;
@@ -338,12 +454,14 @@ async function reviewDatabase(sheet){
  }catch(error){
   if(pending){
    if(databaseSave===pending&&databaseDialog.open)$('databaseError').textContent=error.message;
-  }else status(error.message,true);
+  }else if(isMarket)$('marketStatus').textContent=error.message;
+  else status(error.message,true);
  }
 }
 
 $('saveDatabaseSales').onclick=()=>reviewDatabase('tracking');
 $('saveDatabaseMaster').onclick=()=>reviewDatabase('models');
+$('saveDatabaseMarket').onclick=()=>reviewDatabase('market-share');
 $('cancelDatabaseSave').onclick=()=>databaseDialog.close();
 databaseDialog.addEventListener('cancel',event=>{if(savingDatabase)event.preventDefault();});
 databaseDialog.addEventListener('close',()=>{databaseSave=null;});
@@ -351,7 +469,7 @@ $('databaseForm').onsubmit=async event=>{
  event.preventDefault();
  const pending=databaseSave;
  if(!pending||savingDatabase||$('confirmDatabaseSave').disabled)return;
- const {sheet,name,content,rows,revision}=pending,isTracking=sheet==='tracking';
+ const {sheet,name,content,rows,revision}=pending,isTracking=sheet==='tracking',isMarket=sheet==='market-share';
  if(content!==sheetContent(sheet)){
   $('databaseError').textContent='草稿在核对后发生变化，请关闭后重新核对。';
   $('confirmDatabaseSave').disabled=true;
@@ -368,13 +486,14 @@ $('databaseForm').onsubmit=async event=>{
   databaseRevision[sheet]=result.revision;
   const sameDraft=content===sheetContent(sheet);
   if(isTracking){sourceSales=content;dirty=!sameDraft;}
+  else if(isMarket)sourceMarket=content;
   else{sourceMaster=content;masterDirty=!sameDraft;}
   lastSnapshot=snapshot();
   persistDraft();
 
   let message='已保存'+name+'，数据库版本 '+result.revision+'。';
   try{
-   const data=await readDatabase(sheet,isTracking?LONG:MASTER_HEADER);
+   const data=await readDatabase(sheet,isTracking?LONG:isMarket?MARKET_COLUMNS:MASTER_HEADER);
    if(content===sheetContent(sheet)){
     if(isTracking){
      state=parseFile(data.text);
@@ -382,7 +501,8 @@ $('databaseForm').onsubmit=async event=>{
      activeCell=null;
      renderGrid();
      updateSummary();
-    }else{
+    }else if(isMarket)readMarketRows(data);
+    else{
      master=parseMasterFile(data.text,'数据库 · 机型表');
      sourceMaster=masterContent();
      renderMaster();
@@ -398,7 +518,8 @@ $('databaseForm').onsubmit=async event=>{
   }
   databaseDialog.close();
   status(message);
-  if(!isTracking)$('masterStatus').textContent=message;
+  if(isMarket)$('marketStatus').textContent=message;
+  else if(!isTracking)$('masterStatus').textContent=message;
  }catch(error){
   persistDraft();
   $('databaseError').textContent=error.message;
@@ -571,6 +692,10 @@ if(adminEditor){
  $('saveDatabaseSales').hidden=false;
  $('saveDatabaseMaster').hidden=false;
  $('masterManager').parentElement.open=true;
+ $('marketEditor').hidden=false;
+ $('marketHead').replaceChildren(...[...MARKET_HEADER,'操作'].map(label=>node('th',label)));
+ if(marketRows)$('marketStatus').textContent='已恢复市场份额草稿。';
+ else loadMarketShares(true);
  if(state.ready||master)$('draftStatus').textContent='草稿已恢复；可从数据库重新读取正式数据。';
  $('editorImportHint').textContent='默认读取数据库（已有录入草稿时优先恢复）。宽表导入先预览增量和冲突，确认后合并到当前表格。';
 }

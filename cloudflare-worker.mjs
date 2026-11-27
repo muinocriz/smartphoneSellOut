@@ -189,7 +189,8 @@ async function adminRoute(request, env, url) {
   const page = url.pathname === '/admin' || url.pathname === '/admin/';
   const session = url.pathname === '/admin/api/session';
   const sheet = url.pathname === '/admin/api/tracking' ? 'tracking'
-    : url.pathname === '/admin/api/models' ? 'models' : null;
+    : url.pathname === '/admin/api/models' ? 'models'
+    : url.pathname === '/admin/api/market-share' ? 'market-share' : null;
   if (!page && !session && !sheet) return json({ error: 'not_found' }, 404);
   if (request.method !== 'GET' && !(sheet && request.method === 'POST')) {
     return json({ error: 'method_not_allowed' }, 405, { Allow: sheet ? 'GET, POST' : 'GET' });

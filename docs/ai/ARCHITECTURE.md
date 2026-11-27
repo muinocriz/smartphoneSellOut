@@ -9,7 +9,7 @@ Cloudflare Worker 在三个生产页面标记 D1 为正式数据源。`site-shel
 | 模块 | 仓库输入 | 计算和输出 |
 | --- | --- | --- |
 | 热销机型与榜单研究模块 | 截图标定 → sales-estimates.csv；model-master.csv 关联身份；按专题读取 sales-long.csv、market-share.csv | 原始排名 → 历史与研究；扩展模式融合跟踪销量。研究结果进入网页预览、工作台发布快照，再导出 PNG、CSV 或 ZIP。构建派生的 weekly-sales-panel 与浏览器即时计算分别生成。 |
-| 销量数据处理模块 | sales-long.csv、model-master.csv；可预览同步项目 data.csv 或本地宽表，或导入销量增量追踪模块会话草稿 | 编辑累计/周增量、特殊值及主数据；冲突确认、撤销/重做、本地草稿。Cloudflare 管理员可从 `/admin/` 发布扩展销量表与机型表。静态站数据由仓库 CSV 更新。 |
+| 销量数据处理模块 | sales-long.csv、model-master.csv；可预览同步项目 data.csv 或本地宽表，或导入销量增量追踪模块会话草稿 | 编辑累计/周增量、特殊值及主数据；冲突确认、撤销/重做、本地草稿。Cloudflare 管理员可从 `/admin/` 发布扩展销量表、机型表和市场份额表。静态站数据由仓库 CSV 更新。 |
 | 销量增量追踪模块 | sales-long.csv，区分累计/周增量及运算符 | 自然周/完整销售周对比、缺周估算、选中机型表格编辑；导出 PNG/长表；可把编辑结果交给销量数据处理模块。 |
 
 旧版销量追踪模块的 data.csv 保留并继续公开发布，作为销量数据处理模块的可选宽表导入源；不再接收旧版销量追踪模块会话草稿。市场份额模块的独立页面已下线。`market-share.csv`（每周品牌份额和大盘趋势）和 `market-share-data.js` 保留为热销机型与榜单研究模块的数据层，由 `ensureMarketData` 通过共享读取入口加载及校验。生产保留根路径及 `/studio/` 数据副本，不改变公开访问策略。

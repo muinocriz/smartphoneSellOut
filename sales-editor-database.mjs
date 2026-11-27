@@ -1,3 +1,7 @@
+import marketShareData from './market-share-data.js';
+
+const MARKET_COLUMNS = 'period trend apple huawei osta xiaomi oppo oneplus realme vivo iqoo honor'.split(' ');
+const MARKET_HEADER = 'ISO 周,趋势,苹果,华为,OSTA,小米,OPPO,一加,realme,vivo,iQOO,荣耀';
 const TRACKING_COLUMNS = 'brand model category date period metric value_wan operator'.split(' ');
 const MODEL_COLUMNS = (
   'model_id model_name brand brand_group aliases series generation variant form_factor ' +
@@ -54,7 +58,7 @@ function validateRows(rows, sheet, columns, key) {
         row.some(value => typeof value !== 'string' || value.includes('\0'))) {
       fail('字段数量或格式无效。');
     }
-    if (!row[0].trim() || !row[1].trim()) fail('缺少机型标识或名称。');
+    if (sheet !== 'market-share' && (!row[0].trim() || !row[1].trim())) fail('缺少机型标识或名称。');
     const id = key(row);
     if (indexed.has(id)) fail('同一记录重复出现。');
     if (sheet === 'tracking') {
@@ -68,19 +72,41 @@ function validateRows(rows, sheet, columns, key) {
       if (metadata.has(model) && metadata.get(model) !== fields) fail('同一机型的类别或开售日期不一致。');
       metadata.set(model, fields);
     }
+    if (sheet === 'market-share') {
+      if (!validWeek(row[0])) fail('ISO 周次无效。');
+      if (row.slice(2).some(value => value !== '' && !/^\d+(?:\.\d+)?$/.test(value))) {
+        fail('份额请填写百分比数值，例如 18.5。');
+      }
+    }
     indexed.set(id, row);
   }
   return indexed;
 }
 
-function modelStatements(db, changed, removed) {
-  const update = MODEL_COLUMNS.slice(1).map(column => column + ' = excluded.' + column);
+function validateMarketShares(rows) {
+  const quote = value => '"' + value.replaceAll('"', '""') + '"';
+  const csv = [
+    MARKET_HEADER,
+    ...rows.map(([period, ...fields]) => [period.replace('-W', 'W'), ...fields].map(quote).join(','))
+  ].join('\n');
+  try {
+    marketShareData.parseMarketShareCSV(csv, (year, week) =>
+      validWeek(year + '-W' + String(week).padStart(2, '0'))
+        ? isoYearStart(year) + (week - 1) * 604800000 : null);
+  } catch (error) {
+    throw new EditorError(400, error.message);
+  }
+}
+
+function upsertStatements(db, table, columns, changed, removed) {
+  const key = columns[0];
+  const update = columns.slice(1).map(column => column + ' = excluded.' + column);
   const upsert = db.prepare(`
-    INSERT INTO model_master (${MODEL_COLUMNS.join(', ')})
-    VALUES (${MODEL_COLUMNS.map(() => '?').join(', ')})
-    ON CONFLICT (model_id) DO UPDATE SET ${update.join(', ')}
+    INSERT INTO ${table} (${columns.join(', ')})
+    VALUES (${columns.map(() => '?').join(', ')})
+    ON CONFLICT (${key}) DO UPDATE SET ${update.join(', ')}
   `);
-  const remove = db.prepare('DELETE FROM model_master WHERE model_id = ?');
+  const remove = db.prepare(`DELETE FROM ${table} WHERE ${key} = ?`);
   return [...changed.map(row => upsert.bind(...row)), ...removed.map(row => remove.bind(row[0]))];
 }
 
@@ -124,9 +150,11 @@ export async function editEditorSheet(db, sheet, query, email, input) {
   }
 
   const tracking = sheet === 'tracking';
-  const columns = tracking ? TRACKING_COLUMNS : MODEL_COLUMNS;
+  const market = sheet === 'market-share';
+  const columns = tracking ? TRACKING_COLUMNS : market ? MARKET_COLUMNS : MODEL_COLUMNS;
   const key = tracking ? trackingKey : row => row[0];
   const next = validateRows(input.rows, sheet, columns, key);
+  if (market) validateMarketShares(input.rows);
   const { revision, data } = await readEditorSheet(db, sheet, query);
   const conflict = () => new EditorError(409, '数据库已有新版本。请先导出草稿，再重新读取并核对改动。');
 
@@ -155,7 +183,11 @@ export async function editEditorSheet(db, sheet, query, email, input) {
   if (input.revision !== revision) throw conflict();
   if (input.action === 'review') return { revision, ...counts };
 
-  const statements = tracking ? trackingStatements(db, changed, removed) : modelStatements(db, changed, removed);
+  const statements = tracking ? trackingStatements(db, changed, removed) : upsertStatements(
+    db, market ? 'market_share_weekly' : 'model_master', columns,
+    market ? changed.map(row => row.map((value, i) => i >= 2 && value === '' ? null : value)) : changed,
+    removed
+  );
   const released = revision + 1;
   // Only one transaction can claim this revision. Failure rolls back the audit row and all edits.
   const audit = db.prepare(`

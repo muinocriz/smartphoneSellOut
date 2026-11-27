@@ -248,7 +248,11 @@ function updateResearchStudio(){
 }
 
 
-const defaultWeiboPrompt="用简体中文写一条约 150–250 字的微博，语气克制、直接、自然，像熟悉手机市场的编辑。避免营销话术、夸张判断、表情和话题标签。\n第一句直接说最值得关注的发现。正文用 1–2 个短段落，挑 2–3 个有数字支撑的看点，写清时间、品牌或机型、数值和单位。数据不足时少写。\n把必要的口径自然写进结论，例如“榜内份额”或“约 X 万台”。只写图表发现，不附加免责声明、口径段落或图例说明。\n只输出微博正文，不加标题、Markdown 或写作说明。";
+const defaultWeiboPrompts=Object.freeze({
+ "plain": "用简体中文写一条约 150–250 字的微博，语气克制、直接、自然，像熟悉手机市场的编辑。避免营销话术、夸张判断、表情和话题标签。\n第一句直接说最值得关注的发现。正文用 1–2 个短段落，挑 2–3 个有数字支撑的看点，写清时间、品牌或机型、数值和单位。数据不足时少写。\n把必要的口径自然写进结论，例如“榜内份额”或“约 X 万台”。只写图表发现，不附加免责声明、口径段落或图例说明。\n只输出微博正文，不加标题、Markdown 或写作说明。",
+ "analysis": "用简体中文写一条克制、直接的微博，约 150–250 字。先比较同口径的数据，选 1–2 个最值得讲的变化，例如排名变化、领先差距扩大或缩小、增速分化或趋势反转。先写发现，再用少量数字支撑，并写清对应时间和单位。只有两个有效观测点时，只说两点之间的变化。数据不足以比较时，只写一条能确认的观察。避免把同期变化写成因果。只输出正文，结束于最后一条观察。",
+ "hook": "用简体中文写适配短视频的发布文案。首句短而有钩子，用数据支持的反差、变化或问题抓住注意力，接下来用 1–2 个短句立刻揭晓并给出关键数字。可用问句，答案必须能从图里找到。禁止编造原因、夸大变化、暗示未发生的逆转，或把榜内结果写成全市场结论。只输出可直接发布的正文，结束于最后一条观察。"
+});
 
 function weiboChartFields(item,fields){
  return Object.fromEntries(fields.filter(key=>item[key]!=null).map(key=>[key,item[key]]));
@@ -314,12 +318,34 @@ function initWeiboDraft(){
  $('weiboDraftPanel').hidden=false;
  const prompt=$('weiboPrompt'),draft=$('weiboDraft'),status=$('weiboDraftStatus');
  const login=$('weiboAdminLogin'),generate=$('generateWeiboDraft');
- const stored=StudioPref.read('weiboPrompt').text;
- const saved=typeof stored==='string'?stored.replace("用一句短话说明：每周 TOP30 样本约覆盖六成销量，不代表全市场。图卡若含扩展样本或全市场对照，分别标清口径；估算值用“约”。","把必要的口径自然写进结论，例如“榜内份额”或“约 X 万台”。只写图表发现，不附加免责声明、口径段落或图例说明。"):stored;
- prompt.value=typeof saved==='string'&&saved.trim()&&saved.length<=3000?saved:defaultWeiboPrompt;
- const persist=()=>StudioPref.write('weiboPrompt',{text:prompt.value.trim()});
- prompt.onchange=persist;
- $('resetWeiboPrompt').onclick=()=>{prompt.value=defaultWeiboPrompt;persist();};
+ const switches=$('weiboStyleOptions');
+ const stored=StudioPref.read('weiboPrompt');
+ const legacy=typeof stored.text==='string'?stored.text.replace("用一句短话说明：每周 TOP30 样本约覆盖六成销量，不代表全市场。图卡若含扩展样本或全市场对照，分别标清口径；估算值用“约”。","把必要的口径自然写进结论，例如“榜内份额”或“约 X 万台”。只写图表发现，不附加免责声明、口径段落或图例说明。") : '';
+ const templates={};
+ for(const style of Object.keys(defaultWeiboPrompts)){
+  const saved=stored.templates?.[style]??(style==='plain'?legacy:'');
+  if(typeof saved==='string'&&saved.trim()&&saved.length<=3000)templates[style]=saved;
+ }
+ let selectedStyle=switches.querySelector('input:checked').value;
+ const showPrompt=()=>{prompt.value=templates[selectedStyle]||defaultWeiboPrompts[selectedStyle];};
+ const savePrompt=()=>{
+  const text=prompt.value.trim();
+  if(text&&text!==defaultWeiboPrompts[selectedStyle])templates[selectedStyle]=text;
+  else delete templates[selectedStyle];
+  StudioPref.write('weiboPrompt',{templates});
+ };
+ showPrompt();
+ prompt.onchange=savePrompt;
+ switches.onchange=event=>{
+  if(!Object.hasOwn(defaultWeiboPrompts,event.target.value))return;
+  savePrompt();
+  selectedStyle=event.target.value;
+  showPrompt();
+ };
+ $('resetWeiboPrompt').onclick=()=>{
+  prompt.value=defaultWeiboPrompts[selectedStyle];
+  savePrompt();
+ };
  draft.oninput=()=>{$('copyWeiboDraft').disabled=!draft.value.trim();};
  $('copyWeiboDraft').onclick=async()=>{
   try{await navigator.clipboard.writeText(draft.value);notify('微博文案已复制');}
@@ -330,14 +356,15 @@ function initWeiboDraft(){
   const data=weiboCardData(socialData());
   if(!data)return;
   const source=JSON.stringify(data);
-  const body=JSON.stringify({style:prompt.value.trim()||defaultWeiboPrompt,data});
+  const styleLabel=switches.querySelector('input:checked').labels[0].textContent.trim();
+  const body=JSON.stringify({style:prompt.value.trim()||defaultWeiboPrompts[selectedStyle],data});
   login.hidden=true;
   if(new TextEncoder().encode(body).byteLength>96*1024){
    status.dataset.state='error';status.textContent='图卡数据超过大小限制，请缩短研究区间后重新生成图卡。';return;
   }
   const startedWith=draft.value;
   weiboBusy=true;generate.disabled=true;
-  status.dataset.state='';status.textContent='正在生成微博文案…';
+  status.dataset.state='';status.textContent='正在生成'+styleLabel+'文案…';
   try{
    const response=await fetch('/admin/api/weibo-draft',{
     method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',redirect:'manual',body
@@ -354,7 +381,7 @@ function initWeiboDraft(){
     status.dataset.state='error';status.textContent='草稿在生成期间已被编辑，已保留你的修改。';return;
    }
    draft.value=result.draft;weiboDraftData=source;
-   status.textContent='草稿已生成，请核对后发布。';
+   status.textContent='已生成「'+styleLabel+'」草稿，请核对后发布。';
   }catch(error){
    status.dataset.state='error';status.textContent=error.message;
   }finally{

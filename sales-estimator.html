@@ -373,6 +373,16 @@
     </div>
     <p id="typoWatermarkHint" class="copy-mini" hidden>水印需先启用；本处设置字号后优先于原水印字号，单项重置恢复原水印控件。</p>
     <p class="copy-mini">部分研究元素仅在相应图表类型出现；自动字号和字重会随布局变化。字号过大时可能出现空间不足或局部适配，请结合预览检查。实际字形及可用字重取决于系统字体。</p>
+    <div id="typoChartSpacing" hidden style="margin-top:12px">
+      <h4>图表间距</h4>
+      <p class="copy-mini">仅当前研究专题 · 实际字形与轴线净距（360px 逻辑宽度）。没有坐标轴或下方图例的图表不应用相应设置。</p>
+      <div class="copy-two">
+        <div><label class="lbl" for="typoSpacing-xAxisGap">横轴标签轴距</label><input id="typoSpacing-xAxisGap" class="field ui-field" type="number" min="0" max="20" step="1"></div>
+        <div><label class="lbl" for="typoSpacing-yAxisGap">纵轴标签轴距</label><input id="typoSpacing-yAxisGap" class="field ui-field" type="number" min="0" max="16" step="1"></div>
+        <div><label class="lbl" for="typoSpacing-axisLegendGap">横轴标签与图例间距</label><input id="typoSpacing-axisLegendGap" class="field ui-field" type="number" min="0" max="24" step="1"></div>
+      </div>
+      <button id="typoSpacingReset" class="secondary" type="button">恢复间距默认</button>
+    </div>
     <div class="story-buttons"><button id="typoResetOne" class="secondary" type="button">恢复此元素默认</button><button id="typoResetAll" class="secondary" type="button">全部重置为默认</button><button id="typoExport" class="primary" type="button">导出 JSON</button></div>
   </section>
     </div>

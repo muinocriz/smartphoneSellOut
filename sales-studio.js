@@ -248,7 +248,7 @@ function updateResearchStudio(){
 }
 
 
-const defaultWeiboPrompt="用简体中文写一条约 150–250 字的微博，语气克制、直接、自然，像熟悉手机市场的编辑。避免营销话术、夸张判断、表情和话题标签。\n第一句直接说最值得关注的发现。正文用 1–2 个短段落，挑 2–3 个有数字支撑的看点，写清时间、品牌或机型、数值和单位。数据不足时少写。\n用一句短话说明：每周 TOP30 样本约覆盖六成销量，不代表全市场。图卡若含扩展样本或全市场对照，分别标清口径；估算值用“约”。\n只输出微博正文，不加标题、Markdown 或写作说明。";
+const defaultWeiboPrompt="用简体中文写一条约 150–250 字的微博，语气克制、直接、自然，像熟悉手机市场的编辑。避免营销话术、夸张判断、表情和话题标签。\n第一句直接说最值得关注的发现。正文用 1–2 个短段落，挑 2–3 个有数字支撑的看点，写清时间、品牌或机型、数值和单位。数据不足时少写。\n把必要的口径自然写进结论，例如“榜内份额”或“约 X 万台”。只写图表发现，不附加免责声明、口径段落或图例说明。\n只输出微博正文，不加标题、Markdown 或写作说明。";
 
 function weiboChartFields(item,fields){
  return Object.fromEntries(fields.filter(key=>item[key]!=null).map(key=>[key,item[key]]));
@@ -314,7 +314,8 @@ function initWeiboDraft(){
  $('weiboDraftPanel').hidden=false;
  const prompt=$('weiboPrompt'),draft=$('weiboDraft'),status=$('weiboDraftStatus');
  const login=$('weiboAdminLogin'),generate=$('generateWeiboDraft');
- const saved=StudioPref.read('weiboPrompt').text;
+ const stored=StudioPref.read('weiboPrompt').text;
+ const saved=typeof stored==='string'?stored.replace("用一句短话说明：每周 TOP30 样本约覆盖六成销量，不代表全市场。图卡若含扩展样本或全市场对照，分别标清口径；估算值用“约”。","把必要的口径自然写进结论，例如“榜内份额”或“约 X 万台”。只写图表发现，不附加免责声明、口径段落或图例说明。"):stored;
  prompt.value=typeof saved==='string'&&saved.trim()&&saved.length<=3000?saved:defaultWeiboPrompt;
  const persist=()=>StudioPref.write('weiboPrompt',{text:prompt.value.trim()});
  prompt.onchange=persist;

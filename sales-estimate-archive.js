@@ -19,7 +19,80 @@
   const normalize=window.BrandUtils.normalize;
   let masterCatalog=null,masterLoading=true,masterError='';
   let trackedSales=null;
-  async function loadTracking(){return window.SalesTracking.calculate(await window.SalesSite.readProject('sales-long.csv'));}
+  let trackingRequest;
+  function loadTracking() {
+    trackingRequest ??= window.SalesSite.readProject('sales-long.csv').then(window.SalesTracking.calculate)
+      .catch(error => { trackingRequest = null; throw error; });
+    return trackingRequest;
+  }
+
+  const appleCalibrationSeries = [
+    { catalogSeries: 'iPhone 18', model: 'iPhone 18 Pro系列',
+      ids: ['apple-iphone-18-pro', 'apple-iphone-18-pro-max'] },
+    { catalogSeries: 'iPhone 17', model: 'iPhone 17系列',
+      ids: ['apple-iphone-17', 'apple-iphone-17-pro', 'apple-iphone-17-pro-max'] }
+  ];
+  const appleCalibrationState = new WeakMap();
+
+  function syncAppleCalibrations() {
+    const dataset = ds();
+    const meta = datasetMeta(dataset);
+    let week = null;
+    if (meta.type === 'weekly' && dataset.bars.length === 30 && (!meta.top || Number(meta.top) === 30)) {
+      const period = meta.period.trim().toUpperCase().match(/^([1-9]\d{3})-?W(\d{1,2})$/);
+      if (period) week = window.IsoSalesWeek.isoWeekMonday(Number(period[1]), Number(period[2]));
+    }
+    const key = JSON.stringify([week, masterCatalog?.revision, dataset.bars.map(bar => bar.name)]);
+    if (appleCalibrationState.get(dataset)?.key === key) return;
+    const state = { key, cleared: false };
+    appleCalibrationState.set(dataset, state);
+    dataset.calibrations = dataset.calibrations.filter(entry => !entry.appleSeries);
+    if (week === null || !masterCatalog) return;
+
+    const names = dataset.bars.map(bar => masterCatalog.resolve(bar.name)?.model_id);
+    const candidates = appleCalibrationSeries.flatMap(series => {
+      const members = masterCatalog.getSeries('Apple', series.catalogSeries)
+        .filter(model => series.catalogSeries !== 'iPhone 18' || /^Pro\b/i.test(model.variant));
+      if (members.length !== series.ids.length || members.some(model => !series.ids.includes(model.model_id))) return [];
+      const ids = series.ids.map(id => names.indexOf(id));
+      if (ids.includes(-1) || ids.some(index => names.lastIndexOf(names[index]) !== index)) return [];
+      return [{ ...series, ids: ids.sort((a, b) => a - b) }];
+    });
+    if (!candidates.length) return;
+
+    loadTracking().then(tracking => {
+      if (ds() !== dataset || appleCalibrationState.get(dataset) !== state || state.cleared) return;
+      const { WEEK, key: trackingKey, period } = window.SalesTracking;
+      const prior = week - WEEK;
+      const relevantWeeks = new Set([period(week), period(prior)]);
+      for (const series of candidates) {
+        if (dataset.calibrations.some(entry => entry.ids.join(',') === series.ids.join(','))) continue;
+        const row = tracking.find(item => item.id === trackingKey('Apple', series.model));
+        const current = row?.cumulative.get(week);
+        const previous = row?.cumulative.get(prior);
+        if ([current, previous].some(value => value?.operator !== '=' || value.source !== 'input_cumulative')) continue;
+        if (row.issues.some(issue => relevantWeeks.has(issue.period))) continue;
+        const rawInput = current.value + '-' + previous.value;
+        const value = parseAmount(rawInput)?.value * 10000;
+        if (!Number.isFinite(value) || value <= 0) continue;
+        dataset.calibrations.push({
+          ids: series.ids,
+          pixels: series.ids.reduce((sum, index) => sum + dataset.bars[index].pixels, 0),
+          value, rawInput, unit: '万台',
+          isDifference: true, appleSeries: series.model
+        });
+      }
+      renderAll(false);
+    }).catch(() => {
+      if (ds() === dataset && appleCalibrationState.get(dataset) === state && !state.cleared) {
+        setInfo('销量长表暂不可用，可手动添加标定。', 'warn');
+      }
+    });
+  }
+  function clearAppleCalibrations() {
+    const state = appleCalibrationState.get(ds());
+    if (state) state.cleared = true;
+  }
   const canonicalName=name=>masterCatalog?.resolve(name)?.model_name||name;
   function matchesModel(key,name,q){const m=masterCatalog?.get(key);return !q||[key,name,m?.brand,m?.brand_group,window.BrandUtils.groupLabel(m?.brand_group),window.BrandUtils.isOsta(m?.brand)?'星芒':'',m?.series,m?.chip_vendor,m?.chip_model,...(m?.aliases||[])].some(v=>normalize(v).includes(q));}
   function fail(message){throw new Error(message);}
@@ -156,7 +229,7 @@
       // A retry after provisional research must not persist or reuse provisional identities.
       research?.resetIdentities();masterError='';
     }catch(err){masterCatalog=null;masterError=err?.message||String(err);reportConsumerError('机型主数据',err);}
-    finally{masterLoading=false;updateMasterStatus();if(!loading)refreshResearch();}
+    finally{masterLoading=false;updateMasterStatus();if(!loading)refreshResearch();if(ds().bars.length)renderAll(false);}
   }
   async function sendResearchToStudio(key) {
     if (!research) { notify('专题研究暂不可用，请刷新页面后重试。'); return false; }
@@ -1965,7 +2038,8 @@
       if (key === 'type' && oldType !== m.type) {
         m.period = ''; $('archivePeriod').value = '';
       }
-      updateControls();
+      if (['type', 'period', 'top'].includes(key) && ds().bars.length) renderAll(false);
+      else updateControls();
     });
   }
   $('exportCsv').onclick = () => {
@@ -2085,7 +2159,7 @@
     activateModuleTab(key);
     modulePanes[key].scrollIntoView({behavior:'smooth',block:'start'});
   }
-  window.SalesEstimateArchive = Object.freeze({buildRows,sendResearchToStudio,returnToStudioSource,updateControls,header:HEADER.slice()});
+  window.SalesEstimateArchive = Object.freeze({buildRows,sendResearchToStudio,returnToStudioSource,updateControls,syncAppleCalibrations,clearAppleCalibrations,header:HEADER.slice()});
   async function loadRepository(selectedId) {
     loading = true;
     showHistory('正在读取仓库历史数据…');

@@ -15,7 +15,8 @@ const commit = gitHead.status === 0 && /^[0-9a-f]{40}$/.test(sha) ? sha : '';
 function prepareModulePage(html, prefix = '') {
   const version = commit ? '?v=' + commit : '';
   const page = html.replace('src="site-shell.js"', `src="${prefix}site-shell.js${version}"`)
-    .replace('href="site-shell.css"', `href="${prefix}site-shell.css${version}"`);
+    .replace('href="site-shell.css"', `href="${prefix}site-shell.css${version}"`)
+    .replace('href="favicon-adaptive.svg"', `href="${prefix}favicon-adaptive.svg"`);
   return commit ? page.replace('<html ', `<html data-site-commit="${commit}" `) : page;
 }
 const snapshot = process.env.SALES_SNAPSHOT_DIR;

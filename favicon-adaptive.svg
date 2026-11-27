@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <style>
+    .phone-stroke { stroke: #0f172a; }
+    .phone-pill { fill: #64748b; }
+    .bar-sub { fill: #334155; }
+    .bar-accent { fill: #0284c7; }
+    @media (prefers-color-scheme: dark) {
+      .phone-stroke { stroke: #f8fafc; }
+      .phone-pill { fill: #94a3b8; }
+      .bar-sub { fill: #cbd5e1; }
+      .bar-accent { fill: #38bdf8; }
+    }
+  </style>
+  <!-- 透明底自适应手机外框 -->
+  <rect class="phone-stroke" x="12" y="6" width="40" height="52" rx="8" stroke-width="4.5"/>
+  <rect class="phone-pill" x="26" y="13" width="12" height="3" rx="1.5"/>
+  <!-- 销量三阶增长柱 -->
+  <rect class="bar-sub" x="20" y="38" width="5" height="10" rx="2"/>
+  <rect class="bar-sub" x="29.5" y="30" width="5" height="18" rx="2"/>
+  <rect class="bar-accent" x="39" y="21" width="5" height="27" rx="2"/>
+</svg>

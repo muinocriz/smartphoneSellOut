@@ -47,9 +47,8 @@
 }
 .site-header .site-deployment-link,.site-header .site-build-version{
   gap:6px;padding:0 10px;border:1px solid var(--site-border);background:var(--site-soft);
+  font:12px/1 "IBM Plex Mono",ui-monospace,monospace;
 }
-.site-header .site-deployment-link{font-size:12px;line-height:1}
-.site-header .site-build-version{font:12px/1 "IBM Plex Mono",ui-monospace,monospace}
 .site-header-divider{width:1px;height:16px;margin-inline:4px;background:var(--site-border)}
 .site-header .site-github-link,.site-header .site-theme-toggle{
   width:32px;padding:0;border:0;background:transparent;cursor:pointer;

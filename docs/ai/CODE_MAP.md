@@ -6,7 +6,7 @@
 | --- | --- | --- |
 | 全站导航、主题、首页跳转、跨页临时数据 | index.html、site-shell.js | `routes`（默认销量增量追踪模块）、`pages`、`applyTheme`、`sessionRead` / `sessionWrite`；生产路径另看 scripts/build-cloudflare.mjs |
 | D1 数据快照、静态站发布与派生销量面板 | cloudflare-worker.mjs、scripts/export-db-snapshot.mjs、scripts/build-cloudflare.mjs、.github/workflows/pages.yml | `readPublicSnapshot` → `snapshotCSV` / `verifySnapshot` → `generateSalesPanel`；部署元数据 `sales-snapshot.json` |
-| GitHub CSV 自动同步与结果邮件 | .github/workflows/pages.yml、scripts/sync-github-csv.mjs、cloudflare-worker.mjs、github-csv-sync.mjs | `changedSchemas` / `planSheet` → `githubSyncRoute` → `applyGitHubCSV`；`deliverReports` 通过 Cloudflare Email Service 发送结果 |
+| GitHub CSV 自动同步与结果邮件 | .github/workflows/pages.yml、scripts/sync-github-csv.mjs、cloudflare-worker.mjs、github-csv-sync.mjs | `changedSchemas` / `planSheet` → `githubSyncRoute` → `applyGitHubCSV`；`deliverReports` → `scripts/send-icloud-mail.py` 通过 iCloud SMTP 发送结果 |
 | 热销机型与榜单研究模块与销量增量追踪模块 · 销售周、导出排版和文件名 | iso-sales-week.js、sales-chart-layout.js | `firstFullWeekMonday`、`partialWeek`、`lifecycleWeekIndex`；`renderPNG`、`exportFilename`；各页面调用点见热销机型与榜单研究模块、销量增量追踪模块 |
 | 热销机型与榜单研究模块 · 全市场份额数据、品牌竞争与市场覆盖率 | market-share-data.js、sales-estimate-archive.js | `ensureMarketData` → `decodeCSV` / `parseMarketShareCSV` → `crossMarketPanel` / `fillRangeControls` / `fillDualWeeks` → `renderDualMarket` / `renderCoverageMarket`、`marketModelRecords`；数据源 `market-share.csv`（华为集团含 OSTA，独立子份额由解析器提供；母品牌归属见 `brand-utils.js`） |
 | 热销机型与榜单研究模块 · 截图、像素标定、榜单历史 | sales-estimator.html、sales-estimator.js、sales-estimate-archive.js | `parseImage`、`parseAmount`、`getFit`；历史与研究启动分别查 `initEstimateArchive`、`initResearch` |

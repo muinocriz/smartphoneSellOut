@@ -76,12 +76,10 @@ npx wrangler d1 migrations apply DB --remote
    | 名称 | 位置 | 值 |
    | --- | --- | --- |
    | `D1_SYNC_TOKEN` | Actions Secrets | 与 Worker 同名 Secret 相同 |
-   | `CLOUDFLARE_EMAIL_API_TOKEN` | Actions Secrets | Cloudflare 账号的 Email Sending 编辑权限 API 令牌 |
-   | `SYNC_EMAIL_FROM` | Actions Secrets | 已接入 Cloudflare Email Sending 的域名下的发件地址 |
-   | `SYNC_EMAIL_TO` | Actions Secrets | 同一 Cloudflare 账号中已验证的收件地址 |
-   | `CLOUDFLARE_ACCOUNT_ID` | Actions Variables | 启用了 Email Sending 的账号 ID |
+   | `SYNC_ICLOUD_ADDRESS` | Actions Secrets | 完整的 iCloud 邮件地址，同时用于登录、发件和收件 |
+   | `SYNC_ICLOUD_APP_PASSWORD` | Actions Secrets | Apple 账户生成的 App 专用密码 |
 
-   Cloudflare 免费方案可向账号内已验证的收件地址发信。发件域名需要先完成 Email Sending 配置，收件地址在 [Destination addresses](https://developers.cloudflare.com/email-service/configuration/destination-addresses/) 中添加和验证。
+   已开通 iCloud 邮件并启用双重认证后，在 [Apple 账户](https://account.apple.com/) 的「登录和安全性 → App 专用密码」生成密码。工作流通过 iCloud SMTP 的 587 端口发信。
 
 3. 配置完成并部署 Worker 后，手动运行一次 **Deploy GitHub Pages** 建立基线。后续 CSV 提交会自动进入同一流程。如果现有上传任务以默认 `GITHUB_TOKEN` 在 GitHub Actions 里推送，上传成功后显式运行 `gh workflow run pages.yml --ref master`。上传任务需要给这一步的令牌配置 Actions 写入权限。
 

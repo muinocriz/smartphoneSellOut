@@ -1,5 +1,6 @@
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import { setTimeout as delay } from 'node:timers/promises';
+import { fileURLToPath } from 'node:url';
 import '../brand-utils.js';
 import Iso from '../iso-sales-week.js';
 import Series from '../sales-series.js';
@@ -228,24 +229,15 @@ function reportText(commit, tables, appliedAt) {
   return lines.join('\n');
 }
 
-async function sendEmail(subject, text) {
-  const {CLOUDFLARE_EMAIL_API_TOKEN: token, CLOUDFLARE_ACCOUNT_ID: account, SYNC_EMAIL_FROM: from, SYNC_EMAIL_TO: to} = env;
-  if (!token || !account || !from || !to) throw new Error('Cloudflare 邮件配置尚未填齐。');
-  const response = await fetch(
-    'https://api.cloudflare.com/client/v4/accounts/' + encodeURIComponent(account) + '/email/sending/send',
-    {
-      method:'POST', redirect:'error', signal:AbortSignal.timeout(30000),
-      headers:{Authorization:'Bearer ' + token, 'Content-Type':'application/json'},
-      body:JSON.stringify({from, to, subject, text})
-    }
-  );
-  const result = await response.json().catch(() => null);
-  const delivery = result?.result;
-  if (!response.ok || result?.success !== true || delivery?.permanent_bounces?.length ||
-      !(delivery?.delivered?.length || delivery?.queued?.length)) {
-    const code = result?.errors?.[0]?.code;
-    throw new Error('Cloudflare 发信未被确认（HTTP ' + response.status +
-      (Number.isInteger(code) ? '，错误码 ' + code : '') + '）。');
+function sendEmail(subject, text) {
+  const { PATH, SYNC_ICLOUD_ADDRESS, SYNC_ICLOUD_APP_PASSWORD } = env;
+  const script = fileURLToPath(new URL('./send-icloud-mail.py', import.meta.url));
+  const result = spawnSync('python3', [script], {
+    env:{PATH, SYNC_ICLOUD_ADDRESS, SYNC_ICLOUD_APP_PASSWORD},
+    input:JSON.stringify({subject, text}), encoding:'utf8', timeout:60000
+  });
+  if (result.status !== 0) {
+    throw new Error(result.stderr?.trim() || '未能完成 iCloud SMTP 发信。');
   }
 }
 
@@ -254,7 +246,7 @@ async function deliverReports() {
     const {pending} = await requestWorker({action:'status'});
     for (const {commit, applied_at, tables} of pending) {
       const conflicts = Object.values(tables).some(report => report.conflicts.length);
-      await sendEmail('手机销量 CSV 同步' + (conflicts ? '完成，有冲突' : '完成') + ' · ' + commit.slice(0, 7), reportText(commit, tables, applied_at));
+      sendEmail('手机销量 CSV 同步' + (conflicts ? '完成，有冲突' : '完成') + ' · ' + commit.slice(0, 7), reportText(commit, tables, applied_at));
       await requestWorker({action:'mark_emailed', commit});
     }
   } catch (error) {
@@ -300,7 +292,7 @@ try {
 } catch (error) {
   console.error('CSV 同步失败：' + oneLine(error.message));
   try {
-    await sendEmail('手机销量 CSV 同步失败 · ' + commit.slice(0, 7), [
+    sendEmail('手机销量 CSV 同步失败 · ' + commit.slice(0, 7), [
       '同步任务未确认完成。', error.message, repo + '/commit/' + commit,
       env.GITHUB_RUN_ID ? repo + '/actions/runs/' + env.GITHUB_RUN_ID : ''
     ].join('\n'));

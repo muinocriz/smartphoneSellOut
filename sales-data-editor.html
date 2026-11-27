@@ -41,6 +41,7 @@
  <div class="toolbar">
   <h2>市场份额表</h2>
   <button id="projectMarket">从数据库读取</button>
+  <button id="weiboMarketImport" disabled>微博导入</button>
   <button id="addMarketWeek" disabled>＋ 周次</button>
   <span class="spacer"></span>
   <button id="saveDatabaseMarket" class="primary" disabled>保存到数据库</button>
@@ -56,6 +57,18 @@
 <dialog id="modelDialog"><form id="modelForm"><div class="dialog-head"><h2>新增机型</h2><button type="button" data-close="modelDialog" aria-label="关闭">×</button></div><div class="field"><label for="newBrand">品牌</label><input id="newBrand" required></div><div class="field"><label for="newModel">机型</label><input id="newModel" required></div><div class="field"><label for="newCategory">类别（可选）</label><input id="newCategory"></div><div class="field"><label for="newDate">正式开售日期（可选）</label><input id="newDate" placeholder="例如 2026/11/24" title="优先填写正式开售日；无法查证时暂用正式发布日期"></div><p id="modelError" class="error-text"></p><div class="dialog-actions"><button type="button" data-close="modelDialog">取消</button><button class="primary" type="submit">添加机型</button></div></form></dialog>
 
 <dialog id="masterDialog"><form id="masterForm"><div class="dialog-head"><h2>编辑机型表</h2><button type="button" data-close="masterDialog">×</button></div><p class="muted" style="margin-bottom:10px">新机型 ID 根据品牌与标准名称自动生成，保存后保持不变。系列合计不是一个单机型，请为实际成员建立机型表。</p><div class="master-fields" id="masterFields"></div><p class="error-text" id="masterError"></p><div class="dialog-actions"><button type="button" data-close="masterDialog">取消</button><button class="primary" type="submit">保存机型表</button></div></form></dialog>
+<dialog id="weiboMarketDialog" style="width:min(1050px,calc(100% - 24px));max-height:88vh;overflow:auto">
+ <div class="dialog-head"><h2>市场份额微博导入</h2><button type="button" data-close="weiboMarketDialog" aria-label="关闭">×</button></div>
+ <p class="muted">支持多篇 ISO 周报；月报跳过。集团份额包含子品牌，新增默认选中，冲突需人工确认。仅更新草稿。</p>
+ <label for="weiboMarketRaw">微博原文</label>
+ <textarea id="weiboMarketRaw" rows="10" style="display:block;width:100%;box-sizing:border-box;resize:vertical;font:inherit" placeholder="粘贴市场份额周报"></textarea>
+ <div class="dialog-actions"><button type="button" id="weiboMarketClear">清空</button><button type="button" id="weiboMarketParse" class="primary">解析并预览</button></div>
+ <p id="weiboMarketSummary" role="status"></p>
+ <div class="check-wrap" id="weiboMarketPreview" hidden><table><thead><tr><th>确认 / 状态</th><th>ISO 周</th><th>当前草稿</th><th>微博数据</th></tr></thead><tbody id="weiboMarketRows"></tbody></table></div>
+ <details id="weiboMarketDiagnostics" hidden><summary>解析报告</summary><textarea id="weiboMarketReport" readonly rows="8" style="width:100%;box-sizing:border-box"></textarea></details>
+ <p id="weiboMarketError" class="error-text" role="alert"></p>
+ <div class="dialog-actions"><button type="button" data-close="weiboMarketDialog">取消</button><button type="button" id="weiboMarketApply" class="primary" disabled>添加至草稿</button></div>
+</dialog>
 <dialog id="weiboReportDialog" style="width:min(850px,calc(100% - 24px));max-height:88vh;overflow:auto"><div class="dialog-head"><h2>上次微博导入报告</h2><button type="button" data-close="weiboReportDialog" aria-label="关闭">×</button></div><p class="muted">本次会话的草稿导入结果，不代表数据库已发布；撤销或后续编辑不会改写该历史报告。</p><textarea id="weiboReportText" readonly rows="16" style="width:100%;box-sizing:border-box;resize:vertical"></textarea><div class="dialog-actions"><button type="button" id="weiboReportCopy">复制报告</button><button type="button" data-close="weiboReportDialog">关闭</button></div></dialog>
 <dialog id="weiboSalesDialog" style="width:min(850px,calc(100% - 24px));max-height:88vh;overflow:auto">
  <div class="dialog-head"><h2>微博文本导入</h2><button type="button" data-close="weiboSalesDialog" aria-label="关闭">×</button></div>
@@ -80,6 +93,9 @@
  </form>
 </dialog>
 <script src="weibo-sales-parser.js"></script>
+<script src="iso-sales-week.js"></script>
+<script src="market-share-data.js"></script>
+<script src="weibo-market-parser.js"></script>
 <script>
 'use strict';
 const $=id=>document.getElementById(id), META=['brand','model','category','date'], LONG=[...META,'period','metric','value_wan','operator'];
@@ -141,6 +157,7 @@ function updateExportStyles(){
   const marketReady=!!marketRows&&!$('projectMarket').disabled;
   $('saveDatabaseMarket').disabled=!marketReady||databaseRevision['market-share']===null;
   $('addMarketWeek').disabled=!marketReady;
+  $('weiboMarketImport').disabled=!marketReady||databaseRevision['market-share']===null;
   $('marketExport').disabled=!marketRows;
   $('saveDatabaseMaster').disabled=!master||databaseRevision.models===null||$('projectMaster').disabled;
  }
@@ -425,6 +442,102 @@ $('addMarketWeek').onclick=()=>{
 $('marketExport').onclick=()=>download('market-share.csv',[
  MARKET_HEADER,...marketRows.map(([period,...values])=>[period.replace('-W','W'),...values])
 ]);
+
+
+let marketImportPlan=null;
+function requireMarketImport(){
+ if(!adminEditor||!marketRows||databaseRevision['market-share']===null||$('projectMarket').disabled)throw Error('请先读取正式市场份额表。');
+ if(!globalThis.WeiboMarketParser||!globalThis.MarketShareData||!globalThis.IsoSalesWeek)throw Error('解析器未加载，请刷新页面。');
+}
+function resetMarketImport(){
+ marketImportPlan=null;
+ $('weiboMarketApply').disabled=true;
+ $('weiboMarketPreview').hidden=true;
+ $('weiboMarketDiagnostics').hidden=true;
+ $('weiboMarketSummary').textContent='';
+ $('weiboMarketError').textContent='';
+ $('weiboMarketRows').replaceChildren();
+ $('weiboMarketReport').value='';
+}
+$('weiboMarketImport').onclick=()=>{
+ try{requireMarketImport();resetMarketImport();$('weiboMarketDialog').showModal();$('weiboMarketRaw').focus();}
+ catch(e){$('marketStatus').textContent=e.message;}
+};
+$('weiboMarketRaw').oninput=resetMarketImport;
+$('weiboMarketClear').onclick=()=>{$('weiboMarketRaw').value='';resetMarketImport();$('weiboMarketRaw').focus();};
+function marketImportIndex(){
+ const index=new Map();
+ for(const [i,row] of marketRows.entries()){
+  const p=parsePeriod(row[0],NaN);
+  if(index.has(p))throw Error('当前草稿有重复周次：'+p+'，请先修正。');
+  index.set(p,{row,i});
+ }
+ return index;
+}
+function marketImportText(row){
+ if(!row)return '—';
+ return MARKET_HEADER.slice(1).map((key,i)=>key+'：'+(row[i+1]||'未披露')+(i>0&&row[i+1]!==''?'%':'')).join('；');
+}
+$('weiboMarketParse').onclick=()=>{
+ resetMarketImport();
+ try{
+  requireMarketImport();
+  if(!$('weiboMarketRaw').value.trim())throw Error('请粘贴微博原文。');
+  const result=WeiboMarketParser.parse($('weiboMarketRaw').value),index=marketImportIndex();
+  const items=result.records.map(row=>{
+   const old=index.get(row[0]),kind=!old?'add':WeiboMarketParser.equal([row[0],...old.row.slice(1)],row)?'same':'conflict';
+   return {row,old,kind,chosen:kind==='add'};
+  });
+  const plan={items,baseline:marketContent(),revision:databaseRevision['market-share']};
+  marketImportPlan=plan;
+  function counts(){
+   const selected=items.filter(x=>x.chosen).length;
+   $('weiboMarketSummary').textContent='新增 '+items.filter(x=>x.kind==='add').length+' 周 · 相同 '+items.filter(x=>x.kind==='same').length+' 周 · 冲突 '+items.filter(x=>x.kind==='conflict').length+' 周 · 已选 '+selected+' 周';
+   $('weiboMarketApply').disabled=!selected;
+   $('weiboMarketApply').textContent='添加至草稿（'+selected+' 周）';
+  }
+  for(const item of items){
+   const tr=node('tr'),td=node('td');
+   if(item.kind==='same')td.textContent='一致，跳过';
+   else{
+    const label=node('label'),cb=node('input');cb.type='checkbox';cb.checked=item.chosen;
+    cb.onchange=()=>{item.chosen=cb.checked;counts();};
+    label.append(cb,document.createTextNode(item.kind==='add'?' 新增':' 确认覆盖整周'));td.append(label);
+   }
+   const before=node('td',marketImportText(item.old?.row)),after=node('td',marketImportText(item.row));
+   if(item.old&&item.kind==='conflict'){
+    const changes=MARKET_HEADER.slice(1).filter((key,i)=>String(item.old.row[i+1])!==String(item.row[i+1]));
+    after.append(node('p','字段差异：'+changes.join('、'),'issue-warn'));
+   }
+   tr.append(td,node('td',item.row[0]),before,after);$('weiboMarketRows').append(tr);
+  }
+  $('weiboMarketPreview').hidden=!items.length;
+  $('weiboMarketReport').value=result.reports.map(x=>'第 '+x.line+' 行｜'+x.reason+'｜'+x.text).join('\n')||'没有识别到数据块。';
+  $('weiboMarketDiagnostics').hidden=false;
+  $('weiboMarketDiagnostics').open=result.reports.some(x=>!x.reason.startsWith('解析成功'));
+  counts();
+ }catch(e){$('weiboMarketError').textContent=e.message;}
+};
+$('weiboMarketApply').onclick=()=>{
+ try{
+  requireMarketImport();
+  const plan=marketImportPlan;
+  if(!plan||plan.baseline!==marketContent()||plan.revision!==databaseRevision['market-share'])throw Error('草稿或数据库版本已变化，请重新解析预览。');
+  const edits=plan.items.filter(x=>x.chosen);
+  if(!edits.length)return;
+  const index=marketImportIndex(),next=marketRows.map(row=>[...row]);
+  for(const item of edits){
+   const existing=index.get(item.row[0]);
+   if(existing)next[existing.i]=[...item.row];else next.push([...item.row]);
+  }
+  next.sort((a,b)=>parsePeriod(a[0],NaN).localeCompare(parsePeriod(b[0],NaN)));
+  // Validate the merged draft using the same parser as the database.
+  MarketShareData.parseMarketShareCSV(csvText([MARKET_HEADER,...next.map(([p,...v])=>[parsePeriod(p,NaN).replace('-W','W'),...v])]),IsoSalesWeek.isoWeekMonday);
+  marketRows=next;captureChange();renderMarketGrid();
+  $('marketStatus').textContent='微博导入：新增 '+edits.filter(x=>x.kind==='add').length+' 周，覆盖 '+edits.filter(x=>x.kind==='conflict').length+' 周。已更新草稿，可撤销；核对后另行保存到数据库。';
+  $('weiboMarketDialog').close();$('weiboMarketRaw').value='';resetMarketImport();
+ }catch(e){$('weiboMarketError').textContent=e.message;}
+};
 
 let databaseSave=null,savingDatabase=false;
 const databaseDialog=$('databaseDialog');

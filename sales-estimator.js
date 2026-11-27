@@ -60,7 +60,191 @@ function parseImage(image){const canvas=document.createElement('canvas'),w=image
 $('modeSingle').onclick=()=>{mode='single';$('singlePane').hidden=false;$('groupPane').hidden=true;$('modeSingle').classList.add('on');$('modeGroup').classList.remove('on')};
 $('modeGroup').onclick=()=>{mode='group';$('singlePane').hidden=true;$('groupPane').hidden=false;$('modeSingle').classList.remove('on');$('modeGroup').classList.add('on')};
 $('amount').addEventListener('input',previewAmount);$('inputUnit').addEventListener('change',previewAmount);$('poolSearch').addEventListener('input',renderPool);$('searchRows').addEventListener('input',()=>renderRows(getFit()));$('resetSearch').onclick=()=>{$('searchRows').value='';renderRows(getFit())};$('addCal').onclick=addCal;$('outlier').addEventListener('change',()=>renderAll(false));$('clearCal').onclick=()=>{ds().calibrations=[];renderAll(false)};$('exportCsv').onclick=exportCSV;
-$('imageUpload').onchange=async ev=>{const file=ev.target.files[0];if(!file)return;const url=URL.createObjectURL(file);const img=new Image();try{await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=reject;img.src=url});const data=parseImage(img);currentDataset={id:'custom',label:file.name,base:data.base,width:data.width,height:data.height,bars:data.bars,calibrations:[]};$('uploadResult').textContent=`已识别 ${data.bars.length} 条蓝色柱条。起点 x ≈ ${data.base}px。请核对排名及柱长；可在下方粘贴机型名称。`;$('customNames').value='';$('nameImportStatus').hidden=true;resetCalibrationInputs();renderAll(true,true);notify(`识别完成：${data.bars.length} 条柱条`)}catch(err){$('uploadResult').textContent='识别失败：'+err.message;notify('图片识别失败，请核对蓝柱样式')}finally{URL.revokeObjectURL(url)}};
+let rankingImage;
+let rankingCropTop = 0;
+let rankingUploadVersion = 0;
+let rankingOcrRequest;
+const rankingCrop = $('rankingCrop');
+const rankingCropRight = $('rankingCropRight');
+const rankingOcrButton = $('recognizeRankingNames');
+const rankingOcrStatus = $('rankingOcrStatus');
+
+function resetRankingOCR() {
+  rankingOcrRequest?.abort();
+  rankingOcrRequest = null;
+  rankingOcrButton.disabled = false;
+  rankingOcrStatus.hidden = true;
+  $('rankingOcrReview').hidden = true;
+  $('rankingOcrRows').replaceChildren();
+}
+
+function drawRankingCrop() {
+  if (!rankingImage) return;
+  const { bars, height } = ds();
+  const first = bars[0].centerY;
+  const last = bars.at(-1).centerY;
+  rankingCropTop = Math.max(0, Math.floor(first - (bars[1].centerY - first) / 2));
+  const bottom = Math.min(height, Math.ceil(last + (last - bars.at(-2).centerY) / 2));
+  rankingCrop.width = Number(rankingCropRight.value);
+  rankingCrop.height = bottom - rankingCropTop;
+  rankingCrop.getContext('2d').drawImage(rankingImage, 0, rankingCropTop,
+    rankingCrop.width, rankingCrop.height, 0, 0, rankingCrop.width, rankingCrop.height);
+}
+
+rankingCropRight.onchange = () => {
+  if (!rankingImage) return;
+  const right = Math.round(rankingCropRight.valueAsNumber);
+  rankingCropRight.value = Number.isFinite(right) ? Math.min(ds().width, Math.max(1, right)) : ds().base;
+  resetRankingOCR();
+  drawRankingCrop();
+};
+
+function alignRankingLabels(raw, bars, top, height) {
+  // DeepSeek reports coordinates relative to the submitted crop.
+  const text = raw.replaceAll('｜', '|');
+  const blocks = [...text.matchAll(/<\|ref\|>(.*?)<\|\/ref\|>\s*<\|(?:box|det)\|>\s*\[\[\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\]\](?:<\|\/(?:box|det)\|>)?/gs)];
+  const labels = bars.map(() => []);
+  for (const block of blocks) {
+    const [, ref, x1, y1, x2, y2] = block;
+    if (+x1 >= +x2 || +y1 >= +y2 || +x2 > 1000 || +y2 > 1000) continue;
+    const start = block.index + block[0].length;
+    const nextRef = text.indexOf('<|ref|>', start);
+    const body = text.slice(start, nextRef === -1 ? text.length : nextRef)
+      .replace(/<\|[^|]*\|>/g, '').trim();
+    const kind = ref.trim();
+    const generic = /^(?:text|title|sub_title|caption|image|figure|table|list|formula|header|footer)$/i.test(kind);
+    const name = (generic ? body : kind).replace(/^\s*(?:#\s*)?\d+(?:\s*[.、)）:：]\s*|\s+)/, '').trim();
+    if (!name || /^\d+$|[\r\n]/.test(name)) continue;
+
+    const boxTop = top + Number(y1) * height / 1000;
+    const boxBottom = top + Number(y2) * height / 1000;
+    const center = (boxTop + boxBottom) / 2;
+    const index = bars.findIndex((bar, row) => {
+      const prior = bars[row - 1]?.centerY;
+      const next = bars[row + 1]?.centerY;
+      const leftGap = bar.centerY - (prior ?? (2 * bar.centerY - next));
+      const rightGap = (next ?? (2 * bar.centerY - prior)) - bar.centerY;
+      return center > bar.centerY - leftGap * 0.45 && center < bar.centerY + rightGap * 0.45 &&
+        (prior === undefined || boxTop > prior) && (next === undefined || boxBottom < next);
+    });
+    if (index !== -1) labels[index].push(name);
+  }
+  return labels.map(names => [...new Set(names)]);
+}
+
+rankingOcrButton.onclick = async () => {
+  if (!rankingImage || rankingOcrRequest) return;
+  resetRankingOCR();
+  const request = new AbortController();
+  rankingOcrRequest = request;
+  rankingOcrButton.disabled = true;
+  rankingOcrStatus.hidden = false;
+  rankingOcrStatus.textContent = '正在识别裁片中的机型…';
+  const { bars } = ds();
+  const top = rankingCropTop;
+  const height = rankingCrop.height;
+
+  try {
+    const image = await new Promise(resolve => rankingCrop.toBlob(resolve, 'image/png'));
+    if (request.signal.aborted) return;
+    if (!image) throw Error('无法生成 PNG 裁片，请调整裁剪范围。');
+    const response = await fetch('/admin/api/ranking-ocr', {
+      method: 'POST',
+      body: image,
+      credentials: 'same-origin',
+      signal: request.signal
+    });
+    const result = await response.json().catch(() => null);
+    if (response.redirected || response.status === 401 || response.status === 403) {
+      throw Error('请先在 Cloudflare 管理后台登录，再识别机型。');
+    }
+    if (!response.ok || typeof result?.text !== 'string') {
+      throw Error(result?.message || 'OCR 服务暂不可用，请手动填写机型名称。');
+    }
+    const labels = alignRankingLabels(result.text, bars, top, height);
+    if (!labels.some(names => names.length)) {
+      throw Error('未找到能与柱条对齐的文字。请查看裁剪预览，调整右边界后重试。');
+    }
+    const catalog = await window.ModelMaster.load();
+    if (request.signal.aborted) return;
+
+    const matches = labels.map(names => names.length === 1 ? catalog.resolve(names[0]) : null);
+    const counts = new Map();
+    for (const model of matches) {
+      if (model) counts.set(model.model_id, (counts.get(model.model_id) || 0) + 1);
+    }
+    const draft = $('customNames');
+    const names = draft.value.split(/\r?\n/);
+    let filled = 0;
+    let review = 0;
+    labels.forEach((rawNames, index) => {
+      const model = matches[index];
+      const unique = model && counts.get(model.model_id) === 1;
+      const item = document.createElement('li');
+      const rawName = rawNames.join(' / ') || '未识别';
+      if (!unique) {
+        review++;
+        item.textContent = `${rawName} · 待复核${model ? '（同一机型匹配到多行）' : ''}`;
+      } else if (names[index]?.trim()) {
+        item.textContent = `${rawName} → ${model.model_name}（保留已录入名称）`;
+      } else {
+        names[index] = model.model_name;
+        item.textContent = `${rawName} → ${model.model_name}`;
+        filled++;
+      }
+      $('rankingOcrRows').append(item);
+    });
+    draft.value = names.join('\n');
+    $('rankingOcrReview').hidden = false;
+    $('rankingOcrReview').open = review > 0;
+    rankingOcrStatus.textContent = `已填入 ${filled} 行，${review} 行待复核。请核对名单后点击“应用机型名称”。`;
+  } catch (error) {
+    if (!request.signal.aborted) rankingOcrStatus.textContent = error.message;
+  } finally {
+    if (rankingOcrRequest === request) {
+      rankingOcrRequest = null;
+      rankingOcrButton.disabled = false;
+    }
+  }
+};
+
+$('imageUpload').onchange = async event => {
+  const file = event.target.files[0];
+  if (!file) return;
+  const version = ++rankingUploadVersion;
+  resetRankingOCR();
+  rankingImage = null;
+  $('rankingCropPanel').hidden = true;
+  rankingOcrButton.hidden = true;
+  const url = URL.createObjectURL(file);
+  const image = new Image();
+  try {
+    image.src = url;
+    await image.decode();
+    if (version !== rankingUploadVersion) return;
+    const data = parseImage(image);
+    currentDataset = { id: 'custom', label: file.name, ...data, calibrations: [] };
+    $('uploadResult').textContent = `已识别 ${data.bars.length} 条蓝色柱条。起点 x ≈ ${data.base}px。请核对排名及柱长。`;
+    $('customNames').value = '';
+    $('nameImportStatus').hidden = true;
+    resetCalibrationInputs();
+    renderAll(true, true);
+
+    rankingImage = image;
+    rankingCropRight.max = data.width;
+    rankingCropRight.value = data.base;
+    drawRankingCrop();
+    $('rankingCropPanel').hidden = false;
+    rankingOcrButton.hidden = !window.SalesSite?.projectSupportsAdmin;
+    notify(`识别完成：${data.bars.length} 条柱条`);
+  } catch (error) {
+    if (version !== rankingUploadVersion) return;
+    $('uploadResult').textContent = '识别失败：' + error.message;
+    notify('图片识别失败，请核对蓝柱样式');
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+};
 $('applyNames').onclick=()=>{
  const names=$('customNames').value.split(/\r?\n/).map(s=>s.trim()),bars=ds().bars,status=$('nameImportStatus');
  // Ignore trailing empty lines, but preserve interior blank lines so ranks never shift.

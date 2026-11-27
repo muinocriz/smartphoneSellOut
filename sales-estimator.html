@@ -224,7 +224,20 @@
 <div id="module3-estimate" role="tabpanel" aria-labelledby="module3-tab-estimate">
 <div class="metrics"><div class="metric"><div class="k">识别到的机型</div><div class="v" id="mRows">0 款</div></div><div class="metric"><div class="k">最长柱条</div><div class="v" id="mMax">0 px</div></div><div class="metric"><div class="k">有效标定数据</div><div class="v" id="mCal">0 组</div></div><div class="metric"><div class="k">拟合比例 · 台 / px</div><div class="v" id="mRate">尚未标定</div></div></div>
 <div class="layout"><aside class="sidebar">
-<section class="panel" id="uploadPanel"><h2 class="panel-title">导入新榜单截图</h2><div class="uploadbox"><label class="lbl" for="imageUpload">图片文件（PNG / JPG / WebP）</label><input type="file" id="imageUpload" accept="image/png,image/jpeg,image/webp"></div><p id="uploadResult" class="stepnote">自动测量图中的蓝色水平柱长。请使用白底、蓝色水平柱条的榜单截图。</p><label class="lbl" for="customNames">机型名称（按榜单排名，一行一个）</label><textarea id="customNames" class="field ui-field textarea" placeholder="可粘贴每一名的机型名称；留空时显示第N名"></textarea><button id="applyNames" type="button" class="secondary" style="margin-top:10px">应用机型名称</button><div id="nameImportStatus" class="msg" role="status" hidden></div><div class="msg">文字识别不包含在离线工具内。导入图片后会自动给出“第N名”，你可以粘贴机型名称批量替换。</div></section>
+<section class="panel" id="uploadPanel"><h2 class="panel-title">导入新榜单截图</h2><div class="uploadbox"><label class="lbl" for="imageUpload">图片文件（PNG / JPG / WebP）</label><input type="file" id="imageUpload" accept="image/png,image/jpeg,image/webp"></div><p id="uploadResult" class="stepnote">自动测量图中的蓝色水平柱长。请使用白底、蓝色水平柱条的榜单截图。</p>
+<details id="rankingCropPanel" hidden>
+  <summary>查看裁剪后的图片</summary>
+  <label for="rankingCropRight">右边界（原图像素）</label>
+  <input id="rankingCropRight" type="number" min="1" step="1" class="field ui-field">
+  <div style="max-height:360px;overflow:auto"><canvas id="rankingCrop" role="img" aria-label="用于识别机型的截图裁片" style="display:block;max-width:100%;height:auto"></canvas></div>
+</details>
+<button id="recognizeRankingNames" type="button" class="secondary" hidden>识别机型</button>
+<p id="rankingOcrStatus" class="msg" role="status" hidden></p>
+<details id="rankingOcrReview" hidden>
+  <summary>查看逐行识别结果</summary>
+  <ol id="rankingOcrRows"></ol>
+</details>
+<label class="lbl" for="customNames">机型名称（按榜单排名，一行一个）</label><textarea id="customNames" class="field ui-field textarea" placeholder="可粘贴每一名的机型名称；留空时显示第N名"></textarea><button id="applyNames" type="button" class="secondary" style="margin-top:10px">应用机型名称</button><div id="nameImportStatus" class="msg" role="status" hidden></div></section>
 <section class="panel"><h2 class="panel-title">加入已知销量</h2><p class="panel-desc">直接填某一排名机型的销量，或者勾选 2–5 款机型填入它们的总销量。支持连续加入多组。</p>
 <div class="seg"><button id="modeSingle" class="on" type="button">单个机型</button><button id="modeGroup" type="button">多个机型合计</button></div>
 <div id="singlePane"><label class="lbl" for="singleSelect">选择机型（按排名）</label><select class="field ui-field" id="singleSelect"></select></div>

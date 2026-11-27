@@ -65,6 +65,10 @@ npx wrangler d1 migrations apply DB --remote
 
 生成返回 503 且提示未配置时检查 Worker Secret。若返回 502，按响应提示在 Workers Observability 中区分上游重定向、连接失败、无效响应或空草稿。
 
+## 榜单截图机型识别
+
+沿用出图台已配置的 `DEEPSEEK_API_KEY` 和同一 Access 应用，无需新增 Secret。在 Cloudflare 主站上传榜单，展开「查看裁剪后的图片」，确认右边界后点击「识别机型」。同源 `/admin/api/ranking-ocr` 使用 DeepSeek OCR 的 `text_recognition`。确认名称草稿后点击「应用机型名称」。
+
 ## GitHub CSV 自动同步和邮件
 
 启用后，`master` 的代码推送或手动运行 **Deploy GitHub Pages** 会检查四份正式 CSV。发生文件变更时，比较上次扫描的 GitHub 提交、新文件和正式 D1。第一次同步以当前 CSV 建立基线，只追加缺失记录，记录两边不同的值供核对。后续自动应用 GitHub 单边更新，两边均有变化时保留 D1。CSV 删行不删除 D1 记录；榜单按 `dataset_id` 整期写入。扩展销量表有机型资料差异时，继续采用 D1 的类别和开售日期。

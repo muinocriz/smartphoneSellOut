@@ -9,7 +9,10 @@ A smartphone sales dashboard and chart-card toolkit with three independent modul
 **[GitHub Pages](https://muinocriz.github.io/smartphoneSellOut/)**
 
 <p align="center">
-  <img src="screenshots/新机周销量-26折叠-发布后-总销量-桌面.png" alt="Historical sales chart example" width="760">
+  <img src="screenshots/总销量-旗舰-自然周-手机-220133.png" alt="phone" width="760">
+</p>
+<p align="center">
+  <img src="screenshots/总销量-旗舰-自然周-桌面-220132.png" alt="PC" width="760">
 </p>
 
 ## Modules

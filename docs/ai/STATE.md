@@ -38,3 +38,4 @@
 | 全市场份额及品牌归属 · OSTA 星芒 | W47 保持同源华为 22.3%、OSTA 0.1%，六大厂商合计口径不变；旧表头及未披露子份额兼容，母品牌仍为华为、机型品牌为 OSTA。待用户验收跨市场专题及新增机型录入。 | `parseMarketShareCSV` / `BrandUtils.classify` / `model-master.js`，随本次改动 |
 | 华为系展示与选择器 | 母品牌图表、派生分析表、研究筛选器统一显示华为系，保留华为原键；品牌筛选提供 OSTA 星芒独立选项，无样本时为空；销量增量追踪品牌按钮按实际源数据生成。机型表录入提示同步。待用户验收网页预览、导出及旧筛选配置。 | `BrandUtils.groupLabel` / `ProductResearch.filterKey` / `refreshProductFilters`，随本次改动 |
 | 热销机型与榜单研究模块 · 同档代际对比 | 主数据自动配对要求新旧两代在当前分析范围内均有可用序列；待用户验收。 | `tierPairPreset`，随本次改动 |
+| 热销机型与榜单研究模块 · 代际替代分析 | 前代下拉框按当前范围和比较对象筛选，至少一周双边销量有效且合计为正才提供该配对。待用户验收配对机型和系列口径。 | `fillGenerationChoices` / `comparableGeneration`，随本次改动 |

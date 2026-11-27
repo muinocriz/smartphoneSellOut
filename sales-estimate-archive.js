@@ -760,20 +760,48 @@
     if(scope.expanded)return scope.models.map(m=>({key:m.key,model:m.master||null}));
     return raw?[...knownModels(scope).keys()].map(key=>({key,model:masterCatalog?.get(key)||null})):scope.models.map(m=>({key:m.key,model:m.master||null}));
   }
-  function predecessorPreset(scope){
+  function predecessorPreset(scope,includeFiltered=false){
     const known=knownModels(scope),covered=scope.expanded?new Set((scope.allModels||scope.models).flatMap(m=>m.member_ids)):null;
-    return (masterCatalog?.models||[]).filter(m=>m.predecessor_id&&(known.has(m.model_id)||(researchView==='generation'&&covered?.has(m.model_id)))&&m.predecessor_id!==m.model_id&&matchesAttributes(m.model_id)).map(m=>({name:m.model_name+' / 上一代',old:m.predecessor_id,next:m.model_id}));
+    return (masterCatalog?.models||[]).filter(m=>m.predecessor_id&&(known.has(m.model_id)||(researchView==='generation'&&covered?.has(m.model_id)))&&m.predecessor_id!==m.model_id&&(includeFiltered||matchesAttributes(m.model_id))).map(m=>({name:m.model_name+' / 上一代',old:m.predecessor_id,next:m.model_id}));
   }
   function fillGenerationChoices(scope){
-    const select=$('researchGenerationPair'),prior=select.value;select.replaceChildren();
-    for(const pair of predecessorPreset(scope)){const o=document.createElement('option');o.value=pair.next;o.textContent=(masterCatalog?.get(pair.old)?.model_name||pair.old)+' → '+(masterCatalog?.get(pair.next)?.model_name||pair.next);select.append(o);}
-    if([...select.options].some(o=>o.value===prior))select.value=prior;select.disabled=!select.options.length;
+    const select=$('researchGenerationPair'),prior=select.value,key=groupStateKey(scope);
+    const savedGroups=JSON.stringify(groupStates.get(key));
+    const c=Object.fromEntries(trackerData.header.map((h,i)=>[h,i]));
+    const rowsByModel=fixedRowsByModel(scope,c);
+    let savedPair='',savedPairAvailable=false;
+    select.replaceChildren();
+    for(const pair of predecessorPreset(scope,true)){
+      const groups=generationGroups(scope,pair);
+      const isSaved=JSON.stringify(groups)===savedGroups;
+      if(isSaved&&!savedPair)savedPair=pair.next;
+      if(!matchesAttributes(pair.next)||!comparableGeneration(scope,c,groups,rowsByModel))continue;
+      const o=document.createElement('option');
+      o.value=pair.next;
+      o.textContent=(masterCatalog?.get(pair.old)?.model_name||pair.old)+' → '+(masterCatalog?.get(pair.next)?.model_name||pair.next);
+      select.append(o);
+      if(isSaved){savedPair=pair.next;savedPairAvailable=true;}
+    }
+    if(savedPairAvailable)select.value=savedPair;
+    else if([...select.options].some(o=>o.value===prior))select.value=prior;
+    select.disabled=!select.options.length;
+    if(savedPair&&!savedPairAvailable){
+      if(select.value)groupStates.set(key,generationPreset(scope));
+      else groupStates.delete(key);
+    }
   }
   function generationPreset(scope){
-    const pairs=predecessorPreset(scope),pair=pairs.find(p=>p.next===$('researchGenerationPair').value)||pairs[0];if(!pair)return [];
-    const a=masterCatalog?.get(pair.old),b=masterCatalog?.get(pair.next),known=knownModels(scope);
+    const selected=$('researchGenerationPair').value;
+    const pair=predecessorPreset(scope).find(p=>p.next===selected);
+    return pair?generationGroups(scope,pair):[];
+  }
+  function generationGroups(scope,pair){
+    const a=masterCatalog?.get(pair.old),b=masterCatalog?.get(pair.next);
     if(scope.expanded&&$('researchGenerationLevel').value==='series'&&a&&b&&a.brand===b.brand&&a.series&&b.series&&(a.series!==b.series||a.generation!==b.generation)){const observed=new Set((scope.allModels||scope.models).flatMap(m=>m.member_ids));return [a,b].map(m=>({name:Product.value(m,'series')+(a.series===b.series?' · 第'+m.generation+'代':''),keys:masterCatalog.getSeries(m.brand,m.series).filter(v=>v.generation===m.generation&&(observed.has(v.model_id)||v.model_id===m.model_id)).map(v=>v.model_id)}));}
-    if($('researchGenerationLevel').value==='series'&&a&&b&&a.brand===b.brand&&a.series&&b.series&&a.series!==b.series)return [a,b].map(m=>({name:Product.value(m,'series'),keys:masterCatalog.getSeries(m.brand,m.series).filter(v=>known.has(v.model_id)||v.model_id===m.model_id).map(v=>v.model_id)}));
+    if($('researchGenerationLevel').value==='series'&&a&&b&&a.brand===b.brand&&a.series&&b.series&&a.series!==b.series){
+      const known=knownModels(scope);
+      return [a,b].map(m=>({name:Product.value(m,'series'),keys:masterCatalog.getSeries(m.brand,m.series).filter(v=>known.has(v.model_id)||v.model_id===m.model_id).map(v=>v.model_id)}));
+    }
     return [{name:a?.model_name||pair.old,keys:[pair.old]},{name:b?.model_name||pair.next,keys:[pair.next]}];
   }
   function groupPreset(scope){return researchView==='generation'?generationPreset(scope):Product.groups(entriesFor(scope,observedGroups(researchView)),$('researchGroupField').value,filters());}
@@ -781,7 +809,10 @@
   function activeGroups(scope){
     const key=groupStateKey(scope);
     if(observedGroups(researchView))return groupPreset(scope);
-    if(!groupStates.has(key))groupStates.set(key,groupPreset(scope));
+    if(!groupStates.has(key)){
+      if(researchView==='generation'&&!$('researchGenerationPair').value)return [];
+      groupStates.set(key,groupPreset(scope));
+    }
     return groupStates.get(key);
   }
   function tierPairPreset(scope){
@@ -853,17 +884,44 @@
     focus.value=String(Number.isInteger(current)&&current>=0&&current<pairs.length?current:Math.max(0,preferred));
     focus.disabled=!pairs.length;
   }
+  function fixedRowsByModel(scope,c){
+    const rowsByModel=new Map();
+    if(!scope.expanded)for(const row of scope.rows){
+      const key=row[c.sequence_id];
+      if(!rowsByModel.has(key))rowsByModel.set(key,[]);
+      rowsByModel.get(key).push(row);
+    }
+    return rowsByModel;
+  }
+  function fixedGroupIds(scope,keys){
+    return scope.expanded?[...new Set(keys.flatMap(k=>window.SalesFusion.memberIds(scope,k)))]:keys;
+  }
+  function fixedGroupValues(scope,c,ids,rowsByModel){
+    if(scope.expanded)return scope.weeks.map(w=>window.SalesFusion.coverageSum(w,ids,true));
+    const series=ids.map(id=>rowsByModel.get(id)||[]);
+    return scope.weeks.map((w,i)=>series.some(rows=>!rows[i]||rows[i][c.weekly_wan]==='')?null:series.reduce((sum,rows)=>sum+Number(rows[i][c.weekly_wan]),0));
+  }
+  function comparableGeneration(scope,c,[old,next],rowsByModel){
+    const oldIds=fixedGroupIds(scope,old.keys),nextIds=fixedGroupIds(scope,next.keys);
+    if(old.name===next.name||!oldIds.length||!nextIds.length||oldIds.some(id=>nextIds.includes(id)))return false;
+    const oldValues=fixedGroupValues(scope,c,oldIds,rowsByModel);
+    const nextValues=fixedGroupValues(scope,c,nextIds,rowsByModel);
+    return oldValues.some((value,i)=>Number.isFinite(value)&&Number.isFinite(nextValues[i])&&value+nextValues[i]>0);
+  }
   function researchGroups(scope,c){
     const models=new Map(scope.models.map(m=>[m.key,m])),known=knownModels(scope),used=new Set(),groups=[],issues=[],names=new Set();
-    const fusion=window.SalesFusion;
+    const observed=observedGroups(researchView);
+    const rowsByModel=observed?null:fixedRowsByModel(scope,c);
     for(const g of activeGroups(scope)){
       const name=g.name.trim(),keys=[...new Set(g.keys)];
       if(!name||!keys.length){issues.push('存在未命名或空分组，不参与统计');continue;}
-      const fixedIds=scope.expanded&&!observedGroups(researchView)?[...new Set(keys.flatMap(k=>fusion.memberIds(scope,k)))]:keys;
+      const fixedIds=observed?keys:fixedGroupIds(scope,keys);
       if(names.has(name)||fixedIds.some(k=>used.has(k))){issues.push(name+'：组名或覆盖成员重复，不参与统计');if(scope.expanded){$('researchGroupInfo').textContent=issues.join('；')+'；请调整分组，避免重复计入。';return [];}continue;}
       names.add(name);fixedIds.forEach(k=>used.add(k));
       if(scope.expanded){
-        const values=scope.weeks.map(w=>{if(!w.salesMap.size)return null;if(observedGroups(researchView))return keys.reduce((sum,k)=>sum+(w.salesMap.get(k)?.value_wan||0),0);return fusion.coverageSum(w,fixedIds,true);});
+        const values=observed
+          ?scope.weeks.map(w=>w.salesMap.size?keys.reduce((sum,k)=>sum+(w.salesMap.get(k)?.value_wan||0),0):null)
+          :fixedGroupValues(scope,c,fixedIds,rowsByModel);
         groups.push({name,keys,values,imputed:scope.weeks.map(()=>false)});continue;
       }
       if(observedGroups(researchView)){
@@ -872,8 +930,8 @@
       }
       const missing=keys.filter(k=>!models.has(k));
       if(missing.length)issues.push(name+'：'+missing.map(k=>known.get(k)||k).join('、')+' 当前不可用；整组留空，不缩减样本');
-      const per=keys.map(k=>scope.rows.filter(r=>r[c.sequence_id]===k));
-      groups.push({name,keys,values:scope.weeks.map((w,i)=>per.some(p=>!p[i]||p[i][c.weekly_wan]==='')?null:per.reduce((sum,p)=>sum+Number(p[i][c.weekly_wan]),0)),imputed:scope.weeks.map((w,i)=>per.some(p=>p[i]?.[c.is_imputed]==='1'))});
+      const per=keys.map(k=>rowsByModel.get(k)||[]);
+      groups.push({name,keys,values:fixedGroupValues(scope,c,fixedIds,rowsByModel),imputed:scope.weeks.map((w,i)=>per.some(p=>p[i]?.[c.is_imputed]==='1'))});
     }
     $('researchGroupInfo').textContent=groups.map(g=>g.name+'：'+g.keys.map(k=>known.get(k)||k).join('、')).concat(issues).join('；');
     return groups;
@@ -1620,7 +1678,7 @@
     if(['generation','structure'].includes(researchView)){
       $('researchDesc').textContent=scope.expanded?(observedGroups(researchView)?'按属性汇总每周有效扩展样本，缺失整周留空；各统计项按当周实际覆盖范围去重。':'固定成员按覆盖范围完整匹配；可用合计替代同范围单机之和，不拆分交叉范围，缺少任一成员整组留空。组间不得共享覆盖成员。'):observedGroups(researchView)?'按属性汇总各周原始入榜样本，不使用覆盖率或插补；未入榜只表示对当周榜单的贡献为零，不表示真实销量为零；整周缺榜留空。':'仅统计固定机型样本，不代表完整系列；任何组员不满足当前覆盖率、区间或插补要求时，该周合计留空，不自动缩减组员。组间不允许重复机型。';
       const groups=researchGroups(scope,c);
-      if(!groups.length){notice.textContent='请填写有效分组。';return;}
+      if(!groups.length){notice.textContent=researchView==='generation'&&$('researchGenerationPair').disabled?'当前条件下没有可分析的前代配对。':'请填写有效分组。';return;}
       if(researchView==='generation'&&groups.length!==2){notice.textContent='代际替代分析需要恰好两个不重叠分组（旧代、新代）。';return;}
       const totals=weeks.map((w,i)=>groups.some(g=>g.values[i]===null)?null:groups.reduce((s,g)=>s+g.values[i],0));
       const shares=groups.map(g=>({name:g.name,values:g.values.map((v,i)=>v===null||!totals[i]?null:100*v/totals[i]),imputed:weeks.map((w,i)=>groups.some(g=>g.imputed[i]))}));
@@ -1704,7 +1762,7 @@
 
   function syncResearchEditors(){
     const scope=currentScope();
-    if(!scope){$('researchGroupEditor').replaceChildren();$('researchPairEditor').replaceChildren();$('researchPairFocus').replaceChildren();$('researchGroupInfo').textContent='';$('researchPairInfo').textContent='';$('researchTopInfo').textContent='';return;}
+    if(!scope){$('researchGenerationPair').replaceChildren();$('researchGenerationPair').disabled=true;$('researchGroupEditor').replaceChildren();$('researchPairEditor').replaceChildren();$('researchPairFocus').replaceChildren();$('researchGroupInfo').textContent='';$('researchPairInfo').textContent='';$('researchTopInfo').textContent='';return;}
     if(['generation','structure'].includes(researchView)){
       const generation=researchView==='generation',raw=observedGroups(researchView);
       visible($('researchGroupModeWrap'),!generation);visible($('researchGroupFieldWrap'),researchView==='structure');
@@ -1713,11 +1771,19 @@
     }
     if(researchView==='tier')renderPairEditor(scope);
   }
-  for(const id of ['researchGenerationPair','researchGenerationLevel'])$(id).onchange=()=>{const scope=currentScope();if(scope&&researchView==='generation'){groupStates.set(groupStateKey(scope),generationPreset(scope));renderGroupEditor(scope);renderResearch();}};
-  $('researchGroupPreset').onclick=()=>{const s=currentScope();if(s){groupStates.set(groupStateKey(s),groupPreset(s));renderGroupEditor(s);renderResearch();}};
+  for(const id of ['researchGenerationPair','researchGenerationLevel'])$(id).onchange=()=>{
+    const scope=currentScope();
+    if(!scope||researchView!=='generation')return;
+    if(id==='researchGenerationLevel')fillGenerationChoices(scope);
+    const groups=generationPreset(scope),key=groupStateKey(scope);
+    if(groups.length)groupStates.set(key,groups);
+    else groupStates.delete(key);
+    renderGroupEditor(scope);renderResearch();
+  };
+  $('researchGroupPreset').onclick=()=>{const s=currentScope();if(s){const key=groupStateKey(s),groups=groupPreset(s);if(researchView==='generation'&&!groups.length)groupStates.delete(key);else groupStates.set(key,groups);renderGroupEditor(s);renderResearch();}};
   $('researchGroupField').onchange=()=>{if(currentScope()){if(observedGroups(researchView))syncResearchEditors();renderResearch();}};
   $('researchGroupMode').onchange=()=>{updateParamControls();syncResearchEditors();updateProductInfo(currentScope());renderResearch();};
-  $('researchAddGroup').onclick=()=>{const s=currentScope();if(s){activeGroups(s).push({name:'',keys:[]});renderGroupEditor(s);renderResearch();}};
+  $('researchAddGroup').onclick=()=>{const s=currentScope();if(s){const groups=activeGroups(s);groups.push({name:'',keys:[]});groupStates.set(groupStateKey(s),groups);renderGroupEditor(s);renderResearch();}};
   $('researchPairPreset').onclick=()=>{const s=currentScope();if(s){pairStates.set(scopeKey(s.id),tierPairPreset(s));pairFocusStates.delete(scopeKey(s.id));renderPairEditor(s);renderResearch();}};
   $('researchAddPair').onclick=()=>{const s=currentScope();if(s){activePairs(s).push({name:'',old:'',next:''});renderPairEditor(s);renderResearch();}};
   $('researchPairFocus').onchange=()=>{const s=currentScope();if(s){pairFocusStates.set(scopeKey(s.id),Number($('researchPairFocus').value));renderResearch();}};

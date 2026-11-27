@@ -74,6 +74,9 @@ function resetRankingOCR() {
   rankingOcrRequest = null;
   rankingOcrButton.disabled = false;
   rankingOcrStatus.hidden = true;
+  $('rankingOcrRaw').hidden = true;
+  $('rankingOcrRaw').open = false;
+  $('rankingOcrRawText').textContent = '';
   $('rankingOcrReview').hidden = true;
   $('rankingOcrRows').replaceChildren();
 }
@@ -104,6 +107,7 @@ function alignRankingLabels(raw, bars, top, height) {
   const text = raw.replaceAll('｜', '|');
   const blocks = [...text.matchAll(/<\|ref\|>(.*?)<\|\/ref\|>\s*<\|(?:box|det)\|>\s*\[\[\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\]\](?:<\|\/(?:box|det)\|>)?/gs)];
   const labels = bars.map(() => []);
+  let singleLineCount = 0;
   for (const block of blocks) {
     const [, ref, x1, y1, x2, y2] = block;
     if (+x1 >= +x2 || +y1 >= +y2 || +x2 > 1000 || +y2 > 1000) continue;
@@ -116,6 +120,7 @@ function alignRankingLabels(raw, bars, top, height) {
     const name = (generic ? body : kind).replace(/^\s*(?:#\s*)?\d+(?:\s*[.、)）:：]\s*|\s+)/, '').trim();
     if (!name || /^\d+$|[\r\n]/.test(name)) continue;
 
+    singleLineCount++;
     const boxTop = top + Number(y1) * height / 1000;
     const boxBottom = top + Number(y2) * height / 1000;
     const center = (boxTop + boxBottom) / 2;
@@ -129,7 +134,11 @@ function alignRankingLabels(raw, bars, top, height) {
     });
     if (index !== -1) labels[index].push(name);
   }
-  return labels.map(names => [...new Set(names)]);
+  return {
+    labels: labels.map(names => [...new Set(names)]),
+    blockCount: blocks.length,
+    singleLineCount
+  };
 }
 
 rankingOcrButton.onclick = async () => {
@@ -161,9 +170,17 @@ rankingOcrButton.onclick = async () => {
     if (!response.ok || typeof result?.text !== 'string') {
       throw Error(result?.message || 'OCR 服务暂不可用，请手动填写机型名称。');
     }
-    const labels = alignRankingLabels(result.text, bars, top, height);
+    if (request.signal.aborted) return;
+    $('rankingOcrRawText').textContent = result.text || 'DeepSeek 返回了空文本。';
+    $('rankingOcrRaw').hidden = false;
+    const { labels, blockCount, singleLineCount } = alignRankingLabels(result.text, bars, top, height);
     if (!labels.some(names => names.length)) {
-      throw Error('未找到能与柱条对齐的文字。请查看裁剪预览，调整右边界后重试。');
+      $('rankingOcrRaw').open = true;
+      const reason = !result.text.trim() ? 'DeepSeek 返回了空文本。'
+        : !blockCount ? 'DeepSeek 返回了内容，但页面没有解析出坐标框。'
+        : !singleLineCount ? `解析出 ${blockCount} 个坐标框，但未提取到带有效坐标的单行文字。`
+        : `提取到 ${singleLineCount} 个单行文字框，但均未与柱条对齐。`;
+      throw Error(reason + ' 请查看下方原始返回。');
     }
     const catalog = await window.ModelMaster.load();
     if (request.signal.aborted) return;

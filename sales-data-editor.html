@@ -22,7 +22,7 @@
 <header class="site-header"></header>
 <main>
 <section class="panel" aria-label="导入与导出">
-<div class="toolbar" role="group" aria-label="扩展销量表"><strong class="source-label">扩展销量表：</strong><button class="primary" id="projectSales">从项目导入</button><button id="githubSalesSync" hidden>从 GitHub 导入扩展销量表</button><button id="incrementDraft" disabled>从销量增量追踪导入</button><button id="newData">新建</button><button id="undoBtn" disabled>撤销</button><button id="redoBtn" disabled>重做</button><span class="spacer"></span><a id="openDatabaseEditor" class="file-btn" href="/admin/" hidden>数据库录入</a><button id="saveDatabaseSales" class="primary" hidden disabled>保存到数据库</button><button id="longExport" disabled>导出</button></div>
+<div class="toolbar" role="group" aria-label="扩展销量表"><strong class="source-label">扩展销量表：</strong><button class="primary" id="projectSales">从项目导入</button><button id="githubSalesSync" hidden>从 GitHub 导入扩展销量表</button><button id="weiboSalesImport" hidden disabled>微博导入</button><button id="incrementDraft" disabled>从销量增量追踪导入</button><button id="newData">新建</button><button id="undoBtn" disabled>撤销</button><button id="redoBtn" disabled>重做</button><span class="spacer"></span><a id="openDatabaseEditor" class="file-btn" href="/admin/" hidden>数据库录入</a><button id="saveDatabaseSales" class="primary" hidden disabled>保存到数据库</button><button id="longExport" disabled>导出</button></div>
 <div class="toolbar source-row" role="group" aria-label="数据表"><strong class="source-label">数据表：</strong><button id="syncProject">从项目导入</button><button id="syncLocal">从本地导入</button><input id="syncFile" class="sr-only" type="file" accept=".csv,text/csv"></div>
 <div class="import-options"><label class="check muted">无年份周列使用年份 <input id="defaultYear" type="number" min="1900" max="9999" step="1" value="2026"></label></div>
 <p class="muted" id="editorImportHint" style="margin-top:7px">默认读取项目扩展销量表（已有本地草稿优先恢复）。从项目或本地导入数据表时，先预览新增及冲突记录，再确认增量同步；保留已有独立周增量和特殊记录。</p>
@@ -56,7 +56,20 @@
 <dialog id="modelDialog"><form id="modelForm"><div class="dialog-head"><h2>新增机型</h2><button type="button" data-close="modelDialog" aria-label="关闭">×</button></div><div class="field"><label for="newBrand">品牌</label><input id="newBrand" required></div><div class="field"><label for="newModel">机型</label><input id="newModel" required></div><div class="field"><label for="newCategory">类别（可选）</label><input id="newCategory"></div><div class="field"><label for="newDate">正式开售日期（可选）</label><input id="newDate" placeholder="例如 2026/11/24" title="优先填写正式开售日；无法查证时暂用正式发布日期"></div><p id="modelError" class="error-text"></p><div class="dialog-actions"><button type="button" data-close="modelDialog">取消</button><button class="primary" type="submit">添加机型</button></div></form></dialog>
 
 <dialog id="masterDialog"><form id="masterForm"><div class="dialog-head"><h2>编辑机型表</h2><button type="button" data-close="masterDialog">×</button></div><p class="muted" style="margin-bottom:10px">新机型 ID 根据品牌与标准名称自动生成，保存后保持不变。系列合计不是一个单机型，请为实际成员建立机型表。</p><div class="master-fields" id="masterFields"></div><p class="error-text" id="masterError"></p><div class="dialog-actions"><button type="button" data-close="masterDialog">取消</button><button class="primary" type="submit">保存机型表</button></div></form></dialog>
-<dialog id="syncDialog" style="width:min(1050px,calc(100% - 24px));max-height:88vh;overflow:auto"><div class="dialog-head"><h2 id="syncTitle">数据表增量同步</h2><button type="button" data-close="syncDialog" aria-label="关闭">×</button></div><p id="syncSource" class="muted"></p><p id="syncSummary" role="status"></p><p id="syncHint" class="muted" style="margin:8px 0"></p><div class="check-wrap"><table><thead><tr><th>处理方式</th><th>品牌 / 机型</th><th>周次</th><th>当前扩展销量表</th><th id="syncSourceColumn">来源数据表</th><th>说明 / 确认</th></tr></thead><tbody id="syncRows"></tbody></table></div><div class="dialog-actions"><button type="button" data-close="syncDialog">取消</button><button id="syncApply" class="primary" type="button">应用同步</button></div></dialog>
+<dialog id="weiboSalesDialog" style="width:min(850px,calc(100% - 24px));max-height:88vh;overflow:auto">
+ <div class="dialog-head"><h2>微博文本导入</h2><button type="button" data-close="weiboSalesDialog" aria-label="关闭">×</button></div>
+ <p class="muted">粘贴含 ISO 周次、SO 分类和机型销量的微博原文。支持多个品牌和周次；不识别的行会单独列出，不写入数据库。</p>
+ <div class="toolbar" style="margin:10px 0;flex-wrap:wrap">
+  <label>缺失年份 <input id="weiboYear" type="number" min="1900" max="9999" step="1" style="width:90px"></label>
+  <label>未注明销量类型 <select id="weiboMetric"><option value="cumulative">累计销量</option><option value="weekly">周增量</option></select></label>
+  <label>「约」值 <select id="weiboApprox"><option value="exact">普通统计值 (=)</option><option value="approx">估计值 (≈)</option></select></label>
+ </div>
+ <label for="weiboRaw">微博原文</label>
+ <textarea id="weiboRaw" rows="12" style="display:block;width:100%;box-sizing:border-box;resize:vertical;margin-top:6px;font:inherit" placeholder="粘贴包含标题和销量的微博文本"></textarea>
+ <p id="weiboError" class="error-text" role="alert"></p>
+ <div class="dialog-actions"><button type="button" id="weiboClear">清空</button><button type="button" data-close="weiboSalesDialog">取消</button><button type="button" id="weiboParse" class="primary">解析并预览</button></div>
+</dialog>
+<dialog id="syncDialog" style="width:min(1050px,calc(100% - 24px));max-height:88vh;overflow:auto"><div class="dialog-head"><h2 id="syncTitle">数据表增量同步</h2><button type="button" data-close="syncDialog" aria-label="关闭">×</button></div><p id="syncSource" class="muted"></p><p id="syncSummary" role="status"></p><p id="syncHint" class="muted" style="margin:8px 0"></p><div class="check-wrap"><table><thead><tr><th>处理方式</th><th>品牌 / 机型</th><th>周次</th><th>当前扩展销量表</th><th id="syncSourceColumn">来源数据表</th><th>说明 / 确认</th></tr></thead><tbody id="syncRows"></tbody></table></div><details id="weiboDiagnostics" hidden style="margin-top:12px"><summary id="weiboDiagnosticSummary">原始行核对</summary><p class="muted">显示所有非空原文行及处理结果。未识别行、重复与冲突不会静默丢弃。</p><div class="toolbar"><button type="button" id="weiboCopyIssues">复制未自动添加的原文（含标题上下文）</button><button type="button" id="weiboCopyReport">复制核对报告</button></div><textarea id="weiboCopyFallback" hidden readonly rows="5" style="width:100%;box-sizing:border-box"></textarea><div class="check-wrap"><table><thead><tr><th>行号</th><th>原文</th><th>处理结果 / 原因</th></tr></thead><tbody id="weiboDiagnosticRows"></tbody></table></div></details><div class="dialog-actions"><button type="button" id="weiboBack" hidden>返回修改原文</button><button type="button" data-close="syncDialog">取消</button><button id="syncApply" class="primary" type="button">应用同步</button></div></dialog>
 <dialog id="databaseDialog" aria-labelledby="databaseTitle">
  <form id="databaseForm">
   <div class="dialog-head"><h2 id="databaseTitle">保存整张表的改动</h2></div>
@@ -65,6 +78,7 @@
   <div class="dialog-actions"><button id="cancelDatabaseSave" type="button">取消</button><button id="confirmDatabaseSave" class="primary" type="submit" disabled>确认保存</button></div>
  </form>
 </dialog>
+<script src="weibo-sales-parser.js"></script>
 <script>
 'use strict';
 const $=id=>document.getElementById(id), META=['brand','model','category','date'], LONG=[...META,'period','metric','value_wan','operator'];
@@ -122,6 +136,7 @@ function masterContent(m=master){if(!m)return null;const head=[...m.head].sort()
 function updateExportStyles(){
  if(adminEditor){
   $('saveDatabaseSales').disabled=!state.ready||databaseRevision.tracking===null||$('projectSales').disabled;
+   $('weiboSalesImport').disabled=!state.ready||!state.isLong||databaseRevision.tracking===null||$('projectSales').disabled;
   const marketReady=!!marketRows&&!$('projectMarket').disabled;
   $('saveDatabaseMarket').disabled=!marketReady||databaseRevision['market-share']===null;
   $('addMarketWeek').disabled=!marketReady;
@@ -612,32 +627,126 @@ function buildSyncPlan(incomingTable){
  return plan;
 }
 function renderSyncPlan(plan){
- const from=plan.isLong?'GitHub':'数据表';
+ const weibo=!!plan.weibo;
+ const from=weibo?'微博':plan.isLong?'GitHub':'数据表';
  const difference=plan.isLong?'数值或运算符冲突':'数值冲突';
- $('syncTitle').textContent=plan.isLong?'GitHub 扩展销量表导入':'数据表增量同步';
- $('syncSourceColumn').textContent=plan.isLong?'GitHub 扩展销量表':'来源数据表';
- $('syncHint').textContent=plan.isLong
+ $('syncTitle').textContent=weibo?'微博文本导入预览':plan.isLong?'GitHub 扩展销量表导入':'数据表增量同步';
+ $('weiboDiagnostics').hidden=!weibo;$('weiboBack').hidden=!weibo;
+ $('syncSourceColumn').textContent=weibo?'微博销量':plan.isLong?'GitHub 扩展销量表':'来源数据表';
+ $('syncHint').textContent=weibo?'默认勾选新增记录；数值或运算符冲突需逐条确认覆盖。已有机型资料保持不变。未识别或同批冲突的行不会添加。应用后仅更新草稿，需另行保存到数据库。':plan.isLong
   ?'新增记录直接加入草稿；同一机型、周次和销量类型的差异可逐条勾选覆盖。GitHub 缺少的记录继续保留。应用同步后，确认「保存到数据库」才会更新正式数据。'
   :'默认追加缺失的精确累计记录；精确数值冲突可逐条勾选使用数据表值。特殊记录及元数据差异仅列出供人工处理。已有周增量及数据表空白对应的扩展销量表记录全部保留。确认前不修改扩展销量表。';
  $('syncSource').textContent='来源：'+plan.sourceName;const rows=$('syncRows');rows.replaceChildren();
  const counts=()=>{
   const selected=plan.items.filter(x=>x.kind==='conflict'&&x.chosen).length;
-  $('syncSummary').textContent='新增 '+plan.add+' 条 · 相同 '+plan.same+' 条 · '+difference+' '+plan.conflict+' 条（已选择 '+selected+' 条） · 待人工核查 '+plan.blocked+' 项';
-  $('syncApply').disabled=plan.add+selected===0;
-  $('syncApply').textContent='应用同步（'+(plan.add+selected)+' 条）';
+  const adds=weibo?plan.items.filter(x=>x.kind==='add'&&x.chosen).length:plan.add;
+  $('syncSummary').textContent='新增 '+plan.add+' 条'+(weibo?'（已选 '+adds+' 条）':'')+' · 相同 '+plan.same+' 条 · '+difference+' '+plan.conflict+' 条（已选择 '+selected+' 条） · 待人工核查 '+plan.blocked+' 项';
+  $('syncApply').disabled=adds+selected===0;
+  $('syncApply').textContent=(weibo?'添加至草稿（':'应用同步（')+(adds+selected)+' 条）';
+  if(weibo)renderWeiboDiagnostics(plan);
  };
  const labels={add:'追加',conflict:difference,blocked:'人工核查'};
+ if(weibo)for(const item of plan.items)if(item.kind==='add')item.chosen=true;
  for(const item of plan.items){
   const period=plan.isLong&&item.metric?item.period+' · '+metricLabel(item.metric):item.period;
   const tr=node('tr');tr.append(node('td',labels[item.kind],item.kind==='add'?'issue-ok':'issue-warn'),node('td',item.source.brand+' '+item.source.model),node('td',period),node('td',syncRecord(item.old)),node('td',syncRecord(item.incoming)));
-  const td=node('td');if(item.kind==='conflict'){const label=node('label'),cb=node('input');cb.type='checkbox';cb.checked=false;cb.setAttribute('aria-label','使用'+from+'值 '+item.source.brand+' '+item.source.model+' '+period);cb.onchange=()=>{item.chosen=cb.checked;counts();};label.append(cb,document.createTextNode(' 使用'+from+'值'));td.append(label);}else td.textContent=item.reason;tr.append(td);rows.append(tr);
+  const td=node('td');if(item.kind==='conflict'||weibo&&item.kind==='add'){const label=node('label'),cb=node('input');cb.type='checkbox';cb.checked=item.chosen;const action=item.kind==='add'?'追加记录':'使用'+from+'值';cb.setAttribute('aria-label',action+' '+item.source.brand+' '+item.source.model+' '+period);cb.onchange=()=>{item.chosen=cb.checked;counts();};label.append(cb,document.createTextNode(' '+action));td.append(label);}else td.textContent=item.reason;tr.append(td);rows.append(tr);
  }
  if(!plan.items.length){
-  const tr=node('tr'),td=node('td',plan.isLong?'无需同步：来源中的记录均已存在且一致。':'无需同步：已有记录一致，数据表空白不触发删除。');
+  const tr=node('tr'),td=node('td',weibo?'没有可追加或覆盖的记录，请查看原始行核对。':plan.isLong?'无需同步：来源中的记录均已存在且一致。':'无需同步：已有记录一致，数据表空白不触发删除。');
   td.colSpan=6;tr.append(td);rows.append(tr);
  }
  counts();$('syncDialog').showModal();
 }
+// Weibo import shares the long-table merge plan; raw text never leaves the browser.
+function requireWeiboBaseline(){
+ requireLongBaseline();
+ if(!adminEditor||databaseRevision.tracking===null||$('projectSales').disabled)throw Error('请先从数据库读取扩展销量表。');
+ if(!globalThis.WeiboSalesParser)throw Error('微博解析器未加载，请刷新页面重试。');
+}
+function weiboLineOutcome(entry,plan){
+ if(entry.status==='header')return '标题 · '+entry.period+' · '+metricLabel(entry.metric)+' · '+entry.category;
+ if(entry.status!=='data')return ({failed:'未识别',ignored:'说明行',duplicate:'批内重复',conflict:'批内冲突'}[entry.status]||entry.status)+'：'+entry.reason;
+ const r=entry.record,items=plan.items.filter(x=>rowKey(x.source.brand,x.source.model)===rowKey(r.brand,r.model));
+ const item=items.find(x=>x.period===r.period&&x.metric===r.metric),blocked=items.find(x=>x.kind==='blocked');
+ let msg;
+ if(item)msg=item.kind==='add'?(item.chosen?'待追加':'已排除'):item.kind==='conflict'?(item.chosen?'待覆盖':'冲突：保留现有值'):'待核查：'+item.reason;
+ else if(blocked)msg='待核查：'+blocked.reason;
+ else msg='已存在且一致';
+ return msg+' · '+r.brand+' '+r.model+' · '+r.period+' · '+metricLabel(r.metric)+' · '+syncRecord({op:r.operator,value:r.value_wan})+(entry.warnings?.length?'；'+entry.warnings.join('；'):'');
+}
+function weiboNotSelected(entry,plan){
+ if(entry.status==='header'||entry.status==='blank')return false;
+ if(entry.status!=='data')return true;
+ const r=entry.record;
+ const item=plan.items.find(x=>rowKey(x.source.brand,x.source.model)===rowKey(r.brand,r.model)&&x.period===r.period&&x.metric===r.metric);
+ return !item||!item.chosen;
+}
+function renderWeiboDiagnostics(plan){
+ const result=plan.weibo,s=result.stats,body=$('weiboDiagnosticRows'),frag=document.createDocumentFragment();
+ const rejected=result.lines.filter(e=>weiboNotSelected(e,plan)).length;
+ $('weiboDiagnosticSummary').textContent='原始行核对：标题 '+s.headers+' · 数据行 '+s.data+' · 未识别 '+s.failed+' · 说明 '+s.ignored+' · 批内重复 '+result.duplicates.length+' · 批内冲突 '+result.conflicts.length+'（未选 '+rejected+' 行）';
+ if(plan.weiboFirstRender!==false){$('weiboDiagnostics').open=rejected>0||result.lines.some(e=>e.warnings?.length);plan.weiboFirstRender=false;}
+ for(const e of result.lines){
+  if(e.status==='blank')continue;
+  const tr=node('tr'),raw=node('td',e.raw);raw.style.whiteSpace='pre-wrap';raw.style.overflowWrap='anywhere';
+  tr.append(node('td',String(e.line)),raw,node('td',weiboLineOutcome(e,plan),weiboNotSelected(e,plan)?'issue-warn':''));
+  frag.append(tr);
+ }
+ body.replaceChildren(frag);$('weiboCopyFallback').hidden=true;
+}
+function openWeiboSalesImport(){
+ try{requireWeiboBaseline();if(syncBusy||$('syncDialog').open)return;
+  $('weiboYear').value=$('defaultYear').value;$('weiboError').textContent='';
+  try{$('weiboApprox').value=localStorage.getItem('phone-sales-editor.weiboApprox')==='approx'?'approx':'exact';}catch(_){}
+  $('weiboSalesDialog').showModal();$('weiboRaw').focus();
+ }catch(e){status('微博导入失败：'+e.message,true);}
+}
+$('weiboSalesImport').onclick=openWeiboSalesImport;
+$('weiboClear').onclick=()=>{$('weiboRaw').value='';$('weiboError').textContent='';$('weiboRaw').focus();};
+$('weiboParse').onclick=()=>{
+ try{
+  requireWeiboBaseline();
+  const raw=$('weiboRaw').value,year=Number($('weiboYear').value);
+  if(!raw.trim())throw Error('请先粘贴微博原文。');
+  if(!Number.isInteger(year)||year<1900||year>9999)throw Error('默认年份无效。');
+  if(raw.length>200000)throw Error('原文超过 20 万字符，请分批导入。');
+  const result=WeiboSalesParser.parse(raw,{defaultYear:year,defaultMetric:$('weiboMetric').value,approximateAsExact:$('weiboApprox').value==='exact',existingModels:state.rows,modelMaster:master?.rows||[],validDate});
+  const incoming=new Map();
+  for(const r of result.records){
+   const key=rowKey(r.brand,r.model);
+   if(!incoming.has(key))incoming.set(key,{brand:r.brand,model:r.model,category:r.category,date:r.date,values:new Map(),weekly:new Map()});
+   records(incoming.get(key),r.metric).set(r.period,{value:r.value_wan,op:r.operator});
+  }
+  pendingSync=buildSyncPlan({isLong:true,rows:[...incoming.values()]});
+  pendingSync.weibo=result;pendingSync.sourceName='微博原文 · '+(result.stats.total-result.stats.blank)+' 个非空行';
+  try{localStorage.setItem('phone-sales-editor.weiboApprox',$('weiboApprox').value);}catch(_){}
+  $('weiboSalesDialog').close();renderSyncPlan(pendingSync);
+ }catch(e){$('weiboError').textContent=e.message;}
+};
+$('weiboBack').onclick=()=>{$('syncDialog').close();$('weiboSalesDialog').showModal();$('weiboRaw').focus();};
+async function copyWeiboText(text){
+ const fallback=$('weiboCopyFallback');
+ try{await navigator.clipboard.writeText(text);fallback.hidden=true;}
+ catch(_){fallback.hidden=false;fallback.value=text;fallback.focus();fallback.select();}
+}
+$('weiboCopyIssues').onclick=()=>{
+ const plan=pendingSync;if(!plan?.weibo)return;
+ // Include each original header with its rejected lines for safe re-parsing.
+ const out=[];let header=null,shown=null;
+ for(const e of plan.weibo.lines){
+  if(e.status==='header'){header=e;continue;}
+  if(!weiboNotSelected(e,plan))continue;
+  if(header&&header!==shown){out.push(header.raw);shown=header;}
+  out.push(e.raw);
+  if(e.status==='failed'&&/(?:截至|截止|W\s*\d|SO)/i.test(e.clean)){header=null;shown=null;}
+ }
+ copyWeiboText(out.join('\n'));
+};
+$('weiboCopyReport').onclick=()=>{
+ const plan=pendingSync;if(!plan?.weibo)return;
+ copyWeiboText(plan.weibo.lines.filter(e=>e.status!=='blank').map(e=>'第 '+e.line+' 行\t'+e.raw+'\t'+weiboLineOutcome(e,plan)).join('\n'));
+};
 function requireLongBaseline(){
  flush();
  if(!state.ready||!state.isLong)throw Error('请先从项目导入扩展销量表，或新建扩展销量表，再导入数据表。旧版数据表草稿请先导出备份。');
@@ -681,7 +790,7 @@ $('syncApply').onclick=()=>{
  const plan=pendingSync;if(!plan)return;
  try{
   flush();if(plan.base!==salesSnapshot())throw Error('当前销量数据已变化，请取消后重新同步。');
-  const edits=plan.items.filter(x=>x.kind==='add'||x.kind==='conflict'&&x.chosen);if(!edits.length)return;
+  const edits=plan.items.filter(x=>x.kind==='add'&&(!plan.weibo||x.chosen)||x.kind==='conflict'&&x.chosen);if(!edits.length)return;
   captureChange();const rows=new Map(state.rows.map(r=>[rowKey(r.brand,r.model),r]));
   for(const item of edits){const m=item.source,k=rowKey(m.brand,m.model);let row=rows.get(k);if(!row){row=newRow(META.map(field=>m[field]));rows.set(k,row);state.rows.push(row);}records(row,item.metric).set(item.period,{...item.incoming});addWeek(item.period);}
   $('syncDialog').close();mark();renderGrid();runChecks();status('增量同步完成：追加 '+edits.filter(x=>x.kind==='add').length+' 条，人工确认替换 '+edits.filter(x=>x.kind==='conflict').length+' 条；保留其余原始记录。'+(adminEditor?'核对后可保存到数据库。':'请导出 sales-long.csv 后提交。'));
@@ -732,6 +841,8 @@ $('openDatabaseEditor').hidden=!SalesSite.projectUsesDatabase||adminEditor;
 if(adminEditor){
  $('projectSales').textContent='从数据库读取';
  $('githubSalesSync').hidden=false;
+ $('weiboSalesImport').hidden=false;
+ updateExportStyles();
  $('projectMaster').textContent='从数据库读取机型表';
  $('saveDatabaseSales').hidden=false;
  $('saveDatabaseMaster').hidden=false;

@@ -20,9 +20,62 @@
 .filter-options.seg button{border:0;border-radius:0}
 .filter-options button[aria-pressed="true"]{color:white;background:#1761ae;border-color:#1761ae}
 .filter-options button:focus-visible{outline:2px solid currentColor;outline-offset:-3px}
-.source-actions,.list-actions{display:flex;align-items:center;flex-wrap:wrap;gap:8px}
-.source-actions label,.list-actions label{margin:0;min-width:0;max-width:100%}
-.source-actions input,.list-actions input{min-width:0;max-width:100%}
+:root {
+  --control-bg: #fff;
+  --control-border: #dce2ea;
+  --control-accent: #315dcc;
+}
+:root[data-theme=dark] {
+  --control-bg: #1b202b;
+  --control-border: #343c4c;
+  --control-accent: #92b0ff;
+}
+.source-actions,.comparison-actions,.list-actions,.export-actions,.footer-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.list-actions,.footer-actions { align-items: flex-end; }
+.list-actions label,.footer-actions label { margin: 0; min-width: 0; max-width: 100%; }
+.list-actions input,#footer { min-width: 0; max-width: 100%; }
+#footer { resize: vertical; }
+
+:where(.source-actions,.comparison-actions,.list-actions,.export-actions,.footer-actions,.edit-actions) > button,
+#fullRange,
+#importLists::file-selector-button {
+  padding: 7px 12px;
+  border: 1px solid var(--control-border);
+  border-radius: 7px;
+  background: var(--control-bg);
+  color: var(--ink);
+  font: inherit;
+  line-height: 1.5;
+  cursor: pointer;
+  white-space: nowrap;
+}
+#importLists::file-selector-button { margin-inline-end: 8px; }
+:where(.source-actions,.comparison-actions,.list-actions,.export-actions,.footer-actions,.edit-actions) > button:hover:not(:disabled),
+#fullRange:hover,
+#importLists::file-selector-button:hover { border-color: var(--control-accent); }
+:where(.source-actions,.list-actions,.edit-actions) > button:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+}
+:is(#listName,#milestoneStep,#footer) {
+  padding: 7px 9px;
+  border: 1px solid var(--control-border);
+  border-radius: 6px;
+  background: var(--control-bg);
+  color: var(--ink);
+  line-height: 1.5;
+}
+#listName::placeholder { color: var(--sub); }
+:where(.source-actions,.comparison-actions,.list-actions,.export-actions,.footer-actions,.edit-actions) > button:focus-visible,
+:is(#fullRange,#listName,#milestoneStep,#footer,#importLists):focus-visible {
+  outline: 2px solid var(--control-accent);
+  outline-offset: 1px;
+}
 .source-actions ~ #currentSource,.source-actions ~ #loadState,.source-actions ~ #editorImportStatus{margin:8px 0 0}
 #chartControls{margin-top:12px}
 .milestone-row{margin-top:12px}
@@ -62,7 +115,11 @@
 
 </div></div>
 <details open><summary>对比机型与列表</summary>
-<button id="all">全选当前品牌</button> <button id="brandTops">每品牌近期增量最高</button> <button id="none">清空对比</button>
+<div class="comparison-actions">
+  <button id="all">全选当前品牌</button>
+  <button id="brandTops">每品牌近期增量最高</button>
+  <button id="none">清空对比</button>
+</div>
 <div id="choices"></div>
 <div class="filter-row">
 <span id="lists-label">机型列表</span>
@@ -105,8 +162,15 @@
 </svg>
 <output id="hoverReadout" aria-live="off"></output>
 <div id="legend"></div><small>● 精确值 · ○ 约数 · ↑ 至少达到该值 · ↓ 低于该值。虚线为区间估算。</small>
-<p><button id="desktopPNG">桌面 PNG</button> <button id="mobilePNG">手机 PNG</button></p><label>导出免责附注<textarea id="footer" rows="2">数据来源于微博等平台，仅供参考
-具体数字与走势为估算结果，不作为购买建议</textarea></label> <button id="defaultFooter">恢复默认文案</button>
+<p class="export-actions">
+  <button id="desktopPNG">桌面 PNG</button>
+  <button id="mobilePNG">手机 PNG</button>
+</p>
+<div class="footer-actions">
+  <label>导出免责附注<textarea id="footer" rows="2">数据来源于微博等平台，仅供参考
+具体数字与走势为估算结果，不作为购买建议</textarea></label>
+  <button id="defaultFooter">恢复默认文案</button>
+</div>
 </div>
 </section>
 <div id="content" hidden>

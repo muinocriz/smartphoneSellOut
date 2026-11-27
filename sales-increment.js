@@ -205,6 +205,7 @@ function renderLists(){
       if(activeList===index){
         selectList(-1);
         choices();
+        if(keys.length)draw({resetRange:true});
         return;
       }
       if(index===recentListIndex){
@@ -978,7 +979,7 @@ byId('restoreRecord').onclick=()=>{
 byId('deleteRecord').onclick=()=>{
   if(activeEdit&&confirm('删除这一条销量记录？')&&saveEdit(activeEdit,null))specialDialog.close();
 };
-function refresh(){renderLists();draw();drawEditor()}
+function refresh(drawOptions){renderLists();draw(drawOptions);drawEditor()}
 byId('addWeek').onclick=()=>{
   if(periods.length-initialPeriods.length>=52)return alert('最多临时新增52周');
   editHistory.push({addedWeek:true});
@@ -1101,7 +1102,7 @@ function loadSource(text,key,sourcePeriods=[]){
       if(byId(id)&&[...byId(id).querySelectorAll('button')].some(button=>button.dataset.value===value))selectFilter(id,value);
     }
   }
-  choices();refresh();
+  choices();refresh({resetRange:activeList===recentListIndex});
   byId('chartControls').hidden=false;
   byId('content').hidden=false;byId('loadState').hidden=true;
   updateIncrementImport();

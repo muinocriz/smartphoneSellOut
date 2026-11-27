@@ -124,11 +124,21 @@ async function readAdminSession(request, env) {
 
   let stage = 'fetch_keys';
   try {
-    const response = await fetch(issuer + '/cdn-cgi/access/certs', {
-      redirect: 'error',
+    const keysUrl = new URL('/cdn-cgi/access/certs', issuer);
+    let response = await fetch(keysUrl, {
+      redirect: 'manual',
       headers: { Accept: 'application/json' }
     });
-    if (!response.ok) throw new Error('Access keys HTTP ' + response.status);
+    if (response.status >= 300 && response.status < 400 && response.headers.has('Location')) {
+      const destination = new URL(response.headers.get('Location'), keysUrl);
+      if (destination.origin === keysUrl.origin && destination.pathname === keysUrl.pathname + '/') {
+        response = await fetch(destination, { redirect: 'manual' });
+      }
+    }
+    if (!response.ok) {
+      console.error('Access key endpoint returned HTTP', response.status);
+      return json({ error: 'access_unavailable', stage, upstream_status: response.status }, 503);
+    }
     stage = 'read_keys';
     const { keys } = await response.json();
     if (!Array.isArray(keys)) throw new Error('Invalid Access key set');

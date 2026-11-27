@@ -33,6 +33,12 @@ npx wrangler d1 execute DB --remote --file ../smartphone-sales-initial.sql
 
 Pages 站点位于 `/smartphoneSellOut/`。首页跳转、顶部导航和 CSV 引用使用站点相对路径。两个平台分别部署，某一平台的发布结果需查看该平台对应的工作流或部署记录。
 
+## 管理员身份验证
+
+在 Zero Trust 中使用针对主站 `/admin` 和 `/admin/*` 的单独 Access 应用，并通过邮箱 Allow 策略限定管理员。Worker 的生产变量 `CF_ACCESS_TEAM_DOMAIN` 和 `CF_ACCESS_AUD` 分别对应团队域名和该应用的 Audience。
+
+打开 `/admin/api/session` 并完成 Access 登录后，应看到 `{"authenticated":true}`。若 Worker 返回 `unauthorized`，核对 Access 应用覆盖路径和两个变量的完整值。若返回 `access_not_configured`，检查生产变量。主站及公开只读 API 可以匿名访问。
+
 ## 从旧邮箱验证配置迁移
 
-部署新版后，在 Cloudflare Zero Trust 的 Access 应用中移除覆盖本站 `/studio/*` 的应用路径。如果该应用仅用于本站，可删除该应用。如果 Worker 或其域名另行启用了 Access，也需解除本站对应的保护。原有 `CF_ACCESS_TEAM_DOMAIN` 和 `CF_ACCESS_AUD` 已无需配置。
+部署新版后，在 Cloudflare Zero Trust 的 Access 应用中移除覆盖本站 `/studio/*` 的应用路径。如果该应用仅用于本站，可删除该应用。如果 Worker 或其域名另行启用了 Access，也需解除本站对应的保护。后台使用上述生产变量及管理员应用的 AUD。

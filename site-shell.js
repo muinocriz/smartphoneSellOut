@@ -36,6 +36,31 @@
     if (changed) window.dispatchEvent(new Event('site-theme-change'));
   }
 
+  const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
+  let themeTransition;
+  let themeTransitionTimer;
+  function toggleTheme() {
+    if (themeTransition) return;
+    const update = () => {
+      preference = root.dataset.theme === 'dark' ? 'light' : 'dark';
+      try { localStorage.setItem(themeKey, preference); } catch (_) {}
+      applyTheme();
+    };
+
+    if (reducedMotion.matches) {
+      update();
+    } else if (document.startViewTransition) {
+      themeTransition = document.startViewTransition(update);
+      const finish = () => { themeTransition = null; };
+      themeTransition.finished.then(finish, finish);
+    } else {
+      root.classList.add('site-theme-transition');
+      update();
+      clearTimeout(themeTransitionTimer);
+      themeTransitionTimer = setTimeout(() => root.classList.remove('site-theme-transition'), 200);
+    }
+  }
+
   function sessionRead(key) {
     try { return JSON.parse(sessionStorage.getItem(key)); }
     catch (_) { return null; }
@@ -57,6 +82,27 @@
   const projectAPIOrigin = ''; // GitHub Pages build injects the public Worker origin.
   const projectUsesDatabase = root.dataset.salesSource === 'd1' || Boolean(projectAPIOrigin);
   const projectSupportsAdmin = root.dataset.salesSource === 'd1' && !projectAPIOrigin;
+  function createDeploymentLink() {
+    const githubPages = new URL('https://muinocriz.github.io/smartphoneSellOut/');
+    const cloudflare = new URL(projectAPIOrigin || 'https://smartphonesellout.zirconium.workers.dev/');
+    const onGitHub = location.origin === githubPages.origin && location.pathname.startsWith(githubPages.pathname);
+    const onCloudflare = projectSupportsAdmin || location.origin === cloudflare.origin;
+    const path = pages.find(([id]) => id === current)?.[2];
+    if (!path || (!onGitHub && !onCloudflare)) return null;
+
+    const link = document.createElement('a');
+    link.className = 'site-deployment-link';
+    link.href = new URL(path, onGitHub ? cloudflare : githubPages);
+    const platform = onGitHub ? 'GitHub Pages' : 'Cloudflare';
+    const target = onGitHub ? 'Cloudflare' : 'GitHub Pages';
+    link.title = '切换到 ' + target;
+    if (root.dataset.salesAdmin === 'true') link.title += ' 的公开页面';
+    link.setAttribute('aria-label', '当前为 ' + platform + '，' + link.title);
+    link.textContent = platform;
+    link.insertAdjacentHTML('beforeend', '<svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h17m-4-4 4 4-4 4M21 16H4m4-4-4 4 4 4"/></svg>');
+    return link;
+  }
+
   const projectTables = new Map([
     ['sales-long.csv', ['/api/tracking', 'brand model category date period metric value_wan operator']],
     ['model-master.csv', ['/api/models', 'model_id model_name brand brand_group aliases series generation variant form_factor sale_start_date predecessor_id launch_price chip_vendor chip_model base_ram base_rom source_url notes verification tracking_group']],
@@ -117,14 +163,12 @@
     themeToggle.className = 'site-theme-toggle';
     themeToggle.innerHTML = '<svg class="site-theme-sun" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4m0-14.2-1.4 1.4M6.3 17.7l-1.4 1.4"/></svg>' +
       '<svg class="site-theme-moon" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>';
-    themeToggle.addEventListener('click', () => {
-      preference = root.dataset.theme === 'dark' ? 'light' : 'dark';
-      try { localStorage.setItem(themeKey, preference); } catch (_) {}
-      applyTheme();
-    });
+    themeToggle.addEventListener('click', toggleTheme);
     applyTheme();
     const actions = document.createElement('div');
     actions.className = 'site-header-actions';
+    const deployment = createDeploymentLink();
+    if (deployment) actions.append(deployment);
     const github = document.createElement('a');
     github.className = 'site-github-link';
     github.href = 'https://github.com/muinocriz/smartphoneSellOut';

@@ -4,7 +4,7 @@
 
 | 功能 / 用户现象 | 首读路径 | 关键入口及下一跳 |
 | --- | --- | --- |
-| 全站导航、主题、首页跳转、跨页临时数据 | index.html、site-shell.js | `routes`（默认销量增量追踪模块）、`pages`、`applyTheme`、`sessionRead` / `sessionWrite`；生产路径另看 scripts/build-cloudflare.mjs |
+| 全站导航、主题、首页跳转、跨页临时数据 | index.html、site-shell.js | `routes`（默认销量增量追踪模块）、`pages`、`applyTheme` / `toggleTheme` / `createDeploymentLink`、`sessionRead` / `sessionWrite`；生产路径另看 scripts/build-cloudflare.mjs |
 | 全站导航 · 当前部署提交 | scripts/build-cloudflare.mjs、site-shell.js、site-shell.css | `prepareModulePage` 将构建工作区的 Git HEAD 写入页面及导航资源 URL；导航显示 7 位短 SHA 并链接完整提交。 |
 | D1 运行时读取（含 GitHub Pages） | site-shell.js、scripts/build-cloudflare.mjs、cloudflare-worker.mjs、.github/workflows/pages.yml | `readProject` / `projectSupportsAdmin` → `readData`；构建注入 `SALES_PAGES_API_ORIGIN`，公开四表允许跨域 |
 | D1 数据快照、静态站发布与派生销量面板 | cloudflare-worker.mjs、scripts/export-db-snapshot.mjs、scripts/build-cloudflare.mjs、.github/workflows/pages.yml | `readPublicSnapshot` → `snapshotCSV` / `verifySnapshot` → `generateSalesPanel`；部署元数据 `sales-snapshot.json` |

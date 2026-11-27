@@ -1,6 +1,6 @@
 # 架构与数据流
 
-三个模块是独立 HTML 文档，根目录直接运行。旧版销量追踪模块页面已下线，index.html 仅负责默认跳转销量增量追踪模块及兼容仍有效的旧首页 hash 链接。页面以普通 script 按顺序加载依赖，销量数据处理模块的核心逻辑有相当部分内联在 HTML。共享外壳 site-shell.js 生成导航、同步主题。外观偏好存 localStorage，主题切换发出 `site-theme-change`。函数入口见 [代码索引](CODE_MAP.md)。
+三个模块是独立 HTML 文档，根目录直接运行。旧版销量追踪模块页面已下线，index.html 仅负责默认跳转销量增量追踪模块及兼容仍有效的旧首页 hash 链接。页面以普通 script 按顺序加载依赖，销量数据处理模块的核心逻辑有相当部分内联在 HTML。共享外壳 site-shell.js 生成导航、同步主题。外观偏好存 localStorage，主题切换发出 `site-theme-change`。导航可在 Cloudflare 与 GitHub Pages 上打开同一模块的公开页面；两个站点的浏览器草稿分别保存在各自的域名下。函数入口见 [代码索引](CODE_MAP.md)。
 
 ## 输入、派生和持久化
 

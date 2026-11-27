@@ -38,16 +38,18 @@
 .site-header a:hover,.site-header a[aria-current]{background:var(--site-selection);color:var(--site-accent)}
 .site-header a[aria-current]{font-weight:700}
 .site-header-actions{display:flex;align-items:center;gap:6px;flex-shrink:0}
+.site-header .site-deployment-link,
 .site-header .site-build-version,
 .site-header .site-github-link,
 .site-header .site-theme-toggle{
   box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;
   height:32px;min-height:32px;border-radius:6px;color:var(--site-muted);
 }
-.site-header .site-build-version{
+.site-header .site-deployment-link,.site-header .site-build-version{
   gap:6px;padding:0 10px;border:1px solid var(--site-border);background:var(--site-soft);
-  font:12px/1 "IBM Plex Mono",ui-monospace,monospace;
 }
+.site-header .site-deployment-link{font-size:12px;line-height:1}
+.site-header .site-build-version{font:12px/1 "IBM Plex Mono",ui-monospace,monospace}
 .site-header-divider{width:1px;height:16px;margin-inline:4px;background:var(--site-border)}
 .site-header .site-github-link,.site-header .site-theme-toggle{
   width:32px;padding:0;border:0;background:transparent;cursor:pointer;
@@ -70,6 +72,15 @@
   .site-module-menu{display:block}
   .site-module-menu summary{padding:0 4px;font-size:14px;white-space:normal}
 }
+::view-transition-old(root),::view-transition-new(root){animation-duration:200ms}
+@media(prefers-reduced-motion:no-preference){
+  :root.site-theme-transition :where(body,header,main,section,aside,nav,details,summary,dialog,table,th,td,button,input,select,textarea,a,p,label){
+    transition:background-color 200ms ease,color 200ms ease,border-color 200ms ease;
+  }
+}
 @media(max-width:480px){
-  .site-header-actions{gap:5px}
+  .site-header{flex-wrap:wrap}
+  .site-header-actions{gap:5px;margin-inline-start:auto}
+  .site-header .site-deployment-link,.site-header .site-build-version{padding-inline:6px}
+  .site-header-divider{margin-inline:1px}
 }

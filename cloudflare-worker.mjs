@@ -1,6 +1,7 @@
 import { EditorError, editEditorSheet, readEditorSheet } from './sales-editor-database.mjs';
 import { publishRanking } from './ranking-editor-database.mjs';
 import { githubCSVAction } from './github-csv-sync.mjs';
+import { generateWeiboDraft } from './weibo-draft.mjs';
 
 const DATA_QUERIES = new Map([
   ['/api/models', `
@@ -219,12 +220,13 @@ async function renderDataPage(request, env, admin = false) {
 async function adminRoute(request, env, url) {
   const page = url.pathname === '/admin' || url.pathname === '/admin/';
   const session = url.pathname === '/admin/api/session';
+  const weiboDraft = url.pathname === '/admin/api/weibo-draft';
   const sheet = url.pathname === '/admin/api/tracking' ? 'tracking'
     : url.pathname === '/admin/api/models' ? 'models'
     : url.pathname === '/admin/api/market-share' ? 'market-share'
     : url.pathname === '/admin/api/rankings' ? 'rankings' : null;
-  const allowed = sheet === 'rankings' ? ['POST'] : sheet ? ['GET', 'POST'] : ['GET'];
-  if (!page && !session && !sheet) return json({ error: 'not_found' }, 404);
+  const allowed = weiboDraft || sheet === 'rankings' ? ['POST'] : sheet ? ['GET', 'POST'] : ['GET'];
+  if (!page && !session && !sheet && !weiboDraft) return json({ error: 'not_found' }, 404);
   if (!allowed.includes(request.method)) {
     return json({ error: 'method_not_allowed' }, 405, { Allow: allowed.join(', ') });
   }
@@ -233,6 +235,7 @@ async function adminRoute(request, env, url) {
   if (access instanceof Response) return access;
   if (page) return renderDataPage(request, env, true);
   if (session) return json({ authenticated: true });
+  if (weiboDraft) return generateWeiboDraft(request, env, url.origin, json);
 
   const query = DATA_QUERIES.get('/api/' + sheet);
   try {

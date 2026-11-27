@@ -321,6 +321,28 @@
       </div>
       <p id="posterExportStatus" class="ui-export-status" role="status" aria-live="polite" hidden></p>
       <div class="msg studio-layout-warning" id="posterLayoutQuality" role="status" aria-live="polite" hidden></div>
+      <section class="copy-box ui-panel" id="weiboDraftPanel" hidden>
+        <h3 class="ui-section-title">微博文案</h3>
+        <details>
+          <summary>提示词模板</summary>
+          <div class="copy-field">
+            <label for="weiboPrompt">语气、字数和结构</label>
+            <textarea id="weiboPrompt" rows="8" maxlength="3000" spellcheck="false"></textarea>
+          </div>
+          <div class="copy-actions"><button type="button" id="resetWeiboPrompt">恢复默认模板</button></div>
+        </details>
+        <p class="copy-mini">生成时会把当前图卡的精简数据发送给 DeepSeek。</p>
+        <div class="copy-actions">
+          <button type="button" class="ui-export-primary" id="generateWeiboDraft" disabled>生成微博文案</button>
+          <a href="/admin/" target="_blank" rel="noopener" id="weiboAdminLogin" hidden>登录管理员</a>
+        </div>
+        <div class="copy-field">
+          <label for="weiboDraft">微博草稿</label>
+          <textarea id="weiboDraft" rows="6" spellcheck="false"></textarea>
+        </div>
+        <div class="copy-actions"><button type="button" id="copyWeiboDraft" disabled>复制文案</button></div>
+        <p class="copy-mini" id="weiboDraftStatus" role="status" aria-live="polite"></p>
+      </section>
       <div class="safe-editor">
         <section class="safe-box ui-panel">
           <div class="safe-box-head"><span class="safe-box-title ui-section-title">抖音安全区独立规避</span><label class="switchline"><span>启用</span><input id="safeEnable" type="checkbox" checked><span class="switch-ui" aria-hidden="true"></span></label></div>

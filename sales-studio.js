@@ -213,7 +213,7 @@ function updateSocial(){if(researchStudioActive()){updateResearchStudio();return
  $('copyChartNoteField').hidden=true;$('copyDisclaimerLabel').textContent='免责附注（支持换行↙）';$('exportChartData').hidden=true;$('studioSource').textContent=o.d.archiveRows?'图卡数据源：历史榜单 · '+o.d.archiveDisplayLabel:'图卡数据源：当前标定榜单 · '+o.d.label;syncStudioSourceActions();
  guard.textContent=flag;$('downloadCard').disabled=publicationJob.busy||!canDownloadSocial(o,socialState.template);$('downloadAllCards').disabled=publicationJob.busy||!canDownloadSocial(o,'bundle');
  $('duelSetup').hidden=socialState.template!=='versus';$('previewSize').textContent=socialState.ratio==='3:4'?'1080 × 1440':'1080 × 1920';
- $('insightSummary').innerHTML=renderInsightSummary(o);updateSafeLabels();syncPaletteChooser();syncPosterCopyUI(socialState.template,o);syncTypographyControls();drawPoster(socialState.template,$('posterCanvas'),o,true);
+ $('insightSummary').innerHTML=renderInsightSummary(o);updateSafeLabels();syncPaletteChooser();syncPosterCopyUI(socialState.template,o);syncTypographyControls();syncWeiboDraft(o);drawPoster(socialState.template,$('posterCanvas'),o,true);
 }
 function renderInsightSummary(o){if(!o.models.length)return '<p>尚无数据。</p>';const p=o.models[0],two=o.models[1];let cards=[['上榜条目',o.models.length+' 条'],['榜首 / 第二名',displayTimes(o.ratio)],['TOP3样本占比',displayPct(o.top3)],['识别品牌',o.brands.length+' 个']];if(o.fit.k!==null)cards[0]=['上榜样本估算合计',displayWan(o.models.reduce((sum,m)=>sum+m.sale,0))+' 万台'];return '<div class="insight-grid">'+cards.map(c=>`<div class="insight-cell"><div class="lab">${e(c[0])}</div><b>${e(c[1])}</b></div>`).join('')+'</div><div class="insight-note">'+e(`${p.name} 的柱长为 ${p.pixels}px；${two?two.name+' 为 '+two.pixels+'px；':''}品牌系列仅统计当前入榜条目；华为/OSTA、小米/REDMI、OPPO/一加/realme、vivo/iQOO分别归并，不能据此推算全市场份额。`)+'</div>'}
 function studioExportLabel(o=socialData()){return researchStudioActive()?socialResearchSnapshot.range:o.d.label;}
@@ -244,7 +244,122 @@ function updateResearchStudio(){
  $('duelSetup').hidden=true;$('previewSize').textContent=socialState.ratio==='3:4'?'1080 × 1440':'1080 × 1920';
  $('exportInsight').textContent='下载完整专题统计 CSV';$('exportBrands').hidden=true;
  $('insightSummary').innerHTML='<div class="insight-note">'+e([s.context,s.summary,s.detail,s.note].filter(Boolean).join('；'))+'</div>';
- updateSafeLabels();syncPaletteChooser();syncPosterCopyUI(socialState.template,o);syncTypographyControls();drawPoster(socialState.template,$('posterCanvas'),o,true);
+ updateSafeLabels();syncPaletteChooser();syncPosterCopyUI(socialState.template,o);syncTypographyControls();syncWeiboDraft(o);drawPoster(socialState.template,$('posterCanvas'),o,true);
+}
+
+
+const defaultWeiboPrompt="用简体中文写一条约 150–250 字的微博，语气克制、直接、自然，像熟悉手机市场的编辑。避免营销话术、夸张判断、表情和话题标签。\n第一句直接说最值得关注的发现。正文用 1–2 个短段落，挑 2–3 个有数字支撑的看点，写清时间、品牌或机型、数值和单位。数据不足时少写。\n用一句短话说明：每周 TOP30 样本约覆盖六成销量，不代表全市场。图卡若含扩展样本或全市场对照，分别标清口径；估算值用“约”。\n只输出微博正文，不加标题、Markdown 或写作说明。";
+
+function weiboChartFields(item,fields){
+ return Object.fromEntries(fields.filter(key=>item[key]!=null).map(key=>[key,item[key]]));
+}
+function weiboCardData(o){
+ const type=socialState.template,s=researchStudioActive()?socialResearchSnapshot:null;
+ if(!canDownloadSocial(o,type))return null;
+ const {title,subtitle}=getPosterCopy(type,o);
+ if(s){
+  const base={title,subtitle,period:s.range,metric:s.displayMetric,scope:s.modeLabel,source:s.source,
+   notes:[...new Set([s.chartNote,s.note].filter(Boolean))]};
+  const chart=s.chart;
+  if(!chart){
+   const table=s.table;
+   if(!table?.rows.length)return null;
+   const columns=[0,1,2,3,7];
+   return {...base,columns:columns.map(i=>table.headers[i]),rows:table.rows.slice(0,10).map(row=>columns.map(i=>row[i]))};
+  }
+  const lineFields=['name','brand','panel','metric','unit','values','lower','upper','delta','deltaLow','deltaHigh','sourcePeriods'];
+  const lineData=line=>({...weiboChartFields(line,lineFields),
+   ...(line.imputed?.some(Boolean)?{imputed:line.imputed}:{})});
+  return {...base,chart:{...weiboChartFields(chart,['kind','axis','unit','xLabel','yLabel','periods']),
+   lines:chart.lines.map(lineData),
+   ...(chart.rankLines?{rankLines:chart.rankLines.map(lineData)}:{}),
+   ...(chart.bands?.length?{bands:chart.bands.map(b=>weiboChartFields(b,['name','lower','upper']))}:{})}};
+ }
+ const base={title,subtitle,period:o.d.label,source:socialSourceName(o),
+  scope:'仅当前榜单样本。销量根据柱长标定估算，样本占比以入榜估算销量合计为分母。'};
+ const model=m=>({rank:m.rank,name:m.name,estimatedSalesWan:displayWan(m.sale)});
+ if(type==='top'&&o.models.length)return {...base,models:o.models.slice(0,10).map(model)};
+ if(type==='brands'&&o.brands.length)return {...base,brands:o.brands.slice(0,7).map(b=>({
+  name:window.BrandUtils.groupLabel(b.brand),models:b.count,estimatedSalesWan:displayWan(b.sale),sampleSharePct:fmt(b.share*100,1)
+ }))};
+ if(type==='versus'){
+  const [a,b]=[o.models[socialState.duelA],o.models[socialState.duelB]];
+  return {...base,models:[a,b].map(model),differenceWan:displayWan(Math.abs(a.sale-b.sale)),
+   salesRatio:displayTimes(Math.max(a.pixels/b.pixels,b.pixels/a.pixels))};
+ }
+ if(type==='leader'&&o.models.length>=2){
+  const [a,b]=o.models;
+  return {...base,models:[a,b].map(model),leaderRatio:displayTimes(o.ratio),leadWan:displayWan(a.sale-b.sale),
+   top3SampleSharePct:fmt(o.top3*100,1),top5SampleSharePct:fmt(o.top5*100,1)};
+ }
+ return null;
+}
+
+let weiboBusy=false,weiboDraftData='';
+function syncWeiboDraft(o){
+ if(!SalesSite.projectSupportsAdmin)return;
+ const data=weiboCardData(o),stale=weiboDraftData&&weiboDraftData!==JSON.stringify(data);
+ $('generateWeiboDraft').disabled=weiboBusy||!data;
+ $('copyWeiboDraft').disabled=!$('weiboDraft').value.trim();
+ const status=$('weiboDraftStatus');
+ if(!weiboBusy&&stale&&status.dataset.state!=='error'){
+  status.dataset.state='stale';status.textContent='当前图卡已变化，草稿仍对应原图卡。';
+ }else if(status.dataset.state==='stale'&&!stale){
+  status.dataset.state='';status.textContent='';
+ }
+}
+
+function initWeiboDraft(){
+ if(!SalesSite.projectSupportsAdmin)return;
+ $('weiboDraftPanel').hidden=false;
+ const prompt=$('weiboPrompt'),draft=$('weiboDraft'),status=$('weiboDraftStatus');
+ const login=$('weiboAdminLogin'),generate=$('generateWeiboDraft');
+ const saved=StudioPref.read('weiboPrompt').text;
+ prompt.value=typeof saved==='string'&&saved.trim()&&saved.length<=3000?saved:defaultWeiboPrompt;
+ const persist=()=>StudioPref.write('weiboPrompt',{text:prompt.value.trim()});
+ prompt.onchange=persist;
+ $('resetWeiboPrompt').onclick=()=>{prompt.value=defaultWeiboPrompt;persist();};
+ draft.oninput=()=>{$('copyWeiboDraft').disabled=!draft.value.trim();};
+ $('copyWeiboDraft').onclick=async()=>{
+  try{await navigator.clipboard.writeText(draft.value);notify('微博文案已复制');}
+  catch{draft.focus();draft.select();notify('已选中文案，可手动复制');}
+ };
+ generate.onclick=async()=>{
+  if(weiboBusy)return;
+  const data=weiboCardData(socialData());
+  if(!data)return;
+  const source=JSON.stringify(data);
+  const body=JSON.stringify({style:prompt.value.trim()||defaultWeiboPrompt,data});
+  login.hidden=true;
+  if(new TextEncoder().encode(body).byteLength>96*1024){
+   status.dataset.state='error';status.textContent='图卡数据超过大小限制，请缩短研究区间后重新生成图卡。';return;
+  }
+  const startedWith=draft.value;
+  weiboBusy=true;generate.disabled=true;
+  status.dataset.state='';status.textContent='正在生成微博文案…';
+  try{
+   const response=await fetch('/admin/api/weibo-draft',{
+    method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',redirect:'manual',body
+   });
+   if(response.type==='opaqueredirect'||[401,403].includes(response.status)){
+    login.hidden=false;throw Error('请先登录管理员，再返回这里生成文案。');
+   }
+   const result=await response.json().catch(()=>null);
+   if(!response.ok||typeof result?.draft!=='string')throw Error(result?.message||'暂时无法生成文案，请稍后重试。');
+   if(JSON.stringify(weiboCardData(socialData()))!==source){
+    status.dataset.state='error';status.textContent='图卡在生成期间已变化，请使用当前图卡重新生成。';return;
+   }
+   if(draft.value!==startedWith){
+    status.dataset.state='error';status.textContent='草稿在生成期间已被编辑，已保留你的修改。';return;
+   }
+   draft.value=result.draft;weiboDraftData=source;
+   status.textContent='草稿已生成，请核对后发布。';
+  }catch(error){
+   status.dataset.state='error';status.textContent=error.message;
+  }finally{
+   weiboBusy=false;syncWeiboDraft(socialData());
+  }
+ };
 }
 
 function freezePublication(value){
@@ -484,7 +599,7 @@ function initSocial(){PosterWatermark.mount(()=>watermarkState,()=>updateSocial(
  $('downloadCard').onclick=saveCard;$('downloadVersions').onclick=saveCardVersions;$('downloadAllCards').onclick=saveBundle;
  $('exportChartData').onclick=()=>{if(researchStudioActive())exportCSVBlob(researchChartRows(socialResearchSnapshot),slugName(studioExportLabel())+'_图表数据.csv');};
  $('exportInsight').onclick=()=>{if(researchStudioActive()){const s=socialResearchSnapshot;exportCSVBlob(s.csv,slugName(studioExportLabel())+'_专题数据.csv');return;}const o=socialData();exportCSVBlob(insightRows(o),slugName(o.d.label)+'_机型派生分析.csv')};$('exportBrands').onclick=()=>{const o=socialData();exportCSVBlob(brandRows(o),slugName(o.d.label)+'_品牌上榜样本分析.csv')};
- initPublicationPreferences();updateSafeLabels();syncPaletteChooser();resetPosterCopy(true);updateSocial();if(document.fonts?.ready)document.fonts.ready.then(()=>updateSocial());
+ initPublicationPreferences();initWeiboDraft();updateSafeLabels();syncPaletteChooser();resetPosterCopy(true);updateSocial();if(document.fonts?.ready)document.fonts.ready.then(()=>updateSocial());
 }
 
 const studioSessionKey='phoneSales.studioSession';

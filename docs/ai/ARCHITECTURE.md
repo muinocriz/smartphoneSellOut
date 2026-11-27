@@ -20,7 +20,7 @@ Cloudflare 的 `/admin/` 复用销量数据处理模块页面，并使用独立�
 
 GitHub Actions 在读取静态站快照前，可将四份正式 CSV 的变更增量导入 D1。同步以持久化的 GitHub 提交为比较基线；Worker 校验版本并批量写入。执行结果由 iCloud SMTP 发给已配置的 iCloud 邮箱，记录及回执保存在 `github_csv_sync_runs`。
 
-热销机型与榜单研究模块出图台排版覆盖值随 `StudioPreferences` 的 visual / publication 本地保存；公共元素跨图卡共享，主体按模板或研究专题隔离，缺省继承原渲染器。发布快照冻结排版配置，与 PNG、ZIP 同步；排版 JSON 仅含视觉设置。专题研究页直接导出不受出图台排版覆盖值影响。出图台仅编辑图卡内文字，不再生成独立社媒发布文案、标题或轮播脚本；发布 ZIP 保留图卡、CSV、统计说明和配置清单。旧 visual / publication 存储迁移时保留图卡设置并移除已退役字段。
+热销机型与榜单研究模块出图台排版覆盖值随 `StudioPreferences` 的 visual / publication 本地保存；公共元素跨图卡共享，主体按模板或研究专题隔离，缺省继承原渲染器。发布快照冻结排版配置，与 PNG、ZIP 同步；排版 JSON 仅含视觉设置。专题研究页直接导出不受出图台排版覆盖值影响。发布 ZIP 包含图卡、CSV、统计说明和配置清单。出图台的微博草稿独立于导出，点击生成才将当前图卡显示的数据和可编辑的模板发送至 DeepSeek。Cloudflare 同源页面经 `/admin/api/weibo-draft` 验证 Access 管理员身份，Worker Secret `DEEPSEEK_API_KEY` 用于调用模型。模板在本机保存，草稿仅保留在当前页面。旧 visual / publication 存储迁移时保留图卡设置并移除已退役字段。
 
 ## 运行、发布与验收
 

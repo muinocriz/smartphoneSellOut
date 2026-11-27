@@ -1,6 +1,6 @@
 (function(root){
 'use strict';
-const versions=Object.freeze({research:8,visual:3,publication:11}),prefix='smartphoneSellOut.module3.';
+const versions=Object.freeze({research:8,visual:3,publication:11,weiboPrompt:1}),prefix='smartphoneSellOut.module3.';
 // Drop retired publishing-text fields from older saved schemes, retaining the
 // chart's visual settings, editable in-image copy and selected data/template.
 function selectFields(obj,keys){return Object.fromEntries(keys.filter(k=>Object.prototype.hasOwnProperty.call(obj||{},k)).map(k=>[k,obj[k]]));}

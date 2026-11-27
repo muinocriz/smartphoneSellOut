@@ -169,14 +169,14 @@ function choices(){
     label.append(input,nameOf(key));box.append(label);
   }
 }
-function applyKeys(keys){
+function applyKeys(keys,{resetRange=false}={}){
   if(activeEdit)return;
   if(keys.some(k=>metadata[k]&&byId('brand').dataset.value&&incrementBrandKey(metadata[k][0])!==byId('brand').dataset.value)){
     selectFilter('brand','');
   }
   selected.clear();keys.filter(key=>metadata[key]).forEach(key=>selected.add(key));
   drawEditor();
-  choices();draw();
+  choices();draw({resetRange});
 }
 const recentListIndex=0;
 const presetCount=3;
@@ -213,7 +213,7 @@ function renderLists(){
         return;
       }
       selectList(index);
-      if(keys.length)applyKeys(keys);
+      if(keys.length)applyKeys(keys,{resetRange:true});
       else choices();
     };
     if(!button.parentNode)lists.append(button);
@@ -227,7 +227,7 @@ function syncBrand(){
     recentChoices=recentModelKeys();
     selectList(recentListIndex);
   }
-  applyKeys(choiceKeys());
+  applyKeys(choiceKeys(),{resetRange:activeList===recentListIndex});
 }
 
 byId('all').onclick=()=>{

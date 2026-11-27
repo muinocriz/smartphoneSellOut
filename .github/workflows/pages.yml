@@ -17,6 +17,8 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      SALES_D1_ORIGIN: ${{ vars.SALES_D1_ORIGIN || 'https://smartphonesellout.zirconium.workers.dev' }}
     outputs:
       artifact-name: ${{ steps.artifact.outputs.name }}
     steps:
@@ -25,7 +27,28 @@ jobs:
         with:
           node-version: '24'
       - uses: actions/configure-pages@v5
+      - name: Download a consistent D1 snapshot
+        env:
+          SALES_SNAPSHOT_DIR: ${{ runner.temp }}/sales-d1-snapshot-${{ github.run_attempt }}
+        run: |
+          # Cloudflare and GitHub may start deploying the same commit in parallel.
+          for attempt in 1 2 3 4 5 6; do
+            if npm run snapshot:d1 -- "$SALES_D1_ORIGIN" "$SALES_SNAPSHOT_DIR"; then
+              echo "SALES_SNAPSHOT_DIR=$SALES_SNAPSHOT_DIR" >> "$GITHUB_ENV"
+              exit 0
+            fi
+            if [ "$attempt" = 6 ]; then
+              exit 1
+            fi
+            sleep 20
+          done
       - run: npm run build
+      - name: Archive the data snapshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: d1-snapshot-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/sales-d1-snapshot-${{ github.run_attempt }}
+          if-no-files-found: error
       - name: Set Pages artifact name
         id: artifact
         run: echo "name=github-pages-${GITHUB_RUN_ATTEMPT}" >> "$GITHUB_OUTPUT"

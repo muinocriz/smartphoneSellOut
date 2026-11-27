@@ -4,7 +4,7 @@
 
 ## 输入、派生和持久化
 
-Cloudflare Worker 在三个生产页面标记 D1 为正式数据源。`site-shell.js` 的 `readProject` 调用只读 JSON API，并将结果交给现有数据解析器。热销机型与榜单研究模块从当前榜单、机型及跟踪数据即时计算面板。GitHub Pages 与本地静态预览继续读取下表中的仓库 CSV，`data.csv` 仍供宽表导入。
+Cloudflare Worker 在三个生产页面标记 D1 为正式数据源。`site-shell.js` 的 `readProject` 调用只读 JSON API，并将结果交给现有数据解析器。热销机型与榜单研究模块从当前榜单、机型及跟踪数据即时计算面板。GitHub Pages 构建读取正式 D1 快照，静态页面读取随部署发布的 CSV。本地静态预览读取下表中的仓库 CSV，`data.csv` 仍供宽表导入。
 
 | 模块 | 仓库输入 | 计算和输出 |
 | --- | --- | --- |
@@ -23,5 +23,5 @@ Cloudflare 的 `/admin/` 复用销量数据处理模块页面，并使用独立�
 ## 运行、发布与验收
 
 - 本地在仓库根目录执行 `python3 -m http.server 8000`，访问 `http://localhost:8000/`（跳转销量增量追踪模块）；热销机型与榜单研究模块本地入口为 `/sales-estimator.html`。本地静态预览无需构建。
-- Cloudflare Workers 与 GitHub Pages 共用静态构建清单。根 package.json 的 `npm run build` 调用 scripts/build-cloudflare.mjs，根据 studio-assets.mjs 清单生成 dist/；构建时改写首页兼容跳转、热销机型与榜单研究模块导航与共享外壳相对路径，并生成榜单面板。热销机型与榜单研究模块使用站点相对路径 `studio/sales-estimator.html`。GitHub Pages 由 `.github/workflows/pages.yml` 独立发布 `dist/`。修改资源依赖时核对发布清单；部署细节见 [部署指南](../CLOUDFLARE_DEPLOYMENT.md)。
+- Cloudflare Workers 与 GitHub Pages 共用静态构建清单。根 package.json 的 `npm run build` 调用 scripts/build-cloudflare.mjs，根据 studio-assets.mjs 清单生成 dist/；构建时改写首页兼容跳转、热销机型与榜单研究模块导航与共享外壳相对路径，并生成榜单面板。热销机型与榜单研究模块使用站点相对路径 `studio/sales-estimator.html`。GitHub Pages 由 `.github/workflows/pages.yml` 独立发布 `dist/`，用同一份 D1 快照生成四份正式 CSV 与派生面板。修改资源依赖时核对发布清单；部署细节见 [部署指南](../CLOUDFLARE_DEPLOYMENT.md)。
 - 项目以用户手动验收为主，package.json 无 test 脚本。维护者可从受影响页面打开相应 CSV、操作对应控件，并核对页面或导出结果；仅按 [工作约定](../../AGENTS.md) 中的授权执行测试。

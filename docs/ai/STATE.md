@@ -25,6 +25,7 @@
 | 销量增量追踪模块 · 导入来源 | 顶部支持项目、本地 CSV 和销量数据处理模块的同标签页更新导入。待用户验收更新按钮状态、新增空周和反向交接。 | `1c8bf69`，`applySource` / `pagehide` |
 | 热销机型与榜单研究模块 · 出图台字号 | 图例、轴刻度／周次、堆叠区块数值默认 8，字重 400。待用户验收新老代际结构及价格带图卡。 | `53ca9e8`、`eb0c50b`，`PosterTypography.size` |
 | 发布 · GitHub Pages | Pages 与 Cloudflare Workers 分别运行部署，共用静态构建产物。Pages 构建与部署分工，按重试次数区分产物。 | `94114fc`、`37b0a71`，`.github/workflows/pages.yml` |
+| 发布 · D1 数据快照 | 四张公开数据表与版本在一次批处理内读取，GitHub Pages 由同一快照构建与存档。待 Cloudflare 路由部署及用户验收镜像。 | `readPublicSnapshot` / `verifySnapshot`，随本次改动 |
 
 | 热销机型与榜单研究模块 · 跨市场周次 | 两个 CSV 更新进度不一致时，跨市场专题以两源周历范围显示自然周，标注缺失来源；其他专题仍用原始榜单或扩展样本周历。默认追随最新周，跨市场区间记忆独立，缺失贡献不补零。待用户验收。 | `crossMarketPanel` / `fillRangeControls` / `fillDualWeeks`，随本次改动 |
 

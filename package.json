@@ -4,6 +4,7 @@
   "scripts": {
     "build": "node scripts/build-cloudflare.mjs",
     "deploy": "wrangler deploy",
+    "snapshot:d1": "node scripts/export-db-snapshot.mjs",
     "generate:panel": "node scripts/generate-sales-panel.mjs"
   },
   "devDependencies": {

@@ -64,16 +64,45 @@ function json(body, status = 200, headers = {}) {
   });
 }
 
+async function readPublicSnapshot(db) {
+  const queries = [...DATA_QUERIES];
+  const [versions, ...tables] = await db.batch([
+    db.prepare(`
+      SELECT r.sheet, r.revision, strftime('%Y-%m-%dT%H:%M:%SZ', r.published_at) AS published_at
+      FROM sales_editor_releases AS r
+      JOIN (SELECT sheet, MAX(revision) AS revision FROM sales_editor_releases GROUP BY sheet) AS latest
+      ON latest.sheet = r.sheet AND latest.revision = r.revision
+    `),
+    ...queries.map(([, query]) => db.prepare(query))
+  ]);
+  const revisions = new Map(versions.results.map(({ sheet, revision, published_at }) =>
+    [sheet, { revision, published_at }]
+  ));
+  return {
+    schema_version: 1,
+    captured_at: new Date().toISOString(),
+    tables: Object.fromEntries(queries.map(([path], index) => {
+      const sheet = path.slice('/api/'.length);
+      return [sheet, {
+        ...(revisions.get(sheet) ?? { revision: 0, published_at: null }),
+        data: tables[index].results
+      }];
+    }))
+  };
+}
+
 async function readData(request, env, pathname) {
   const countRequest = pathname === '/api/counts';
+  const snapshotRequest = pathname === '/api/snapshot';
   const query = DATA_QUERIES.get(pathname);
-  if (!countRequest && !query) return json({ error: 'not_found' }, 404);
+  if (!countRequest && !snapshotRequest && !query) return json({ error: 'not_found' }, 404);
   if (request.method !== 'GET') {
     return json({ error: 'method_not_allowed' }, 405, { Allow: 'GET' });
   }
 
   try {
     if (countRequest) return json({ data: await readCounts(env.DB) });
+    if (snapshotRequest) return json(await readPublicSnapshot(env.DB));
 
     const { results } = await env.DB.prepare(query).all();
     return json({ data: results });

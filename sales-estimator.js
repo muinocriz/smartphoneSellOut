@@ -173,7 +173,18 @@ rankingOcrButton.onclick = async () => {
     if (request.signal.aborted) return;
     $('rankingOcrRawText').textContent = result.text || 'DeepSeek 返回了空文本。';
     $('rankingOcrRaw').hidden = false;
-    const { labels, blockCount, singleLineCount } = alignRankingLabels(result.text, bars, top, height);
+    const alignment = alignRankingLabels(result.text, bars, top, height);
+    let { labels } = alignment;
+    const { blockCount, singleLineCount } = alignment;
+    const plainText = Boolean(result.text.trim()) && !/<[^>]*>|\[\[|^```/m.test(result.text);
+    if (plainText) {
+      const lines = result.text.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
+      if (lines.length !== bars.length) {
+        $('rankingOcrRaw').open = true;
+        throw Error(`DeepSeek 返回 ${lines.length} 行文字，检测到 ${bars.length} 条柱条。请查看原始返回并手动核对排名。`);
+      }
+      labels = lines.map(line => [line]);
+    }
     if (!labels.some(names => names.length)) {
       $('rankingOcrRaw').open = true;
       const reason = !result.text.trim() ? 'DeepSeek 返回了空文本。'
@@ -213,8 +224,9 @@ rankingOcrButton.onclick = async () => {
     });
     draft.value = names.join('\n');
     $('rankingOcrReview').hidden = false;
-    $('rankingOcrReview').open = review > 0;
-    rankingOcrStatus.textContent = `已填入 ${filled} 行，${review} 行待复核。请核对名单后点击“应用机型名称”。`;
+    $('rankingOcrReview').open = plainText || review > 0;
+    const alignmentNote = plainText ? '已按返回顺序对应排名，请逐行核对。' : '';
+    rankingOcrStatus.textContent = `${alignmentNote}已填入 ${filled} 行，${review} 行待复核。请核对名单后点击“应用机型名称”。`;
   } catch (error) {
     if (!request.signal.aborted) rankingOcrStatus.textContent = error.message;
   } finally {

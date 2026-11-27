@@ -255,7 +255,7 @@
   function onProductFilterChange(){syncPriceFilterInputs();updateProductInfo(currentScope());trackerOptions();syncResearchEditors();renderTracker();renderResearch();}
   for(const n of Object.values(productControls))n.onchange=onProductFilterChange;
   $('productFilterReset').onclick=()=>{for(const n of Object.values(productControls))n.value='';onProductFilterChange();};
-  const researchControlIds=['trackerCoverage','trackerCoverageBase','trackerDataMode','trackerImputeRule','trackerMaxGap','trackerMissingBoard','trackerTrailing','trackerMode','trackerTrendView','researchTailAge','researchTailCount','researchTailWindow','researchTailRecent','researchTailStatus','dualView','dualBase','dualCompare','coverageView','coverageSkuEnabled','coverageMissingSku','coverageTrendEnabled','coverageTrendTolerance','brandView','brandMetric','brandCon','researchGroupField','researchGroupMode','researchGenerationLevel','trackerAxis','researchTailView','researchNewWeeks','priceCuts','priceView','priceMetric','priceBrandLevel','positionView','positionBrandLevel','positionHigh','chipDimension','chipView','chipMetric','chipLimit','ageView','ageMetric','ageBrandLevel','crossRow','crossColumn','crossMetric','crossRange','crossLimit','crossPriceCuts',...filterIds];
+  const researchControlIds=['trackerCoverage','trackerCoverageBase','trackerDataMode','trackerImputeRule','trackerMaxGap','trackerMissingBoard','trackerTrailing','trackerMode','trackerTrendView','researchTailAge','researchTailCount','researchTailWindow','researchTailRecent','researchTailStatus','dualView','dualBase','dualCompare','coverageView','coverageSkuEnabled','coverageMissingSku','coverageTrendEnabled','coverageTrendTolerance','brandView','brandMetric','brandCon','researchGroupField','researchGroupMode','researchGenerationLevel','trackerAxis','researchTailView','researchNewWeeks','priceCuts','priceView','priceMetric','priceBrandLevel','positionView','positionAxis','positionBrandLevel','positionHigh','chipDimension','chipView','chipMetric','chipLimit','ageView','ageMetric','ageBrandLevel','crossRow','crossColumn','crossMetric','crossRange','crossLimit','crossPriceCuts',...filterIds];
   const safeEntries=value=>Array.isArray(value)?value.filter(v=>Array.isArray(v)&&v.length===2&&typeof v[0]==='string'):[];
   let catalog=[],activeScopeId='',restoringScope=false,activeExpanded=false,trackingLoading=false;
   const expandedTopics=new Set(['model','generation','structure','tier','price','position','chip','age','cross','brand']);
@@ -670,6 +670,7 @@
     '<div id="priceBrandWrap"><label class="lbl" for="priceBrandLevel">品牌层级</label><select id="priceBrandLevel" class="field ui-field"><option value="brand_group">母品牌</option><option value="brand">子品牌/品牌</option></select></div></div><button id="priceResetCuts" type="button" class="secondary" style="margin-top:8px">恢复默认价格带</button><p class="mini">专题自定义价格带独立于通用筛选器的默认价格带。末周指所选统计结束周。</p></div>'+
     '<div id="researchPositionControls" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px">'+
     '<div><label class="lbl" for="positionView">研究视图</label><select id="positionView" class="field ui-field"><option value="weighted">加权首发价趋势</option><option value="high">高价位销量贡献趋势</option><option value="scatter">末周销量 × 加权首发价</option></select></div>'+
+    '<div id="positionAxisWrap"><label class="lbl" for="positionAxis">纵轴</label><select id="positionAxis" class="field ui-field"><option value="linear">线性</option><option value="log">对数</option></select></div>'+
     '<div><label class="lbl" for="positionBrandLevel">品牌层级</label><select id="positionBrandLevel" class="field ui-field"><option value="brand_group">母品牌</option><option value="brand">子品牌/品牌</option></select></div>'+
     '<div><label class="lbl" for="positionHigh">高价位门槛（元）</label><input id="positionHigh" class="field ui-field" type="number" min="1" max="1000000" step="1" value="6000"></div></div>'+
     '<div id="researchChipControls" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px">'+
@@ -1456,7 +1457,10 @@
   const attrColor=(name,i)=>name===Product.UNKNOWN?'#94a3b8':name==='其他已知类别'?'#64748b':window.BrandUtils.color(name)||attributeColors[i%attributeColors.length];
   function attributeSettings(key){
     if(key==='price')return {cuts:$('priceCuts').value,view:$('priceView').value,metric:$('priceMetric').value,brandLevel:$('priceBrandLevel').value};
-    if(key==='position')return {view:$('positionView').value,brandLevel:$('positionBrandLevel').value,high:$('positionHigh').value};
+    if(key==='position'){
+      const view=$('positionView').value;
+      return {view,brandLevel:$('positionBrandLevel').value,high:$('positionHigh').value,...(view==='weighted'?{axis:$('positionAxis').value==='log'?'log':'linear'}:{})};
+    }
     if(key==='age')return {view:$('ageView').value,metric:$('ageMetric').value,brandLevel:$('ageBrandLevel').value,ageCuts:Product.AGE_CUTS};
     if(key==='cross')return {row:$('crossRow').value,column:$('crossColumn').value,metric:$('crossMetric').value,range:$('crossRange').value,limit:$('crossLimit').value,ageCuts:Product.AGE_CUTS,priceCuts:$('crossPriceCuts').value};
     return {dimension:$('chipDimension').value,view:$('chipView').value,metric:$('chipMetric').value,limit:$('chipLimit').value};
@@ -1611,7 +1615,9 @@
       }else{
         const high=cfg.view==='high';metricLabel=high?'品牌高价位销量贡献率（≥'+threshold+'元）':'销量加权首发价（元）';
         const lines=labels.map((k,i)=>({name:k,color:attrColor(k,i),values:per.map((w,j)=>nonempty(w)?(high?byWeek[j].get(k).highShare:byWeek[j].get(k).weightedPrice):null)}));
-        effective=per.filter((w,j)=>lines.some(l=>Number.isFinite(l.values[j]))).map(w=>w.period);if(effective.length)chart={periods:per.map(w=>w.period),calendarPeriods:effective,unit:high?'%':'元',limit:high?100:undefined,lines};
+        const logY=cfg.axis==='log';
+        effective=per.filter((w,j)=>lines.some(l=>Number.isFinite(l.values[j])&&(!logY||l.values[j]>0))).map(w=>w.period);
+        if(effective.length)chart={periods:per.map(w=>w.period),calendarPeriods:effective,unit:high?'%':'元',limit:high?100:undefined,logY,lines};
       }
       if(chart)attrPlot(chart,metricLabel);
       setAttributeInfo(metricLabel,effective,note,'高价门槛 '+threshold+' 元；高价贡献率以品牌全部样本销量为分母；散点最多12组，表格保留全部。');
@@ -1641,7 +1647,7 @@
     const unknown=last?.entries.filter(x=>classify(x)===Product.UNKNOWN).reduce((s,x)=>s+x.units,0)||0;
     notice.textContent=metricLabel+suffix+' · 末周属性覆盖率 '+(last?.total>0?pct(last.total-unknown,last.total).toFixed(2)+'%':'—')+(one&&!nonempty(last)?' · 末周无有效样本':'')+' · 全部类别 '+all.length+' 个，图表保留 '+shown.length+' 组';
   }
-  for(const id of ['priceCuts','priceView','priceMetric','priceBrandLevel','positionView','positionBrandLevel','positionHigh','chipDimension','chipView','chipMetric','chipLimit','ageView','ageMetric','ageBrandLevel','crossRow','crossColumn','crossMetric','crossRange','crossLimit','crossPriceCuts'])$(id).onchange=renderResearch;
+  for(const id of ['priceCuts','priceView','priceMetric','priceBrandLevel','positionView','positionAxis','positionBrandLevel','positionHigh','chipDimension','chipView','chipMetric','chipLimit','ageView','ageMetric','ageBrandLevel','crossRow','crossColumn','crossMetric','crossRange','crossLimit','crossPriceCuts'])$(id).onchange=renderResearch;
   $('crossSwap').onclick=()=>{const a=$('crossRow'),b=$('crossColumn'),v=a.value;a.value=b.value;b.value=v;renderResearch();};
   $('priceResetCuts').onclick=()=>{$('priceCuts').value=Product.DEFAULT_CUTS.join(',');renderResearch();};
   $('crossResetCuts').onclick=()=>{$('crossPriceCuts').value=Product.DEFAULT_CUTS.join(',');renderResearch();};
@@ -1657,6 +1663,7 @@
   function renderResearch(){try{renderResearchContent();if(activeExpanded&&researchView!=='model'){const desc=$('researchDesc');desc.textContent=desc.textContent.replace(/有效榜单/g,'有效样本').replace(/每周入榜计一次/g,'每周按独立统计项计一次');if(attributePublicationInfo){attributePublicationInfo.note=attributePublicationInfo.note.replace(/仅原始榜单样本/g,'扩展样本');attributePublicationInfo.metricLabel=attributePublicationInfo.metricLabel.replace(/入榜统计项/g,'扩展统计项');}}}catch(err){researchPublicationChart=null;researchPublicationTable=null;researchExportRows=[];$('researchExport').disabled=true;reportResearchError(err);throw err;}finally{syncResearchPNGButton();saveResearchPreferences();}}
   function renderResearchContent(){
     if(researchView==='model')return;
+    if(researchView==='position')visible($('positionAxisWrap'),$('positionView').value==='weighted');
     researchPublicationChart=null;researchPublicationTable=null;coveragePublicationInfo=null;dualPublicationInfo=null;brandPublicationInfo=null;attributePublicationInfo=null;
     const scope=currentScope(),notice=$('researchNotice');
     $('researchTitle').textContent=researchViews[researchView];$('researchDesc').textContent='';

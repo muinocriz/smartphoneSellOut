@@ -80,6 +80,66 @@ async function readData(request, env, pathname) {
   }
 }
 
+function decodeBase64Url(value) {
+  if (!/^[A-Za-z0-9_-]+$/.test(value)) throw new Error('Invalid base64url');
+  return Uint8Array.from(atob(value.replaceAll('-', '+').replaceAll('_', '/')), c => c.charCodeAt(0));
+}
+
+function decodeTokenPart(value) {
+  return JSON.parse(new TextDecoder().decode(decodeBase64Url(value)));
+}
+
+async function readAdminSession(request, env) {
+  if (request.method !== 'GET') {
+    return json({ error: 'method_not_allowed' }, 405, { Allow: 'GET' });
+  }
+
+  const issuer = env.CF_ACCESS_TEAM_DOMAIN?.trim().replace(/\/$/, '');
+  const audience = env.CF_ACCESS_AUD?.trim();
+  if (!/^https:\/\/[a-z0-9-]+\.cloudflareaccess\.com$/i.test(issuer ?? '') || !audience) {
+    return json({ error: 'access_not_configured' }, 503);
+  }
+
+  const unauthorized = () => json({ error: 'unauthorized' }, 401);
+  const parts = request.headers.get('Cf-Access-Jwt-Assertion')?.split('.');
+  if (parts?.length !== 3) return unauthorized();
+
+  let header, claims, signature;
+  try {
+    header = decodeTokenPart(parts[0]);
+    claims = decodeTokenPart(parts[1]);
+    signature = decodeBase64Url(parts[2]);
+  } catch {
+    return unauthorized();
+  }
+
+  const now = Math.floor(Date.now() / 1000);
+  if (header?.alg !== 'RS256' || typeof header.kid !== 'string' ||
+      claims?.iss !== issuer || !Array.isArray(claims.aud) || !claims.aud.includes(audience) ||
+      !Number.isFinite(claims.exp) || claims.exp <= now ||
+      (claims.nbf !== undefined && (!Number.isFinite(claims.nbf) || claims.nbf > now)) ||
+      typeof claims.email !== 'string' || !claims.email.trim()) {
+    return unauthorized();
+  }
+
+  try {
+    const response = await fetch(issuer + '/cdn-cgi/access/certs', { redirect: 'error' });
+    if (!response.ok) throw new Error('Access keys HTTP ' + response.status);
+    const { keys } = await response.json();
+    const jwk = keys.find(key => key.kid === header.kid && key.kty === 'RSA');
+    if (!jwk) return unauthorized();
+    const key = await crypto.subtle.importKey(
+      'jwk', jwk, { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, false, ['verify']
+    );
+    const signed = new TextEncoder().encode(parts[0] + '.' + parts[1]);
+    const valid = await crypto.subtle.verify('RSASSA-PKCS1-v1_5', key, signature, signed);
+    return valid ? json({ authenticated: true }) : unauthorized();
+  } catch (error) {
+    console.error('Access verification unavailable', error);
+    return json({ error: 'access_unavailable' }, 503);
+  }
+}
+
 const DATA_PAGES = new Set([
   "/sales-increment.html",
   "/sales-data-editor.html",
@@ -89,6 +149,9 @@ const DATA_PAGES = new Set([
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+    if (url.pathname === '/admin/api/session') {
+      return readAdminSession(request, env);
+    }
     if (url.pathname.startsWith('/api/')) {
       return readData(request, env, url.pathname);
     }

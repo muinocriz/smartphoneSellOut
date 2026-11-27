@@ -57,6 +57,34 @@ npx wrangler d1 migrations apply DB --remote
 
 在「热销机型与榜单研究」完成截图标定后，点击「保存本期榜单到数据库」。未登录时可在新标签页完成管理员登录，已有标定留在原页面。同一来源、系列和周期已有榜单时，核对后确认整期替换。榜单元数据、名次记录和发布日志在同一事务写入，日志的新增与修改数量按榜单期数记录。保存成功后页面重新读取数据库历史。若当前历史含本地 CSV 改动，先保留该历史草稿，待导出后再刷新。
 
+## GitHub CSV 自动同步和邮件
+
+启用后，`master` 的代码推送或手动运行 **Deploy GitHub Pages** 会检查四份正式 CSV。发生文件变更时，比较上次扫描的 GitHub 提交、新文件和正式 D1。第一次同步以当前 CSV 建立基线，只追加缺失记录，记录两边不同的值供核对。后续自动应用 GitHub 单边更新，两边均有变化时保留 D1。CSV 删行不删除 D1 记录；榜单按 `dataset_id` 整期写入。扩展销量表有机型资料差异时，继续采用 D1 的类别和开售日期。
+
+同步结果、来源提交及需要更新的业务表在一个 D1 事务中写入。D1 版本变化时重新计算差异。同步完成后才为 GitHub Pages 读取新快照。邮件失败会在 Actions 显示警告，已提交的同步结果保留在 D1，下次运行会尝试补发。同步失败会尝试发送失败通知，并停止该次 GitHub Pages 部署。
+
+1. 在 Codespaces 拉取最新 `master`，应用迁移 `0005_github_csv_sync.sql`。该迁移创建同步记录表。
+
+   ```sh
+   git pull --ff-only origin master
+   npx wrangler@latest d1 migrations apply DB --remote
+   npx wrangler@latest secret put D1_SYNC_TOKEN
+   ```
+
+2. 为 `D1_SYNC_TOKEN` 使用一个新的高随机度密钥，并把同一个值设为 GitHub 仓库的 Actions Secret。Worker 的同步接口仅接受该密钥。GitHub Actions 中设置下列字段：
+
+   | 名称 | 位置 | 值 |
+   | --- | --- | --- |
+   | `D1_SYNC_TOKEN` | Actions Secrets | 与 Worker 同名 Secret 相同 |
+   | `CLOUDFLARE_EMAIL_API_TOKEN` | Actions Secrets | Cloudflare 账号的 Email Sending 编辑权限 API 令牌 |
+   | `SYNC_EMAIL_FROM` | Actions Secrets | 已接入 Cloudflare Email Sending 的域名下的发件地址 |
+   | `SYNC_EMAIL_TO` | Actions Secrets | 同一 Cloudflare 账号中已验证的收件地址 |
+   | `CLOUDFLARE_ACCOUNT_ID` | Actions Variables | 启用了 Email Sending 的账号 ID |
+
+   Cloudflare 免费方案可向账号内已验证的收件地址发信。发件域名需要先完成 Email Sending 配置，收件地址在 [Destination addresses](https://developers.cloudflare.com/email-service/configuration/destination-addresses/) 中添加和验证。
+
+3. 配置完成并部署 Worker 后，手动运行一次 **Deploy GitHub Pages** 建立基线。后续 CSV 提交会自动进入同一流程。如果现有上传任务以默认 `GITHUB_TOKEN` 在 GitHub Actions 里推送，上传成功后显式运行 `gh workflow run pages.yml --ref master`。上传任务需要给这一步的令牌配置 Actions 写入权限。
+
 ## 备份和恢复
 
 可在仓库目录导出当前公开数据到一份独立快照：

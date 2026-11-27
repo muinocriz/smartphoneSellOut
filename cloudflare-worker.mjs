@@ -1,5 +1,6 @@
 import { EditorError, editEditorSheet, readEditorSheet } from './sales-editor-database.mjs';
 import { publishRanking } from './ranking-editor-database.mjs';
+import { githubCSVAction } from './github-csv-sync.mjs';
 
 const DATA_QUERIES = new Map([
   ['/api/models', `
@@ -241,13 +242,7 @@ async function adminRoute(request, env, url) {
       return json({ error: 'invalid_request', message: '请从本站数据库录入页面提交。' }, 403);
     }
 
-    const maxBytes = 4 * 1024 * 1024;
-    if (Number(request.headers.get('Content-Length')) > maxBytes) throw new EditorError(413, '请求超过 4 MB。');
-    const raw = await request.arrayBuffer();
-    if (raw.byteLength > maxBytes) throw new EditorError(413, '请求超过 4 MB。');
-    let input;
-    try { input = JSON.parse(new TextDecoder().decode(raw)); }
-    catch { throw new EditorError(400, '表格数据不是有效的 JSON。'); }
+    const input = await readEditorInput(request);
     const result = sheet === 'rankings'
       ? await publishRanking(env.DB, query, access.email, input)
       : await editEditorSheet(env.DB, sheet, query, access.email, input);
@@ -259,12 +254,45 @@ async function adminRoute(request, env, url) {
   }
 }
 
+async function readEditorInput(request) {
+  const maxBytes = 4 * 1024 * 1024;
+  if (Number(request.headers.get('Content-Length')) > maxBytes) throw new EditorError(413, '请求超过 4 MB。');
+  const raw = await request.arrayBuffer();
+  if (raw.byteLength > maxBytes) throw new EditorError(413, '请求超过 4 MB。');
+  let input;
+  try { input = JSON.parse(new TextDecoder().decode(raw)); }
+  catch { throw new EditorError(400, '表格数据不是有效的 JSON。'); }
+  return input;
+}
+
+async function githubSyncRoute(request, env) {
+  if (request.method !== 'POST') {
+    return json({ error: 'method_not_allowed' }, 405, { Allow: 'POST' });
+  }
+  if (!env.D1_SYNC_TOKEN) return json({ error: 'sync_not_configured' }, 503);
+  const encode = new TextEncoder();
+  const supplied = encode.encode(request.headers.get('Authorization') ?? '');
+  const expected = encode.encode('Bearer ' + env.D1_SYNC_TOKEN);
+  if (supplied.length !== expected.length || !crypto.subtle.timingSafeEqual(supplied, expected)) {
+    return json({ error: 'unauthorized' }, 401);
+  }
+
+  try {
+    return json(await githubCSVAction(env.DB, await readEditorInput(request)));
+  } catch (error) {
+    if (error instanceof EditorError) return json({ error: 'sync_request', message: error.message }, error.status);
+    console.error('GitHub CSV sync failed', error);
+    return json({ error: 'sync_unavailable', message: 'D1 同步暂不可用，请检查数据库迁移及 Worker 日志。' }, 503);
+  }
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     if (url.pathname === '/admin' || url.pathname.startsWith('/admin/')) {
       return adminRoute(request, env, url);
     }
+    if (url.pathname === '/api/github-csv-sync') return githubSyncRoute(request, env);
     if (url.pathname.startsWith('/api/')) {
       return readData(request, env, url.pathname);
     }

@@ -48,6 +48,17 @@ function rankingStatements(db, rows) {
   ))];
 }
 
+export function rankingPatchStatements(db, datasets) {
+  const ids = new Set();
+  return datasets.flatMap(dataset => {
+    const rows = validateRanking(dataset);
+    const id = rows[0][col.dataset_id];
+    if (ids.has(id)) throw new EditorError(400, '同一榜单重复出现在 GitHub 同步中。');
+    ids.add(id);
+    return rankingStatements(db, rows);
+  });
+}
+
 export async function publishRanking(db, readQuery, email, input) {
   if (!input || !['review', 'save'].includes(input.action) ||
       (input.action === 'save' && (!Number.isSafeInteger(input.revision) || input.revision < 0))) {

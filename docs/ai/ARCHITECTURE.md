@@ -18,6 +18,8 @@ Cloudflare Worker 在三个生产页面标记 D1 为正式数据源。`site-shel
 
 Cloudflare 的 `/admin/` 复用销量数据处理模块页面，并使用独立的浏览器草稿。管理员读取及保存接口验证 Access 身份。确认保存时，Worker 对照整表、只写变更记录，并在同一 D1 批次记录操作人和表版本。版本变化时保留本地草稿，现有公开读取 API 消费发布后的业务表。
 
+GitHub Actions 在读取静态站快照前，可将四份正式 CSV 的变更增量导入 D1。同步以持久化的 GitHub 提交为比较基线；Worker 校验版本并批量写入。执行结果由 Cloudflare Email Service 发往已验证的地址，记录及回执保存在 `github_csv_sync_runs`。
+
 热销机型与榜单研究模块出图台排版覆盖值随 `StudioPreferences` 的 visual / publication 本地保存；公共元素跨图卡共享，主体按模板或研究专题隔离，缺省继承原渲染器。发布快照冻结排版配置，与 PNG、ZIP 同步；排版 JSON 仅含视觉设置。专题研究页直接导出不受出图台排版覆盖值影响。出图台仅编辑图卡内文字，不再生成独立社媒发布文案、标题或轮播脚本；发布 ZIP 保留图卡、CSV、统计说明和配置清单。旧 visual / publication 存储迁移时保留图卡设置并移除已退役字段。
 
 ## 运行、发布与验收

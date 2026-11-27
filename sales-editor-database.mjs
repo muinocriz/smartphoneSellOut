@@ -144,6 +144,27 @@ function trackingStatements(db, changed, removed) {
   ];
 }
 
+function editorColumns(sheet) {
+  return sheet === 'tracking' ? TRACKING_COLUMNS : sheet === 'market-share' ? MARKET_COLUMNS : MODEL_COLUMNS;
+}
+
+function editorStatements(db, sheet, columns, changed, removed) {
+  if (sheet === 'tracking') return trackingStatements(db, changed, removed);
+  const market = sheet === 'market-share';
+  const stored = market
+    ? changed.map(row => row.map((value, i) => i >= 2 && value === '' ? null : value))
+    : changed;
+  return upsertStatements(db, market ? 'market_share_weekly' : 'model_master', columns, stored, removed);
+}
+
+export function editorPatchStatements(db, sheet, rows) {
+  if (!rows.length) return [];
+  const columns = editorColumns(sheet);
+  validateRows(rows, sheet, columns, sheet === 'tracking' ? trackingKey : row => row[0]);
+  if (sheet === 'market-share') validateMarketShares(rows);
+  return editorStatements(db, sheet, columns, rows, []);
+}
+
 export async function editEditorSheet(db, sheet, query, email, input) {
   if (!input || !['review', 'save'].includes(input.action) || !Array.isArray(input.rows) ||
       !Number.isSafeInteger(input.revision) || input.revision < 0) {
@@ -152,7 +173,7 @@ export async function editEditorSheet(db, sheet, query, email, input) {
 
   const tracking = sheet === 'tracking';
   const market = sheet === 'market-share';
-  const columns = tracking ? TRACKING_COLUMNS : market ? MARKET_COLUMNS : MODEL_COLUMNS;
+  const columns = editorColumns(sheet);
   const key = tracking ? trackingKey : row => row[0];
   const next = validateRows(input.rows, sheet, columns, key);
   if (market) validateMarketShares(input.rows);
@@ -184,21 +205,21 @@ export async function editEditorSheet(db, sheet, query, email, input) {
   if (input.revision !== revision) throw conflict();
   if (input.action === 'review') return { revision, ...counts };
 
-  const statements = tracking ? trackingStatements(db, changed, removed) : upsertStatements(
-    db, market ? 'market_share_weekly' : 'model_master', columns,
-    market ? changed.map(row => row.map((value, i) => i >= 2 && value === '' ? null : value)) : changed,
-    removed
-  );
+  const statements = editorStatements(db, sheet, columns, changed, removed);
   return saveEditorRelease(db, sheet, revision, email, counts, statements, conflict);
+}
+
+export function editorReleaseStatement(db, sheet, revision, editor, counts) {
+  return db.prepare(`
+    INSERT INTO sales_editor_releases (sheet, revision, editor, added, updated, removed)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `).bind(sheet, revision + 1, editor, counts.added, counts.updated, counts.removed);
 }
 
 export async function saveEditorRelease(db, sheet, revision, email, counts, statements, conflict) {
   const released = revision + 1;
   // Only one transaction can claim this revision. Failure rolls back the audit row and all edits.
-  const audit = db.prepare(`
-    INSERT INTO sales_editor_releases (sheet, revision, editor, added, updated, removed)
-    VALUES (?, ?, ?, ?, ?, ?)
-  `).bind(sheet, released, email, counts.added, counts.updated, counts.removed);
+  const audit = editorReleaseStatement(db, sheet, revision, email, counts);
   try {
     await db.batch([audit, ...statements]);
   } catch (error) {

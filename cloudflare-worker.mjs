@@ -32,14 +32,27 @@ const DATA_QUERIES = new Map([
   `]
 ]);
 
-const COUNT_QUERY = `
-  SELECT 'model_master' AS table_name, COUNT(*) AS row_count FROM model_master
-  UNION ALL SELECT 'tracking_models', COUNT(*) FROM tracking_models
-  UNION ALL SELECT 'tracking_sales', COUNT(*) FROM tracking_sales
-  UNION ALL SELECT 'ranking_datasets', COUNT(*) FROM ranking_datasets
-  UNION ALL SELECT 'ranking_entries', COUNT(*) FROM ranking_entries
-  UNION ALL SELECT 'market_share_weekly', COUNT(*) FROM market_share_weekly
-`;
+const COUNT_TABLES = [
+  'model_master',
+  'tracking_models',
+  'tracking_sales',
+  'ranking_datasets',
+  'ranking_entries',
+  'market_share_weekly'
+];
+
+async function readCounts(db) {
+  return Promise.all(COUNT_TABLES.map(async tableName => {
+    try {
+      const rowCount = await db.prepare(`SELECT COUNT(*) AS row_count FROM ${tableName}`)
+        .first('row_count');
+      return { table_name: tableName, row_count: rowCount };
+    } catch (error) {
+      console.error('D1 count failed', tableName, error);
+      throw error;
+    }
+  }));
+}
 
 function json(body, status = 200, headers = {}) {
   return Response.json(body, {
@@ -49,13 +62,16 @@ function json(body, status = 200, headers = {}) {
 }
 
 async function readData(request, env, pathname) {
-  const query = pathname === '/api/counts' ? COUNT_QUERY : DATA_QUERIES.get(pathname);
-  if (!query) return json({ error: 'not_found' }, 404);
+  const countRequest = pathname === '/api/counts';
+  const query = DATA_QUERIES.get(pathname);
+  if (!countRequest && !query) return json({ error: 'not_found' }, 404);
   if (request.method !== 'GET') {
     return json({ error: 'method_not_allowed' }, 405, { Allow: 'GET' });
   }
 
   try {
+    if (countRequest) return json({ data: await readCounts(env.DB) });
+
     const { results } = await env.DB.prepare(query).all();
     return json({ data: results });
   } catch (error) {

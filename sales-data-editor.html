@@ -22,7 +22,7 @@
 <header class="site-header"></header>
 <main>
 <section class="panel" aria-label="导入与导出">
-<div class="toolbar" role="group" aria-label="扩展销量表"><strong class="source-label">扩展销量表：</strong><button class="primary" id="projectSales">从项目导入</button><button id="incrementDraft" disabled>从销量增量追踪导入</button><button id="newData">新建</button><button id="undoBtn" disabled>撤销</button><button id="redoBtn" disabled>重做</button><span class="spacer"></span><a id="openDatabaseEditor" class="file-btn" href="/admin/" hidden>数据库录入</a><button id="saveDatabaseSales" class="primary" hidden disabled>保存到数据库</button><button id="longExport" disabled>导出</button></div>
+<div class="toolbar" role="group" aria-label="扩展销量表"><strong class="source-label">扩展销量表：</strong><button class="primary" id="projectSales">从项目导入</button><button id="githubSalesSync" hidden>从 GitHub 导入扩展销量表</button><button id="incrementDraft" disabled>从销量增量追踪导入</button><button id="newData">新建</button><button id="undoBtn" disabled>撤销</button><button id="redoBtn" disabled>重做</button><span class="spacer"></span><a id="openDatabaseEditor" class="file-btn" href="/admin/" hidden>数据库录入</a><button id="saveDatabaseSales" class="primary" hidden disabled>保存到数据库</button><button id="longExport" disabled>导出</button></div>
 <div class="toolbar source-row" role="group" aria-label="数据表"><strong class="source-label">数据表：</strong><button id="syncProject">从项目导入</button><button id="syncLocal">从本地导入</button><input id="syncFile" class="sr-only" type="file" accept=".csv,text/csv"></div>
 <div class="import-options"><label class="check muted">无年份周列使用年份 <input id="defaultYear" type="number" min="1900" max="9999" step="1" value="2026"></label></div>
 <p class="muted" id="editorImportHint" style="margin-top:7px">默认读取项目扩展销量表（已有本地草稿优先恢复）。从项目或本地导入数据表时，先预览新增及冲突记录，再确认增量同步；保留已有独立周增量和特殊记录。</p>
@@ -56,7 +56,7 @@
 <dialog id="modelDialog"><form id="modelForm"><div class="dialog-head"><h2>新增机型</h2><button type="button" data-close="modelDialog" aria-label="关闭">×</button></div><div class="field"><label for="newBrand">品牌</label><input id="newBrand" required></div><div class="field"><label for="newModel">机型</label><input id="newModel" required></div><div class="field"><label for="newCategory">类别（可选）</label><input id="newCategory"></div><div class="field"><label for="newDate">正式开售日期（可选）</label><input id="newDate" placeholder="例如 2026/11/24" title="优先填写正式开售日；无法查证时暂用正式发布日期"></div><p id="modelError" class="error-text"></p><div class="dialog-actions"><button type="button" data-close="modelDialog">取消</button><button class="primary" type="submit">添加机型</button></div></form></dialog>
 
 <dialog id="masterDialog"><form id="masterForm"><div class="dialog-head"><h2>编辑机型表</h2><button type="button" data-close="masterDialog">×</button></div><p class="muted" style="margin-bottom:10px">新机型 ID 根据品牌与标准名称自动生成，保存后保持不变。系列合计不是一个单机型，请为实际成员建立机型表。</p><div class="master-fields" id="masterFields"></div><p class="error-text" id="masterError"></p><div class="dialog-actions"><button type="button" data-close="masterDialog">取消</button><button class="primary" type="submit">保存机型表</button></div></form></dialog>
-<dialog id="syncDialog" style="width:min(1050px,calc(100% - 24px));max-height:88vh;overflow:auto"><div class="dialog-head"><h2>数据表增量同步</h2><button type="button" data-close="syncDialog" aria-label="关闭">×</button></div><p id="syncSource" class="muted"></p><p id="syncSummary" role="status"></p><p class="muted" style="margin:8px 0">默认追加缺失的精确累计记录；精确数值冲突可逐条勾选使用数据表值。特殊记录及元数据差异仅列出供人工处理。已有周增量及数据表空白对应的扩展销量表记录全部保留。确认前不修改扩展销量表。</p><div class="check-wrap"><table><thead><tr><th>处理方式</th><th>品牌 / 机型</th><th>周次</th><th>当前扩展销量表</th><th>来源数据表</th><th>说明 / 确认</th></tr></thead><tbody id="syncRows"></tbody></table></div><div class="dialog-actions"><button type="button" data-close="syncDialog">取消</button><button id="syncApply" class="primary" type="button">应用同步</button></div></dialog>
+<dialog id="syncDialog" style="width:min(1050px,calc(100% - 24px));max-height:88vh;overflow:auto"><div class="dialog-head"><h2 id="syncTitle">数据表增量同步</h2><button type="button" data-close="syncDialog" aria-label="关闭">×</button></div><p id="syncSource" class="muted"></p><p id="syncSummary" role="status"></p><p id="syncHint" class="muted" style="margin:8px 0"></p><div class="check-wrap"><table><thead><tr><th>处理方式</th><th>品牌 / 机型</th><th>周次</th><th>当前扩展销量表</th><th id="syncSourceColumn">来源数据表</th><th>说明 / 确认</th></tr></thead><tbody id="syncRows"></tbody></table></div><div class="dialog-actions"><button type="button" data-close="syncDialog">取消</button><button id="syncApply" class="primary" type="button">应用同步</button></div></dialog>
 <dialog id="databaseDialog" aria-labelledby="databaseTitle">
  <form id="databaseForm">
   <div class="dialog-head"><h2 id="databaseTitle">保存整张表的改动</h2></div>
@@ -575,41 +575,67 @@ async function loadProjectMaster(initial=false){
 let pendingSync=null;
 function salesSnapshot(){return JSON.stringify({...state,rows:state.rows.map(r=>({...r,values:[...r.values],weekly:[...r.weekly]}))});}
 function syncRecord(v){return v?(v.op==='='?'=':signs[v.op]||v.op)+v.value:'—';}
-function buildSyncPlan(wide){
+function buildSyncPlan(incomingTable){
+ const isLong=incomingTable.isLong,metrics=isLong?['cumulative','weekly']:['cumulative'];
  const exact=new Map(state.rows.map(r=>[rowKey(r.brand,r.model),r])),normalized=new Map();
- const nkey=r=>JSON.stringify([norm(r.brand),norm(r.model)]);
+ const nkey=r=>JSON.stringify([isLong?brandNorm(r.brand):norm(r.brand),norm(r.model)]);
  for(const r of state.rows){const k=nkey(r);if(!normalized.has(k))normalized.set(k,[]);normalized.get(k).push(r);}
- const wideNames=new Map();for(const r of wide.rows){const k=nkey(r);wideNames.set(k,(wideNames.get(k)||0)+1);}
- const plan={items:[],same:0,add:0,conflict:0,blocked:0,base:salesSnapshot()};
- function item(kind,source,period,old,incoming,reason){plan.items.push({kind,source,period,old,incoming,reason,chosen:false});plan[kind]++;}
- for(const source of wide.rows){
+ const sourceNames=new Map();
+ for(const r of incomingTable.rows){const k=nkey(r);sourceNames.set(k,(sourceNames.get(k)||0)+1);}
+ const plan={items:[],same:0,add:0,conflict:0,blocked:0,base:salesSnapshot(),isLong};
+ function item(kind,source,period,old,incoming,reason,recordMetric){
+  plan.items.push({kind,source,period,old,incoming,reason,metric:recordMetric,chosen:false});
+  plan[kind]++;
+ }
+ for(const source of incomingTable.rows){
   const key=rowKey(source.brand,source.model),target=exact.get(key),aliases=normalized.get(nkey(source))||[];
-  if(!source.values.size)continue;
-  if(wideNames.get(nkey(source))>1||aliases.length>1||(!target&&aliases.length)){
+  if(!metrics.some(m=>records(source,m).size))continue;
+  if(sourceNames.get(nkey(source))>1||aliases.length>1||(!target&&aliases.length)){
    item('blocked',source,'—',null,null,'存在规范化名称冲突；请先人工统一品牌 / 机型名称');continue;
   }
   if(target&&(target.category!==source.category||target.date!==source.date)){
-   item('blocked',source,'—',null,null,'类别或日期不同：扩展销量表 '+target.category+' / '+target.date+'；数据表 '+source.category+' / '+source.date+'。先人工核对，不同步该机型');continue;
+   const metadata='类别或开售日期不同。当前：'+(target.category||'—')+' / '+(target.date||'—')+
+    '。来源：'+(source.category||'—')+' / '+(source.date||'—')+'。';
+   item('blocked',source,'—',null,null,metadata+(isLong?'保留当前机型资料，继续核对销量。':'先核对机型资料，再同步销量。'));
+   if(!isLong)continue;
   }
-  for(const [p,incoming] of source.values){
-   const old=target?.values.get(p);
+  for(const m of metrics)for(const [p,incoming] of records(source,m)){
+   const old=target?records(target,m).get(p):null;
    if(old&&old.op===incoming.op&&decimalOp(old.value,incoming.value,true)==='0'){plan.same++;continue;}
-   if(incoming.op!=='='||old&&old.op!=='='){item('blocked',source,p,old,incoming,'涉及特殊运算符，保留扩展销量表；请在扩展销量表中人工确认');continue;}
-   if(!old){item('add',source,p,null,incoming,'缺失的原始累计记录');continue;}
-   item('conflict',source,p,old,incoming,'默认保留扩展销量表；勾选才替换为数据表精确值');
+   if(!isLong&&(incoming.op!=='='||old&&old.op!=='=')){
+    item('blocked',source,p,old,incoming,'涉及特殊运算符，保留扩展销量表；请在扩展销量表中人工确认',m);continue;
+   }
+   if(!old){item('add',source,p,null,incoming,isLong?'新增原始销量记录':'缺失的原始累计记录',m);continue;}
+   item('conflict',source,p,old,incoming,'',m);
   }
  }
  return plan;
 }
 function renderSyncPlan(plan){
+ const from=plan.isLong?'GitHub':'数据表';
+ const difference=plan.isLong?'数值或运算符冲突':'数值冲突';
+ $('syncTitle').textContent=plan.isLong?'GitHub 扩展销量表导入':'数据表增量同步';
+ $('syncSourceColumn').textContent=plan.isLong?'GitHub 扩展销量表':'来源数据表';
+ $('syncHint').textContent=plan.isLong
+  ?'新增记录直接加入草稿；同一机型、周次和销量类型的差异可逐条勾选覆盖。GitHub 缺少的记录继续保留。应用同步后，确认「保存到数据库」才会更新正式数据。'
+  :'默认追加缺失的精确累计记录；精确数值冲突可逐条勾选使用数据表值。特殊记录及元数据差异仅列出供人工处理。已有周增量及数据表空白对应的扩展销量表记录全部保留。确认前不修改扩展销量表。';
  $('syncSource').textContent='来源：'+plan.sourceName;const rows=$('syncRows');rows.replaceChildren();
- const counts=()=>{const selected=plan.items.filter(x=>x.kind==='conflict'&&x.chosen).length;$('syncSummary').textContent='新增 '+plan.add+' 条 · 相同 '+plan.same+' 条 · 数值冲突 '+plan.conflict+' 条（已选择 '+selected+' 条） · 待人工核查 '+plan.blocked+' 项';$('syncApply').disabled=plan.add+selected===0;$('syncApply').textContent='应用同步（'+(plan.add+selected)+' 条）';};
- const labels={add:'追加',conflict:'数值冲突',blocked:'人工核查'};
+ const counts=()=>{
+  const selected=plan.items.filter(x=>x.kind==='conflict'&&x.chosen).length;
+  $('syncSummary').textContent='新增 '+plan.add+' 条 · 相同 '+plan.same+' 条 · '+difference+' '+plan.conflict+' 条（已选择 '+selected+' 条） · 待人工核查 '+plan.blocked+' 项';
+  $('syncApply').disabled=plan.add+selected===0;
+  $('syncApply').textContent='应用同步（'+(plan.add+selected)+' 条）';
+ };
+ const labels={add:'追加',conflict:difference,blocked:'人工核查'};
  for(const item of plan.items){
-  const tr=node('tr');tr.append(node('td',labels[item.kind],item.kind==='add'?'issue-ok':'issue-warn'),node('td',item.source.brand+' '+item.source.model),node('td',item.period),node('td',syncRecord(item.old)),node('td',syncRecord(item.incoming)));
-  const td=node('td');if(item.kind==='conflict'){const label=node('label'),cb=node('input');cb.type='checkbox';cb.checked=false;cb.setAttribute('aria-label','使用数据表值 '+item.source.brand+' '+item.source.model+' '+item.period);cb.onchange=()=>{item.chosen=cb.checked;counts();};label.append(cb,document.createTextNode(' 使用数据表值'));td.append(label);}else td.textContent=item.reason;tr.append(td);rows.append(tr);
+  const period=plan.isLong&&item.metric?item.period+' · '+metricLabel(item.metric):item.period;
+  const tr=node('tr');tr.append(node('td',labels[item.kind],item.kind==='add'?'issue-ok':'issue-warn'),node('td',item.source.brand+' '+item.source.model),node('td',period),node('td',syncRecord(item.old)),node('td',syncRecord(item.incoming)));
+  const td=node('td');if(item.kind==='conflict'){const label=node('label'),cb=node('input');cb.type='checkbox';cb.checked=false;cb.setAttribute('aria-label','使用'+from+'值 '+item.source.brand+' '+item.source.model+' '+period);cb.onchange=()=>{item.chosen=cb.checked;counts();};label.append(cb,document.createTextNode(' 使用'+from+'值'));td.append(label);}else td.textContent=item.reason;tr.append(td);rows.append(tr);
  }
- if(!plan.items.length){const tr=node('tr'),td=node('td','无需同步：已有记录一致，数据表空白不触发删除。');td.colSpan=6;tr.append(td);rows.append(tr);}
+ if(!plan.items.length){
+  const tr=node('tr'),td=node('td',plan.isLong?'无需同步：来源中的记录均已存在且一致。':'无需同步：已有记录一致，数据表空白不触发删除。');
+  td.colSpan=6;tr.append(td);rows.append(tr);
+ }
  counts();$('syncDialog').showModal();
 }
 function requireLongBaseline(){
@@ -617,30 +643,47 @@ function requireLongBaseline(){
  if(!state.ready||!state.isLong)throw Error('请先从项目导入扩展销量表，或新建扩展销量表，再导入数据表。旧版数据表草稿请先导出备份。');
 }
 let syncBusy=false;
-async function previewWideSync(read,sourceName){
+async function readGitHubSales(){
+ const response=await fetch('https://api.github.com/repos/muinocriz/smartphoneSellOut/contents/sales-long.csv?ref=master',{
+  cache:'no-store',credentials:'omit',headers:{Accept:'application/vnd.github.raw+json'}
+ });
+ if(response.status===403||response.status===429)throw Error('GitHub 暂时限制读取，请稍后重试。');
+ if(!response.ok)throw Error('GitHub sales-long.csv 读取失败（HTTP '+response.status+'）。');
+ return readLocal(response);
+}
+async function previewSync(read,sourceName,fromGitHub=false){
  if(syncBusy||$('syncDialog').open)return;
+ if(fromGitHub&&(!adminEditor||databaseRevision.tracking===null||$('projectSales').disabled)){
+  status('请先读取数据库扩展销量表，再从 GitHub 导入。',true);
+  return;
+ }
+ try{requireLongBaseline();}
+ catch(err){status('增量同步失败：'+err.message,true);return;}
+ syncBusy=true;$('syncProject').disabled=$('syncLocal').disabled=$('githubSalesSync').disabled=true;
  try{
-  requireLongBaseline();
-  syncBusy=true;$('syncProject').disabled=$('syncLocal').disabled=true;
   const base=salesSnapshot(),txt=await read();
   flush();
   if(base!==salesSnapshot())throw Error('读取期间销量数据已变化，请重新同步。');
-  const oldSerial=serial;let wide;try{wide=parseFile(txt);}finally{serial=oldSerial;}
-  if(wide.isLong)throw Error('所选文件是扩展销量表，请使用数据表 data.csv 进行增量同步。');
-  pendingSync=buildSyncPlan(wide);pendingSync.sourceName=sourceName;renderSyncPlan(pendingSync);
+  const oldSerial=serial;
+  let incoming;
+  try{incoming=parseFile(txt);}finally{serial=oldSerial;}
+  if(fromGitHub&&!incoming.isLong)throw Error('GitHub sales-long.csv 不是有效的 V3 扩展销量表。');
+  if(!fromGitHub&&incoming.isLong)throw Error('所选文件是扩展销量表，请使用数据表 data.csv 进行增量同步。');
+  pendingSync=buildSyncPlan(incoming);pendingSync.sourceName=sourceName;renderSyncPlan(pendingSync);
  }catch(err){pendingSync=null;status('增量同步失败：'+err.message,true);}
- finally{syncBusy=false;$('syncProject').disabled=$('syncLocal').disabled=false;}
+ finally{syncBusy=false;$('syncProject').disabled=$('syncLocal').disabled=$('githubSalesSync').disabled=false;}
 }
-$('syncProject').onclick=()=>previewWideSync(()=>readProject('data.csv'),'项目数据表 (data.csv)');
+$('githubSalesSync').onclick=()=>previewSync(readGitHubSales,'GitHub master / sales-long.csv',true);
+$('syncProject').onclick=()=>previewSync(()=>readProject('data.csv'),'项目数据表 (data.csv)');
 $('syncLocal').onclick=()=>{try{requireLongBaseline();$('syncFile').click();}catch(err){status('增量同步失败：'+err.message,true);}};
-$('syncFile').onchange=async e=>{const file=e.target.files[0];e.target.value='';if(file)await previewWideSync(()=>readLocal(file),'本地 '+file.name);};
+$('syncFile').onchange=async e=>{const file=e.target.files[0];e.target.value='';if(file)await previewSync(()=>readLocal(file),'本地 '+file.name);};
 $('syncApply').onclick=()=>{
  const plan=pendingSync;if(!plan)return;
  try{
   flush();if(plan.base!==salesSnapshot())throw Error('当前销量数据已变化，请取消后重新同步。');
   const edits=plan.items.filter(x=>x.kind==='add'||x.kind==='conflict'&&x.chosen);if(!edits.length)return;
   captureChange();const rows=new Map(state.rows.map(r=>[rowKey(r.brand,r.model),r]));
-  for(const item of edits){const m=item.source,k=rowKey(m.brand,m.model);let row=rows.get(k);if(!row){row=newRow(META.map(field=>m[field]));rows.set(k,row);state.rows.push(row);}row.values.set(item.period,{...item.incoming});addWeek(item.period);}
+  for(const item of edits){const m=item.source,k=rowKey(m.brand,m.model);let row=rows.get(k);if(!row){row=newRow(META.map(field=>m[field]));rows.set(k,row);state.rows.push(row);}records(row,item.metric).set(item.period,{...item.incoming});addWeek(item.period);}
   $('syncDialog').close();mark();renderGrid();runChecks();status('增量同步完成：追加 '+edits.filter(x=>x.kind==='add').length+' 条，人工确认替换 '+edits.filter(x=>x.kind==='conflict').length+' 条；保留其余原始记录。'+(adminEditor?'核对后可保存到数据库。':'请导出 sales-long.csv 后提交。'));
  }catch(err){status('应用同步失败：'+err.message,true);$('syncDialog').close();}
 };
@@ -688,6 +731,7 @@ $('projectMaster').onclick=()=>loadProjectMaster();
 $('openDatabaseEditor').hidden=!SalesSite.projectUsesDatabase||adminEditor;
 if(adminEditor){
  $('projectSales').textContent='从数据库读取';
+ $('githubSalesSync').hidden=false;
  $('projectMaster').textContent='从数据库读取机型表';
  $('saveDatabaseSales').hidden=false;
  $('saveDatabaseMaster').hidden=false;

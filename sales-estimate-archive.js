@@ -26,15 +26,18 @@
     return trackingRequest;
   }
 
-  const appleCalibrationSeries = [
-    { catalogSeries: 'iPhone 18', model: 'iPhone 18 Pro系列',
+  const trackingCalibrationTargets = [
+    { brand: 'Apple', catalogSeries: 'iPhone 18', model: 'iPhone 18 Pro系列',
       ids: ['apple-iphone-18-pro', 'apple-iphone-18-pro-max'] },
-    { catalogSeries: 'iPhone 17', model: 'iPhone 17系列',
-      ids: ['apple-iphone-17', 'apple-iphone-17-pro', 'apple-iphone-17-pro-max'] }
+    { brand: 'Apple', catalogSeries: 'iPhone 17', model: 'iPhone 17系列',
+      ids: ['apple-iphone-17', 'apple-iphone-17-pro', 'apple-iphone-17-pro-max'] },
+    { brand: 'Apple', model: 'iPhone Duo', ids: ['apple-iphone-duo'] },
+    { brand: 'REDMI', model: 'K100', ids: ['redmi-k100'] },
+    { brand: 'REDMI', model: 'K100 Pro Max', ids: ['redmi-k100-pro-max'] }
   ];
-  const appleCalibrationState = new WeakMap();
+  const trackingCalibrationState = new WeakMap();
 
-  function syncAppleCalibrations() {
+  function syncTrackingCalibrations() {
     const dataset = ds();
     const meta = datasetMeta(dataset);
     let week = null;
@@ -43,31 +46,33 @@
       if (period) week = window.IsoSalesWeek.isoWeekMonday(Number(period[1]), Number(period[2]));
     }
     const key = JSON.stringify([week, masterCatalog?.revision, dataset.bars.map(bar => bar.name)]);
-    if (appleCalibrationState.get(dataset)?.key === key) return;
+    if (trackingCalibrationState.get(dataset)?.key === key) return;
     const state = { key, cleared: false };
-    appleCalibrationState.set(dataset, state);
-    dataset.calibrations = dataset.calibrations.filter(entry => !entry.appleSeries);
+    trackingCalibrationState.set(dataset, state);
+    dataset.calibrations = dataset.calibrations.filter(entry => !entry.trackingModel);
     if (week === null || !masterCatalog) return;
 
     const names = dataset.bars.map(bar => masterCatalog.resolve(bar.name)?.model_id);
-    const candidates = appleCalibrationSeries.flatMap(series => {
-      const members = masterCatalog.getSeries('Apple', series.catalogSeries)
-        .filter(model => series.catalogSeries !== 'iPhone 18' || /^Pro\b/i.test(model.variant));
-      if (members.length !== series.ids.length || members.some(model => !series.ids.includes(model.model_id))) return [];
-      const ids = series.ids.map(id => names.indexOf(id));
+    const candidates = trackingCalibrationTargets.flatMap(target => {
+      if (target.catalogSeries) {
+        const members = masterCatalog.getSeries(target.brand, target.catalogSeries)
+          .filter(model => target.catalogSeries !== 'iPhone 18' || /^Pro\b/i.test(model.variant));
+        if (members.length !== target.ids.length || members.some(model => !target.ids.includes(model.model_id))) return [];
+      }
+      const ids = target.ids.map(id => names.indexOf(id));
       if (ids.includes(-1) || ids.some(index => names.lastIndexOf(names[index]) !== index)) return [];
-      return [{ ...series, ids: ids.sort((a, b) => a - b) }];
+      return [{ ...target, ids: ids.sort((a, b) => a - b) }];
     });
     if (!candidates.length) return;
 
     loadTracking().then(tracking => {
-      if (ds() !== dataset || appleCalibrationState.get(dataset) !== state || state.cleared) return;
+      if (ds() !== dataset || trackingCalibrationState.get(dataset) !== state || state.cleared) return;
       const { WEEK, key: trackingKey, period } = window.SalesTracking;
       const prior = week - WEEK;
       const relevantWeeks = new Set([period(week), period(prior)]);
-      for (const series of candidates) {
-        if (dataset.calibrations.some(entry => entry.ids.join(',') === series.ids.join(','))) continue;
-        const row = tracking.find(item => item.id === trackingKey('Apple', series.model));
+      for (const target of candidates) {
+        if (dataset.calibrations.length >= 50 || dataset.calibrations.some(entry => entry.ids.join(',') === target.ids.join(','))) continue;
+        const row = tracking.find(item => item.id === trackingKey(target.brand, target.model));
         const current = row?.cumulative.get(week);
         const previous = row?.cumulative.get(prior);
         if ([current, previous].some(value => value?.operator !== '=' || value.source !== 'input_cumulative')) continue;
@@ -76,21 +81,21 @@
         const value = parseAmount(rawInput)?.value * 10000;
         if (!Number.isFinite(value) || value <= 0) continue;
         dataset.calibrations.push({
-          ids: series.ids,
-          pixels: series.ids.reduce((sum, index) => sum + dataset.bars[index].pixels, 0),
+          ids: target.ids,
+          pixels: target.ids.reduce((sum, index) => sum + dataset.bars[index].pixels, 0),
           value, rawInput, unit: '万台',
-          isDifference: true, appleSeries: series.model
+          isDifference: true, trackingModel: target.model
         });
       }
       renderAll(false);
     }).catch(() => {
-      if (ds() === dataset && appleCalibrationState.get(dataset) === state && !state.cleared) {
+      if (ds() === dataset && trackingCalibrationState.get(dataset) === state && !state.cleared) {
         setInfo('销量长表暂不可用，可手动添加标定。', 'warn');
       }
     });
   }
-  function clearAppleCalibrations() {
-    const state = appleCalibrationState.get(ds());
+  function clearTrackingCalibrations() {
+    const state = trackingCalibrationState.get(ds());
     if (state) state.cleared = true;
   }
   const canonicalName=name=>masterCatalog?.resolve(name)?.model_name||name;
@@ -2159,7 +2164,7 @@
     activateModuleTab(key);
     modulePanes[key].scrollIntoView({behavior:'smooth',block:'start'});
   }
-  window.SalesEstimateArchive = Object.freeze({buildRows,sendResearchToStudio,returnToStudioSource,updateControls,syncAppleCalibrations,clearAppleCalibrations,header:HEADER.slice()});
+  window.SalesEstimateArchive = Object.freeze({buildRows,sendResearchToStudio,returnToStudioSource,updateControls,syncTrackingCalibrations,clearTrackingCalibrations,header:HEADER.slice()});
   async function loadRepository(selectedId) {
     loading = true;
     showHistory('正在读取仓库历史数据…');

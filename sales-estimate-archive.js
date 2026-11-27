@@ -1,5 +1,5 @@
-/* Popular Models and Ranking Research: normalized historical estimates. No backend or write token is needed.
- * The deployed studio reads the committed CSV; the maintainer uploads the merged export.
+/* Popular Models and Ranking Research: normalized historical estimates.
+ * The site loader selects the official data source. Local CSV import and export remain available.
  * History contains final estimates, not the original image/calibration workspace.
  */
 (function () {
@@ -18,7 +18,7 @@
   const normalize=window.BrandUtils.normalize;
   let masterCatalog=null,masterLoading=true,masterError='';
   let trackedSales=null;
-  async function loadTracking(){const r=await fetch('sales-long.csv?t='+Date.now(),{cache:'no-store'});if(!r.ok)throw Error('HTTP '+r.status);return window.SalesTracking.calculate(await r.text());}
+  async function loadTracking(){return window.SalesTracking.calculate(await window.SalesSite.readProject('sales-long.csv'));}
   const canonicalName=name=>masterCatalog?.resolve(name)?.model_name||name;
   function matchesModel(key,name,q){const m=masterCatalog?.get(key);return !q||[key,name,m?.brand,m?.brand_group,window.BrandUtils.groupLabel(m?.brand_group),window.BrandUtils.isOsta(m?.brand)?'星芒':'',m?.series,m?.chip_vendor,m?.chip_model,...(m?.aliases||[])].some(v=>normalize(v).includes(q));}
   function fail(message){throw new Error(message);}
@@ -927,9 +927,8 @@
     marketCache=null;marketError='';
     marketPending=(async()=>{
       try{
-        const res=await fetch('market-share.csv?t='+Date.now(),{cache:'no-store'});
-        if(!res.ok)throw Error('HTTP '+res.status);
-        const content=window.MarketShareData.decodeCSV(await res.arrayBuffer());
+        const content=await window.SalesSite.readProject('market-share.csv', async response =>
+          window.MarketShareData.decodeCSV(await response.arrayBuffer()));
         marketCache=window.MarketShareData.parseMarketShareCSV(content,window.IsoSalesWeek.isoWeekMonday);
         return marketCache;
       }catch(err){marketError='全市场 CSV 读取或口径校验失败：'+err.message;return null;}
@@ -2012,9 +2011,9 @@
     loading = true;
     showHistory('正在读取仓库历史数据…');
     try {
-      const r = await fetch(FILE + '?t=' + Date.now(), {cache:'no-store'});
-      if (!r.ok) fail('HTTP ' + r.status);
-      history = parseCSV(await r.text()); loaded = true; pending = false; origin = '仓库历史数据已加载';
+      history = parseCSV(await window.SalesSite.readProject(FILE));
+      loaded = true; pending = false;
+      origin = (window.SalesSite.projectUsesDatabase ? '数据库' : '仓库') + '历史数据已加载';
     } catch (err) {
       // Keep already loaded rows visible, but require a successful reload or an explicit import before merging.
       origin = ''; loaded = false;

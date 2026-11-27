@@ -57,6 +57,9 @@ function parse(raw){
   return Object.freeze(catalog);
 }
 async function load(url='model-master.csv'){
+  if(url==='model-master.csv'&&root.SalesSite?.readProject){
+    return parse(await root.SalesSite.readProject(url));
+  }
   const response=await fetch(url+'?t='+Date.now(),{cache:'no-store'});
   if(!response.ok)throw Error('HTTP '+response.status);
   return parse(await response.text());

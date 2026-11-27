@@ -1120,7 +1120,7 @@ function applySource(source){
   const {text,name,kind,periods:sourcePeriods}=source;
   const key=kind==='editor'?'editor':kind==='local'?'local.'+name:'project';
   loadSource(text,key,sourcePeriods);
-  const label=kind==='editor'?'销量数据处理':kind==='local'?'本地 · '+name:'项目 · sales-long.csv';
+  const label=kind==='editor'?'销量数据处理':kind==='local'?'本地 · '+name:SalesSite.projectUsesDatabase?'数据库 · 销量长表':'项目 · sales-long.csv';
   byId('currentSource').textContent='当前来源：'+label;
   byId('currentSource').hidden=false;
 }
@@ -1144,9 +1144,7 @@ async function start(kind,file){
       source={kind,name:'sales-long.csv',text:draft.csv,periods:draft.periods};
     }
     if(!source){
-      const response=await fetch('sales-long.csv',{cache:'no-cache'});
-      if(!response.ok)throw Error('项目长表读取失败（HTTP '+response.status+'）');
-      source={kind:'project',text:await response.text()};
+      source={kind:'project',text:await SalesSite.readProject('sales-long.csv')};
     }
     if(sequence!==loadSequence)return;
     if(kind!=='restore'&&activeEdit)return alert('请先保存或取消当前编辑。');

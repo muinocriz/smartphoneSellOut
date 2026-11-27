@@ -80,8 +80,14 @@ async function readData(request, env, pathname) {
   }
 }
 
+const DATA_PAGES = new Set([
+  "/sales-increment.html",
+  "/sales-data-editor.html",
+  "/studio/sales-estimator.html"
+]);
+
 export default {
-  fetch(request, env) {
+  async fetch(request, env) {
     const url = new URL(request.url);
     if (url.pathname.startsWith('/api/')) {
       return readData(request, env, url.pathname);
@@ -89,6 +95,20 @@ export default {
     if (url.pathname === '/') {
       url.pathname = '/index.html';
       return env.ASSETS.fetch(new Request(url, request));
+    }
+    if (request.method === 'GET' && DATA_PAGES.has(url.pathname)) {
+      const headers = new Headers(request.headers);
+      headers.delete('If-None-Match');
+      headers.delete('If-Modified-Since');
+      const asset = await env.ASSETS.fetch(new Request(request, { headers }));
+      if (!asset.ok) return asset;
+      const response = new Response(asset.body, asset);
+      response.headers.delete('ETag');
+      response.headers.delete('Last-Modified');
+      response.headers.set('Cache-Control', 'no-store');
+      return new HTMLRewriter()
+        .on('html', { element(element) { element.setAttribute('data-sales-source', 'd1'); } })
+        .transform(response);
     }
     return env.ASSETS.fetch(request);
   }

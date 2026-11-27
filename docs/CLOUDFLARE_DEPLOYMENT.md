@@ -18,14 +18,14 @@ npx wrangler d1 migrations apply DB --remote
 npx wrangler d1 execute DB --remote --file ../smartphone-sales-initial.sql
 ```
 
-初始 SQL 只用于空业务表，生成文件放在仓库外。导入后在 D1 控制台核对六张业务表的行数与脚本输出。若导入报错，先核对目标库及已有记录，再决定如何恢复。初始化完成前后，网站仍从现有 CSV 读取，切换数据源由后续改动完成。
+初始 SQL 只用于空业务表，生成文件放在仓库外。导入后在 D1 控制台核对六张业务表的行数与脚本输出。若导入报错，先核对目标库及已有记录，再决定如何恢复。初始化完成后，Cloudflare 正式站可以从 D1 读取数据。
 
 
 ### 核对 D1 只读接口
 
 部署后，在 Cloudflare 主站打开 `/api/counts`，将六张表的 `row_count` 与初始导入脚本打印的各表行数比较。若返回 503，查看该 Worker 的部署、D1 绑定和日志。
 
-`/api/models`、`/api/tracking`、`/api/rankings` 和 `/api/market-share` 以 `{ "data": [...] }` 返回已公开数据。接口仅接受 GET，销量与份额的十进制文本保留原精度，未披露的份额返回 null。这些 API 仅由 Cloudflare Worker 提供。页面仍读取 CSV，直至切换数据源。
+`/api/models`、`/api/tracking`、`/api/rankings` 和 `/api/market-share` 以 `{ "data": [...] }` 返回已公开数据。接口仅接受 GET，销量与份额的十进制文本保留原精度，未披露的份额返回 null。这些 API 仅由 Cloudflare Worker 提供。Cloudflare 三个页面通过这些接口读取正式数据。GitHub Pages 和本地静态预览继续读取构建产物或仓库中的 CSV。Cloudflare 读取失败时显示错误，保留现有会话编辑。
 
 ## GitHub Pages
 

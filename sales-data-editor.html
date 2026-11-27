@@ -192,11 +192,7 @@ lastSnapshot=snapshot();updateHistory();renderMaster();updateSummary();updateExp
 updateMode();
 runChecks();
 
-async function readProject(name){
- const response=await fetch(new URL(name,location.href),{cache:'no-store',credentials:'same-origin'});
- if(!response.ok)throw Error('HTTP '+response.status);
- return readLocal(response);
-}
+function readProject(name){return SalesSite.readProject(name, readLocal);}
 async function loadProjectSales(initial=false){
  const button=$('projectSales');if(button.disabled)return;
  button.disabled=true;

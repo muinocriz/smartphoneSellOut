@@ -141,6 +141,94 @@ function alignRankingLabels(raw, bars, top, height) {
   };
 }
 
+async function requestRankingOCR(canvas, request) {
+  const image = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+  request.signal.throwIfAborted();
+  if (!image) throw Error('无法生成 PNG 裁片，请调整裁剪范围。');
+  const response = await fetch('/admin/api/ranking-ocr', {
+    method: 'POST',
+    body: image,
+    credentials: 'same-origin',
+    signal: request.signal
+  });
+  const result = await response.json().catch(() => null);
+  if (response.redirected || response.status === 401 || response.status === 403) {
+    throw Error('请先在 Cloudflare 管理后台登录，再进行识别。');
+  }
+  if (!response.ok || typeof result?.text !== 'string') {
+    throw Error(result?.message || 'OCR 服务暂不可用，请重试或手动填写。');
+  }
+  request.signal.throwIfAborted();
+  return result;
+}
+
+const rankingTitleCrop = $('rankingTitleCrop');
+const rankingPeriodButton = $('recognizeRankingPeriod');
+const rankingPeriodStatus = $('rankingPeriodStatus');
+const applyRankingPeriod = $('applyRankingPeriod');
+let rankingPeriodRequest;
+let recognizedRankingPeriod = '';
+
+function resetRankingPeriod() {
+  rankingPeriodRequest?.abort();
+  rankingPeriodRequest = null;
+  recognizedRankingPeriod = '';
+  rankingPeriodButton.disabled = false;
+  rankingPeriodStatus.hidden = true;
+  applyRankingPeriod.hidden = true;
+}
+
+function readRankingPeriod(raw) {
+  const text = raw.normalize('NFKC').replace(/<\|(?:box|det)\|>\s*\[\[[^\]]*\]\]/gi, ' ')
+    .replace(/<\|[^|]*\|>/g, ' ');
+  const weeks = [...text.matchAll(/(?<![0-9])([0-9]{4})\s*[-‐‑–—]?\s*W\s*([0-9]{1,2})(?![0-9])/gi)];
+  const periods = new Set(weeks.map(([, year, week]) => window.IsoSalesWeek.isoWeekMonday(Number(year), Number(week)) === null
+    ? '' : `${year}-W${week.padStart(2, '0')}`));
+  return periods.size === 1 ? [...periods][0] : '';
+}
+
+rankingPeriodButton.onclick = async () => {
+  if (!rankingImage || !rankingTitleCrop.height || rankingPeriodRequest) return;
+  resetRankingPeriod();
+  const request = new AbortController();
+  rankingPeriodRequest = request;
+  rankingPeriodButton.disabled = true;
+  rankingPeriodStatus.hidden = false;
+  rankingPeriodStatus.textContent = '正在识别榜单标题…';
+  try {
+    const result = await requestRankingOCR(rankingTitleCrop, request);
+    if (request.signal.aborted) return;
+    recognizedRankingPeriod = readRankingPeriod(result.text);
+    if (!recognizedRankingPeriod) {
+      rankingPeriodStatus.textContent = '标题里未识别到唯一有效的 ISO 周次，请手动填写统计周期。';
+      return;
+    }
+    rankingPeriodStatus.textContent = `识别到 ${recognizedRankingPeriod}。确认后将填入周榜统计周期。`;
+    applyRankingPeriod.hidden = false;
+  } catch (error) {
+    if (!request.signal.aborted) rankingPeriodStatus.textContent = error.message;
+  } finally {
+    if (rankingPeriodRequest === request) {
+      rankingPeriodRequest = null;
+      rankingPeriodButton.disabled = false;
+    }
+  }
+};
+
+applyRankingPeriod.onclick = () => {
+  if (!recognizedRankingPeriod) return;
+  const type = $('archiveType');
+  if (type.value !== 'weekly') {
+    type.value = 'weekly';
+    type.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+  const period = $('archivePeriod');
+  period.value = recognizedRankingPeriod;
+  period.dispatchEvent(new Event('input', { bubbles: true }));
+  rankingPeriodStatus.textContent = `已填入统计周期 ${recognizedRankingPeriod}。`;
+  applyRankingPeriod.hidden = true;
+};
+
 rankingOcrButton.onclick = async () => {
   if (!rankingImage || rankingOcrRequest) return;
   resetRankingOCR();
@@ -154,22 +242,7 @@ rankingOcrButton.onclick = async () => {
   const height = rankingCrop.height;
 
   try {
-    const image = await new Promise(resolve => rankingCrop.toBlob(resolve, 'image/png'));
-    if (request.signal.aborted) return;
-    if (!image) throw Error('无法生成 PNG 裁片，请调整裁剪范围。');
-    const response = await fetch('/admin/api/ranking-ocr', {
-      method: 'POST',
-      body: image,
-      credentials: 'same-origin',
-      signal: request.signal
-    });
-    const result = await response.json().catch(() => null);
-    if (response.redirected || response.status === 401 || response.status === 403) {
-      throw Error('请先在 Cloudflare 管理后台登录，再识别机型。');
-    }
-    if (!response.ok || typeof result?.text !== 'string') {
-      throw Error(result?.message || 'OCR 服务暂不可用，请手动填写机型名称。');
-    }
+    const result = await requestRankingOCR(rankingCrop, request);
     if (request.signal.aborted) return;
     $('rankingOcrRawText').textContent = result.text || 'DeepSeek 返回了空文本。';
     $('rankingOcrRaw').hidden = false;
@@ -242,6 +315,9 @@ $('imageUpload').onchange = async event => {
   if (!file) return;
   const version = ++rankingUploadVersion;
   resetRankingOCR();
+  resetRankingPeriod();
+  rankingPeriodButton.hidden = true;
+  $('rankingTitlePreview').hidden = true;
   rankingImage = null;
   $('rankingCropPanel').hidden = true;
   rankingOcrButton.hidden = true;
@@ -264,7 +340,15 @@ $('imageUpload').onchange = async event => {
     rankingCropRight.value = data.base;
     drawRankingCrop();
     $('rankingCropPanel').hidden = false;
+    rankingTitleCrop.width = data.width;
+    rankingTitleCrop.height = rankingCropTop;
+    if (rankingCropTop > 0) {
+      rankingTitleCrop.getContext('2d').drawImage(image, 0, 0, data.width, rankingCropTop,
+        0, 0, data.width, rankingCropTop);
+      $('rankingTitlePreview').hidden = false;
+    }
     rankingOcrButton.hidden = !window.SalesSite?.projectSupportsAdmin;
+    rankingPeriodButton.hidden = rankingOcrButton.hidden || !rankingCropTop;
     notify(`识别完成：${data.bars.length} 条柱条`);
   } catch (error) {
     if (version !== rankingUploadVersion) return;

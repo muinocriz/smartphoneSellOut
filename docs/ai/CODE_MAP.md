@@ -18,6 +18,7 @@
 | 热销机型与榜单研究模块 · 图卡字体与排版 | poster-typography.js、sales-studio.js、sales-poster.js、research-charts.js | `PosterTypography.mount` → `getVisualPreferences` / `capturePublication` → `drawPoster`；`posterRoleFit`、`posterFont` 与轴/图例/堆叠测量同步；`posterXAxisLayout` / `posterYAxisTick` / `posterAxisGutter` 统一轴距，专题 `spacing` 配置随排版 JSON 导出。 |
 | 销量数据处理模块 · 网格编辑、特殊值、核查、撤销 | sales-data-editor.html | `commitInput` / `openSpecial`、`runChecks`、`travelHistory`、`persistDraft` |
 | 销量数据处理模块 · 项目/本地宽表、GitHub 扩展销量表及会话草稿导入 | sales-data-editor.html | `previewSync` / `readGitHubSales` → `buildSyncPlan`；销量增量追踪模块入口 `incrementDraft`；导出查 `salesContent` / `masterContent` |
+| 销量数据处理模块 · 微博文本导入 | weibo-sales-parser.js、sales-data-editor.html、studio-assets.mjs | `WeiboSalesParser.parse` → `openWeiboSalesImport` / `buildSyncPlan` → `renderSyncPlan` / `saveWeiboReport`；后台专用入口，复用草稿合并及数据库保存 |
 | 销量数据处理模块 · 数据库整表录入 | sales-data-editor.html、cloudflare-worker.mjs、sales-editor-database.mjs | `reviewDatabase` → `adminRoute` / `verifyAdmin` → `readEditorSheet` / `editEditorSheet`；市场份额网格见 `renderMarketGrid`，写入校验复用 `parseMarketShareCSV`；发布记录见 `migrations/0002_sales_editor_releases.sql` 和 `migrations/0003_market_share_editor_releases.sql` |
 | 销量增量追踪模块 · 图表、横纵轴和 PNG | sales-increment.html、sales-increment.js | `loadSource` → `seriesRows` → `plot`；桌面 `exportChart`、手机 `exportMobileChart`，共享排版见上 |
 | 销量增量追踪模块 · 品牌与机型列表 | sales-increment.js | `syncBrand` → `choiceKeys` / `applyKeys`；近12周新机按 `recentModelKeys` 生成 |

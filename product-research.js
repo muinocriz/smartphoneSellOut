@@ -1,11 +1,24 @@
 /* Shared product selection and grouping; no DOM or I/O. */
 (function(root){
 'use strict';
-const normalize=root.BrandUtils.normalize, UNKNOWN='（未知或不适用）';
+const Brand=root.BrandUtils, normalize=Brand.normalize, UNKNOWN='（未知或不适用）';
 const FIELDS=Object.freeze([['brand','品牌'],['brand_group','母品牌'],['series','产品系列'],['variant','产品版本'],['price_band','首发价格带'],['chip_vendor','芯片供应商'],['chip_model','芯片平台'],['form_factor','产品形态'],['base_ram','起售 RAM'],['base_rom','起售 ROM']].map(Object.freeze));
 const PRICE_BANDS=Object.freeze([[0,1000],[1000,2000],[2000,3000],[3000,4000],[4000,5000],[5000,6000],[6000,8000],[8000,Infinity]].map(Object.freeze));
+// Filter values remain compatible with saved configurations and raw parent keys.
+function filterKey(field,v){
+ if(field==='brand_group'&&Brand.groupLabel(v)==='华为系')return '华为';
+ if(field==='brand'&&Brand.isOsta(v))return 'OSTA';
+ return v;
+}
+function optionLabel(field,v){
+ if(field==='brand_group')return Brand.groupLabel(v);
+ if(field==='brand'&&Brand.isOsta(v))return 'OSTA 星芒';
+ return v;
+}
 function value(m,field){
  if(!m)return UNKNOWN;
+ if(field==='brand_group')return Brand.groupLabel(m.brand_group)||UNKNOWN;
+ if(field==='brand'&&Brand.isOsta(m.brand))return 'OSTA';
  if(field==='price_band')return priceBand(m);
  if(field==='base_ram'||field==='base_rom')return Number.isFinite(m[field])&&m[field]>0?m[field]+'GB':UNKNOWN;
  if(field==='series')return m.series&&m.brand?(m.series.startsWith(m.brand)?m.series:m.brand+' '+m.series):UNKNOWN;
@@ -26,7 +39,7 @@ function priceFilterError(filters={}){
 }
 function matches(m,filters={}){
  if(priceFilterError(filters))return false;
- for(const [field] of FIELDS)if(filters[field]&&value(m,field)!==filters[field])return false;
+ for(const [field] of FIELDS)if(filters[field]&&filterKey(field,value(m,field))!==filterKey(field,filters[field]))return false;
  if(filters.price_mode){
   const price=validPrice(m);if(price===null)return false;
   if(filters.price_mode!=='below'&&price<Number(filters.price_lower))return false;
@@ -176,5 +189,5 @@ function matrixValue(matrix,r,c,metric){
  const denominator=metric==='row_share'?(matrix.rows.get(r)?.sales||0):metric==='col_share'?(matrix.cols.get(c)?.sales||0):matrix.total;
  return denominator>0?100*v.sales/denominator:null;
 }
-root.ProductResearch=Object.freeze({FIELDS,UNKNOWN,PRICE_BANDS,value,matches,priceFilterError,options,groups,lifecycle,aligned,lifecycleAxis,retention,entryType,DEFAULT_CUTS,parseCuts,bandLabels,validPrice,priceBand,observed,aggregate,priceStats,rankGroups,AGE_CUTS,AGE_FIELDS,ageLabels,ageBand,generationAgeClassifier,dimension,cross,rankedKeys,displayDimension,matrixValue});
+root.ProductResearch=Object.freeze({FIELDS,UNKNOWN,PRICE_BANDS,value,filterKey,optionLabel,matches,priceFilterError,options,groups,lifecycle,aligned,lifecycleAxis,retention,entryType,DEFAULT_CUTS,parseCuts,bandLabels,validPrice,priceBand,observed,aggregate,priceStats,rankGroups,AGE_CUTS,AGE_FIELDS,ageLabels,ageBand,generationAgeClassifier,dimension,cross,rankedKeys,displayDimension,matrixValue});
 })(typeof globalThis!=='undefined'?globalThis:this);

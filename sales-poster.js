@@ -375,7 +375,7 @@ function drawBrands(ctx,L,o,p){
  const head=posterRoleBlock(ctx,'metric',heading,T.note,'500',bodyTop+S.md);
  const top=bodyTop+S.md+head.height+S.xs;
  const rows=brands.map((b,i)=>{
-  const name=`${i+1}. ${b.brand}（${b.count}款）`,sale=`${displayWan(b.sale)} · ${fmt(b.share*100,1)}%`;
+  const name=`${i+1}. ${window.BrandUtils.groupLabel(b.brand)}（${b.count}款）`,sale=`${displayWan(b.sale)} · ${fmt(b.share*100,1)}%`;
   const labelWidth=posterRoleMeasure(ctx,'brand',name,T.label,'600').width,saleWidth=posterRoleMeasure(ctx,'sale',sale,T.value,'500').width;
   const stacked=labelWidth+saleWidth+S.xs>width;
   const hero=posterRoleWrap(ctx,'model','主力爆款：'+b.hero,width,T.value,'500');

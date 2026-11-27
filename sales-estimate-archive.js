@@ -20,7 +20,7 @@
   let trackedSales=null;
   async function loadTracking(){const r=await fetch('sales-long.csv?t='+Date.now(),{cache:'no-store'});if(!r.ok)throw Error('HTTP '+r.status);return window.SalesTracking.calculate(await r.text());}
   const canonicalName=name=>masterCatalog?.resolve(name)?.model_name||name;
-  function matchesModel(key,name,q){const m=masterCatalog?.get(key);return !q||[key,name,m?.brand,m?.brand_group,m?.series,m?.chip_vendor,m?.chip_model,...(m?.aliases||[])].some(v=>normalize(v).includes(q));}
+  function matchesModel(key,name,q){const m=masterCatalog?.get(key);return !q||[key,name,m?.brand,m?.brand_group,window.BrandUtils.groupLabel(m?.brand_group),window.BrandUtils.isOsta(m?.brand)?'星芒':'',m?.series,m?.chip_vendor,m?.chip_model,...(m?.aliases||[])].some(v=>normalize(v).includes(q));}
   function fail(message){throw new Error(message);}
   function defaults() {
     return {source:'RD观测', series:'手机销量榜', type:'weekly', period:'', start:'', end:'', top:''};
@@ -237,10 +237,12 @@
     const vals=scope?[...knownModels(scope).keys()].map(k=>researchModel(k)||null):[];
     for(const [field] of Product.FIELDS){
       if(field==='price_band')continue;
-      const sel=productControls[field],prior=sel.value||(!productOptionsReady?storedResearch.controls?.[sel.id]:'')||'';
+      const sel=productControls[field],prior=Product.filterKey(field,sel.value||(!productOptionsReady?storedResearch.controls?.[sel.id]:'')||'');
       sel.replaceChildren();const all=document.createElement('option');all.value='';all.textContent='全部';sel.append(all);
-      const opts=Product.options(vals,field);if(prior&&!opts.includes(prior))opts.push(prior);
-      for(const value of opts){const o=document.createElement('option');o.value=value;o.textContent=value;sel.append(o);}sel.value=prior;
+      const opts=[...new Set(Product.options(vals,field).map(v=>Product.filterKey(field,v)))];
+      if(scope&&field==='brand'&&!opts.includes('OSTA')){const unknown=opts.indexOf(Product.UNKNOWN);opts.splice(unknown<0?opts.length:unknown,0,'OSTA');}
+      if(prior&&!opts.includes(prior))opts.push(prior);
+      for(const value of opts){const o=document.createElement('option');o.value=value;o.textContent=Product.optionLabel(field,value);sel.append(o);}sel.value=prior;
     }
     if(scope)productOptionsReady=true;updateProductInfo(scope);
   }
@@ -1402,7 +1404,7 @@
   const pct=(v,total)=>total>0?100*v/total:null;
   const nonempty=w=>w.valid&&w.count>0;
   function attrValue(stats,metric,denom){return metric==='share'?pct(stats?.sales||0,denom):metric==='count'?(stats?.count||0):(stats?.sales||0);}
-  function attrBrand(x,level){return x.model?.[level]||(level==='brand_group'?window.BrandUtils.classify('',x.brand)||Product.UNKNOWN:Product.UNKNOWN);}
+  function attrBrand(x,level){return x.model?.[level]?Product.value(x.model,level):(level==='brand_group'?window.BrandUtils.groupLabel(window.BrandUtils.classify('',x.brand))||Product.UNKNOWN:Product.UNKNOWN);}
   function attrPlot(chart,label){researchPublicationChart=chart;if(chart.kind)ResearchCharts.renderComposition($('researchChart'),chart,label);else ResearchCharts.svgLine($('researchChart'),$('researchLegend'),chart,label);}
   function setAttributeInfo(metricLabel,periods,note,detail){
     const adjacent=researchPublicationChart?.kind==='brandStack'&&researchPublicationChart.connectAdjacentBands;
@@ -1960,7 +1962,7 @@
   }
   function showHistoryRows() {
     const list = groups(history).get($('archiveSelect').value) || [];
-    $('archiveRows').innerHTML = list.length ? list.map(r => '<tr><td>'+e(r[col.rank])+'</td><td>'+e(r[col.model])+'</td><td>'+e(classifyBoardBrand(r)||'未识别品牌')+'</td><td class="num">'+e(historyDisplayWan(Number(r[col.estimated_units])/10000))+'</td></tr>').join('') : '<tr><td colspan="4" class="empty">'+(loading ? '正在加载历史销量…' : loaded ? '尚无历史销量记录' : '历史加载失败，请查看上方提示')+'</td></tr>';
+    $('archiveRows').innerHTML = list.length ? list.map(r => '<tr><td>'+e(r[col.rank])+'</td><td>'+e(r[col.model])+'</td><td>'+e(window.BrandUtils.groupLabel(classifyBoardBrand(r))||'未识别品牌')+'</td><td class="num">'+e(historyDisplayWan(Number(r[col.estimated_units])/10000))+'</td></tr>').join('') : '<tr><td colspan="4" class="empty">'+(loading ? '正在加载历史销量…' : loaded ? '尚无历史销量记录' : '历史加载失败，请查看上方提示')+'</td></tr>';
   }
   function bindSelectedHistory(scroll = false) {
     const list = groups(history).get($('archiveSelect').value);

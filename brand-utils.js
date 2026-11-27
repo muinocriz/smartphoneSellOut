@@ -4,7 +4,7 @@
   const normalize=v=>String(v??'').normalize('NFKC').toUpperCase().replace(/[\s\u200B-\u200D\u2060\uFEFF]+/g,'');
   const groups=Object.freeze([
     Object.freeze({id:'apple',key:'Apple',label:'苹果',color:'#3b82f6'}),
-    Object.freeze({id:'huawei',key:'华为',label:'华为',color:'#ef4444'}),
+    Object.freeze({id:'huawei',key:'华为',label:'华为系',color:'#ef4444'}),
     Object.freeze({id:'xiaomi',key:'小米系',label:'小米系',color:'#f97316'}),
     Object.freeze({id:'honor',key:'荣耀',label:'荣耀',color:'#06b6d4'}),
     Object.freeze({id:'oppo',key:'OPPO系',label:'OPPO系',color:'#10b981'}),
@@ -36,7 +36,10 @@
     return fromModel(name)||aliases.get(key)||(!unknown.has(key)?'其他':null);
   }
   const byKey=Object.freeze(Object.fromEntries(groups.map(g=>[g.key,g])));
+  const byLabel=Object.freeze(Object.fromEntries(groups.map(g=>[g.label,g])));
+  // Preserve existing product-attribute keys (including Apple); only Huawei gains a group display suffix.
+  const groupLabel=key=>aliases.get(normalize(key))==='华为'?'华为系':key;
   const byId=Object.freeze(Object.fromEntries(groups.map(g=>[g.id,g])));
   const colors=Object.freeze(Object.fromEntries(groups.map(g=>[g.key,g.color])));
-  root.BrandUtils=Object.freeze({groups,colors,normalize,isOsta,classify,label:key=>byKey[key]?.label||key,color:key=>byKey[key]?.color||byId[key]?.color||null});
+  root.BrandUtils=Object.freeze({groups,colors,normalize,isOsta,classify,groupLabel,label:key=>byKey[key]?.label||key,color:key=>byKey[key]?.color||byId[key]?.color||byLabel[key]?.color||null});
 })(typeof globalThis!=='undefined'?globalThis:this);

@@ -152,10 +152,11 @@ function presets(){
   const [weekly,cross]=milestoneLists();
   return [{name:'近12周新机',keys:recentModelKeys()},{name:'本周里程碑',keys:weekly},{name:'跨期里程碑',keys:cross},...savedLists];
 }
+const incrementBrandKey=v=>['OSTA','星芒','OSTA星芒','星芒OSTA'].includes(String(v??'').normalize('NFKC').toUpperCase().replace(/\s+/g,''))?'OSTA':v;
 function choiceKeys(){
   if(activeList===recentListIndex)return recentChoices;
   const brand=byId('brand').dataset.value;
-  return Object.keys(metadata).filter(key=>!brand||metadata[key][0]===brand);
+  return Object.keys(metadata).filter(key=>!brand||incrementBrandKey(metadata[key][0])===brand);
 }
 function choices(){
   const box=byId('choices');box.replaceChildren();
@@ -170,7 +171,7 @@ function choices(){
 }
 function applyKeys(keys){
   if(activeEdit)return;
-  if(keys.some(k=>metadata[k]&&byId('brand').dataset.value&&metadata[k][0]!==byId('brand').dataset.value)){
+  if(keys.some(k=>metadata[k]&&byId('brand').dataset.value&&incrementBrandKey(metadata[k][0])!==byId('brand').dataset.value)){
     selectFilter('brand','');
   }
   selected.clear();keys.filter(key=>metadata[key]).forEach(key=>selected.add(key));
@@ -1070,7 +1071,7 @@ function loadSource(text,key,sourcePeriods=[]){
   byId('brand').replaceChildren();
   const brands=new Set();
   for(const [id,meta] of nextMetadata){
-    metadata[id]=meta;brands.add(meta[0]);
+    metadata[id]=meta;brands.add(incrementBrandKey(meta[0]));
   }
   styles.clear();
   const styleRows=[...nextMetadata].map(([id,meta])=>({id,brand:meta[0]}));
@@ -1078,7 +1079,7 @@ function loadSource(text,key,sourcePeriods=[]){
   focused=null;
   for(const brand of ['',...brands]){
     const button=document.createElement('button');
-    button.type='button';button.dataset.value=brand;button.textContent=brand||'全部品牌';
+    button.type='button';button.dataset.value=brand;button.textContent=brand==='OSTA'?'OSTA 星芒':brand||'全部品牌';
     byId('brand').append(button);
   }
   selectFilter('brand','');
@@ -1096,7 +1097,7 @@ function loadSource(text,key,sourcePeriods=[]){
       for(const id of restored)if(!visibleKeys||visibleKeys.has(id))selected.add(id);
     }
     for(const id of viewFilters){
-      const value=view.filters?.[id];
+      const value=id==='brand'?incrementBrandKey(view.filters?.[id]):view.filters?.[id];
       if(byId(id)&&[...byId(id).querySelectorAll('button')].some(button=>button.dataset.value===value))selectFilter(id,value);
     }
   }

@@ -6,7 +6,7 @@
 | --- | --- | --- |
 | 全站导航、主题、首页跳转、跨页临时数据 | index.html、site-shell.js | `routes`（默认销量增量追踪模块）、`pages`、`applyTheme`、`sessionRead` / `sessionWrite`；生产路径另看 scripts/build-cloudflare.mjs |
 | 热销机型与榜单研究模块与销量增量追踪模块 · 销售周、导出排版和文件名 | iso-sales-week.js、sales-chart-layout.js | `firstFullWeekMonday`、`partialWeek`、`lifecycleWeekIndex`；`renderPNG`、`exportFilename`；各页面调用点见热销机型与榜单研究模块、销量增量追踪模块 |
-| 热销机型与榜单研究模块 · 全市场份额数据、品牌竞争与市场覆盖率 | market-share-data.js、sales-estimate-archive.js | `ensureMarketData` → `decodeCSV` / `parseMarketShareCSV` → `crossMarketPanel` / `fillRangeControls` / `fillDualWeeks` → `renderDualMarket` / `renderCoverageMarket`、`marketModelRecords`；数据源 `market-share.csv` |
+| 热销机型与榜单研究模块 · 全市场份额数据、品牌竞争与市场覆盖率 | market-share-data.js、sales-estimate-archive.js | `ensureMarketData` → `decodeCSV` / `parseMarketShareCSV` → `crossMarketPanel` / `fillRangeControls` / `fillDualWeeks` → `renderDualMarket` / `renderCoverageMarket`、`marketModelRecords`；数据源 `market-share.csv`（华为集团含 OSTA，独立子份额由解析器提供；母品牌归属见 `brand-utils.js`） |
 | 热销机型与榜单研究模块 · 截图、像素标定、榜单历史 | sales-estimator.html、sales-estimator.js、sales-estimate-archive.js | `parseImage`、`parseAmount`、`getFit`；历史与研究启动分别查 `initEstimateArchive`、`initResearch` |
 | 热销机型与榜单研究模块 · 排名、身份、扩展样本和价格/代际 | sales-series.js、model-master.js、sales-fusion.js、product-research.js | `sequenceIdentity` 关联原榜；`fuse` / `buildPanel` 融合；`priceBand` / `generationAgeClassifier` 分类 |
 | 热销机型与榜单研究模块 · 研究预览、多周色带、双轴或跨市场图 | sales-estimate-archive.js、research-charts.js | 从 `initResearch` 查专题与参数；`drawAdjacentStackRibbons`、`drawGenerationDualAxis`、`drawDualBrandShareComparison` 分别定位绘制 |

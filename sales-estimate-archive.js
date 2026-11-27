@@ -1355,7 +1355,7 @@
     const brands=boardBrandOrder.filter(k=>k!=='其他'||per.some(r=>r.valid&&r.counts[k]>0));
     const linesFor=records=>brands.map(k=>({name:boardBrandLabel(k),color:boardBrandColors[k],values:records.map(r=>value(r,k,boardBrandOrder.indexOf(k))),imputed:[]}));
     const notice=$('researchNotice');
-    $('researchDesc').textContent=scope.expanded?'按母品牌汇总去重后的扩展销量；数量是独立统计项数，不是SKU数量。占比与集中度均为扩展样本口径，非全市场；相邻有效周色带连接同一品牌。':'按母品牌归并原始榜单：小米含 REDMI、OPPO含一加/realme、vivo含 iQOO。榜单样本并非全市场；固定 TOP K 缺名次整周留空。不使用覆盖率筛选与插补。多周堆叠柱相邻有效周间以半透明色带连接同一品牌，缺失周断开；色带不表示实际销量迁移。CR/HHI 按销量计算，其他品牌合为一组。';
+    $('researchDesc').textContent=scope.expanded?'按母品牌汇总去重后的扩展销量；数量是独立统计项数，不是SKU数量。占比与集中度均为扩展样本口径，非全市场；相邻有效周色带连接同一品牌。':'按母品牌归并原始榜单：华为含 OSTA、小米含 REDMI、OPPO含一加/realme、vivo含 iQOO。榜单样本并非全市场；固定 TOP K 缺名次整周留空。不使用覆盖率筛选与插补。多周堆叠柱相邻有效周间以半透明色带连接同一品牌，缺失周断开；色带不表示实际销量迁移。CR/HHI 按销量计算，其他品牌合为一组。';
     let records=per,range=weeks[0].period+'—'+weeks[weeks.length-1].period;
     if(view==='ribbon'){
       const base=per.find(r=>r.period===$('brandBase').value),compare=per.find(r=>r.period===$('brandCompare').value);

@@ -15,6 +15,8 @@ function parse(raw){
     const m=Object.fromEntries(HEADER.map((k,j)=>[k,(row[j]??'').trim()]));
     if(!m.model_id||m.model_id.startsWith('unmatched:')||!normalize(m.model_name))throw Error('机型主数据第 '+(i+2)+' 行缺少合法 ID 或名称。');
     if(byId.has(m.model_id))throw Error('机型 ID 重复：'+m.model_id);
+    // Canonical OSTA identity is distinct from HUAWEI; the existing parent key remains 华为.
+    if(Brand.isOsta(m.brand)){m.brand='OSTA';m.brand_group='华为';}
     m.aliases=Object.freeze(m.aliases.split(';').map(s=>s.trim()).filter(Boolean));
     for(const k of ['launch_price','base_ram','base_rom']){
       const v=m[k], n=Number(v);

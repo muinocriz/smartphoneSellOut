@@ -44,7 +44,7 @@ for(const id of ['brand','metric','axis','gap']){
 const selected=new Set();
 let savedLists=[];
 try{savedLists=JSON.parse(localStorage.getItem('increments.lists')||'[]').filter(l=>typeof l.name==='string'&&Array.isArray(l.keys))}catch{}
-const BRAND_HUE={"小米":24,"redmi":38,"华为":2,"荣耀":344,"oppo":138,"一加":168,"vivo":214,"iqoo":234,"苹果":276};
+const BRAND_HUE={"小米":24,"redmi":38,"华为":2,"osta":12,"星芒":12,"osta星芒":12,"星芒osta":12,"荣耀":344,"oppo":138,"一加":168,"vivo":214,"iqoo":234,"苹果":276};
 // [色相偏移, 饱和度, 亮度]：相邻序号的亮度和色相尽量拉开
 const SHADE=[[0,80,48],[-12,70,34],[12,78,62],[6,90,40],[-8,60,56],[14,65,30],[-14,85,66],[-4,55,44],[10,70,52],[-10,80,38]];
 function hsl2hex(h,s,l){h=((h%360)+360)%360;s/=100;l/=100;const a=s*Math.min(l,1-l);

@@ -37,7 +37,7 @@ function drawDataCard(ctx,x,y,w,h,p,r=Math.round(1080*window.PosterThemes.layout
 /* Independent-axis poster layout. All geometry remains in original 1080px
  * design coordinates; only output pixel density changes the Canvas transform.
  * Right reserve sets width, bottom reserve sets height independently. */
-const BRAND_FOOTER_NOTE='品牌合并：小米/REDMI · OPPO/一加/realme · vivo/iQOO';
+const BRAND_FOOTER_NOTE='品牌合并：华为/OSTA · 小米/REDMI · OPPO/一加/realme · vivo/iQOO';
 // A per-render audit uses the actual sizes and plot dimensions used by the renderer.
 // It never alters the user's safety margins, chart data, or export resolution.
 const posterAudits=new WeakMap();
@@ -315,7 +315,7 @@ function drawTop(ctx,L,o,p){
 }
 function chooseDuelModelLabel(ctx,original,maxWidth,baseSize=43){
  const full=String(original||'').trim().replace(/\s+/g,' ');
- const short=full.replace(/^(?:华为|荣耀|小米|REDMI|OPPO|vivo|iQOO|一加|苹果|Apple)\s*(?:[·・:：—-]\s*)?/i,'').trim();
+ const short=full.replace(/^(?:OSTA\s*星芒|星芒\s*OSTA|OSTA|星芒|华为|荣耀|小米|REDMI|OPPO|vivo|iQOO|一加|苹果|Apple)\s*(?:[·・:：—-]\s*)?/i,'').trim();
  baseSize=posterTypeSize('model',baseSize);
  const label=posterRoleMeasure(ctx,'model',full,baseSize,'800').width<=maxWidth?full:(short||full);
  let size=baseSize;while(size>20&&PosterTypography.withRole('model',()=>measureMixedCanvas(ctx,label,size,'800')).width>maxWidth)size--;

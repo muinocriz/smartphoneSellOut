@@ -13,15 +13,16 @@
   ]);
   const aliases=new Map();
   for(const [key,names] of [
-    ['Apple',['Apple','苹果','iPhone']],['华为',['华为','HUAWEI']],['小米系',['小米','小米系','XIAOMI','REDMI','红米','MI']],
+    ['Apple',['Apple','苹果','iPhone']],['华为',['华为','HUAWEI','华为系','OSTA','星芒','OSTA星芒','星芒OSTA']],['小米系',['小米','小米系','XIAOMI','REDMI','红米','MI']],
     ['荣耀',['荣耀','HONOR']],['OPPO系',['OPPO','OPPO系','OPPO主品牌','一加','ONEPLUS','REALME','真我']],
     ['vivo系',['vivo','vivo系','vivo主品牌','iQOO']],['其他',['其他','其它','OTHER','OTHERS']]
   ])for(const name of names)aliases.set(normalize(name),key);
+  const isOsta=v=>['OSTA','星芒','OSTA星芒','星芒OSTA'].includes(normalize(v));
   const unknown=new Set(['','未识别品牌','未知','UNKNOWN','未分类']);
   function fromModel(name){
     const n=normalize(name);
     if(/^(IPHONE|APPLE|苹果)/.test(n))return 'Apple';
-    if(/^(华为|HUAWEI)/.test(n))return '华为';
+    if(/^(华为|HUAWEI|OSTA|星芒)/.test(n))return '华为';
     if(/^(荣耀|HONOR)/.test(n))return '荣耀';
     if(/^(REDMI|XIAOMI|小米|红米)/.test(n)||/^MI\s/i.test(String(name).trim()))return '小米系';
     if(/^(OPPO|ONEPLUS|一加|REALME|真我)/.test(n))return 'OPPO系';
@@ -37,5 +38,5 @@
   const byKey=Object.freeze(Object.fromEntries(groups.map(g=>[g.key,g])));
   const byId=Object.freeze(Object.fromEntries(groups.map(g=>[g.id,g])));
   const colors=Object.freeze(Object.fromEntries(groups.map(g=>[g.key,g.color])));
-  root.BrandUtils=Object.freeze({groups,colors,normalize,classify,label:key=>byKey[key]?.label||key,color:key=>byKey[key]?.color||byId[key]?.color||null});
+  root.BrandUtils=Object.freeze({groups,colors,normalize,isOsta,classify,label:key=>byKey[key]?.label||key,color:key=>byKey[key]?.color||byId[key]?.color||null});
 })(typeof globalThis!=='undefined'?globalThis:this);

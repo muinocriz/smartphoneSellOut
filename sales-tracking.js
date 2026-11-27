@@ -4,7 +4,7 @@
 const VERSION='tracking-v1', DAY=86400000, WEEK=7*DAY;
 const HEADER=Object.freeze('brand,model,category,date,period,metric,value_wan,operator'.split(','));
 const norm=v=>String(v??'').normalize('NFKC').toUpperCase().replace(/[\s\u200B-\u200D\u2060\uFEFF]+/g,'');
-const brandKey=v=>({APPLE:'苹果',IPHONE:'苹果',XIAOMI:'小米',HUAWEI:'华为',HONOR:'荣耀',ONEPLUS:'一加',红米:'REDMI',REALME:'真我'})[norm(v)]||norm(v);
+const brandKey=v=>({APPLE:'苹果',IPHONE:'苹果',XIAOMI:'小米',HUAWEI:'华为',HONOR:'荣耀',ONEPLUS:'一加',红米:'REDMI',REALME:'真我',星芒:'OSTA',OSTA星芒:'OSTA',星芒OSTA:'OSTA'})[norm(v)]||norm(v);
 const key=(brand,model)=>JSON.stringify([brandKey(brand),norm(model)]);
 const equal=(a,b)=>a===b||(Number.isFinite(a)&&Number.isFinite(b)&&Math.abs(a-b)<=1e-10*Math.max(1,Math.abs(a),Math.abs(b)));
 const clean=n=>Number(n.toPrecision(15));

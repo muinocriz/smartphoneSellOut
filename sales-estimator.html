@@ -206,6 +206,9 @@
 :root[data-theme="dark"] body.studio-ui .studio-controls::-webkit-scrollbar-track{background:var(--site-bg)}
 :root[data-theme="dark"] body.studio-ui .studio-controls::-webkit-scrollbar-thumb{background:var(--site-muted);border-color:var(--site-bg)}
 :root[data-theme="dark"] body.studio-ui .poster-viewport{background:var(--site-bg)}
+#archivePublish[hidden],#archivePublishLogin[hidden]{display:none}
+#archivePublishLogin{text-decoration:none}
+#archivePublishError:empty,#archivePublishStatus:empty{display:none}
 </style><link rel="stylesheet" href="studio-ui.css"></head><body class="studio-ui">
 <header class="site-header"></header>
 <main class="shell">
@@ -226,7 +229,7 @@
 </aside><div>
 <section class="panel">
 <h2 class="panel-title">榜单信息与历史销量存档</h2>
-<p class="panel-desc">历史结果统一保存到 sales-estimates.csv。榜单规模不限；同一来源、系列和周期的重新估算需确认整期替换。</p>
+<p class="panel-desc">同一来源、系列和统计周期的重新估算需确认整期替换。</p>
 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px">
 <div><label class="lbl" for="archiveSource">数据来源</label><input id="archiveSource" class="field ui-field" maxlength="80"></div>
 <div><label class="lbl" for="archiveSeries">系列（区分同周期不同口径）</label><input id="archiveSeries" class="field ui-field" maxlength="80"></div>
@@ -237,7 +240,21 @@
 </div><div class="msg" id="archiveMetaStatus" aria-live="polite"></div>
 <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px">
 <button type="button" class="primary" id="archiveMerge" disabled>合并本期并导出完整历史 CSV</button>
-</div><p class="mini">导出后请将完整 CSV 提交到 GitHub 根目录，替换同名文件；页面不会直接写入仓库。尚未提交的多期导出只在当前页面会话中保留，刷新前请下载备份。</p>
+<button type="button" class="primary" id="archivePublish" hidden disabled>保存本期榜单到数据库</button>
+</div><p class="mini" id="archiveSaveHint">导出后请将完整 CSV 提交到 GitHub 根目录，替换同名文件；页面不会直接写入仓库。尚未提交的多期导出只在当前页面会话中保留，刷新前请下载备份。</p>
+<div id="archivePublishStatus" class="mini" role="status"></div>
+<dialog id="archivePublishDialog" class="panel" aria-labelledby="archivePublishTitle" style="width:min(500px,calc(100% - 24px));color:var(--ink)">
+ <form id="archivePublishForm">
+  <h2 class="panel-title" id="archivePublishTitle">保存本期榜单</h2>
+  <p class="panel-desc" id="archivePublishSummary" role="status"></p>
+  <p id="archivePublishError" role="alert"></p>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
+   <button id="archivePublishCancel" class="secondary" type="button" autofocus>关闭</button>
+   <a id="archivePublishLogin" class="secondary" href="/admin/" target="_blank" rel="noopener" hidden>前往管理员登录</a>
+   <button id="archivePublishConfirm" class="primary" type="submit" disabled>确认保存</button>
+  </div>
+ </form>
+</dialog>
 
 </section>
 <section class="panel"><div class="righttop"><div><h2 class="panel-title">销量估算结果</h2><p class="panel-desc" id="tableDesc">导入截图识别柱长；标定后自动填写销量。</p></div><button id="exportCsv" class="secondary" type="button">导出 CSV</button></div>

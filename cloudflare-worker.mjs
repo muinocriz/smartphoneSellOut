@@ -1,4 +1,5 @@
 import { EditorError, editEditorSheet, readEditorSheet } from './sales-editor-database.mjs';
+import { publishRanking } from './ranking-editor-database.mjs';
 
 const DATA_QUERIES = new Map([
   ['/api/models', `
@@ -18,7 +19,7 @@ const DATA_QUERIES = new Map([
   `],
   ['/api/rankings', `
     SELECT d.dataset_id, d.source, d.series, d.period_type, d.period,
-           d.period_start, d.period_end, d.top_n, d.actual_count,
+           d.period_start, d.period_end, NULLIF(d.top_n, 0) AS top_n, d.actual_count,
            e.rank, e.model, e.brand_group, e.pixels, e.estimated_units,
            e.estimated_wan, d.fit_k, d.fit_mode, d.calibration_count,
            d.accepted_count, d.outlier_threshold, d.algorithm_version, d.saved_at
@@ -190,10 +191,12 @@ async function adminRoute(request, env, url) {
   const session = url.pathname === '/admin/api/session';
   const sheet = url.pathname === '/admin/api/tracking' ? 'tracking'
     : url.pathname === '/admin/api/models' ? 'models'
-    : url.pathname === '/admin/api/market-share' ? 'market-share' : null;
+    : url.pathname === '/admin/api/market-share' ? 'market-share'
+    : url.pathname === '/admin/api/rankings' ? 'rankings' : null;
+  const allowed = sheet === 'rankings' ? ['POST'] : sheet ? ['GET', 'POST'] : ['GET'];
   if (!page && !session && !sheet) return json({ error: 'not_found' }, 404);
-  if (request.method !== 'GET' && !(sheet && request.method === 'POST')) {
-    return json({ error: 'method_not_allowed' }, 405, { Allow: sheet ? 'GET, POST' : 'GET' });
+  if (!allowed.includes(request.method)) {
+    return json({ error: 'method_not_allowed' }, 405, { Allow: allowed.join(', ') });
   }
 
   const access = await verifyAdmin(request, env);
@@ -216,7 +219,10 @@ async function adminRoute(request, env, url) {
     let input;
     try { input = JSON.parse(new TextDecoder().decode(raw)); }
     catch { throw new EditorError(400, '表格数据不是有效的 JSON。'); }
-    return json(await editEditorSheet(env.DB, sheet, query, access.email, input));
+    const result = sheet === 'rankings'
+      ? await publishRanking(env.DB, query, access.email, input)
+      : await editEditorSheet(env.DB, sheet, query, access.email, input);
+    return json(result);
   } catch (error) {
     if (error instanceof EditorError) return json({ error: 'editor_request', message: error.message }, error.status);
     console.error('D1 editor operation failed', sheet, error);

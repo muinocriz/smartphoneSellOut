@@ -22,10 +22,11 @@ function revisionQuery(db, sheet) {
   ).bind(sheet);
 }
 
-export async function readEditorSheet(db, sheet, query) {
+export async function readEditorSheet(db, sheet, query, ...bindings) {
+  const statement = db.prepare(query);
   const [{ results: [version] }, { results: data }] = await db.batch([
     revisionQuery(db, sheet),
-    db.prepare(query)
+    bindings.length ? statement.bind(...bindings) : statement
   ]);
   return { revision: version.revision, data };
 }
@@ -188,6 +189,10 @@ export async function editEditorSheet(db, sheet, query, email, input) {
     market ? changed.map(row => row.map((value, i) => i >= 2 && value === '' ? null : value)) : changed,
     removed
   );
+  return saveEditorRelease(db, sheet, revision, email, counts, statements, conflict);
+}
+
+export async function saveEditorRelease(db, sheet, revision, email, counts, statements, conflict) {
   const released = revision + 1;
   // Only one transaction can claim this revision. Failure rolls back the audit row and all edits.
   const audit = db.prepare(`

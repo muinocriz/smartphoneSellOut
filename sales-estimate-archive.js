@@ -13,6 +13,7 @@
   let loading = true;
   let origin = '';
   let pending = false;
+  let publishing = false, reviewedRanking = null;
 
   const {sequenceIdentity,salesPanelOptions}=Series;
   const normalize=window.BrandUtils.normalize;
@@ -1922,11 +1923,12 @@
     let ready = false;
     try { buildRows(o); ready = true; } catch (_) {}
     $('archiveMerge').disabled = !loaded || loading || !ready;
+    $('archivePublish').disabled = !ready || loading || publishing;
     $('exportCsv').disabled = !ready;
   }
-  function showHistory(message) {
+  function showHistory(message, selectedId) {
     const map = groups(history);
-    const select = $('archiveSelect'), old = select.value || SalesSite.sessionRead(historyChoiceKey) || socialArchiveDataset?.id;
+    const select = $('archiveSelect'), old = selectedId || select.value || SalesSite.sessionRead(historyChoiceKey) || socialArchiveDataset?.id;
     select.replaceChildren();
     for (const [id,list] of [...map.entries()].sort((a,b) => b[1][0][col.period_end].localeCompare(a[1][0][col.period_end]) || a[0].localeCompare(b[0]))) {
       const option = document.createElement('option'); option.value = id; option.textContent = labelOf(list[0]); select.append(option);
@@ -2007,7 +2009,7 @@
     modulePanes[key].scrollIntoView({behavior:'smooth',block:'start'});
   }
   window.SalesEstimateArchive = Object.freeze({buildRows,sendResearchToStudio,returnToStudioSource,updateControls,header:HEADER.slice()});
-  async function loadRepository() {
+  async function loadRepository(selectedId) {
     loading = true;
     showHistory('正在读取仓库历史数据…');
     try {
@@ -2019,15 +2021,123 @@
       origin = ''; loaded = false;
       loading = false;
       showHistory('读取仓库历史失败（' + err.message + '）。请刷新仓库历史，或导入完整历史 CSV 后再合并，避免丢失历史记录。');
-      return;
+      return false;
     }
-    loading = false; showHistory();
+    loading = false; showHistory(undefined, selectedId);
+    return true;
   }
   $('archiveReload').onclick = () => {
     if (loading) return;
     if (pending && !window.confirm('刷新仓库历史将替换当前会话的未提交数据。请确认已导出备份，是否继续？')) return;
     loadRepository();
   };
+  const publishDialog = $('archivePublishDialog');
+
+  async function requestRanking(input) {
+    const response = await fetch('/admin/api/rankings', {
+      method:'POST', credentials:'same-origin', redirect:'manual',
+      headers:{'Content-Type':'application/json'}, body:JSON.stringify(input)
+    });
+    const result = await response.json().catch(() => null);
+    if (response.type === 'opaqueredirect' || response.status === 401 ||
+        (response.status === 403 && !result?.message)) {
+      const error = new Error('请先通过 Cloudflare Access 登录，再回到此页继续。');
+      error.loginRequired = true;
+      throw error;
+    }
+    if (!response.ok || !result) {
+      const error = new Error(result?.message || '无法访问榜单保存接口（HTTP ' + response.status + '）。');
+      error.status = response.status;
+      throw error;
+    }
+    return result;
+  }
+
+  function publishBusy(busy) {
+    publishing = busy;
+    $('archivePublishCancel').disabled = busy;
+    updateControls();
+  }
+
+  function publishError(error) {
+    $('archivePublishError').textContent = error.message;
+    $('archivePublishLogin').hidden = !error.loginRequired;
+  }
+
+  $('archivePublish').hidden = !SalesSite.projectUsesDatabase;
+  if (SalesSite.projectUsesDatabase) {
+    $('archiveSaveHint').textContent = '管理员可以直接保存本期榜单。合并并导出完整历史 CSV 可用于备份或更新静态站。';
+    $('archiveReload').textContent = '刷新数据库历史';
+  }
+  $('archivePublish').onclick = async () => {
+    if (publishing || loading) return;
+    let rows;
+    try { rows = buildRows(); }
+    catch (error) { notify(error.message); return; }
+
+    reviewedRanking = null;
+    $('archivePublishStatus').textContent = '';
+    $('archivePublishTitle').textContent = '核对本期榜单';
+    $('archivePublishSummary').textContent = '正在核对数据库中的同口径榜单…';
+    $('archivePublishError').textContent = '';
+    $('archivePublishLogin').hidden = true;
+    $('archivePublishConfirm').disabled = true;
+    publishDialog.showModal();
+    publishBusy(true);
+    try {
+      const review = await requestRanking({action:'review', rows});
+      const existing = review.existingCount > 0;
+      $('archivePublishTitle').textContent = existing ? '替换已有榜单' : '保存新榜单';
+      $('archivePublishSummary').textContent = labelOf(rows[0]);
+      if (review.unchanged) {
+        $('archivePublishTitle').textContent = '榜单已保存';
+        $('archivePublishSummary').textContent += '。数据库已保存相同结果。';
+        return;
+      }
+      if (existing) {
+        $('archivePublishSummary').textContent += '。同一来源、系列和周期已有 ' +
+          review.existingCount + ' 条，确认后整期替换为 ' + rows.length + ' 条。';
+      }
+      reviewedRanking = {rows, revision:review.revision};
+      $('archivePublishConfirm').textContent = existing ? '确认替换整期' : '确认保存';
+      $('archivePublishConfirm').disabled = false;
+    } catch (error) {
+      publishError(error);
+    } finally {
+      publishBusy(false);
+    }
+  };
+
+  $('archivePublishLogin').onclick = () => publishDialog.close();
+  $('archivePublishCancel').onclick = () => publishDialog.close();
+  publishDialog.addEventListener('cancel', event => { if (publishing) event.preventDefault(); });
+  $('archivePublishForm').onsubmit = async event => {
+    event.preventDefault();
+    if (!reviewedRanking || publishing) return;
+    const {rows, revision} = reviewedRanking;
+    const confirm = $('archivePublishConfirm');
+    confirm.disabled = true;
+    $('archivePublishError').textContent = '';
+    publishBusy(true);
+    try {
+      await requestRanking({action:'save', rows, revision});
+      publishDialog.close();
+      let message = labelOf(rows[0]) + ' 已保存到数据库。';
+      if (pending) {
+        message += '当前历史包含尚未提交的 CSV 改动，已保留。导出备份后可刷新数据库历史。';
+      } else {
+        const refreshed = await loadRepository(rows[0][col.dataset_id]);
+        message += refreshed ? '历史榜单已更新。' : '历史读取失败，请稍后刷新数据库历史。';
+      }
+      $('archivePublishStatus').textContent = message;
+    } catch (error) {
+      publishError(error);
+      if (!error.loginRequired && error.status !== 409) confirm.disabled = false;
+    } finally {
+      publishBusy(false);
+    }
+  };
+
   // Start the history request before initializing optional UI consumers.
   loadRepository();
   try { initEstimateArchive(); }

@@ -56,8 +56,8 @@
 .site-header-actions svg{display:block;flex:none;min-width:0;min-height:0}
 .site-header .site-header-actions :is(a,button):hover{background:var(--site-selection);color:var(--site-ink)}
 .site-header .site-header-actions :is(a,button):focus-visible{outline:2px solid var(--site-accent);outline-offset:2px}
-:root[data-theme="light"] .site-theme-toggle .site-theme-moon,
-:root[data-theme="dark"] .site-theme-toggle .site-theme-sun{display:none}
+:root[data-theme="dark"] .site-theme-toggle .site-theme-moon,
+:root[data-theme="light"] .site-theme-toggle .site-theme-sun{display:none}
 .site-module-menu{display:none;min-width:0}
 .site-module-menu summary{cursor:pointer}
 .site-module-menu summary::after{content:"▾";margin-left:6px}

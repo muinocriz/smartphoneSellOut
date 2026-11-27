@@ -1,3 +1,5 @@
+import { EditorError, editEditorSheet, readEditorSheet } from './sales-editor-database.mjs';
+
 const DATA_QUERIES = new Map([
   ['/api/models', `
     SELECT model_id, model_name, brand, brand_group, aliases, series,
@@ -89,11 +91,7 @@ function decodeTokenPart(value) {
   return JSON.parse(new TextDecoder().decode(decodeBase64Url(value)));
 }
 
-async function readAdminSession(request, env) {
-  if (request.method !== 'GET') {
-    return json({ error: 'method_not_allowed' }, 405, { Allow: 'GET' });
-  }
-
+async function verifyAdmin(request, env) {
   const issuer = env.CF_ACCESS_TEAM_DOMAIN?.trim().replace(/\/$/, '');
   const audience = env.CF_ACCESS_AUD?.trim();
   if (!/^https:\/\/[a-z0-9-]+\.cloudflareaccess\.com$/i.test(issuer ?? '') || !audience) {
@@ -152,7 +150,7 @@ async function readAdminSession(request, env) {
     stage = 'verify_signature';
     const signed = new TextEncoder().encode(parts[0] + '.' + parts[1]);
     const valid = await crypto.subtle.verify('RSASSA-PKCS1-v1_5', key, signature, signed);
-    return valid ? json({ authenticated: true }) : unauthorized();
+    return valid ? { email: claims.email } : unauthorized();
   } catch (error) {
     console.error('Access verification unavailable', stage, error);
     return json({ error: 'access_unavailable', stage }, 503);
@@ -165,11 +163,71 @@ const DATA_PAGES = new Set([
   "/studio/sales-estimator.html"
 ]);
 
+async function renderDataPage(request, env, admin = false) {
+  const url = new URL(request.url);
+  if (admin) url.pathname = '/sales-data-editor.html';
+  const headers = new Headers(request.headers);
+  headers.delete('If-None-Match');
+  headers.delete('If-Modified-Since');
+  const asset = await env.ASSETS.fetch(new Request(url, { headers }));
+  if (!asset.ok) return asset;
+  const response = new Response(asset.body, asset);
+  response.headers.delete('ETag');
+  response.headers.delete('Last-Modified');
+  response.headers.set('Cache-Control', 'no-store');
+  const rewriter = new HTMLRewriter().on('html', {
+    element(element) {
+      element.setAttribute('data-sales-source', 'd1');
+      if (admin) element.setAttribute('data-sales-admin', 'true');
+    }
+  });
+  if (admin) rewriter.on('head', { element(element) { element.prepend('<base href="/">', { html: true }); } });
+  return rewriter.transform(response);
+}
+
+async function adminRoute(request, env, url) {
+  const page = url.pathname === '/admin' || url.pathname === '/admin/';
+  const session = url.pathname === '/admin/api/session';
+  const sheet = url.pathname === '/admin/api/tracking' ? 'tracking'
+    : url.pathname === '/admin/api/models' ? 'models' : null;
+  if (!page && !session && !sheet) return json({ error: 'not_found' }, 404);
+  if (request.method !== 'GET' && !(sheet && request.method === 'POST')) {
+    return json({ error: 'method_not_allowed' }, 405, { Allow: sheet ? 'GET, POST' : 'GET' });
+  }
+
+  const access = await verifyAdmin(request, env);
+  if (access instanceof Response) return access;
+  if (page) return renderDataPage(request, env, true);
+  if (session) return json({ authenticated: true });
+
+  const query = DATA_QUERIES.get('/api/' + sheet);
+  try {
+    if (request.method === 'GET') return json(await readEditorSheet(env.DB, sheet, query));
+    if (request.headers.get('Origin') !== url.origin ||
+        !/^application\/json(?:\s*;|$)/i.test(request.headers.get('Content-Type') ?? '')) {
+      return json({ error: 'invalid_request', message: '请从本站数据库录入页面提交。' }, 403);
+    }
+
+    const maxBytes = 4 * 1024 * 1024;
+    if (Number(request.headers.get('Content-Length')) > maxBytes) throw new EditorError(413, '请求超过 4 MB。');
+    const raw = await request.arrayBuffer();
+    if (raw.byteLength > maxBytes) throw new EditorError(413, '请求超过 4 MB。');
+    let input;
+    try { input = JSON.parse(new TextDecoder().decode(raw)); }
+    catch { throw new EditorError(400, '表格数据不是有效的 JSON。'); }
+    return json(await editEditorSheet(env.DB, sheet, query, access.email, input));
+  } catch (error) {
+    if (error instanceof EditorError) return json({ error: 'editor_request', message: error.message }, error.status);
+    console.error('D1 editor operation failed', sheet, error);
+    return json({ error: 'data_unavailable', message: '数据库暂不可用，请检查 D1 配置及迁移状态后重试。' }, 503);
+  }
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
-    if (url.pathname === '/admin/api/session') {
-      return readAdminSession(request, env);
+    if (url.pathname === '/admin' || url.pathname.startsWith('/admin/')) {
+      return adminRoute(request, env, url);
     }
     if (url.pathname.startsWith('/api/')) {
       return readData(request, env, url.pathname);
@@ -179,18 +237,7 @@ export default {
       return env.ASSETS.fetch(new Request(url, request));
     }
     if (request.method === 'GET' && DATA_PAGES.has(url.pathname)) {
-      const headers = new Headers(request.headers);
-      headers.delete('If-None-Match');
-      headers.delete('If-Modified-Since');
-      const asset = await env.ASSETS.fetch(new Request(request, { headers }));
-      if (!asset.ok) return asset;
-      const response = new Response(asset.body, asset);
-      response.headers.delete('ETag');
-      response.headers.delete('Last-Modified');
-      response.headers.set('Cache-Control', 'no-store');
-      return new HTMLRewriter()
-        .on('html', { element(element) { element.setAttribute('data-sales-source', 'd1'); } })
-        .transform(response);
+      return renderDataPage(request, env);
     }
     return env.ASSETS.fetch(request);
   }

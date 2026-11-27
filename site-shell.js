@@ -60,7 +60,7 @@
 
   async function readProject(name, decode = response => response.text()) {
     const table = projectUsesDatabase && projectTables.get(name);
-    const response = await fetch(table ? table[0] : new URL(name, location.href), {cache:'no-store'});
+    const response = await fetch(table ? table[0] : new URL(name, document.baseURI), {cache:'no-store'});
     if (!response.ok) throw Error('HTTP ' + response.status);
     if (!table) return decode(response);
 

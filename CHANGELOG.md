@@ -6,6 +6,16 @@
 
 ## 2026-11-27
 
+- [866b48a](https://github.com/muinocriz/smartphoneSellOut/commit/866b48a) / [36e43c0](https://github.com/muinocriz/smartphoneSellOut/commit/36e43c0) / [311db31](https://github.com/muinocriz/smartphoneSellOut/commit/311db31) / [a20ca65](https://github.com/muinocriz/smartphoneSellOut/commit/a20ca65)：出图台支持通过 DeepSeek 手动生成、编辑和复制微博草稿。可切换朴素简洁（默认）、深度分析和标题党风，各自保存提示词。草稿基于当前图卡显示数据，样本覆盖率假设和图例说明只供解读。修复 Worker 使用不受支持的重定向模式导致的 502。
+
+- [bb2ee4e](https://github.com/muinocriz/smartphoneSellOut/commit/bb2ee4e) / [2fce529](https://github.com/muinocriz/smartphoneSellOut/commit/2fce529) / [e4e372a](https://github.com/muinocriz/smartphoneSellOut/commit/e4e372a)：同档代际自动配对要求新旧两代在当前范围均有可用销量序列。代际替代只列出存在有效同周比较的前代。加权首发价趋势支持线性和对数纵轴，网页、专题 PNG 和出图台沿用当前设置。
+
+- [815f6d8](https://github.com/muinocriz/smartphoneSellOut/commit/815f6d8) / [04426ff](https://github.com/muinocriz/smartphoneSellOut/commit/04426ff) / [121969d](https://github.com/muinocriz/smartphoneSellOut/commit/121969d) / [4f8c731](https://github.com/muinocriz/smartphoneSellOut/commit/4f8c731) / [92a23bc](https://github.com/muinocriz/smartphoneSellOut/commit/92a23bc)：Cloudflare 正式站接入 D1，以只读 API 提供机型、跟踪销量、榜单和市场份额。管理接口验证 Cloudflare Access 身份，并启用 Workers Observability 和调用日志。
+
+- [85fe686](https://github.com/muinocriz/smartphoneSellOut/commit/85fe686) / [a282400](https://github.com/muinocriz/smartphoneSellOut/commit/a282400) / [fee3ae0](https://github.com/muinocriz/smartphoneSellOut/commit/fee3ae0) / [c2b12e0](https://github.com/muinocriz/smartphoneSellOut/commit/c2b12e0)：管理员可预览并发布跟踪销量、机型资料和市场份额改动，也可发布或整期替换标定榜单。后台支持从 GitHub 合并扩展销量表到草稿，确认后写入 D1；已发布数据带版本记录。
+
+- [430f698](https://github.com/muinocriz/smartphoneSellOut/commit/430f698) / [9618ed3](https://github.com/muinocriz/smartphoneSellOut/commit/9618ed3) / [6d0be9f](https://github.com/muinocriz/smartphoneSellOut/commit/6d0be9f)：GitHub Pages 构建采用同一时点的 D1 快照。工作流可先将四份正式 CSV 的 GitHub 单边变化同步到 D1，保留库内冲突和 CSV 已删行对应的库内记录，再生成快照并通过 iCloud 邮件发送同步结果。
+
 - 销量数据处理模块管理员市场份额表新增周度微博导入：多周解析、月报跳过、ISO 日期与集团子品牌校验、重复与冲突预览、可撤销草稿合并，正式保存沿用现有 D1 发布流程。
 
 - GitHub Pages 三个模块改为运行时读取 Cloudflare D1 公开 API，保留构建快照及派生面板，管理入口仍限 Cloudflare 同源站点；修正 studio 副本未使用构建快照的问题。

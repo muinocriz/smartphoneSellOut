@@ -40,10 +40,14 @@ Opening `index.html` directly as a local file redirects to the Sales Increment T
 
 ## Updating data
 
+Both live sites read published data from Cloudflare D1. Local previews read the repository CSVs. Cloudflare admins can publish edits directly, and GitHub Actions can sync changes to the four official CSVs after synchronization is configured.
+
+In Studio, Cloudflare admins can generate, edit and copy a Weibo draft from the current chart card using a plain, analytical or curiosity-led style.
+
 The Legacy Sales Tracking page has been retired; its original wide CSV remains available for Sales Data Editor. Popular Models and Ranking Research optionally combines tracked sales with ranking estimates; Sales Data Editor edits local copies and exports CSVs without writing to the repository. Commit the corresponding CSV to the repository root to publish permanent data updates.
 
 - **Cumulative wide CSV:** Keep `data.csv` in the repository root. Figures are **cumulative sales in units of 10,000 phones**; Sales Data Editor supports manual incremental synchronization. Add a week by appending a column.
-- **Whole-market share data (for Popular Models and Ranking Research):** Append one row of shares and market trend per ISO week to `market-share.csv`. From 2026W47, Huawei includes OSTA (separate `OSTA` subbrand column); OPPO includes OnePlus and realme; vivo includes iQOO. Leave undisclosed OSTA shares blank. Do not double-count subbrands. Popular Models and Ranking Research reads the repository CSV directly; the standalone market-share page has been retired.
+- **Whole-market share data (for Popular Models and Ranking Research):** Append one row of shares and market trend per ISO week to `market-share.csv`. From 2026W47, Huawei includes OSTA (separate `OSTA` subbrand column); OPPO includes OnePlus and realme; vivo includes iQOO. Leave undisclosed OSTA shares blank. Do not double-count subbrands. The Cloudflare admin editor also accepts pasted weekly Weibo market-share reports for review and publication.
 - **Popular Models and Ranking Research:** Import a ranking screenshot from the left panel, enter model names and the period, and calibrate with known sales for the **same period and definition**. Export the merged full history and commit the downloaded `sales-estimates.csv`. Rankings of different sizes need no zero padding; back up uncommitted data before refreshing. Select an archived ranking to create posters without recalibration. Only final estimates are archived, not the original screenshot or full calibration workspace. The `model-master.csv` catalog (also public for Sales Data Editor) now powers permanent research sequence IDs, alias matching and automatic grouping. Unmatched models retain separate identities; price-band, brand-positioning, chipset, product-age and multidimensional research are available. All fourteen research topics also support direct chart PNG export using the current studio theme, watermark and export width, with adaptive chart geometry and no social safe-area clipping. Topic ZIPs include a PNG, complete analytical CSV, plotted-data CSV, methodology, and a JSON manifest.
 
 - **Sales Data Editor:** Automatically reads `sales-long.csv` and `model-master.csv` unless a local draft is restored. Reload the deployed project long table directly or import a local CSV. Export `sales-long.csv` and `model-master.csv` and commit them manually. The retained wide CSV can be maintained separately. Use the existing project long table as the baseline, select incremental sync from the deployed project wide CSV or a local cumulative wide CSV, review additions and exact-value conflicts, then export and commit the long table. Each applied sync supports undo/redo; the local wide CSV need not be uploaded first. There is no automatic or two-way synchronization.
@@ -65,7 +69,7 @@ Sales-tracking data is manually compiled mainly from public posts by **RD观测*
 
 ## Deployment
 
-Cloudflare Workers and GitHub Pages run independent deployments from `master` using the same `dist/` static output. Popular Models and Ranking Research uses the site-relative path `studio/sales-estimator.html`. See the [deployment guide (Chinese)](docs/CLOUDFLARE_DEPLOYMENT.md).
+Cloudflare Workers and GitHub Pages run independent deployments from `master` using the same build manifest. GitHub Pages retains a D1 snapshot in its build and reads the public API at runtime. Popular Models and Ranking Research uses the site-relative path `studio/sales-estimator.html`. See the [deployment guide (Chinese)](docs/CLOUDFLARE_DEPLOYMENT.md).
 
 ## Documentation
 

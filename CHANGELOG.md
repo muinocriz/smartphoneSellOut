@@ -4,6 +4,10 @@
 
 本项目尚未采用严格的语义化版本号；以下按提交／合并日期（UTC）归纳重要变更，并链接相关 PR 或提交。
 
+## 2026-11-27
+
+- 热销机型与榜单研究模块修复跨市场研究周次受榜单 CSV 上限限制的问题：全市场与 TOP30 数据独立更新，跨市场周历覆盖两源，标注缺失来源，双周默认选择最新两周，缺失数据不补零；原始榜单及扩展样本专题保留各自周历。
+
 ## 2026-11-26
 
 - [53ca9e8](https://github.com/muinocriz/smartphoneSellOut/commit/53ca9e8) / [2bd2f76](https://github.com/muinocriz/smartphoneSellOut/commit/2bd2f76) / [eb0c50b](https://github.com/muinocriz/smartphoneSellOut/commit/eb0c50b)：热销机型与榜单研究模块出图台的堆叠区块数值、图例、轴刻度／周次默认均为 8、字重 400。新老代际结构、价格带等多周堆叠图以固定列宽逐项缩字，导致调字号不明显且同图图例大小不一。现按所选字号实测文字、自动换行并预留行高，图卡预览与导出共用布局。

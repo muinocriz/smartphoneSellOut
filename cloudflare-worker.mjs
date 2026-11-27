@@ -122,21 +122,30 @@ async function readAdminSession(request, env) {
     return unauthorized();
   }
 
+  let stage = 'fetch_keys';
   try {
-    const response = await fetch(issuer + '/cdn-cgi/access/certs', { redirect: 'error' });
+    const response = await fetch(issuer + '/cdn-cgi/access/certs', {
+      redirect: 'error',
+      headers: { Accept: 'application/json' }
+    });
     if (!response.ok) throw new Error('Access keys HTTP ' + response.status);
+    stage = 'read_keys';
     const { keys } = await response.json();
-    const jwk = keys.find(key => key.kid === header.kid && key.kty === 'RSA');
+    if (!Array.isArray(keys)) throw new Error('Invalid Access key set');
+    const jwk = keys.find(key => key?.kid === header.kid && key.kty === 'RSA');
     if (!jwk) return unauthorized();
+    stage = 'import_key';
     const key = await crypto.subtle.importKey(
-      'jwk', jwk, { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, false, ['verify']
+      'jwk', { kty: 'RSA', n: jwk.n, e: jwk.e },
+      { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, false, ['verify']
     );
+    stage = 'verify_signature';
     const signed = new TextEncoder().encode(parts[0] + '.' + parts[1]);
     const valid = await crypto.subtle.verify('RSASSA-PKCS1-v1_5', key, signature, signed);
     return valid ? json({ authenticated: true }) : unauthorized();
   } catch (error) {
-    console.error('Access verification unavailable', error);
-    return json({ error: 'access_unavailable' }, 503);
+    console.error('Access verification unavailable', stage, error);
+    return json({ error: 'access_unavailable', stage }, 503);
   }
 }
 

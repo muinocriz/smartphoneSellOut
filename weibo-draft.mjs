@@ -51,10 +51,12 @@ export async function generateWeiboDraft(request, env, origin, json) {
   if (!input) return json({ error: 'invalid_draft_input', message: '请提供有效的图卡数据和提示词模板。' }, 400);
 
   const signal = AbortSignal.timeout(45000);
+  let stage = 'fetch';
   try {
     const response = await fetch('https://api.deepseek.com/chat/completions', {
       method: 'POST',
-      redirect: 'error',
+      // Workers supports manual redirects. Keep the bearer token on the configured API host.
+      redirect: 'manual',
       headers: { Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: 'deepseek-flash',
@@ -68,11 +70,16 @@ export async function generateWeiboDraft(request, env, origin, json) {
       signal
     });
     if (!response.ok) {
+      if (response.status >= 300 && response.status < 400) {
+        console.warn('DeepSeek returned an unexpected redirect', response.status);
+        return json({ error: 'deepseek_redirect', message: `DeepSeek 接口返回了意外重定向（HTTP ${response.status}）。` }, 502);
+      }
       if (response.status === 429) return json({ error: 'deepseek_rate_limit', message: 'DeepSeek 请求过多，请稍后重试。' }, 429);
       const message = response.status === 401 ? 'DeepSeek 拒绝了 API Key，请核对 Worker Secret。'
-        : response.status === 402 ? 'DeepSeek API 余额不足。' : 'DeepSeek 暂时无法生成文案，请稍后重试。';
+        : response.status === 402 ? 'DeepSeek API 余额不足。' : `DeepSeek 接口返回 HTTP ${response.status}，暂时无法生成文案。`;
       return json({ error: 'deepseek_upstream', message }, 502);
     }
+    stage = 'response';
     const result = await response.json();
     const choice = result?.choices?.[0];
     const draft = typeof choice?.message?.content === 'string' ? choice.message.content.trim() : '';
@@ -81,8 +88,10 @@ export async function generateWeiboDraft(request, env, origin, json) {
     }
     if (!draft) return json({ error: 'deepseek_empty_draft', message: 'DeepSeek 未返回草稿，请重试。' }, 502);
     return json({ draft });
-  } catch {
-    const message = signal.aborted ? 'DeepSeek 响应超时，请稍后重试。' : '暂时无法连接 DeepSeek，请稍后重试。';
-    return json({ error: 'deepseek_unavailable', message }, signal.aborted ? 504 : 502);
+  } catch (error) {
+    console.warn('DeepSeek draft request failed', { stage, name: error?.name, timeout: signal.aborted });
+    if (signal.aborted) return json({ error: 'deepseek_timeout', message: 'DeepSeek 响应超时，请稍后重试。' }, 504);
+    if (stage === 'response') return json({ error: 'deepseek_invalid_response', message: '已连接 DeepSeek，但未能读取有效的接口响应。' }, 502);
+    return json({ error: 'deepseek_unavailable', message: 'Worker 未能连接 DeepSeek，请查阅 Worker 日志。' }, 502);
   }
 }

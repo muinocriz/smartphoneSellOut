@@ -49,7 +49,7 @@ const PosterTypography=(()=>{
  function spacing(key,fallback){return current('spacing')[key]??fallback;}
  function readabilityMin(fallback){return activeRole==='axis'||activeRole==='legend'?size(activeRole,fallback):fallback;}
  function font(size,weight,base,role=activeRole){
-  const a=current(role),family=a.family==='sans'?CJK_FONT:a.family==='serif'?'"Source Han Serif SC","Noto Serif CJK SC","Songti SC",SimSun,serif':a.family==='mono'?NUM_FONT+','+CJK_FONT:base;
+  const a=current(role),family=a.family==='sans'?CJK_FONT:a.family==='serif'?ImageFonts.serif:a.family==='mono'?NUM_FONT:base;
   return (a.style==='italic'?'italic ':'')+(a.weight??weight)+' '+size+'px '+family;
  }
  function has(role){return Object.keys(current(role)).length>0;}

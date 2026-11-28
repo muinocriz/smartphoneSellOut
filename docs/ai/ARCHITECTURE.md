@@ -32,6 +32,6 @@ GitHub Actions 在读取静态站快照前，可将四份正式 CSV 的变更增
 
 ## 运行、发布与验收
 
-- 本地在仓库根目录执行 `python3 -m http.server 8000`，访问 `http://localhost:8000/`（跳转销量增量追踪模块）；热销机型与榜单研究模块本地入口为 `/sales-estimator.html`。本地静态预览无需构建。
+- 本地在仓库根目录执行 `python3 -m http.server 8000`，访问 `http://localhost:8000/`（跳转销量增量追踪模块）；热销机型与榜单研究模块本地入口为 `/sales-estimator.html`。本地静态预览无需构建；首次生成 PNG 前执行 `npm run fonts` 准备固定版本的 OFL 字体、许可文件与 cmap 字形清单（生成于根目录 `image-fonts/`），后续可使用本地缓存。生产 `npm run build` 自动准备并复制该目录，两模块共用根路径字体资源。
 - Cloudflare Workers 与 GitHub Pages 共用静态构建清单。根 package.json 的 `npm run build` 调用 scripts/build-cloudflare.mjs，根据 studio-assets.mjs 清单生成 dist/；构建时改写首页兼容跳转、热销机型与榜单研究模块导航与共享外壳相对路径，并生成榜单面板。热销机型与榜单研究模块使用站点相对路径 `studio/sales-estimator.html`。GitHub Pages 由 `.github/workflows/pages.yml` 独立发布 `dist/`，用同一份 D1 快照生成四份正式 CSV 与派生面板；运行时通过 `SALES_PAGES_API_ORIGIN` 指定的公开 API 读取最新正式数据。修改资源依赖时核对发布清单；部署细节见 [部署指南](../CLOUDFLARE_DEPLOYMENT.md)。
 - 项目以用户手动验收为主，package.json 无 test 脚本。维护者可从受影响页面打开相应 CSV、操作对应控件，并核对页面或导出结果；仅按 [工作约定](../../AGENTS.md) 中的授权执行测试。

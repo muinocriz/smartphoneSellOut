@@ -366,8 +366,8 @@ function legendValue(s){
   return display(point,SalesChartLayout.formatSales);
 }
 function legendText(s){return nameOf(s.key)+'  '+legendValue(s)}
-const bodyFont='"Noto Sans SC", system-ui, sans-serif';
-const numberFont='"IBM Plex Mono", ui-monospace, monospace';
+const bodyFont=ImageFonts.sans;
+const numberFont=ImageFonts.mono;
 function fitText(context,text,width){
   if(context.measureText(text).width<=width)return text;
   const chars=Array.from(text);
@@ -728,23 +728,16 @@ function exportMobileChart(echarts,chart,log,footerText,filename){
     Object.assign(opt.yAxis,{min:axis.low,max:axis.high,interval:axis.step});
   }
   layout.setExportTitle(opt,cats,sel,o,log,metric,notes);
-  const url=SalesChartLayout.renderPNG(echarts,size,footer.height,theme.pn,inst=>{
+  return SalesChartLayout.renderPNG(echarts,size,footer.height,theme.pn,inst=>{
     inst.setOption(opt);
     layout.placeLabels(inst,{sel,datas,o,base:[...layout.mobileList(o),...footer.graphic]},o.lo,o.hi);
   });
-  const link=document.createElement('a');link.download=filename;link.href=url;link.click();
 }
 
 async function exportChart(mobile){
   if(!incrementCopyReady)return alert(incrementCopyMessage);
   if(!current?.sets.some(s=>Number.isFinite(lastVisible(s))))return alert('当前范围没有可导出的销量');
-  const fonts=Promise.allSettled([
-    document.fonts.load('400 12px "Noto Sans SC"',current.sets.map(s=>nameOf(s.key)).join('')+'销量增量追踪新机↑↓'),
-    document.fonts.load('700 18px "Noto Sans SC"','销量增量追踪新机0123456789'),
-    document.fonts.load('400 12px "IBM Plex Mono"','0123456789.≥<≈'),
-    document.fonts.ready
-  ]);
-  const [library]=await Promise.all([mobile?loadExportChartLibrary():null,fonts]);
+  const [library]=await Promise.all([mobile?loadExportChartLibrary():null,ImageFonts.prepare()]);
   if(activeEdit)return alert('请先保存或取消当前编辑');
   const log=byId('log').checked;
   if(!current?.sets.some(s=>Number.isFinite(lastVisible(s))))return alert('当前范围没有可导出的销量');
@@ -757,11 +750,13 @@ async function exportChart(mobile){
   //const draftNote=hasDraft()?'含本标签页临时数据，仅供参考':'';
   if(mobile){
     //exportMobileChart(library,current,log,[footer,draftNote].filter(Boolean).join('\n'),filename);
-    exportMobileChart(library,current,log,footer || '',filename);
+    const url=ImageFonts.guard(()=>exportMobileChart(library,current,log,footer || '',filename));
+    const link=document.createElement('a');link.download=filename;link.href=url;link.click();
     return;
   }
   const width=1200,base=675,scale=2;
   const canvas=document.createElement('canvas'),ctx=canvas.getContext('2d'),font='14px '+bodyFont;
+  const {svg,chartText,chartH,notes}=ImageFonts.guard(()=>{
   ctx.font=font;
   const lines=text=>{
     const result=[];
@@ -786,9 +781,13 @@ async function exportChart(mobile){
   const svg=document.createElementNS(svgNS,'svg');plot(svg,{...current,sets:ranked},width,chartH);
   svg.setAttribute('width',width);svg.setAttribute('height',chartH);
   const chartText=takeChartText(svg);
+  return {svg,chartText,chartH,notes};
+  });
   const url=URL.createObjectURL(new Blob([new XMLSerializer().serializeToString(svg)],{type:'image/svg+xml'}));
   try{
-    const img=new Image();img.src=url;await img.decode();ctx.drawImage(img,0,67);
+    const img=new Image();img.src=url;await img.decode();
+    ImageFonts.guard(()=>{
+    ctx.drawImage(img,0,67);
     for(const label of chartText){
       ctx.font=label.font;ctx.fillStyle=label.fill;ctx.textAlign=label.align;ctx.textBaseline=label.baseline;
       if(label.stroke){
@@ -802,6 +801,7 @@ async function exportChart(mobile){
     ctx.textBaseline='alphabetic';
     let y=chartH+86;
     ctx.textAlign='left';ctx.font=font;ctx.fillStyle=themeColor('--sub');for(const line of notes){ctx.fillText(line,18,y);y+=20}
+    });
     const link=document.createElement('a');link.download=filename;link.href=canvas.toDataURL();link.click();
   }finally{URL.revokeObjectURL(url)}
 }
@@ -810,7 +810,7 @@ for(const id of ['window','from','to','log','labels'])byId(id).onchange=()=>{
   if(id==='to'&&byId('to').selectedIndex<byId('from').selectedIndex)byId('from').selectedIndex=byId('to').selectedIndex;
   draw();
 };
-for(const [id,mobile] of [['desktopPNG',false],['mobilePNG',true]])byId(id).onclick=()=>exportChart(mobile).catch(()=>alert('图片导出失败'));
+for(const [id,mobile] of [['desktopPNG',false],['mobilePNG',true]])byId(id).onclick=()=>exportChart(mobile).catch(err=>alert('图片导出失败：'+err.message));
 let incrementCopyReady=false,incrementCopyMessage='文案配置加载中，请稍后导出。';
 const incrementFooter=byId('footer'),incrementFooterKey='increments.footer';
 byId('defaultFooter').onclick=()=>{
@@ -1212,4 +1212,5 @@ byId('openLocalFile').onclick=()=>byId('localFile').click();
 byId('localFile').onchange=event=>{const file=event.target.files[0];if(file)start('local',file);event.target.value=''};
 start('restore');
 document.fonts?.addEventListener('loadingdone',()=>{if(current&&!activeEdit)draw()});
+ImageFonts.ready.then(ok=>{if(ok&&current&&!activeEdit)draw()});
 

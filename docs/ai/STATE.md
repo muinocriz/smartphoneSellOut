@@ -4,6 +4,7 @@
 
 | 范围 | 已提交状态或已知问题 | 对应提交 / 核对点 |
 | --- | --- | --- |
+| 销量增量追踪模块与热销机型与榜单研究模块 · 开源出图字体 | 统一使用固定版本 Noto Sans SC、Noto Serif SC、IBM Plex Mono，随站点发布 OFL 许可及字形清单；导出加载失败或字符不支持时阻止下载。待用户验收构建发布、桌面/手机 PNG、专题直出、图卡及 ZIP、衬线/等宽配置与异常字符。 | `ImageFonts.prepare` / `ImageFonts.guard`，随本次改动 |
 | 共用 CSV 读写 | 三个模块、Worker 与 Node 共享 CSV 语法。待用户核对本地导入、独立草稿恢复、发布包和同源数据的快照散列。 | `CsvUtils`，`40d7d4e` |
 | 共用 ISO 自然周 | 编辑器、销量微博解析、Worker 和研究计算复用 ISO 周起点。待用户核对跨年、有效及无效的第 53 周和宽表缺省年份。 | `IsoSalesWeek.isoWeekMonday`，`b84fee5` |
 | 共用销量长表结构与校验 | 页面、Worker 和 GitHub 同步复用列规范、类型与记录校验。待用户核对不同入口的列名、数值和重复记录兼容。 | `SalesLongData` 随本次改动 |

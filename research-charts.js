@@ -1,6 +1,6 @@
 /* Shared chart rendering and typography. SVG line previews retain point tooltips; Canvas exports use identical point geometry. */
-const CJK_FONT='"Source Han Sans SC","Source Han Sans CN","思源黑体","Noto Sans CJK SC","Noto Sans SC",sans-serif';
-const NUM_FONT='"IBM Plex Mono",ui-monospace,Menlo,monospace';
+const CJK_FONT=ImageFonts.sans;
+const NUM_FONT=ImageFonts.mono;
 // Standalone and middle-dot-separated numeric values use the numeric font; prose retains the body font.
 const CANVAS_NUMERIC_PATTERN=/^[+\-−]?\d[\d.,:/–-]*(?:\s*(?:%|％|pp|倍|万台|台|px))?(?:\s*[·•]\s*[+\-−]?\d[\d.,:/–-]*(?:\s*(?:%|％|pp|倍|万台|台|px))?)*$/;
 function measureMixedCanvas(ctx,text,size,weight='600'){

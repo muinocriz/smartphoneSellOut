@@ -67,11 +67,11 @@
     }
     return Object.freeze({get busy(){return busy},begin,report,end,offerDownloads});
   }
-  async function waitForFonts(){if(document.fonts?.ready)await document.fonts.ready}
+  async function waitForFonts(options){await ImageFonts.prepare(options)}
   async function canvasPNG(draw){
     const canvas=document.createElement('canvas');
     try{
-      await draw(canvas);
+      ImageFonts.guard(()=>draw(canvas));
       return await new Promise((resolve,reject)=>{
         canvas.toBlob(blob=>blob?resolve(blob):reject(new Error('图像导出失败，请尝试降低导出分辨率')),'image/png');
       });

@@ -1,8 +1,9 @@
-import { mkdir, rm, copyFile, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, rm, copyFile, readFile, writeFile, cp } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { publicFiles, studioFiles } from '../studio-assets.mjs';
+import { prepareImageFonts } from './prepare-image-fonts.mjs';
 import { generateSalesPanel } from './generate-sales-panel.mjs';
 import { MANIFEST_FILE, SNAPSHOT_FILES, verifySnapshot } from './export-db-snapshot.mjs';
 
@@ -16,7 +17,8 @@ function prepareModulePage(html, prefix = '') {
   const version = commit ? '?v=' + commit : '';
   const page = html.replace('src="site-shell.js"', `src="${prefix}site-shell.js${version}"`)
     .replace('href="site-shell.css"', `href="${prefix}site-shell.css${version}"`)
-    .replace('href="favicon-adaptive.svg"', `href="${prefix}favicon-adaptive.svg"`);
+    .replace('href="favicon-adaptive.svg"', `href="${prefix}favicon-adaptive.svg"`)
+    .replace('src="image-fonts.js"', `src="${prefix}image-fonts.js${version}"`);
   return commit ? page.replace('<html ', `<html data-site-commit="${commit}" `) : page;
 }
 const snapshot = process.env.SALES_SNAPSHOT_DIR;
@@ -25,6 +27,7 @@ const assetSource = file => join(snapshot && SNAPSHOT_FILES.has(file) ? snapshot
 // 只按白名单复制站点资源，绝不递归复制仓库根目录。
 await rm(dist, {recursive:true, force:true});
 await mkdir(join(dist, 'studio'), {recursive:true});
+await cp(await prepareImageFonts(),join(dist,'image-fonts'),{recursive:true});
 const siteShell = await readFile(join(root, 'site-shell.js'), 'utf8');
 const configuredOrigin = process.env.SALES_PAGES_API_ORIGIN;
 const pagesOrigin = configuredOrigin ? new URL(configuredOrigin) : null;

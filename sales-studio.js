@@ -488,7 +488,8 @@ function updatePosterExportOptions(){
  PosterExport.updateOptions($('posterExportWidth'),socialState.ratio);
 }
 async function posterBlob(publication,card){
- await PosterExport.waitForFonts();
+ const serif=Object.values(publication.typography||{}).some(group=>Object.values(group).some(role=>role?.family==='serif'));
+ await PosterExport.waitForFonts({serif});
  return PosterExport.canvasPNG(c=>{
   const quality=drawPoster(card.type,c,publication.data,false,publication.width/1080,{...publication,copy:card.copy,ready:card.ready});
   if(quality.errors.length)throw new Error(card.name+'：'+quality.errors.join('；')+'。请调整留白或附注。');
@@ -635,7 +636,8 @@ function initSocial(){PosterWatermark.mount(()=>watermarkState,()=>updateSocial(
  $('downloadCard').onclick=saveCard;$('downloadVersions').onclick=saveCardVersions;$('downloadAllCards').onclick=saveBundle;
  $('exportChartData').onclick=()=>{if(researchStudioActive())exportCSVBlob(researchChartRows(socialResearchSnapshot),slugName(studioExportLabel())+'_图表数据.csv');};
  $('exportInsight').onclick=()=>{if(researchStudioActive()){const s=socialResearchSnapshot;exportCSVBlob(s.csv,slugName(studioExportLabel())+'_专题数据.csv');return;}const o=socialData();exportCSVBlob(insightRows(o),slugName(o.d.label)+'_机型派生分析.csv')};$('exportBrands').onclick=()=>{const o=socialData();exportCSVBlob(brandRows(o),slugName(o.d.label)+'_品牌上榜样本分析.csv')};
- initPublicationPreferences();updateSafeLabels();syncPaletteChooser();resetPosterCopy(true);updateSocial();if(document.fonts?.ready)document.fonts.ready.then(()=>updateSocial());
+ initPublicationPreferences();updateSafeLabels();syncPaletteChooser();resetPosterCopy(true);updateSocial();ImageFonts.ready.then(ok=>{if(ok)updateSocial()});
+ document.fonts?.addEventListener('loadingdone',event=>{if(event.fontfaces.some(face=>face.family==='SalesImageSerif'))updateSocial()});
 }
 
 const studioSessionKey='phoneSales.studioSession';

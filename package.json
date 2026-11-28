@@ -3,6 +3,7 @@
   "private": true,
   "scripts": {
     "build": "node scripts/build-cloudflare.mjs",
+    "fonts": "node scripts/prepare-image-fonts.mjs",
     "deploy": "wrangler deploy",
     "snapshot:d1": "node scripts/export-db-snapshot.mjs",
     "generate:panel": "node scripts/generate-sales-panel.mjs"

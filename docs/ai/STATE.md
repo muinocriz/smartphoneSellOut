@@ -43,7 +43,7 @@
 | 热销机型与榜单研究模块 · 加权首发价趋势 | 新增线性与对数纵轴设置，默认线性。网页图表、专题 PNG 和出图台共用选定刻度，待用户验收。 | `positionAxis` / `ResearchCharts.lineAxis`，`e4e372a` |
 | 热销机型与榜单研究模块 · 长表自动标定 | 适用两个苹果系列和三款单机。W46 长表缺 iPhone Duo 当周累计，自动标定应跳过。 | `8be42f2` 系列接入；`syncTrackingCalibrations` 单机扩展随本次改动 |
 | 热销机型与榜单研究模块 · 榜单机型 OCR | 真实榜单的 OCR 返回逐行纯文本。已支持行数相等时按顺序生成草稿。页面保留当次原始返回。标题主行与机型列合并为一次 OCR，待用户验收。 | `a8094fa` 接入；`8261f2a` 诊断；`029a651` 纯文本；`29a7969` 标题识别；合图随本次改动 |
-| 热销机型与榜单研究模块 · 微博文案 | 手动生成、编辑和复制草稿。支持朴素简洁、深度分析和标题党风，三档提示词分别保存。深度分析可从同口径图表数据直接计算变化。周度 TOP30 约覆盖六成销量仅作模型解读约束。必要口径写在观察句中，正文不加免责声明或图例解释。修复 Worker 不支持的重定向模式导致的 502，区分上游重定向、HTTP 错误和响应读取失败。待部署后由用户验收。 | `36e43c0` 接入；`a20ca65` 修复 502；`311db31` 约束正文；`866b48a` 风格切换 |
+| 热销机型与榜单研究模块 · 微博文案 | 手动生成、编辑和复制草稿。风格模板由 `studio-copy.json` 数组动态生成，按 ID 保存本地覆盖，默认第一项；系统提示词新增最多一位小数的四舍五入及去尾零规则。深度分析可从同口径图表数据直接计算变化。周度 TOP30 约覆盖六成销量仅作模型解读约束。必要口径写在观察句中，正文不加免责声明或图例解释。修复 Worker 不支持的重定向模式导致的 502，区分上游重定向、HTTP 错误和响应读取失败。待部署后由用户验收。 | `36e43c0` 接入；`a20ca65` 修复 502；`311db31` 约束正文；`866b48a` 风格切换；动态模板及数值规则随本次改动 |
 | 跨模块稳定性与性能优化 | 修复热销机型与榜单研究模块 OCR 与销量数据处理模块后台请求在 Access 会话过期时跟随重定向触发 CORS 异常的问题；Worker `verifyAdmin` 增加 Access JWKS 内存缓存；优化销量数据处理模块 `masterPatch` 合并校验、`refreshDerived` 查找与 `captureChange`/`persistDraft` 重复序列化；优化销量增量追踪模块 `seriesRows` 重复全表扫描；修复 `export-db-snapshot.mjs` 目标目录非空时 `rename` 失败。待用户验收。 | `requestRankingOCR` / `databaseRequest` / `verifyAdmin` / `refreshDerived` / `persistDraft` / `groupRecordsByKey` / `exportSnapshot`，`4c5cc7c` |
 | 热销机型与榜单研究模块 · 多品牌联合下界与长尾在榜率 | `coverage` 与 `dual` 统一在 `marketModelRecords` 启用六大集团联合必要下界（保留苹果单锚点与触发锚点列）；`tail` 新增近期在榜率、含门槛上界的窗口周均区间、按 `windowMeanUpper` 排序的层内销量优先规则，散点图新增在榜率外环弧与可开关区间须线（网页预览、出图台海报及导出清单同步）。待用户验收。 | `marketModelRecords` / `renderCoverageMarket` / `tailSettings` / `drawTailScatter` / `researchManifest`，随本次改动 |
 

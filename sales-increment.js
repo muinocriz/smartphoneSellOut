@@ -736,6 +736,7 @@ function exportMobileChart(echarts,chart,log,footerText,filename){
 }
 
 async function exportChart(mobile){
+  if(!incrementCopyReady)return alert(incrementCopyMessage);
   if(!current?.sets.some(s=>Number.isFinite(lastVisible(s))))return alert('当前范围没有可导出的销量');
   const fonts=Promise.allSettled([
     document.fonts.load('400 12px "Noto Sans SC"',current.sets.map(s=>nameOf(s.key)).join('')+'销量增量追踪新机↑↓'),
@@ -810,9 +811,33 @@ for(const id of ['window','from','to','log','labels'])byId(id).onchange=()=>{
   draw();
 };
 for(const [id,mobile] of [['desktopPNG',false],['mobilePNG',true]])byId(id).onclick=()=>exportChart(mobile).catch(()=>alert('图片导出失败'));
-byId('defaultFooter').onclick=()=>{byId('footer').value=byId('footer').defaultValue;byId('footer').oninput()};
-try{byId('footer').value=localStorage.getItem('increments.footer')??byId('footer').value}catch{}
-byId('footer').oninput=()=>{try{localStorage.setItem('increments.footer',byId('footer').value)}catch{}};
+let incrementCopyReady=false,incrementCopyMessage='文案配置加载中，请稍后导出。';
+const incrementFooter=byId('footer'),incrementFooterKey='increments.footer';
+byId('defaultFooter').onclick=()=>{
+ if(!incrementCopyReady)return;
+ incrementFooter.value=incrementFooter.defaultValue;
+ try{localStorage.removeItem(incrementFooterKey)}catch{}
+};
+incrementFooter.oninput=()=>{
+ if(!incrementCopyReady)return;
+ try{
+  if(incrementFooter.value===incrementFooter.defaultValue)localStorage.removeItem(incrementFooterKey);
+  else localStorage.setItem(incrementFooterKey,incrementFooter.value);
+ }catch{}
+};
+StudioCopy.ready.then(config=>{
+ incrementFooter.defaultValue=config.module1.footer;
+ incrementFooter.value=config.module1.footer;
+ try{incrementFooter.value=localStorage.getItem(incrementFooterKey)??incrementFooter.value}catch{}
+ incrementCopyReady=true;
+ incrementFooter.disabled=false;
+ byId('defaultFooter').disabled=false;
+},error=>{
+ incrementCopyMessage='文案配置加载失败，请刷新页面后重试。';
+ const status=byId('footerConfigStatus');
+ status.textContent=incrementCopyMessage;status.hidden=false;
+ console.error('文案配置加载失败',error);
+});
 
 byId('exportLists').onclick=()=>{
  const url=URL.createObjectURL(new Blob([JSON.stringify(savedLists,null,2)],{type:'application/json'}));

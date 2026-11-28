@@ -1,6 +1,7 @@
 /* Popular Models and Ranking Research publishing workflow, immutable export snapshots and local preferences. */
 const socialState={template:'top',ratio:'3:4',theme:'editorial_paper',duelA:0,duelB:1,lastDS:null,duelOptions:null,safeEnabled:true,safeRight:13,safeBottom:10,safeGuides:true};
 let posterTypographyConfig={},syncTypographyControls=()=>{};
+let studioCopyConfig=null,studioCopyLoadMessage='文案配置加载中，暂不能导出基础图卡。';
 const watermarkDefaults=PosterWatermark.defaults;
 const watermarkState={...watermarkDefaults};
 const socialCopyState={title:'',subtitle:'',tagLabel:'',markLeft:'',markRight:'',disclaimer:'',chartNote:''};
@@ -154,7 +155,7 @@ function posterCopyDefaults(type,o){
  };
  const hd=posterHeading(type);
  return {title:hd.title,subtitle:hd.sub,tagLabel:defaultPosterTag(o),markLeft:'',markRight:'',
-  disclaimer:'来源：'+socialSourceName(o)+' · 榜单销量为估算值\n仅统计本次榜单样本，不代表全市场销量或份额'};
+  disclaimer:studioCopyConfig?.module3.basic.disclaimer??''};
 }
 function syncPosterCopyUI(type,o,force=false){
  const defs=posterCopyDefaults(type,o);
@@ -203,11 +204,12 @@ function missingPostModels(o){return o.models.filter(isMissingPostLabel)}
 function unclassifiedModels(o){return o.models.filter(m=>m.brand==='未识别品牌')}
 function unclassifiedCount(o){return unclassifiedModels(o).length}
 function formatModelRows(models){return models.map(m=>`第${m.rank}行（${m.name||'空白'}）`).join('、')}
-function canDownloadSocial(o=socialData(),type=socialState.template){if(isResearchTemplate(type))return !!socialResearchSnapshot?.ready;if(!o.canPublish)return false;const namesMissing=o.models.filter(m=>/^第\d+名$/.test(m.name));if(type==='bundle')return !namesMissing.length&&!unclassifiedCount(o);if(type==='brands')return !unclassifiedCount(o);if(type==='top')return !namesMissing.some(m=>m.rank<=10);if(type==='versus')return ![o.models[socialState.duelA],o.models[socialState.duelB]].some(m=>!m||/^第\d+名$/.test(m.name));if(type==='leader')return !namesMissing.some(m=>m.rank<=2);return true}
+function canDownloadSocial(o=socialData(),type=socialState.template){if(isResearchTemplate(type))return !!socialResearchSnapshot?.ready;if(!studioCopyConfig||!o.canPublish)return false;const namesMissing=o.models.filter(m=>/^第\d+名$/.test(m.name));if(type==='bundle')return !namesMissing.length&&!unclassifiedCount(o);if(type==='brands')return !unclassifiedCount(o);if(type==='top')return !namesMissing.some(m=>m.rank<=10);if(type==='versus')return ![o.models[socialState.duelA],o.models[socialState.duelB]].some(m=>!m||/^第\d+名$/.test(m.name));if(type==='leader')return !namesMissing.some(m=>m.rank<=2);return true}
 function updateSocial(){if(researchStudioActive()){updateResearchStudio();return;}const o=socialData();$('downloadAllCards').textContent='一键打包四张图 + CSV';$('exportInsight').textContent='下载机型分析 CSV';$('exportBrands').hidden=false;updateDuelSelects(o);const safe=o.canPublish;const guard=$('qualityGuard');let flag='';if(o.d.archiveRows){if(!safe)flag='历史榜单的销量估算未达到发布条件，请核对归档标定数据。';else if(o.fit.fitMode==='single')flag='历史榜单仅一组标定，建议核实后发布。';else if(o.fit.fitMode==='robust')flag=`历史榜单原标定排除 ${rejectedCount(o)} 组，请核实后发布。`;}else if(!o.models.length){flag='当前未导入新榜单。请在上方导入截图并标定，或选择历史榜单生成图卡。'}else if(o.fit.fitMode==='conflict'||o.fit.fitMode==='median'){flag='标定组之间存在显著冲突：已暂停正式图卡和打包导出。请核对异常值、销量单位及统计周期。'}else if(!o.fit.k){flag='尚未输入已知销量：以下仅能预览柱长比例，不能导出带绝对销量的正式图卡。请先在上方加入至少一组标定。'}else if(o.fit.fitMode==='robust'){flag=`可以导出，但检测到 ${o.fit.statuses.filter(v=>v==='outlier').length} 组异常标定并已暂时排除。请核对数据后再发布。`}else if(o.fit.fitMode==='single'){flag='当前仅有一组标定：可导出估算图卡，但尚不能通过其他已知销量交叉校验。建议增加至少一组。'}else if(!safe){flag='当前数据尚未达到正式图卡发布条件，请核对标定数据。'}
  const missingModels=missingPostModels(o),unknownModels=unclassifiedModels(o).filter(m=>!isMissingPostLabel(m)),missing=missingModels.length,unknown=unknownModels.length;
  if(missing)flag+=` 尚未补全 ${missing} 个机型名称：${formatModelRows(missingModels)}。`;
  if(unknown)flag+=` ${unknown} 个条目品牌无法识别：${formatModelRows(unknownModels)}。品牌分析及整套打包需先补全标准品牌前缀。`;
+ if(!studioCopyConfig)flag+=(flag?' ':'')+studioCopyLoadMessage;
  guard.className='msg warn';
  guard.hidden=!flag.trim();
  $('copyChartNoteField').hidden=true;$('copyDisclaimerLabel').textContent='免责附注（支持换行↙）';$('exportChartData').hidden=true;$('studioSource').textContent=o.d.archiveRows?'图卡数据源：历史榜单 · '+o.d.archiveDisplayLabel:'图卡数据源：当前标定榜单 · '+o.d.label;syncStudioSourceActions();
@@ -247,12 +249,6 @@ function updateResearchStudio(){
  updateSafeLabels();syncPaletteChooser();syncPosterCopyUI(socialState.template,o);syncTypographyControls();syncWeiboDraft(o);drawPoster(socialState.template,$('posterCanvas'),o,true);
 }
 
-
-const defaultWeiboPrompts=Object.freeze({
- "plain": "用简体中文写一条约 150–250 字的微博，语气克制、直接、自然，像熟悉手机市场的编辑。避免营销话术、夸张判断、表情和话题标签。\n第一句直接说最值得关注的发现。正文用 1–2 个短段落，挑 2–3 个有数字支撑的看点，写清时间、品牌或机型、数值和单位。数据不足时少写。\n把必要的口径自然写进结论，例如“榜内份额”或“约 X 万台”。只写图表发现，不附加免责声明、口径段落或图例说明。\n只输出微博正文，不加标题、Markdown 或写作说明。",
- "analysis": "用简体中文写一条克制、直接的微博，约 150–250 字。先比较同口径的数据，选 1–2 个最值得讲的变化，例如排名变化、领先差距扩大或缩小、增速分化或趋势反转。先写发现，再用少量数字支撑，并写清对应时间和单位。只有两个有效观测点时，只说两点之间的变化。数据不足以比较时，只写一条能确认的观察。避免把同期变化写成因果。只输出正文，结束于最后一条观察。",
- "hook": "用简体中文写适配短视频的发布文案。首句短而有钩子，用数据支持的反差、变化或问题抓住注意力，接下来用 1–2 个短句立刻揭晓并给出关键数字。可用问句，答案必须能从图里找到。禁止编造原因、夸大变化、暗示未发生的逆转，或把榜内结果写成全市场结论。只输出可直接发布的正文，结束于最后一条观察。"
-});
 
 function weiboChartFields(item,fields){
  return Object.fromEntries(fields.filter(key=>item[key]!=null).map(key=>[key,item[key]]));
@@ -301,7 +297,7 @@ function weiboCardData(o){
 
 let weiboBusy=false,weiboDraftData='';
 function syncWeiboDraft(o){
- if(!SalesSite.projectSupportsAdmin)return;
+ if(!SalesSite.projectSupportsAdmin||!studioCopyConfig?.deepseek.templates.length)return;
  const data=weiboCardData(o),stale=weiboDraftData&&weiboDraftData!==JSON.stringify(data);
  $('generateWeiboDraft').disabled=weiboBusy||!data;
  $('copyWeiboDraft').disabled=!$('weiboDraft').value.trim();
@@ -318,10 +314,22 @@ function initWeiboDraft(){
  $('weiboDraftPanel').hidden=false;
  const prompt=$('weiboPrompt'),draft=$('weiboDraft'),status=$('weiboDraftStatus');
  const login=$('weiboAdminLogin'),generate=$('generateWeiboDraft');
- const switches=$('weiboStyleOptions');
+ const switches=$('weiboStyleOptions'),options=switches.querySelector('div');
+ const configured=studioCopyConfig.deepseek.templates;
+ options.replaceChildren();
+ for(const [index,item] of configured.entries()){
+  const label=document.createElement('label'),input=document.createElement('input'),span=document.createElement('span');
+  input.type='radio';input.name='weiboStyle';input.value=item.id;input.checked=index===0;
+  span.textContent=item.label;label.append(input,span);options.append(label);
+ }
+ if(!configured.length){
+  prompt.disabled=true;$('resetWeiboPrompt').disabled=true;generate.disabled=true;
+  status.textContent='尚未配置提示词模板。';return;
+ }
+ const defaultWeiboPrompts=Object.fromEntries(configured.map(item=>[item.id,item.prompt]));
  const stored=StudioPref.read('weiboPrompt');
  const legacy=typeof stored.text==='string'?stored.text.replace("用一句短话说明：每周 TOP30 样本约覆盖六成销量，不代表全市场。图卡若含扩展样本或全市场对照，分别标清口径；估算值用“约”。","把必要的口径自然写进结论，例如“榜内份额”或“约 X 万台”。只写图表发现，不附加免责声明、口径段落或图例说明。") : '';
- const templates={};
+ const templates=Object.create(null);
  for(const style of Object.keys(defaultWeiboPrompts)){
   const saved=stored.templates?.[style]??(style==='plain'?legacy:'');
   if(typeof saved==='string'&&saved.trim()&&saved.length<=3000)templates[style]=saved;
@@ -486,7 +494,7 @@ async function posterBlob(publication,card){
   if(quality.errors.length)throw new Error(card.name+'：'+quality.errors.join('；')+'。请调整留白或附注。');
  });
 }
-function safeExport(type=socialState.template){const o=socialData();if(isResearchTemplate(type)){if(socialResearchSnapshot?.ready)return o;notify('请先生成有有效数据的研究专题');return null;}if(!canDownloadSocial(o,type)){notify('请先完成可靠标定，并补全对应图卡所需的机型名称/品牌信息');return null}return o}
+function safeExport(type=socialState.template){const o=socialData();if(isResearchTemplate(type)){if(socialResearchSnapshot?.ready)return o;notify('请先生成有有效数据的研究专题');return null;}if(!studioCopyConfig){notify(studioCopyLoadMessage);return null;}if(!canDownloadSocial(o,type)){notify('请先完成可靠标定，并补全对应图卡所需的机型名称/品牌信息');return null}return o}
 async function saveCard(){
  if(publicationJob.busy){notify('已有图卡导出正在进行');return;}
  const o=safeExport();if(!o)return;
@@ -627,7 +635,7 @@ function initSocial(){PosterWatermark.mount(()=>watermarkState,()=>updateSocial(
  $('downloadCard').onclick=saveCard;$('downloadVersions').onclick=saveCardVersions;$('downloadAllCards').onclick=saveBundle;
  $('exportChartData').onclick=()=>{if(researchStudioActive())exportCSVBlob(researchChartRows(socialResearchSnapshot),slugName(studioExportLabel())+'_图表数据.csv');};
  $('exportInsight').onclick=()=>{if(researchStudioActive()){const s=socialResearchSnapshot;exportCSVBlob(s.csv,slugName(studioExportLabel())+'_专题数据.csv');return;}const o=socialData();exportCSVBlob(insightRows(o),slugName(o.d.label)+'_机型派生分析.csv')};$('exportBrands').onclick=()=>{const o=socialData();exportCSVBlob(brandRows(o),slugName(o.d.label)+'_品牌上榜样本分析.csv')};
- initPublicationPreferences();initWeiboDraft();updateSafeLabels();syncPaletteChooser();resetPosterCopy(true);updateSocial();if(document.fonts?.ready)document.fonts.ready.then(()=>updateSocial());
+ initPublicationPreferences();updateSafeLabels();syncPaletteChooser();resetPosterCopy(true);updateSocial();if(document.fonts?.ready)document.fonts.ready.then(()=>updateSocial());
 }
 
 const studioSessionKey='phoneSales.studioSession';
@@ -659,6 +667,18 @@ function restoreStudioSession(){
 
 initSocial();
 restoreStudioSession();
+StudioCopy.ready.then(config=>{
+ studioCopyConfig=config;
+ initWeiboDraft();updateSocial();
+},error=>{
+ studioCopyLoadMessage='文案配置加载失败，请刷新页面后重试。';
+ console.error('文案配置加载失败',error);
+ if(SalesSite.projectSupportsAdmin){
+  $('weiboDraftPanel').hidden=false;$('weiboPrompt').disabled=true;$('resetWeiboPrompt').disabled=true;
+  $('generateWeiboDraft').disabled=true;$('weiboDraftStatus').dataset.state='error';$('weiboDraftStatus').textContent=studioCopyLoadMessage;
+ }
+ updateSocial();
+});
 window.addEventListener('beforeunload',event=>{
  const saved=saveStudioSession();
  // Screenshot files and calibration are still in memory until exported.

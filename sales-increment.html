@@ -195,9 +195,9 @@ main label.inline-field:not([hidden]) {
   <button id="mobilePNG">手机 PNG</button>
 </p>
 <div class="footer-actions">
-  <label>导出免责附注<textarea id="footer" rows="2">数据来源于微博等平台，仅供参考
-具体数字与走势为估算结果，不作为购买建议</textarea></label>
-  <button id="defaultFooter">恢复默认文案</button>
+  <label>导出免责附注<textarea id="footer" rows="2" disabled></textarea></label>
+  <button id="defaultFooter" disabled>恢复默认文案</button>
+  <small id="footerConfigStatus" role="status" hidden></small>
 </div>
 </div>
 </section>
@@ -242,6 +242,7 @@ main label.inline-field:not([hidden]) {
 </main>
 <script src="iso-sales-week.js"></script>
 <script src="sales-chart-layout.js"></script>
+<script src="studio-copy.js"></script>
 <script src="sales-increment.js"></script>
 </body>
 </html>

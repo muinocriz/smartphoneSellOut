@@ -29,6 +29,7 @@ function rounded(ctx,x,y,w,h,r,color){if(w<=0||h<=0)return;ctx.beginPath();const
 // Tail-only scatter: the same renderer serves preview and every PNG route.
 function drawTailScatter(ctx,chart,box,p){
  const {left,right,top,bottom,width,height}=box,xx=chart.lines[0].values,yy=chart.lines[1].values,points=chart.tailPoints;
+ const showWhisker=Boolean(chart.showWhisker);
  const f=Math.min(width/800,height/530,1.5),font=Math.max(12,15*f),small=Math.max(11,13*f);
  const legendExtra=mobilePosterActive(ctx)?Math.max(0,posterAxisLegendDistance(ctx,[chart.xLabel],font,['末周在榜','末周未上榜','末周未知'],small,4*f+Math.max(3,4.3*f)+Math.max(1.5,1.8*f)/2,'600','600')-24*f):0;
  const minX=84,maxX=Math.max(392,Math.ceil((Math.max(...xx)+20)/70)*70);
@@ -38,7 +39,7 @@ function drawTailScatter(ctx,chart,box,p){
  const x0=left+(mobile?posterAxisGutter(ctx,yTicks):58*f),x1=right-24*f,y0=top+58*f,y1=bottom-106*f-legendExtra-extra;
  if(!auditPlot(ctx,x1-x0,y1-y0,'长尾韧性散点绘图区',260,160))return;
  const x=v=>x0+(v-minX)/(maxX-minX)*(x1-x0),y=v=>y1-v/maxY*(y1-y0);
- const color=p.bar||'#3167a4',bands=[[84,189,'W13–W26'],[189,371,'W27–W52'],[371,maxX,'W53及以上']];
+ const color=p.bar||'#3167a4',ringAccent=p.accent||'#ea580c',bands=[[84,189,'W13–W26'],[189,371,'W27–W52'],[371,maxX,'W53及以上']];
  bands.forEach(([lo,hi,label],i)=>{ctx.save();ctx.fillStyle=color;ctx.globalAlpha=.045+i*.035;ctx.fillRect(x(lo),y0,x(hi)-x(lo),y1-y0);ctx.restore();posterRoleCanvas(ctx,'chartLabel',label,(x(lo)+x(hi))/2,y0-10*f,small,p.sub,'600','center',x(hi)-x(lo)-4);});
  for(const v of yTicks){
   ctx.strokeStyle=p.hair;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x0,y(v));ctx.lineTo(x1,y(v));ctx.stroke();if(mobile)posterYAxisTick(ctx,String(v),x0,y(v),p);else posterRoleCanvas(ctx,'axis',String(v),x0-8*f,y(v)+4*f,small,p.sub,'500','right');
@@ -48,20 +49,45 @@ function drawTailScatter(ctx,chart,box,p){
  posterRoleCanvas(ctx,'axisTitle',chart.yLabel,left,top+17*f,font,p.ink,'600');
  posterRoleCanvas(ctx,'axisTitle',chart.xLabel,right,y1+40*f+extra,font,p.sub,'600','right');
  const radius=n=>Math.max(3,4.3*f*Math.sqrt(n));
- function marker(px,py,n,status){ctx.save();ctx.strokeStyle=color;ctx.fillStyle=color;ctx.lineWidth=Math.max(1.5,1.8*f);if(status==='unknown')ctx.setLineDash([3*f,2*f]);ctx.beginPath();ctx.arc(px,py,radius(n),0,Math.PI*2);if(status==='in')ctx.fill();ctx.stroke();ctx.restore();}
- const occupied=points.map((point,i)=>({x:x(xx[i])-radius(point.recentCount)-2,y:y(yy[i])-radius(point.recentCount)-2,w:2*radius(point.recentCount)+4,h:2*radius(point.recentCount)+4}));
- points.forEach((point,i)=>marker(x(xx[i]),y(yy[i]),point.recentCount,point.lastStatus));
+ const ringGap=Math.max(2.5,3.2*f);
+ if(showWhisker){
+  points.forEach((point,i)=>{
+   if(!Number.isFinite(point.windowMeanLower)||!Number.isFinite(point.windowMeanUpper)||point.recentCount>=point.recentKnown)return;
+   const px=x(xx[i]),pyMean=y(yy[i]),pyHi=y(point.windowMeanUpper),pyLo=y(point.windowMeanLower);
+   ctx.save();
+   ctx.strokeStyle=p.sub;ctx.globalAlpha=.72;ctx.lineWidth=Math.max(1.1,1.3*f);ctx.setLineDash([3*f,2.5*f]);
+   ctx.beginPath();ctx.moveTo(px,pyMean);ctx.lineTo(px,pyLo);ctx.stroke();
+   ctx.setLineDash([]);ctx.lineWidth=Math.max(1.6,2*f);
+   ctx.beginPath();ctx.moveTo(px-5*f,pyHi);ctx.lineTo(px+5*f,pyHi);ctx.stroke();
+   ctx.lineWidth=Math.max(1,1.2*f);
+   ctx.beginPath();ctx.moveTo(px-3.2*f,pyLo);ctx.lineTo(px+3.2*f,pyLo);ctx.stroke();
+   ctx.restore();
+  });
+ }
+ function marker(px,py,n,status,rate){
+  const r=radius(n);
+  ctx.save();ctx.strokeStyle=color;ctx.fillStyle=color;ctx.lineWidth=Math.max(1.5,1.8*f);if(status==='unknown')ctx.setLineDash([3*f,2*f]);ctx.beginPath();ctx.arc(px,py,r,0,Math.PI*2);if(status==='in')ctx.fill();ctx.stroke();ctx.restore();
+  if(Number.isFinite(rate)){
+   const rr=r+ringGap,ratio=Math.max(0,Math.min(1,rate/100));
+   ctx.save();ctx.strokeStyle=p.hair;ctx.lineWidth=Math.max(1.4,1.8*f);ctx.beginPath();ctx.arc(px,py,rr,0,Math.PI*2);ctx.stroke();
+   ctx.strokeStyle=ratio>=0.99?color:ringAccent;ctx.lineWidth=Math.max(1.6,2*f);ctx.lineCap='round';
+   ctx.beginPath();ctx.arc(px,py,rr,-Math.PI/2,-Math.PI/2+Math.PI*2*ratio);ctx.stroke();ctx.restore();
+  }
+ }
+ const occupied=points.map((point,i)=>{const rr=radius(point.recentCount)+(Number.isFinite(point.recentRate)?ringGap+2*f:2);return {x:x(xx[i])-rr,y:y(yy[i])-rr,w:2*rr,h:2*rr};});
+ points.forEach((point,i)=>marker(x(xx[i]),y(yy[i]),point.recentCount,point.lastStatus,point.recentRate));
  const overlaps=(a,b)=>a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y;
  points.forEach((point,i)=>{
-  const px=x(xx[i]),py=y(yy[i]),r=radius(point.recentCount),label=chart.periods[i],w=Math.min(width*.28,posterRoleMeasure(ctx,'chartLabel',label,small,'600').width),h=posterTypeSize('chartLabel',small)*1.25;
+  const px=x(xx[i]),py=y(yy[i]),r=radius(point.recentCount)+(Number.isFinite(point.recentRate)?ringGap+f:0),label=chart.periods[i],w=Math.min(width*.28,posterRoleMeasure(ctx,'chartLabel',label,small,'600').width),h=posterTypeSize('chartLabel',small)*1.25;
   const candidates=[[r+4,-h-3],[-w-r-4,-h-3],[r+4,3],[-w-r-4,3],[-w/2,-r-h-3],[-w/2,r+3]];
   let best=null,score=Infinity;
   for(const [dx,dy] of candidates){const b={x:Math.max(x0,Math.min(x1-w,px+dx)),y:Math.max(y0,Math.min(y1-h,py+dy)),w,h};const s=occupied.filter(o=>overlaps(o,b)).length;if(s<score){score=s;best=b;}}
   if(best){occupied.push(best);posterRoleCanvas(ctx,'chartLabel',label,best.x,best.y+h*.85,small,p.ink,'600','left',w);}
  });
  const ly=y1+60*f+legendExtra+extra,legW=width/3;
- [['in','末周在榜'],['out','末周未上榜'],['unknown','末周未知']].forEach(([status,label],i)=>{const lx=left+12*f+i*legW;marker(lx,ly,1,status);posterRoleCanvas(ctx,'legend',label,lx+12*f,ly+4*f,small,p.sub,'600','left',legW-22*f);});
- posterRoleCanvas(ctx,'chartNote','气泡面积 ∝ 近期上榜次数 · 年龄分区为近似界线',left,bottom-8*f,small,p.sub,'500','left',width);
+ [['in','末周在榜'],['out','末周未上榜'],['unknown','末周未知']].forEach(([status,label],i)=>{const lx=left+12*f+i*legW;marker(lx,ly,1,status,100);posterRoleCanvas(ctx,'legend',label,lx+14*f,ly+4*f,small,p.sub,'600','left',legW-24*f);});
+ const note='气泡面积 ∝ 近期上榜次数 · 外环弧长 = 近期在榜率'+(showWhisker?' · 向下须线 = 窗口均销区间（横杠为门槛上界）':'')+' · 年龄分区为近似界线';
+ posterRoleCanvas(ctx,'chartNote',note,left,bottom-8*f,small,p.sub,'500','left',width);
 }
 function drawHeadStaticPoster(ctx,p,s,box){
  if(s.chart.tail){drawTailScatter(ctx,s.chart,box,p);return;}

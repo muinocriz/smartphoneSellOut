@@ -64,10 +64,20 @@ function themeColor(variable){return getComputedStyle(document.documentElement).
 window.addEventListener('site-theme-change',()=>{if(sourceText)draw()});
 
 const weekMs=7*IsoSalesWeek.DAY;
-function seriesRows(key){
+function groupRecordsByKey(){
+  const grouped=new Map();
+  for(const r of records){
+    let list=grouped.get(r[0]);
+    if(!list){list=[];grouped.set(r[0],list);}
+    list.push(r);
+  }
+  return grouped;
+}
+function seriesRows(key,grouped){
   const date=metadata[key][3].split(/[/.\-]/).map(Number);
   const first=IsoSalesWeek.firstFullWeekMonday(date);
-  const raw=new Map(records.filter(r=>r[0]===key).map(r=>[r[1]+r[2],{value:r[3],op:r[4]}]));
+  const items=grouped?grouped.get(key)||[]:records.filter(r=>r[0]===key);
+  const raw=new Map(items.map(r=>[r[1]+r[2],{value:r[3],op:r[4]}]));
   const rows=periods.map((period,i)=>{
     const cumulative=raw.get(period+'cumulative'),previous=raw.get(periods[i-1]+'cumulative'),direct=raw.get(period+'weekly');
     const diff=cumulative?.op==='='&&previous?.op==='='?{value:cumulative.value-previous.value,op:'='}:null;
@@ -236,9 +246,9 @@ byId('all').onclick=()=>{
   choices();draw();drawEditor();
 };
 byId('brandTops').onclick=()=>{
-  const best=new Map();
+  const best=new Map(),grouped=groupRecordsByKey();
   for(const key of Object.keys(metadata)){
-    const row=seriesRows(key).reverse().find(r=>r.weekly?.op==='=');
+    const row=seriesRows(key,grouped).reverse().find(r=>r.weekly?.op==='=');
     if(!row)continue;
     const brand=metadata[key][0],prior=best.get(brand);
     if(!prior||row.period>prior.row.period||(row.period===prior.row.period&&row.weekly.value>prior.row.weekly.value))best.set(brand,{key,row});
@@ -289,7 +299,8 @@ function draw({resetRange=false}={}){
   byId('editStatus').textContent=hasDraft()?'含临时数据，可导出长表保存。':'';
   const life=byId('axis').dataset.value==='life';
   const dark=document.documentElement.dataset.theme==='dark';
-  const sets=[...selected].map(key=>({key,color:styles.get(key)[dark?'cd':'cl'],rows:seriesRows(key)}));
+  const grouped=groupRecordsByKey();
+  const sets=[...selected].map(key=>({key,color:styles.get(key)[dark?'cd':'cl'],rows:seriesRows(key,grouped)}));
   if(!selected.has(focused))focused=null;
   const lifeWeeks=sets.flatMap(s=>s.rows.filter(r=>r.life!=null&&(r.cumulative||r.weekly)).map(r=>r.life));
   let axis=periods;

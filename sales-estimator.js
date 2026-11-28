@@ -211,12 +211,13 @@ async function requestRankingOCR(canvas, request) {
     method: 'POST',
     body: image,
     credentials: 'same-origin',
+    redirect: 'manual',
     signal: request.signal
   });
-  const result = await response.json().catch(() => null);
-  if (response.redirected || response.status === 401 || response.status === 403) {
+  if (response.type === 'opaqueredirect' || response.status === 401 || response.status === 403) {
     throw Error('请先在 Cloudflare 管理后台登录，再进行识别。');
   }
+  const result = await response.json().catch(() => null);
   if (!response.ok || typeof result?.text !== 'string') {
     throw Error(result?.message || 'OCR 服务暂不可用，请重试或手动填写。');
   }

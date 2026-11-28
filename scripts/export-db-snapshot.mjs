@@ -67,12 +67,27 @@ async function exportSnapshot(origin, destination) {
 
   await mkdir(dirname(destination), {recursive:true});
   const temporary = await mkdtemp(destination + '.tmp-');
+  let backup = null;
   try {
     await Promise.all([...output].map(([name, content]) => writeFile(join(temporary, name), content, 'utf8')));
     await writeFile(join(temporary, MANIFEST_FILE), JSON.stringify(manifest, null, 2) + '\n', 'utf8');
-    await rename(temporary, destination);
+    try {
+      await rename(temporary, destination);
+    } catch (error) {
+      if (error?.code !== 'EEXIST' && error?.code !== 'ENOTEMPTY') throw error;
+      backup = destination + '.old-' + process.pid + '-' + Date.now();
+      await rename(destination, backup);
+      try {
+        await rename(temporary, destination);
+      } catch (replaceError) {
+        await rename(backup, destination).catch(() => {});
+        backup = null;
+        throw replaceError;
+      }
+    }
   } finally {
     await rm(temporary, {recursive:true, force:true});
+    if (backup) await rm(backup, {recursive:true, force:true});
   }
   console.log('Saved D1 snapshot from ' + manifest.captured_at + ' to ' + destination);
 }

@@ -40,5 +40,6 @@
 | 热销机型与榜单研究模块 · 长表自动标定 | 适用两个苹果系列和三款单机。W46 长表缺 iPhone Duo 当周累计，自动标定应跳过。 | `8be42f2` 系列接入；`syncTrackingCalibrations` 单机扩展随本次改动 |
 | 热销机型与榜单研究模块 · 榜单机型 OCR | 真实榜单的 OCR 返回逐行纯文本。已支持行数相等时按顺序生成草稿。页面保留当次原始返回。标题主行与机型列合并为一次 OCR，待用户验收。 | `a8094fa` 接入；`8261f2a` 诊断；`029a651` 纯文本；`29a7969` 标题识别；合图随本次改动 |
 | 热销机型与榜单研究模块 · 微博文案 | 手动生成、编辑和复制草稿。支持朴素简洁、深度分析和标题党风，三档提示词分别保存。深度分析可从同口径图表数据直接计算变化。周度 TOP30 约覆盖六成销量仅作模型解读约束。必要口径写在观察句中，正文不加免责声明或图例解释。修复 Worker 不支持的重定向模式导致的 502，区分上游重定向、HTTP 错误和响应读取失败。待部署后由用户验收。 | `36e43c0` 接入；`a20ca65` 修复 502；`311db31` 约束正文；`866b48a` 风格切换 |
+| 跨模块稳定性与性能优化 | 修复热销机型与榜单研究模块 OCR 与销量数据处理模块后台请求在 Access 会话过期时跟随重定向触发 CORS 异常的问题；Worker `verifyAdmin` 增加 Access JWKS 内存缓存；优化销量数据处理模块 `masterPatch` 合并校验、`refreshDerived` 查找与 `captureChange`/`persistDraft` 重复序列化；优化销量增量追踪模块 `seriesRows` 重复全表扫描；修复 `export-db-snapshot.mjs` 目标目录非空时 `rename` 失败。待用户验收。 | `requestRankingOCR` / `databaseRequest` / `verifyAdmin` / `refreshDerived` / `persistDraft` / `groupRecordsByKey` / `exportSnapshot`，随本次改动 |
 
 本次文档同步核对了提交和相关源码，人工验收由维护者执行。记录新的问题时写明触发条件、影响、证据 SHA 与处置状态；修复后替换原行。证据基线可用于复查，只有经历史确认才标作引入提交。

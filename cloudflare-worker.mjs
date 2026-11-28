@@ -124,6 +124,9 @@ function decodeTokenPart(value) {
   return JSON.parse(new TextDecoder().decode(decodeBase64Url(value)));
 }
 
+const ACCESS_KEY_CACHE_TTL_MS = 10 * 60 * 1000;
+let accessKeyCache = { issuer: '', expiresAt: 0, keys: new Map() };
+
 async function verifyAdmin(request, env) {
   const issuer = env.CF_ACCESS_TEAM_DOMAIN?.trim().replace(/\/$/, '');
   const audience = env.CF_ACCESS_AUD?.trim();
@@ -153,33 +156,43 @@ async function verifyAdmin(request, env) {
     return unauthorized();
   }
 
+  let key = accessKeyCache.issuer === issuer && Date.now() < accessKeyCache.expiresAt
+    ? accessKeyCache.keys.get(header.kid)
+    : undefined;
   let stage = 'fetch_keys';
   try {
-    const keysUrl = new URL('/cdn-cgi/access/certs', issuer);
-    let response = await fetch(keysUrl, {
-      redirect: 'manual',
-      headers: { Accept: 'application/json' }
-    });
-    if (response.status >= 300 && response.status < 400 && response.headers.has('Location')) {
-      const destination = new URL(response.headers.get('Location'), keysUrl);
-      if (destination.origin === keysUrl.origin && destination.pathname === keysUrl.pathname + '/') {
-        response = await fetch(destination, { redirect: 'manual' });
+    if (!key) {
+      const keysUrl = new URL('/cdn-cgi/access/certs', issuer);
+      let response = await fetch(keysUrl, {
+        redirect: 'manual',
+        headers: { Accept: 'application/json' }
+      });
+      if (response.status >= 300 && response.status < 400 && response.headers.has('Location')) {
+        const destination = new URL(response.headers.get('Location'), keysUrl);
+        if (destination.origin === keysUrl.origin && destination.pathname === keysUrl.pathname + '/') {
+          response = await fetch(destination, { redirect: 'manual' });
+        }
       }
+      if (!response.ok) {
+        console.error('Access key endpoint returned HTTP', response.status);
+        return json({ error: 'access_unavailable', stage, upstream_status: response.status }, 503);
+      }
+      stage = 'read_keys';
+      const { keys } = await response.json();
+      if (!Array.isArray(keys)) throw new Error('Invalid Access key set');
+      stage = 'import_key';
+      const imported = new Map();
+      for (const jwk of keys) {
+        if (typeof jwk?.kid !== 'string' || jwk.kty !== 'RSA' || !jwk.n || !jwk.e) continue;
+        imported.set(jwk.kid, await crypto.subtle.importKey(
+          'jwk', { kty: 'RSA', n: jwk.n, e: jwk.e },
+          { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, false, ['verify']
+        ));
+      }
+      accessKeyCache = { issuer, expiresAt: Date.now() + ACCESS_KEY_CACHE_TTL_MS, keys: imported };
+      key = imported.get(header.kid);
+      if (!key) return unauthorized();
     }
-    if (!response.ok) {
-      console.error('Access key endpoint returned HTTP', response.status);
-      return json({ error: 'access_unavailable', stage, upstream_status: response.status }, 503);
-    }
-    stage = 'read_keys';
-    const { keys } = await response.json();
-    if (!Array.isArray(keys)) throw new Error('Invalid Access key set');
-    const jwk = keys.find(key => key?.kid === header.kid && key.kty === 'RSA');
-    if (!jwk) return unauthorized();
-    stage = 'import_key';
-    const key = await crypto.subtle.importKey(
-      'jwk', { kty: 'RSA', n: jwk.n, e: jwk.e },
-      { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, false, ['verify']
-    );
     stage = 'verify_signature';
     const signed = new TextEncoder().encode(parts[0] + '.' + parts[1]);
     const valid = await crypto.subtle.verify('RSASSA-PKCS1-v1_5', key, signature, signed);

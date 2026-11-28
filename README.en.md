@@ -67,6 +67,14 @@ For the full CSV schema, full-sales-week definitions, poster specifications, des
 
 Sales-tracking data is manually compiled mainly from public posts by **RD观测** and **数码闲聊站**. It is for reference and personal study, not official reporting. **Tracked sales data contains a selected model sample, not a market-wide ranking; Popular Models and Ranking Research reads the maintained whole-market share CSV (non-official estimates) directly; Popular Models and Ranking Research's original sample describes the corresponding ranking; its expanded sample also includes deduplicated tracked sales. Neither represents the whole market. Sales Data Editor edits do not automatically update published data.** Verify dates, definitions and underlying data before publication.
 
+### Trademarks and disclaimer
+
+This is an independent smartphone sales data compilation, analysis and visualization project. It is not officially affiliated with, authorized or endorsed by the brands or manufacturers mentioned, and does not represent their official positions. Brand names, model names and related trademarks are used solely to identify and distinguish the subjects of analysis. Trademark rights belong to their respective owners.
+
+Figures may contain inaccuracies, gaps or delays due to sample coverage, data collection, estimation methods, reporting periods or subsequent revisions. Sample sales, rankings and shares should not be equated with market-wide sales, rankings or market shares. A model leaving the tracked sample does not mean it has been discontinued or that its actual sales have fallen to zero.
+
+Referencing publicly available data does not imply permission to redistribute third-party data or materials. Any source-code license does not automatically extend to third-party data, trademarks or materials. Verify sources, statistical definitions and applicable permissions before reuse or redistribution. Concerns about data accuracy or legal rights may be reported through [GitHub Issues](https://github.com/muinocriz/smartphoneSellOut/issues) (do not post sensitive information publicly) for review and appropriate action by the maintainers.
+
 ## Deployment
 
 Cloudflare Workers and GitHub Pages run independent deployments from `master` using the same build manifest. GitHub Pages retains a D1 snapshot in its build and reads the public API at runtime. Popular Models and Ranking Research uses the site-relative path `studio/sales-estimator.html`. See the [deployment guide (Chinese)](docs/CLOUDFLARE_DEPLOYMENT.md).

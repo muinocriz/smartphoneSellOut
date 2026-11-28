@@ -2,6 +2,7 @@
 (function(root){
 'use strict';
 const CsvUtils=typeof module==='object'&&module.exports?require('./csv-utils.js'):root.CsvUtils;
+const IsoSalesWeek=typeof module==='object'&&module.exports?require('./iso-sales-week.js'):root.IsoSalesWeek;
 const VERSION='tracking-v1', DAY=86400000, WEEK=7*DAY;
 const HEADER=Object.freeze('brand,model,category,date,period,metric,value_wan,operator'.split(','));
 const norm=v=>String(v??'').normalize('NFKC').toUpperCase().replace(/[\s\u200B-\u200D\u2060\uFEFF]+/g,'');
@@ -11,9 +12,8 @@ const equal=(a,b)=>a===b||(Number.isFinite(a)&&Number.isFinite(b)&&Math.abs(a-b)
 const clean=n=>Number(n.toPrecision(15));
 const {parseCSV:readCSV}=CsvUtils;
 function objects(raw,required){const rows=readCSV(raw),h=rows.shift()?.map(v=>v.trim());if(!h||new Set(h).size!==h.length||required.some(k=>!h.includes(k)))throw Error('CSV 缺少必要字段或表头重复：'+required.join(', '));return rows.map((r,i)=>{if(r.length!==h.length)throw Error('CSV 第 '+(i+2)+' 行列数不正确');return Object.fromEntries(h.map((k,j)=>[k,r[j].trim()]));});}
-function start(y){if(root.IsoSalesWeek)return root.IsoSalesWeek.isoWeek1Monday(y);const d=new Date(0);d.setUTCFullYear(y,0,4);d.setUTCHours(0,0,0,0);return +d-((d.getUTCDay()+6)%7)*DAY;}
-function weekTime(p){const m=String(p).match(/^([1-9]\d{3})-W(\d{2})$/);if(!m)throw Error('非法 ISO 周：'+p);const y=+m[1],w=+m[2],t=root.IsoSalesWeek?root.IsoSalesWeek.isoWeekMonday(y,w):start(y)+(w-1)*WEEK;if(w<1||w>53||t==null||t>=start(y+1))throw Error('非法 ISO 周：'+p);return t;}
-function period(t){const y=new Date(t+3*DAY).getUTCFullYear();return String(y)+'-W'+String(1+Math.round((t-start(y))/WEEK)).padStart(2,'0');}
+function weekTime(p){const m=String(p).match(/^([1-9]\d{3})-W(\d{2})$/);const t=m?IsoSalesWeek.isoWeekMonday(+m[1],+m[2]):null;if(t===null)throw Error('非法 ISO 周：'+p);return t;}
+function period(t){const y=new Date(t+3*DAY).getUTCFullYear();return String(y)+'-W'+String(1+Math.round((t-IsoSalesWeek.isoWeek1Monday(y))/WEEK)).padStart(2,'0');}
 function dateText(t){return new Date(t).toISOString().slice(0,10);}
 function parse(raw){const records=objects(raw,HEADER),groups=new Map();for(const [i,r] of records.entries()){
  if(!r.brand||!r.model||!['cumulative','weekly'].includes(r.metric)||!['=','<','>=','≈'].includes(r.operator)||!/^\d+(?:\.\d+)?$/.test(r.value_wan)||!Number.isFinite(Number(r.value_wan))||(r.operator==='<'&&Number(r.value_wan)===0))throw Error('第 '+(i+2)+' 行销量字段不合法');

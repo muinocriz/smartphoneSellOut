@@ -94,8 +94,8 @@
   <div class="dialog-actions"><button id="cancelDatabaseSave" type="button">取消</button><button id="confirmDatabaseSave" class="primary" type="submit" disabled>确认保存</button></div>
  </form>
 </dialog>
-<script src="weibo-sales-parser.js"></script>
 <script src="iso-sales-week.js"></script>
+<script src="weibo-sales-parser.js"></script>
 <script src="market-share-data.js"></script>
 <script src="weibo-market-parser.js"></script>
 <script>
@@ -112,8 +112,8 @@ const databaseRevision = { tracking: null, models: null, 'market-share': null };
 let marketRows=null,sourceMarket=null;
 function status(msg,error=false){$('status').textContent=msg;$('status').className='status '+(error?'error':'success');}
 function mark(){dirty=true;updateSummary();refreshDerived();scheduleCheck();}
-function isoStart(y){const d=new Date(Date.UTC(y,0,4));return +d-((d.getUTCDay()+6)%7)*86400000;}
-function isoPeriod(y,w){if(!Number.isInteger(y)||y<1900||y>9999||!Number.isInteger(w)||w<1||w>(isoStart(y+1)-isoStart(y))/604800000)throw Error('无效 ISO 年/周：该年不存在这一周。');return String(y)+'-W'+String(w).padStart(2,'0');}
+const {isoWeek1Monday:isoStart,isoWeekMonday}=IsoSalesWeek;
+function isoPeriod(y,w){if(y<1900||y>9999||isoWeekMonday(y,w)===null)throw Error('无效 ISO 年/周：该年不存在这一周。');return String(y)+'-W'+String(w).padStart(2,'0');}
 function parsePeriod(s,year){const m=String(s).trim().match(/^(?:(\d{4})[-_ ]?)?W(\d{1,2})$/i);if(!m)throw Error('无效周次：'+s);return isoPeriod(m[1]?+m[1]:year,+m[2]);}
 function fromMonday(t){const y=new Date(t+3*86400000).getUTCFullYear();return isoPeriod(y,1+Math.round((t-isoStart(y))/604800000));}
 function nowPeriod(){const d=new Date(),t=Date.UTC(d.getFullYear(),d.getMonth(),d.getDate());return fromMonday(t-((new Date(t).getUTCDay()+6)%7)*86400000);}

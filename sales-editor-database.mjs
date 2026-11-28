@@ -1,5 +1,6 @@
 import marketShareData from './market-share-data.js';
 import CsvUtils from './csv-utils.js';
+import IsoSalesWeek from './iso-sales-week.js';
 
 const MARKET_COLUMNS = 'period trend apple huawei osta xiaomi oppo oneplus realme vivo iqoo honor'.split(' ');
 const MARKET_HEADER = 'ISO 周,趋势,苹果,华为,OSTA,小米,OPPO,一加,realme,vivo,iQOO,荣耀'.split(',');
@@ -32,16 +33,13 @@ export async function readEditorSheet(db, sheet, query, ...bindings) {
   return { revision: version.revision, data };
 }
 
-function isoYearStart(year) {
-  const january4 = new Date(Date.UTC(year, 0, 4));
-  return +january4 - ((january4.getUTCDay() + 6) % 7) * 86400000;
+function editorWeekMonday(year, week) {
+  return year >= 1900 ? IsoSalesWeek.isoWeekMonday(year, week) : null;
 }
 
 function validWeek(period) {
   const parts = /^(\d{4})-W(\d{2})$/.exec(period);
-  if (!parts) return false;
-  const year = Number(parts[1]), week = Number(parts[2]);
-  return year >= 1900 && week >= 1 && week <= (isoYearStart(year + 1) - isoYearStart(year)) / 604800000;
+  return Boolean(parts && editorWeekMonday(Number(parts[1]), Number(parts[2])) !== null);
 }
 
 function modelKey(row) {
@@ -89,9 +87,7 @@ function validateMarketShares(rows) {
   const data = rows.map(([period, ...fields]) => [period.replace('-W', 'W'), ...fields]);
   const csv = CsvUtils.stringifyCSV([MARKET_HEADER, ...data], { eol: '\n', headerQuote: 'minimal' });
   try {
-    marketShareData.parseMarketShareCSV(csv, (year, week) =>
-      validWeek(year + '-W' + String(week).padStart(2, '0'))
-        ? isoYearStart(year) + (week - 1) * 604800000 : null);
+    marketShareData.parseMarketShareCSV(csv, editorWeekMonday);
   } catch (error) {
     throw new EditorError(400, error.message);
   }

@@ -38,7 +38,7 @@
     const dates=[...boards.keys()].sort((a,b)=>a-b),fullWeeks=[];
     for(let t=dates[0];t<=dates[dates.length-1];t+=weekMs){
       const list=boards.get(t)||[],start=new Date(t).toISOString().slice(0,10),end=new Date(t+6*86400000).toISOString().slice(0,10);
-      const y=new Date(t+3*86400000).getUTCFullYear(),jan4=Date.UTC(y,0,4),first=jan4-((new Date(jan4).getUTCDay()+6)%7)*86400000;
+      const y=new Date(t+3*86400000).getUTCFullYear(),first=root.IsoSalesWeek.isoWeek1Monday(y);
       const period=y+'-W'+String(1+Math.round((t-first)/weekMs)).padStart(2,'0'),map=new Map();
       for(const r of list){const key=sequenceIdentity(r[col.model],master);if(!key||map.has(key))throw Error('同一期榜单存在空白或重复机型标识：'+period+' / '+key);map.set(key,r);if(!firstSeen.has(key))firstSeen.set(key,period);}
       fullWeeks.push({period,start,end,cutoff:cutoffOf(list,col),map,hasBoard:list.length>0,top:list[0]?.[col.top_n]||'',count:list.length});

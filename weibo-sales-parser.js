@@ -25,12 +25,8 @@
   }
   return {brand:'',model:text};
  };
- const day=86400000,week=7*day;
- function isoStart(y){const d=new Date(Date.UTC(y,0,4));return +d-(d.getUTCDay()+6)%7*day;}
- function period(y,w){
-  if(!Number.isInteger(y)||y<1900||y>9999||!Number.isInteger(w)||w<1||w>(isoStart(y+1)-isoStart(y))/week)throw Error('无效 ISO 年/周');
-  return y+'-W'+String(w).padStart(2,'0');
- }
+ const {DAY:day,isoWeekMonday}=typeof module==='object'&&module.exports
+  ?require('./iso-sales-week.js'):root.IsoSalesWeek;
  const weekPattern=/(?:(\d{4})\s*(?:年|[-_/])?\s*)?(?:W\s*(\d{1,2})(?!\d)|第?\s*(\d{1,2})\s*周)/i;
  const categoryPattern=/([\p{Script=Han}A-Za-z0-9]+?\s*SO)(?:\s*[-_/：:]\s*([\p{Script=Han}A-Za-z0-9]+(?:\s*-\s*[A-Za-z0-9]+)*))?/iu;
  const headerLike=s=>categoryPattern.test(s)||/(?:^|\s)(?:截至|截止|截止至)|(?:20\d{2}\s*年?\s*[-_]?\s*W\s*\d)|(?:^|\s)W\s*\d|20\d{2}\s*年\s*第?\s*\d+\s*周/i.test(s);
@@ -38,7 +34,10 @@
   const w=weekPattern.exec(s),c=categoryPattern.exec(s);
   if(!w||!c)throw Error('标题缺少可识别的 ISO 周次或 SO 分类');
   if((s.match(new RegExp(weekPattern.source,'gi'))||[]).length!==1)throw Error('标题存在多个周次，无法确定记录归属');
-  const y=w[1]?Number(w[1]):Number(options.defaultYear),n=Number(w[2]||w[3]),p=period(y,n);
+  const y=w[1]?Number(w[1]):Number(options.defaultYear),n=Number(w[2]||w[3]);
+  const monday=y>=1900&&y<=9999?isoWeekMonday(y,n):null;
+  if(monday===null)throw Error('无效 ISO 年/周');
+  const p=y+'-W'+String(n).padStart(2,'0');
   const cumulative=/截至|截止|累计|累销/i.test(s),weekly=/周销量|周增量|本周销量|单周|当周/i.test(s);
   if(cumulative&&weekly)throw Error('标题同时包含累计与周增量标记');
   const metric=cumulative?'cumulative':weekly?'weekly':options.defaultMetric;
@@ -46,7 +45,7 @@
   const range=/\(\s*(\d{1,2})[.\/月](\d{1,2})日?\s*(?:-|~|至|到)\s*(\d{1,2})[.\/月](\d{1,2})日?\s*\)/.exec(s);
   if(!range&&/\(\s*\d{1,2}[.\/月]\d{1,2}/.test(s))throw Error('标题日期范围格式无法识别');
   if(range){
-   const a=new Date(isoStart(y)+(n-1)*week),b=new Date(+a+6*day);
+   const a=new Date(monday),b=new Date(monday+6*day);
    if([a.getUTCMonth()+1,a.getUTCDate(),b.getUTCMonth()+1,b.getUTCDate()].some((v,i)=>v!==Number(range[i+1])))throw Error('标题日期范围与 ISO 周次不一致');
   }
   const base=c[1].replace(/\s/g,'').replace(/so$/i,'SO'),suffix=(c[2]||'').replace(/\s*-\s*/g,'-').split('-').filter(Boolean);

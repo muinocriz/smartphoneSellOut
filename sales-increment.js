@@ -1,8 +1,7 @@
 'use strict';
-const FIELDS=["brand","model","category","date","period","metric","value_wan","operator"];
+const {COLUMNS:FIELDS,numberText}=SalesLongData;
 const records=[];
 const metadata=Object.create(null);
-function numberText(raw){let s=String(raw).trim().replace(/，/g,',');if(!s)return null;if(/^\d{1,3}(,\d{3})+(\.\d+)?$/.test(s))s=s.replace(/,/g,'');if(!/^(?:\d+(?:\.\d*)?|\.\d+)$/.test(s)||!Number.isFinite(Number(s))||Number(s)<0)throw Error('请输入非负数字（单位：万台）。');if(s.startsWith('.'))s='0'+s;if(s.endsWith('.'))s=s.slice(0,-1);return s;}
 
 const fmt=n=>Number(n.toFixed(4)).toLocaleString('zh-CN',{maximumFractionDigits:4});
 function monday(period){
@@ -1051,21 +1050,23 @@ function loadSource(text,key,sourcePeriods=[]){
   const [header,...rows]=CsvUtils.parseCSV(text,{mode:'editor'});
   const columns=FIELDS.map(f=>header?.indexOf(f)??-1);
   if(header?.length!==FIELDS.length||columns.includes(-1))throw Error('长表字段不匹配');
-  const seen=new Set(),nextMetadata=new Map(),nextRecords=[];
+  const nextMetadata=new Map(),nextRecords=new Map();
   let first=Infinity,last=-Infinity;
   for(const [i,row] of rows.entries()){
     const [brand,name,category,date,week,kind,raw,op]=columns.map(c=>(row[c]??'').trim());
-    const id=JSON.stringify([brand,name]),slot=JSON.stringify([id,week,kind]),time=monday(week);
+    const id=SalesLongData.modelKey(brand,name),slot=SalesLongData.recordKey(brand,name,week,kind),time=monday(week);
     let value;try{value=numberText(raw)}catch{value=null}
-    if(row.length!==header.length||!brand||!name||time==null||value===null||!['weekly','cumulative'].includes(kind)||!['=','>=','<','≈'].includes(op)||seen.has(slot))
+    if(row.length!==header.length||!SalesLongData.hasModelIdentity(brand,name)||time==null||
+       value===null||!SalesLongData.isRecordType(kind,op)||
+       !SalesLongData.addUniqueRecord(nextRecords,slot,[id,week,kind,Number(value),op]))
       throw Error('第 '+(i+2)+' 行无效或与已有记录重复');
     const prior=nextMetadata.get(id);
-    if(prior&&(prior[2]!==category||prior[3]!==date))throw Error('第 '+(i+2)+' 行的机型类别或日期不一致');
-    nextMetadata.set(id,[brand,name,category,date]);nextRecords.push([id,week,kind,Number(value),op]);
-    seen.add(slot);first=Math.min(first,time);last=Math.max(last,time);
+    if(prior&&!SalesLongData.sameModelMetadata(prior.slice(2),[category,date]))throw Error('第 '+(i+2)+' 行的机型类别或日期不一致');
+    nextMetadata.set(id,[brand,name,category,date]);
+    first=Math.min(first,time);last=Math.max(last,time);
   }
-  if(!nextRecords.length)throw Error('长表暂无记录');
-  initial=nextRecords;initialPeriods=[];
+  if(!nextRecords.size)throw Error('长表暂无记录');
+  initial=[...nextRecords.values()];initialPeriods=[];
   for(let t=first;t<=last;t+=weekMs)initialPeriods.push(iso(t));
   initialPeriods=[...new Set([...initialPeriods,...sourcePeriods.filter(period=>monday(period)!=null)])].sort();
   currentSourcePeriods=sourcePeriods;

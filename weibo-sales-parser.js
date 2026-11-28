@@ -1,6 +1,7 @@
 /* Deterministic, side-effect-free Weibo text -> tracking long records. */
 (function(root){
  'use strict';
+ const SalesLongData=typeof module==='object'&&module.exports?require('./sales-long-data.js'):root.SalesLongData;
  const aliases={
   '华为':'华为','huawei':'华为','荣耀':'荣耀','honor':'荣耀','vivo':'vivo','iqoo':'iQOO',
   'redmi':'REDMI','红米':'REDMI','小米':'小米','xiaomi':'小米','oppo':'OPPO',
@@ -41,7 +42,7 @@
   const cumulative=/截至|截止|累计|累销/i.test(s),weekly=/周销量|周增量|本周销量|单周|当周/i.test(s);
   if(cumulative&&weekly)throw Error('标题同时包含累计与周增量标记');
   const metric=cumulative?'cumulative':weekly?'weekly':options.defaultMetric;
-  if(!['cumulative','weekly'].includes(metric))throw Error('未明确销量类型');
+  if(!SalesLongData.METRICS.includes(metric))throw Error('未明确销量类型');
   const range=/\(\s*(\d{1,2})[.\/月](\d{1,2})日?\s*(?:-|~|至|到)\s*(\d{1,2})[.\/月](\d{1,2})日?\s*\)/.exec(s);
   if(!range&&/\(\s*\d{1,2}[.\/月]\d{1,2}/.test(s))throw Error('标题日期范围格式无法识别');
   if(range){
@@ -161,7 +162,7 @@
     const record={...meta,period:ctx.period,metric:ctx.metric,value_wan:a.value_wan,operator:a.operator};
     const entry=add(line,'data','',{record,warnings:[...a.warnings,...warnings]});
     result.stats.data++;
-    const key=JSON.stringify([brandKey(record.brand),norm(record.model),record.period,record.metric]);
+    const key=SalesLongData.recordKey(brandKey(record.brand),norm(record.model),record.period,record.metric);
     if(!groups.has(key))groups.set(key,[]);
     groups.get(key).push(entry);
    }catch(e){result.stats.failed++;result.issues.push(add(line,'failed',e.message));}
@@ -169,12 +170,12 @@
   // Conflicting values or metadata within one identity are never chosen by input order.
   const identities=new Map();
   for(const entries of groups.values())for(const e of entries){
-   const k=JSON.stringify([brandKey(e.record.brand),norm(e.record.model)]);
+   const k=SalesLongData.modelKey(brandKey(e.record.brand),norm(e.record.model));
    if(!identities.has(k))identities.set(k,new Set());
    identities.get(k).add(JSON.stringify([e.record.brand,e.record.model,e.record.category,e.record.date]));
   }
   for(const entries of groups.values()){
-   const first=entries[0],r=first.record,k=JSON.stringify([brandKey(r.brand),norm(r.model)]);
+   const first=entries[0],r=first.record,k=SalesLongData.modelKey(brandKey(r.brand),norm(r.model));
    if(identities.get(k).size>1||entries.some(e=>e.record.value_wan!==r.value_wan||e.record.operator!==r.operator)){
     for(const e of entries){e.status='conflict';e.reason='同批次同一机型存在名称、元数据或销量冲突';result.conflicts.push(e);result.issues.push(e);}
     continue;

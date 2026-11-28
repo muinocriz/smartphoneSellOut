@@ -6,6 +6,8 @@
 
 浏览器、Cloudflare Worker 和 Node 脚本共用 `csv-utils.js` 解码、解析和序列化 CSV。入口按既有格式选择引号及空白记录处理，导出保留各自的 BOM、换行和引号规则。表头、字段和业务约束由各表的数据层校验。静态构建在根目录和 `/studio/` 发布该脚本。
 
+销量长表的列定义、销量类型、运算符、数值及记录身份校验由 `sales-long-data.js` 提供。正式表同步按固定列序读取，页面导入仍按各自规则识别列名与周次。销量数据处理模块保存十进制文本，研究及追踪计算在读取后转成数值。ISO 周起点来自 `iso-sales-week.js`。
+
 Cloudflare Worker 在三个生产页面标记 D1 为正式数据源。`site-shell.js` 的 `readProject` 调用只读 JSON API，并将结果交给现有数据解析器。热销机型与榜单研究模块从当前榜单、机型及跟踪数据即时计算面板。GitHub Pages 构建保留正式 D1 快照，同时注入 Worker API origin；三个公开页面运行时经 `readProject` 跨域读取四份正式表。仅 Cloudflare 同源页面开放管理入口；读取失败显示错误，不静默回退旧快照。本地静态预览读取下表中的仓库 CSV，`data.csv` 仍供宽表导入。
 
 | 模块 | 仓库输入 | 计算和输出 |

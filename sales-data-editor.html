@@ -2,6 +2,7 @@
 <html lang="zh-CN">
 <head>
 <script src="csv-utils.js"></script>
+<script src="sales-long-data.js"></script>
 <script src="site-shell.js" data-page="sales-data-editor"></script>
 <link rel="stylesheet" href="site-shell.css">
 
@@ -100,7 +101,8 @@
 <script src="weibo-market-parser.js"></script>
 <script>
 'use strict';
-const $=id=>document.getElementById(id), META=['brand','model','category','date'], LONG=[...META,'period','metric','value_wan','operator'];
+const $=id=>document.getElementById(id);
+const {COLUMNS:LONG,META_COLUMNS:META,METRICS,numberText}=SalesLongData;
 const classes={'<':'lt','>=':'ge','≈':'ap'}, signs={'<':'<','>=':'≥','≈':'≈','=':''};
 let state={rows:[],weeks:[],ready:false},dirty=false,serial=0,activeCell=null,metric="cumulative";
 // Imported source baselines are independent of the existing "not yet exported" flags.
@@ -119,11 +121,10 @@ function fromMonday(t){const y=new Date(t+3*86400000).getUTCFullYear();return is
 function nowPeriod(){const d=new Date(),t=Date.UTC(d.getFullYear(),d.getMonth(),d.getDate());return fromMonday(t-((new Date(t).getUTCDay()+6)%7)*86400000);}
 function nextPeriod(p){if(!p)return nowPeriod();const [y,w]=p.split('-W').map(Number);return fromMonday(isoStart(y)+w*604800000);}
 function setPeriodInputs(a,b,p){const [y,w]=p.split('-W');$(a).value=y;$(b).value=+w;}
-function numberText(raw){let s=String(raw).trim().replace(/，/g,',');if(!s)return null;if(/^\d{1,3}(,\d{3})+(\.\d+)?$/.test(s))s=s.replace(/,/g,'');if(!/^(?:\d+(?:\.\d*)?|\.\d+)$/.test(s)||!Number.isFinite(Number(s))||Number(s)<0)throw Error('请输入非负数字（单位：万台）。');if(s.startsWith('.'))s='0'+s;if(s.endsWith('.'))s=s.slice(0,-1);return s;}
 function decodeCell(raw){const s=String(raw??'').trim();if(!s)return null;const m=s.match(/^(>=|≥|＞＝|<|＜|≈|=|＝)\s*(.*)$/);const op=m?({'≥':'>=','＞＝':'>=','＜':'<','＝':'='}[m[1]]||m[1]):'=';const value=numberText(m?m[2]:s);if(value===null)throw Error('运算符后缺少数值。');return {op,value};}
 function parseCSV(text){return CsvUtils.parseCSV(text,{mode:'editor'});}
 function csvText(rows){return CsvUtils.stringifyCSV(rows,{quote:'minimal',bom:true,trailingNewline:true});}
-function rowKey(b,m){return JSON.stringify([b.trim(),m.trim()]);}
+function rowKey(b,m){return SalesLongData.modelKey(b.trim(),m.trim());}
 function newRow(meta){return {id:++serial,brand:meta[0]||'',model:meta[1]||'',category:meta[2]||'',date:meta[3]||'',values:new Map(),weekly:new Map()};}
 const WEEK=604800000;
 const metricLabel=m=>m==='weekly'?'周增量':'累计销量';
@@ -139,15 +140,78 @@ function derive(r){const cumulative=new Map(),weekly=new Map(),conflicts=[];cons
  return {cumulative,weekly,conflicts};}
 function refreshDerived(){if(!state.ready)return;const byId=new Map(state.rows.map(r=>[r.id,r])),cache=new Map();for(const el of $('grid').querySelectorAll('input.cell[data-period]')){const r=byId.get(+el.dataset.id);if(!r)continue;if(!cache.has(r.id))cache.set(r.id,derive(r));const v=!records(r,el.dataset.metric).has(el.dataset.period)&&cache.get(r.id)[el.dataset.metric].get(el.dataset.period);el.placeholder=v?v.value:'';el.classList.toggle('derived',!!v);el.title=v?'自动计算值（不导出）；输入数值可建立原始记录':'';}}
 function updateMode(){for(const [id,m] of [['modeCum','cumulative'],['modeWeekly','weekly']])$(id).setAttribute('aria-pressed',String(metric===m));$('modeHint').textContent=metric==='weekly'?'直接录入任意周的销量，不要求上周累计；未入榜或断更保持空白。':'直接录入累计销量；有累计锚点与连续精确周增量时可自动推导。';}
-function parseFile(text){const a=parseCSV(text);if(!a.length)throw Error('CSV 为空。');const head=a.shift().map(x=>x.trim().toLowerCase());if(new Set(head).size!==head.length)throw Error('CSV 存在重复列名。');for(const name of META)if(!head.includes(name))throw Error('缺少字段：'+name);const ix=Object.fromEntries(head.map((h,i)=>[h,i]));const rows=[],weeks=new Set(),lookup=new Map();const isLong=LONG.every(k=>head.includes(k));if(!isLong&&head.includes('period'))throw Error('仅支持 V3 扩展销量表（metric / value_wan）或数据表 data.csv。');const metaOf=r=>META.map(k=>(r[ix[k]]||'').trim());function getRow(meta,merge){if(!meta[0]||!meta[1])throw Error('品牌和机型不能为空。');const key=rowKey(meta[0],meta[1]);if(lookup.has(key)){if(!merge)throw Error('重复机型：'+meta[0]+' '+meta[1]);const row=lookup.get(key);if(row.category!==meta[2]||row.date!==meta[3])throw Error('扩展销量表同一机型的类别或日期不一致：'+meta[1]);return row;}const row=newRow(meta);lookup.set(key,row);rows.push(row);return row;}
-if(isLong){if(head.some(k=>!LONG.includes(k)))throw Error('扩展销量表包含本工具不支持的额外字段；为防止丢失，未导入。');for(let i=0;i<a.length;i++){const r=a[i];try{if(r.length>head.length)throw Error('列数超过表头');const row=getRow(metaOf(r),true),p=parsePeriod(r[ix.period],NaN),value=numberText(r[ix.value_wan]??''),op=(r[ix.operator]||'').trim(),m=(r[ix.metric]||'').trim();if(!['=','<','>=','≈'].includes(op)||!['cumulative','weekly'].includes(m)||value===null)throw Error('扩展销量表记录缺少有效 metric、数值或运算符');const target=records(row,m);if(target.has(p))throw Error('同一机型、周次和 metric 有重复记录');weeks.add(p);target.set(p,{op,value});}catch(e){throw Error('第 '+(i+2)+' 行：'+e.message);}}}
-else{const year=Number($('defaultYear').value),cols=[];for(let i=0;i<head.length;i++){if(META.includes(head[i]))continue;const p=parsePeriod(head[i],year);if(weeks.has(p))throw Error('重复 ISO 周次：'+p);weeks.add(p);cols.push({i,p});}if(!cols.length)throw Error('没有周次列。');for(let i=0;i<a.length;i++){const r=a[i];try{if(r.length>head.length)throw Error('列数超过表头');const row=getRow(metaOf(r),false);for(const c of cols){const v=decodeCell(r[c.i]);if(!v)continue;row.values.set(c.p,{op:v.op,value:v.value});}}catch(e){throw Error('第 '+(i+2)+' 行：'+e.message);}}}return {rows,weeks:[...weeks].sort(),ready:true,isLong};}
-function validMeta(){const seen=new Set();for(const r of state.rows){if(!r.brand.trim()||!r.model.trim())throw Error('品牌和机型不能为空。');const k=rowKey(r.brand,r.model);if(seen.has(k))throw Error('存在重复机型：'+r.brand+' '+r.model);seen.add(k);}}
+function parseFile(text){
+ const data=parseCSV(text);
+ if(!data.length)throw Error('CSV 为空。');
+ const head=data.shift().map(value=>value.trim().toLowerCase());
+ if(new Set(head).size!==head.length)throw Error('CSV 存在重复列名。');
+ for(const name of META)if(!head.includes(name))throw Error('缺少字段：'+name);
+ const columns=Object.fromEntries(head.map((name,i)=>[name,i]));
+ const rows=[],weeks=new Set(),lookup=new Map();
+ const isLong=LONG.every(name=>head.includes(name));
+ if(!isLong&&head.includes('period'))throw Error('仅支持 V3 扩展销量表（metric / value_wan）或数据表 data.csv。');
+
+ function getRow(meta){
+  const [brand,model,category,date]=meta;
+  if(!SalesLongData.hasModelIdentity(brand,model))throw Error('品牌和机型不能为空。');
+  const key=rowKey(brand,model),existing=lookup.get(key);
+  if(existing){
+   if(!isLong)throw Error('重复机型：'+brand+' '+model);
+   if(!SalesLongData.sameModelMetadata([existing.category,existing.date],[category,date])){
+    throw Error('扩展销量表同一机型的类别或日期不一致：'+model);
+   }
+   return existing;
+  }
+  const row=newRow(meta);
+  lookup.set(key,row);
+  rows.push(row);
+  return row;
+ }
+
+ const weekColumns=[];
+ if(isLong){
+  if(head.some(name=>!LONG.includes(name)))throw Error('扩展销量表包含本工具不支持的额外字段；为防止丢失，未导入。');
+ }else{
+  const year=Number($('defaultYear').value);
+  for(const [i,name] of head.entries()){
+   if(META.includes(name))continue;
+   const period=parsePeriod(name,year);
+   if(weeks.has(period))throw Error('重复 ISO 周次：'+period);
+   weeks.add(period);
+   weekColumns.push({i,period});
+  }
+  if(!weekColumns.length)throw Error('没有周次列。');
+ }
+
+ for(const [i,fields] of data.entries()){
+  try{
+   if(fields.length>head.length)throw Error('列数超过表头');
+   const row=getRow(META.map(name=>(fields[columns[name]]||'').trim()));
+   if(isLong){
+    const period=parsePeriod(fields[columns.period],NaN);
+    const value=numberText(fields[columns.value_wan]??'');
+    const op=(fields[columns.operator]||'').trim(),metric=(fields[columns.metric]||'').trim();
+    if(!SalesLongData.isRecordType(metric,op)||value===null)throw Error('扩展销量表记录缺少有效 metric、数值或运算符');
+    if(!SalesLongData.addUniqueRecord(records(row,metric),period,{op,value})){
+     throw Error('同一机型、周次和 metric 有重复记录');
+    }
+    weeks.add(period);
+   }else{
+    for(const {i:column,period} of weekColumns){
+     const cell=decodeCell(fields[column]);
+     if(cell)row.values.set(period,cell);
+    }
+   }
+  }catch(e){throw Error('第 '+(i+2)+' 行：'+e.message);}
+ }
+ return {rows,weeks:[...weeks].sort(),ready:true,isLong};
+}
+function validMeta(){const seen=new Set();for(const r of state.rows){if(!SalesLongData.hasModelIdentity(r.brand,r.model))throw Error('品牌和机型不能为空。');const k=rowKey(r.brand,r.model);if(seen.has(k))throw Error('存在重复机型：'+r.brand+' '+r.model);seen.add(k);}}
 function commitInput(el){const row=state.rows.find(r=>r.id===+el.dataset.id);if(!row)return true;try{if(el.dataset.field){const k=el.dataset.field,v=el.value.trim();el.setCustomValidity(['brand','model'].includes(k)&&!v?'不能为空':'');if(!el.checkValidity())return false;if(row[k]!==v){row[k]=v;mark();}}else{const p=el.dataset.period,target=records(row,el.dataset.metric),old=target.get(p),v=numberText(el.value);if(v===null){if(old){target.delete(p);mark();}}else if(!old||old.value!==v){target.set(p,{op:'=',value:v});mark();}el.setCustomValidity('');return true;}return true;}catch(e){el.setCustomValidity(e.message);return false;}}
 function flush(){for(const el of $('grid').querySelectorAll('input.cell')){if(!commitInput(el)){el.reportValidity();throw Error('请修正表格中的无效输入。');}}validMeta();}
 function node(tag,txt,cls){const el=document.createElement(tag);if(txt!==undefined)el.textContent=txt;if(cls)el.className=cls;return el;}
 function renderGrid(){const g=$('grid'),filter=$('search').value.trim().toLowerCase();g.hidden=!state.ready;$('empty').hidden=state.ready;for(const id of ['longExport','addModel','addWeek','addSpecial'])$(id).disabled=!state.ready||(id==='addSpecial'&&!state.rows.length);if(!state.ready)return;const tr=node('tr');for(const [i,m] of META.entries())tr.append(node('th',['品牌','机型','类别','正式开售日期'][i],['brand','model','cat','date'][i]));for(const p of state.weeks)tr.append(node('th',p.replace('-',''),'week'));tr.append(node('th','操作'));g.tHead.replaceChildren(tr);const body=document.createDocumentFragment();for(const row of state.rows){if(filter&&!`${row.brand} ${row.model}`.toLowerCase().includes(filter))continue;const r=node('tr');for(const [i,k] of META.entries()){const td=node('td',undefined,['brand','model','cat','date'][i]);const el=node('input',undefined,'cell');el.type='text';el.value=row[k];el.dataset.id=row.id;el.dataset.field=k;el.setAttribute('aria-label',k);td.append(el);r.append(td);}for(const p of state.weeks){const td=node('td',undefined,'week'),v=records(row).get(p);td.dataset.id=row.id;td.dataset.period=p;if(activeCell?.id===row.id&&activeCell?.period===p)td.classList.add('is-selected');if(v&&v.op!=='='){const b=node('button',signs[v.op]+v.value,'special '+classes[v.op]);b.type='button';b.title='点击编辑特殊数据';b.onclick=()=>{try{flush();openSpecial(row.id,p);}catch(e){status(e.message,true);}};td.append(b);}else{const el=node('input',undefined,'cell');el.type='text';el.inputMode='decimal';el.value=v?.value||'';el.dataset.id=row.id;el.dataset.period=p;el.dataset.metric=metric;el.setAttribute('aria-label',`${row.brand} ${row.model} ${p} ${metricLabel(metric)}`);td.append(el);}r.append(td);}const td=node('td',undefined,'ops'),del=node('button','删除','remove');del.onclick=()=>{if(!confirm(`删除 ${row.brand} ${row.model} 的全部记录？`))return;try{flush();}catch(e){status(e.message,true);return;}state.rows=state.rows.filter(x=>x.id!==row.id);mark();renderGrid();};td.append(del);r.append(td);body.append(r);}g.tBodies[0].replaceChildren(body);refreshDerived();}
-function longRows(s=state){const out=[];for(const r of s.rows)for(const p of s.weeks)for(const m of ['cumulative','weekly']){const v=records(r,m).get(p);if(v)out.push([r.brand,r.model,r.category,r.date,p,m,v.value,v.op]);}return out;}
+function longRows(s=state){const out=[];for(const r of s.rows)for(const p of s.weeks)for(const m of METRICS){const v=records(r,m).get(p);if(v)out.push([r.brand,r.model,r.category,r.date,p,m,v.value,v.op]);}return out;}
 // Compare actual exportable records, not row IDs, empty weeks, UI settings or derived values.
 function canonicalValue(v){const [i,f='']=String(v).split('.');const a=i.replace(/^0+(?=\d)/,'')||'0',b=f.replace(/0+$/,'');return b?a+'.'+b:a;}
 function salesContent(s=state){return JSON.stringify(longRows(s).map(r=>JSON.stringify([...r.slice(0,6),canonicalValue(r[6]),r[7]])).sort());}

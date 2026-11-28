@@ -7,6 +7,7 @@ import Series from '../sales-series.js';
 import ModelMaster from '../model-master.js';
 import MarketShare from '../market-share-data.js';
 import CsvUtils from '../csv-utils.js';
+import SalesLongData from '../sales-long-data.js';
 import { SNAPSHOT_SCHEMAS } from './export-db-snapshot.mjs';
 
 const env = process.env;
@@ -15,12 +16,12 @@ const endpoint = new URL('/api/github-csv-sync', worker);
 const repo = 'https://github.com/muinocriz/smartphoneSellOut';
 const shaPattern = /^[a-f0-9]{40}$/;
 const git = (...args) => execFileSync('git', args, {encoding:'utf8', maxBuffer:16 * 1024 * 1024});
-const modelKey = row => JSON.stringify(row.slice(0, 2));
+const modelKey = row => SalesLongData.modelKey(row[0], row[1]);
 const modelFields = ModelMaster.HEADER;
 const { normalize, isOsta } = globalThis.BrandUtils;
 const trackingBrand = brand => isOsta(brand) ? 'OSTA' :
   ({APPLE:'苹果', IPHONE:'苹果', XIAOMI:'小米', HONOR:'荣耀', HUAWEI:'华为', ONEPLUS:'一加'})[normalize(brand)] ?? normalize(brand);
-const normalizedModelKey = row => JSON.stringify([trackingBrand(row[0]), normalize(row[1])]);
+const normalizedModelKey = row => SalesLongData.modelKey(trackingBrand(row[0]), normalize(row[1]));
 const oneLine = value => String(value).replace(/[\r\n]+/g, ' ');
 
 function normalizeWeek(value) {
@@ -34,7 +35,7 @@ function normalizeWeek(value) {
 function decimals(value, allowEmpty = false) {
   value = value.trim();
   if (!value && allowEmpty) return '';
-  if (!/^\d+(?:\.\d+)?$/.test(value) || !Number.isFinite(Number(value))) {
+  if (!SalesLongData.isDecimal(value)) {
     throw new Error('无效非负小数：' + value);
   }
   const [whole, fraction = ''] = value.split('.');
@@ -46,7 +47,7 @@ function decimals(value, allowEmpty = false) {
 function trackingRow(row) {
   const [brand, model, category, date, period, metric, value, operator] = row.map(cell => cell.trim());
   const op = ({'≥':'>=', '＝':'='})[operator] ?? operator;
-  if (!brand || !model || !['cumulative', 'weekly'].includes(metric) || !['=', '>=', '<', '≈'].includes(op)) {
+  if (!SalesLongData.hasModelIdentity(brand, model) || !SalesLongData.isRecordType(metric, op)) {
     throw new Error('销量记录的机型、类型或运算符无效：' + model + ' ' + period);
   }
   return [brand, model, category, date, normalizeWeek(period), metric, decimals(value), op];
@@ -86,9 +87,8 @@ function indexRows(sheet, rows) {
   if (sheet === 'rankings') return Series.groups(rows);
   const indexed = new Map();
   for (const row of rows) {
-    const key = sheet === 'tracking' ? JSON.stringify([row[0], row[1], row[4], row[5]]) : row[0];
-    if (indexed.has(key)) throw new Error('来源有重复记录：' + key);
-    indexed.set(key, row);
+    const key = sheet === 'tracking' ? SalesLongData.recordKey(row[0], row[1], row[4], row[5]) : row[0];
+    if (!SalesLongData.addUniqueRecord(indexed, key, row)) throw new Error('来源有重复记录：' + key);
   }
   return indexed;
 }
@@ -97,7 +97,7 @@ function trackingMetadata(rows) {
   const metadata = new Map();
   for (const row of rows) {
     const key = modelKey(row), fields = row.slice(2, 4), prior = metadata.get(key);
-    if (prior && JSON.stringify(prior) !== JSON.stringify(fields)) {
+    if (prior && !SalesLongData.sameModelMetadata(prior, fields)) {
       throw new Error('同一机型的类别或开售日期不一致：' + key);
     }
     metadata.set(key, fields);
@@ -131,8 +131,8 @@ function planSheet(sheet, previous, incoming, current) {
     for (const keys of names.values()) if (keys.size > 1) for (const key of keys) ambiguous.add(key);
     for (const [key, fields] of trackingMetadata(incoming)) {
       const dbFields = existingMeta.get(key);
-      if (dbFields && JSON.stringify(fields) !== JSON.stringify(oldMeta.get(key)) &&
-          JSON.stringify(fields) !== JSON.stringify(dbFields)) {
+      if (dbFields && !SalesLongData.sameModelMetadata(fields, oldMeta.get(key)) &&
+          !SalesLongData.sameModelMetadata(fields, dbFields)) {
         report.conflicts.push(key + ' · 类别或开售日期仍使用 D1 的值');
       }
     }

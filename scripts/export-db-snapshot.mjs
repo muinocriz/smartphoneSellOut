@@ -3,9 +3,10 @@ import { mkdir, mkdtemp, readFile, rename, rm, writeFile } from 'node:fs/promise
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import CsvUtils from '../csv-utils.js';
+import SalesLongData from '../sales-long-data.js';
 
 export const SNAPSHOT_SCHEMAS = [
-  ['tracking', 'sales-long.csv', 'brand model category date period metric value_wan operator'],
+  ['tracking', 'sales-long.csv', SalesLongData.COLUMNS.join(' ')],
   ['models', 'model-master.csv', 'model_id model_name brand brand_group aliases series generation variant form_factor sale_start_date predecessor_id launch_price chip_vendor chip_model base_ram base_rom source_url notes verification tracking_group'],
   ['rankings', 'sales-estimates.csv', 'dataset_id source series period_type period period_start period_end top_n actual_count rank model brand_group pixels estimated_units estimated_wan fit_k fit_mode calibration_count accepted_count outlier_threshold algorithm_version saved_at'],
   ['market-share', 'market-share.csv', 'period trend apple huawei osta xiaomi oppo oneplus realme vivo iqoo honor', 'ISO 周,趋势,苹果,华为,OSTA,小米,OPPO,一加,realme,vivo,iQOO,荣耀']

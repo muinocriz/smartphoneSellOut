@@ -1,10 +1,11 @@
 import marketShareData from './market-share-data.js';
 import CsvUtils from './csv-utils.js';
 import IsoSalesWeek from './iso-sales-week.js';
+import SalesLongData from './sales-long-data.js';
 
 const MARKET_COLUMNS = 'period trend apple huawei osta xiaomi oppo oneplus realme vivo iqoo honor'.split(' ');
 const MARKET_HEADER = 'ISO 周,趋势,苹果,华为,OSTA,小米,OPPO,一加,realme,vivo,iQOO,荣耀'.split(',');
-const TRACKING_COLUMNS = 'brand model category date period metric value_wan operator'.split(' ');
+const { COLUMNS: TRACKING_COLUMNS } = SalesLongData;
 const MODEL_COLUMNS = (
   'model_id model_name brand brand_group aliases series generation variant form_factor ' +
   'sale_start_date predecessor_id launch_price chip_vendor chip_model base_ram base_rom ' +
@@ -43,11 +44,11 @@ function validWeek(period) {
 }
 
 function modelKey(row) {
-  return JSON.stringify(row.slice(0, 2));
+  return SalesLongData.modelKey(row[0], row[1]);
 }
 
 function trackingKey(row) {
-  return JSON.stringify([row[0], row[1], row[4], row[5]]);
+  return SalesLongData.recordKey(row[0], row[1], row[4], row[5]);
 }
 
 function validateRows(rows, sheet, columns, key) {
@@ -58,18 +59,16 @@ function validateRows(rows, sheet, columns, key) {
         row.some(value => typeof value !== 'string' || value.includes('\0'))) {
       fail('字段数量或格式无效。');
     }
-    if (sheet !== 'market-share' && (!row[0].trim() || !row[1].trim())) fail('缺少机型标识或名称。');
+    if (sheet !== 'market-share' && !SalesLongData.hasModelIdentity(row[0], row[1])) fail('缺少机型标识或名称。');
     const id = key(row);
-    if (indexed.has(id)) fail('同一记录重复出现。');
+    if (!SalesLongData.addUniqueRecord(indexed, id, row)) fail('同一记录重复出现。');
     if (sheet === 'tracking') {
       const [, , category, date, period, metric, value, operator] = row;
-      if (!validWeek(period) || !['cumulative', 'weekly'].includes(metric) ||
-          !['=', '>=', '<', '≈'].includes(operator) ||
-          !/^\d+(?:\.\d+)?$/.test(value) || !Number.isFinite(Number(value))) {
+      if (!validWeek(period) || !SalesLongData.isRecordType(metric, operator) || !SalesLongData.isDecimal(value)) {
         fail('ISO 周次、销量类型、数值或运算符无效。');
       }
-      const model = modelKey(row), fields = JSON.stringify([category, date]);
-      if (metadata.has(model) && metadata.get(model) !== fields) fail('同一机型的类别或开售日期不一致。');
+      const model = modelKey(row), fields = [category, date], prior = metadata.get(model);
+      if (prior && !SalesLongData.sameModelMetadata(prior, fields)) fail('同一机型的类别或开售日期不一致。');
       metadata.set(model, fields);
     }
     if (sheet === 'market-share') {
@@ -78,7 +77,6 @@ function validateRows(rows, sheet, columns, key) {
         fail('份额请填写百分比数值，例如 18.5。');
       }
     }
-    indexed.set(id, row);
   }
   return indexed;
 }

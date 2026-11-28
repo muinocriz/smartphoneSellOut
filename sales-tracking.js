@@ -3,11 +3,12 @@
 'use strict';
 const CsvUtils=typeof module==='object'&&module.exports?require('./csv-utils.js'):root.CsvUtils;
 const IsoSalesWeek=typeof module==='object'&&module.exports?require('./iso-sales-week.js'):root.IsoSalesWeek;
+const SalesLongData=typeof module==='object'&&module.exports?require('./sales-long-data.js'):root.SalesLongData;
 const VERSION='tracking-v1', DAY=86400000, WEEK=7*DAY;
-const HEADER=Object.freeze('brand,model,category,date,period,metric,value_wan,operator'.split(','));
+const {COLUMNS:HEADER}=SalesLongData;
 const norm=v=>String(v??'').normalize('NFKC').toUpperCase().replace(/[\s\u200B-\u200D\u2060\uFEFF]+/g,'');
 const brandKey=v=>({APPLE:'苹果',IPHONE:'苹果',XIAOMI:'小米',HUAWEI:'华为',HONOR:'荣耀',ONEPLUS:'一加',红米:'REDMI',REALME:'真我',星芒:'OSTA',OSTA星芒:'OSTA',星芒OSTA:'OSTA'})[norm(v)]||norm(v);
-const key=(brand,model)=>JSON.stringify([brandKey(brand),norm(model)]);
+const key=(brand,model)=>SalesLongData.modelKey(brandKey(brand),norm(model));
 const equal=(a,b)=>a===b||(Number.isFinite(a)&&Number.isFinite(b)&&Math.abs(a-b)<=1e-10*Math.max(1,Math.abs(a),Math.abs(b)));
 const clean=n=>Number(n.toPrecision(15));
 const {parseCSV:readCSV}=CsvUtils;
@@ -15,9 +16,28 @@ function objects(raw,required){const rows=readCSV(raw),h=rows.shift()?.map(v=>v.
 function weekTime(p){const m=String(p).match(/^([1-9]\d{3})-W(\d{2})$/);const t=m?IsoSalesWeek.isoWeekMonday(+m[1],+m[2]):null;if(t===null)throw Error('非法 ISO 周：'+p);return t;}
 function period(t){const y=new Date(t+3*DAY).getUTCFullYear();return String(y)+'-W'+String(1+Math.round((t-IsoSalesWeek.isoWeek1Monday(y))/WEEK)).padStart(2,'0');}
 function dateText(t){return new Date(t).toISOString().slice(0,10);}
-function parse(raw){const records=objects(raw,HEADER),groups=new Map();for(const [i,r] of records.entries()){
- if(!r.brand||!r.model||!['cumulative','weekly'].includes(r.metric)||!['=','<','>=','≈'].includes(r.operator)||!/^\d+(?:\.\d+)?$/.test(r.value_wan)||!Number.isFinite(Number(r.value_wan))||(r.operator==='<'&&Number(r.value_wan)===0))throw Error('第 '+(i+2)+' 行销量字段不合法');
- const t=weekTime(r.period),id=key(r.brand,r.model);if(!groups.has(id))groups.set(id,{id,brand:r.brand,model:r.model,category:r.category,date:r.date,cumulative:new Map(),weekly:new Map()});const g=groups.get(id);if(g.category!==r.category||g.date!==r.date)throw Error('同一产品属性不一致：'+r.brand+' '+r.model);if(g[r.metric].has(t))throw Error('重复销量记录：'+r.model+' '+r.period+' '+r.metric);g[r.metric].set(t,{value:Number(r.value_wan),operator:r.operator,source:'input_'+r.metric});}return groups;}
+function parse(raw){
+ const records=objects(raw,HEADER),groups=new Map();
+ for(const [i,r] of records.entries()){
+  const {brand,model,category,date,period,metric,operator}=r,value=Number(r.value_wan);
+  if(!SalesLongData.hasModelIdentity(brand,model)||!SalesLongData.isRecordType(metric,operator)||
+     !SalesLongData.isDecimal(r.value_wan)||(operator==='<'&&value===0)){
+   throw Error('第 '+(i+2)+' 行销量字段不合法');
+  }
+  const t=weekTime(period),id=key(brand,model);
+  let group=groups.get(id);
+  if(!group){
+   group={id,brand,model,category,date,cumulative:new Map(),weekly:new Map()};
+   groups.set(id,group);
+  }else if(!SalesLongData.sameModelMetadata([group.category,group.date],[category,date])){
+   throw Error('同一产品属性不一致：'+brand+' '+model);
+  }
+  if(!SalesLongData.addUniqueRecord(group[metric],t,{value,operator,source:'input_'+metric})){
+   throw Error('重复销量记录：'+model+' '+period+' '+metric);
+  }
+ }
+ return groups;
+}
 const exact=r=>r?.operator==='=';
 function interval(r){if(!r||r.operator==='≈')return {lo:0,hi:Infinity,open:false};if(r.operator==='=')return {lo:r.value,hi:r.value,open:false};if(r.operator==='>=')return {lo:r.value,hi:Infinity,open:false};return {lo:0,hi:r.value,open:true};}
 function contains(b,v){return (v>b.lo||equal(v,b.lo))&&(b.open?v<b.hi&&!equal(v,b.hi):v<b.hi||equal(v,b.hi));}

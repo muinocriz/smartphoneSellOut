@@ -104,10 +104,10 @@
   }
 
   const projectTables = new Map([
-    ['sales-long.csv', ['/api/tracking', 'brand model category date period metric value_wan operator']],
-    ['model-master.csv', ['/api/models', 'model_id model_name brand brand_group aliases series generation variant form_factor sale_start_date predecessor_id launch_price chip_vendor chip_model base_ram base_rom source_url notes verification tracking_group']],
-    ['sales-estimates.csv', ['/api/rankings', 'dataset_id source series period_type period period_start period_end top_n actual_count rank model brand_group pixels estimated_units estimated_wan fit_k fit_mode calibration_count accepted_count outlier_threshold algorithm_version saved_at']],
-    ['market-share.csv', ['/api/market-share', 'period trend apple huawei osta xiaomi oppo oneplus realme vivo iqoo honor', 'ISO 周,趋势,苹果,华为,OSTA,小米,OPPO,一加,realme,vivo,iQOO,荣耀']]
+    ['sales-long.csv', ['/api/tracking', SalesLongData.COLUMNS]],
+    ['model-master.csv', ['/api/models', 'model_id model_name brand brand_group aliases series generation variant form_factor sale_start_date predecessor_id launch_price chip_vendor chip_model base_ram base_rom source_url notes verification tracking_group'.split(' ')]],
+    ['sales-estimates.csv', ['/api/rankings', 'dataset_id source series period_type period period_start period_end top_n actual_count rank model brand_group pixels estimated_units estimated_wan fit_k fit_mode calibration_count accepted_count outlier_threshold algorithm_version saved_at'.split(' ')]],
+    ['market-share.csv', ['/api/market-share', 'period trend apple huawei osta xiaomi oppo oneplus realme vivo iqoo honor'.split(' '), 'ISO 周,趋势,苹果,华为,OSTA,小米,OPPO,一加,realme,vivo,iQOO,荣耀']]
   ]);
 
   async function readProject(name, decode = response => response.text()) {
@@ -119,8 +119,7 @@
     // Keep existing parsers and their validation rules at the boundary.
     const {data} = await response.json();
     if (!Array.isArray(data)) throw Error('数据库返回的数据格式无效');
-    const [, columns, headings] = table;
-    const keys = columns.split(' ');
+    const [, keys, headings] = table;
     const rows = data.map(row => keys.map(key => {
       const value = row[key];
       return headings && key === 'period' ? String(value ?? '').replace('-W', 'W') : value;

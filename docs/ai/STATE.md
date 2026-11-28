@@ -28,7 +28,8 @@
 | 热销机型与榜单研究模块 · 出图台堆叠图图例 | 新老代际结构、价格带等多周堆叠图曾按固定列宽逐项缩小图例。现在按选定字号测量和换行，预览与图卡导出使用同一布局。待用户验收。 | `2bd2f76`，`posterLegendLayout` / `drawBrandComposition` |
 | 热销机型与榜单研究模块 · 出图台功能精简 | 移除自动发布文案、栏目模板、社媒标题与轮播脚本，清理生成/切换/复制/下载、发布快照及 ZIP 中相关字段。旧本地方案迁移保留图片设置，待用户验收基础图卡和专题出图。 | `b64a115`，`capturePublication` / `StudioPreferences.read` |
 | 全站页面与发布文档 | 旧版销量追踪模块和市场份额模块的独立页面已下线。首页跳转销量增量追踪模块，仍有效的旧 hash 链接兼容；销量数据处理模块移除旧版销量追踪模块会话导入，保留项目及本地宽表同步。data.csv、市场份额数据层和公共组件均保留。待用户验收首页、三个模块导航、导入及部署。域名侧实际配置需独立核实。 | 拆页 `921b74f`；下线 `6c8b49f`、`a51938e`，`index.html` / `site-shell.js` / `sales-data-editor.html` |
-| 销量增量追踪模块与销量数据处理模块 · 数据来源 | 移除双向会话草稿交换及入口；保留项目、本地 CSV、独立临时编辑和草稿恢复。已导入历史快照可继续恢复。待用户验收。 | `start` / `applySource` / `persistDraft`，随本次改动 |
+| 销量增量追踪模块与销量数据处理模块 · 数据来源 | 移除双向会话草稿交换及入口；保留项目、本地 CSV、独立临时编辑和草稿恢复。已导入历史快照可继续恢复。待用户验收。 | `start` / `applySource` / `persistDraft`，`dae5de3` |
+| 销量增量追踪模块 · 数据库更新 | 线上增加「从数据库更新」，原地读取最新正式长表，确认后不恢复旧数据库草稿；尽量保留机型和筛选，读取失败不清除旧草稿。本地静态环境隐藏入口。待用户验收。 | `refreshDatabase` / `start` / `loadSource`，随本次改动 |
 | 热销机型与榜单研究模块 · 出图台字号 | 图例、轴刻度／周次、堆叠区块数值默认 8，字重 400。待用户验收新老代际结构及价格带图卡。 | `53ca9e8`、`eb0c50b`，`PosterTypography.size` |
 | 发布 · GitHub Pages | Pages 与 Cloudflare Workers 分别运行部署，共用静态构建产物。Pages 构建与部署分工，按重试次数区分产物。 | `94114fc`、`37b0a71`，`.github/workflows/pages.yml` |
 | 发布 · GitHub Pages 实时读取 D1 | 构建注入公开 Worker origin，四表运行时读取，管理入口仍限同源；待 Worker 和 Pages 部署及用户验收。 | `readProject` / `projectSupportsAdmin`，`5b4988e` |

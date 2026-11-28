@@ -1040,7 +1040,7 @@ window.addEventListener('pagehide',()=>{
     viewFilters.filter(id=>byId(id)).map(id=>[id,byId(id).dataset.value])
   )});
 });
-function loadSource(text,key,sourcePeriods=[]){
+function loadSource(text,key,sourcePeriods=[],{fresh=false,liveView=null}={}){
   const [header,...rows]=CsvUtils.parseCSV(text,{mode:'editor'});
   const columns=FIELDS.map(f=>header?.indexOf(f)??-1);
   if(header?.length!==FIELDS.length||columns.includes(-1))throw Error('长表字段不匹配');
@@ -1066,7 +1066,9 @@ function loadSource(text,key,sourcePeriods=[]){
   currentSourcePeriods=sourcePeriods;
   sourceText=text;sourceKey='increments.draft.'+key;
   let draft;
-  try{const saved=JSON.parse(sessionStorage.getItem(sourceKey));if(saved?.sourceText===text&&JSON.stringify(saved.sourcePeriods??[])===JSON.stringify(sourcePeriods))draft=saved}catch{}
+  if(!fresh){
+    try{const saved=JSON.parse(sessionStorage.getItem(sourceKey));if(saved?.sourceText===text&&JSON.stringify(saved.sourcePeriods??[])===JSON.stringify(sourcePeriods))draft=saved}catch{}
+  }
   records.length=0;for(const r of draft?.records??initial)records.push([...r]);
   periods.length=0;for(const w of draft?.periods??initialPeriods)periods.push(w);
   for(const k of Object.keys(metadata))delete metadata[k];
@@ -1091,12 +1093,13 @@ function loadSource(text,key,sourcePeriods=[]){
   recentChoices=recentModelKeys();
   activeList=recentListIndex;
   for(const key of recentChoices)selected.add(key);
-  const view=SalesSite.sessionRead(incrementViewKey);
+  const view=liveView??SalesSite.sessionRead(incrementViewKey);
   if(view?.sourceKey===sourceKey&&Array.isArray(view.selected)){
     const restored=view.selected.filter(id=>Object.hasOwn(metadata,id));
     if(restored.length||!view.selected.length){
       selected.clear();
-      activeList=view.recentList?recentListIndex:-1;
+      activeList=liveView&&Number.isInteger(view.activeList)&&view.activeList>=-1&&view.activeList<presetCount+savedLists.length
+        ?view.activeList:view.recentList?recentListIndex:-1;
       const visibleKeys=activeList===recentListIndex?new Set(recentChoices):null;
       for(const id of restored)if(!visibleKeys||visibleKeys.has(id))selected.add(id);
     }
@@ -1105,20 +1108,26 @@ function loadSource(text,key,sourcePeriods=[]){
       if(byId(id)&&[...byId(id).querySelectorAll('button')].some(button=>button.dataset.value===value))selectFilter(id,value);
     }
   }
-  choices();refresh({resetRange:activeList===recentListIndex});
+  choices();refresh({resetRange:!liveView&&activeList===recentListIndex});
   byId('chartControls').hidden=false;
   byId('content').hidden=false;byId('loadState').hidden=true;
 }
-function applySource(source){
+function applySource(source,options){
   const {text,name,kind,periods:sourcePeriods}=source;
   const key=kind==='local'?(source.draftKey||'local.'+name):'project';
-  loadSource(text,key,sourcePeriods);
+  loadSource(text,key,sourcePeriods,options);
   const label=kind==='local'?'本地 · '+name:SalesSite.projectUsesDatabase?'数据库 · 销量长表':'项目 · sales-long.csv';
   byId('currentSource').textContent='当前来源：'+label;
   byId('currentSource').hidden=false;
 }
 async function start(kind,file){
+  const databaseUpdate=kind==='database';
+  if(databaseUpdate&&!SalesSite.projectUsesDatabase)return;
   const sequence=++loadSequence;
+  if(databaseUpdate){
+    byId('loadState').hidden=false;
+    byId('loadState').textContent='正在从数据库更新销量数据…';
+  }
   try{
     let source;
     if(kind==='restore'){
@@ -1137,9 +1146,28 @@ async function start(kind,file){
       source={kind:'project',text:await SalesSite.readProject('sales-long.csv')};
     }
     if(sequence!==loadSequence)return;
-    if(kind!=='restore'&&activeEdit)return alert('请先保存或取消当前编辑。');
-    if(kind!=='restore'&&sourceText&&hasDraft()&&!confirm('切换数据来源将替换当前显示的临时修改。继续导入？'))return;
-    applySource(source);
+    if(kind!=='restore'&&activeEdit){
+      if(databaseUpdate)byId('loadState').hidden=true;
+      return alert('请先保存或取消当前编辑。');
+    }
+    if(databaseUpdate){
+      const databaseDraftKey='increments.draft.project';
+      let savedDatabaseDraft=false;
+      try{savedDatabaseDraft=sessionStorage.getItem(databaseDraftKey)!==null}catch{}
+      if(((sourceText&&hasDraft())||savedDatabaseDraft)&&!confirm('从数据库更新将使用最新正式数据，不再恢复旧的数据库临时修改。当前本地修改如需保留，请先导出 CSV。继续更新？')){
+        byId('loadState').hidden=true;
+        return;
+      }
+      const liveView=sourceText?{sourceKey:databaseDraftKey,selected:[...selected],activeList,recentList:activeList===recentListIndex,filters:Object.fromEntries(viewFilters.map(id=>[id,byId(id).dataset.value]))}:null;
+      applySource(source,{fresh:true,liveView});
+      // Only remove the old database draft after the new data has loaded successfully.
+      try{sessionStorage.removeItem(databaseDraftKey)}catch{}
+      byId('loadState').textContent='已从数据库更新销量数据。';
+      byId('loadState').hidden=false;
+    }else{
+      if(kind!=='restore'&&sourceText&&hasDraft()&&!confirm('切换数据来源将替换当前显示的临时修改。继续导入？'))return;
+      applySource(source);
+    }
     if(kind!=='restore'){
       const saved=SalesSite.sessionWrite(localSourceKey,source.kind==='project'?null:source);
       if(!saved)alert('浏览器无法记住本次导入。切换模块前请先导出 CSV。');
@@ -1149,6 +1177,12 @@ async function start(kind,file){
   }
 }
 byId('reloadProject').onclick=()=>start('project');
+const refreshDatabase=byId('refreshDatabase');
+refreshDatabase.hidden=!SalesSite.projectUsesDatabase;
+refreshDatabase.onclick=async()=>{
+  refreshDatabase.disabled=true;
+  try{await start('database')}finally{refreshDatabase.disabled=false}
+};
 byId('openLocalFile').onclick=()=>byId('localFile').click();
 byId('localFile').onchange=event=>{const file=event.target.files[0];if(file)start('local',file);event.target.value=''};
 start('restore');

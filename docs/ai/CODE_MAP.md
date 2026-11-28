@@ -31,6 +31,6 @@
 | 销量数据处理模块 · 数据库整表录入 | sales-data-editor.html、cloudflare-worker.mjs、sales-editor-database.mjs | `reviewDatabase` → `adminRoute` / `verifyAdmin` → `readEditorSheet` / `editEditorSheet`；市场份额网格见 `renderMarketGrid`，写入校验复用 `parseMarketShareCSV`；发布记录见 `migrations/0002_sales_editor_releases.sql` 和 `migrations/0003_market_share_editor_releases.sql` |
 | 销量增量追踪模块 · 图表、横纵轴和 PNG | sales-increment.html、sales-increment.js | `loadSource` → `seriesRows` → `plot`；桌面 `exportChart`、手机 `exportMobileChart`，共享排版见上 |
 | 销量增量追踪模块 · 品牌与机型列表 | sales-increment.js | `syncBrand` → `choiceKeys` / `applyKeys`；近12周新机按 `recentModelKeys` 生成 |
-| 销量增量追踪模块 · 选中机型批量编辑、草稿与长表 | sales-increment.js | `drawEditor` → `drawEditCell`；`saveEdit` / `openSpecialEdit`、`persistDraft`、`longCSV`；顶部导入查 `start` → `applySource` → `loadSource`；`pagehide` 仅保存自身视图状态 |
+| 销量增量追踪模块 · 选中机型批量编辑、草稿与长表 | sales-increment.js | `drawEditor` → `drawEditCell`；`saveEdit` / `openSpecialEdit`、`persistDraft`、`longCSV`；顶部导入及数据库更新查 `refreshDatabase` / `start` → `applySource` → `loadSource`；`pagehide` 仅保存自身视图状态 |
 
 专题算法细节按标题查 [热销机型与榜单研究模块架构](../MODULE3_ARCHITECTURE.md)，出图文案按专题查 [公众图卡规范](../PUBLIC_POSTER_COPY_GUIDE.md)。旧文档与现状的已知差异见 [状态](STATE.md)。

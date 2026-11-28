@@ -79,6 +79,12 @@
     }
   }
 
+  // Remove retired cross-module transfer payloads, not module-local drafts.
+  try {
+    sessionStorage.removeItem('phoneSales.incrementImport');
+    sessionStorage.removeItem('phoneSales.editorImport');
+  } catch (_) {}
+
   const projectAPIOrigin = ''; // GitHub Pages build injects the public Worker origin.
   const projectUsesDatabase = root.dataset.salesSource === 'd1' || Boolean(projectAPIOrigin);
   const projectSupportsAdmin = root.dataset.salesSource === 'd1' && !projectAPIOrigin;

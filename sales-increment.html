@@ -79,7 +79,7 @@
   outline: 2px solid var(--control-accent);
   outline-offset: 1px;
 }
-.source-actions ~ #currentSource,.source-actions ~ #loadState,.source-actions ~ #editorImportStatus{margin:8px 0 0}
+.source-actions ~ #currentSource,.source-actions ~ #loadState{margin:8px 0 0}
 #chartControls{margin-top:12px}
 .milestone-row{margin-top:12px}
 .milestone-row input{width:12em;max-width:100%}
@@ -133,10 +133,8 @@ main label.inline-field:not([hidden]) {
   <button id="reloadProject" type="button">从项目导入</button>
   <button id="openLocalFile" type="button">从本地导入</button>
   <input id="localFile" type="file" accept=".csv,text/csv" hidden>
-  <button id="importEditorDraft" type="button" disabled>从销量数据处理导入</button>
 </div>
 <p id="currentSource" hidden></p>
-<p id="editorImportStatus" role="status"></p>
 <p id="loadState" role="status">正在读取项目长表…</p>
 <div id="chartControls" hidden>
 <div class="filter-row"><span id="brand-label">品牌</span><div class="filter-options brands" id="brand" role="group" aria-labelledby="brand-label" data-value="">

@@ -4,6 +4,10 @@
 
 本项目尚未采用严格的语义化版本号；以下按提交／合并日期（UTC）归纳重要变更，并链接相关 PR 或提交。
 
+## 2026-11-28
+
+- 移除销量增量追踪模块和销量数据处理模块之间的双向会话草稿导入入口及交换逻辑，正式数据通过 D1 共享；保留各自的临时编辑、草稿恢复和 CSV 导入导出。
+
 ## 2026-11-27
 
 - [866b48a](https://github.com/muinocriz/smartphoneSellOut/commit/866b48a) / [36e43c0](https://github.com/muinocriz/smartphoneSellOut/commit/36e43c0) / [311db31](https://github.com/muinocriz/smartphoneSellOut/commit/311db31) / [a20ca65](https://github.com/muinocriz/smartphoneSellOut/commit/a20ca65)：出图台支持通过 DeepSeek 手动生成、编辑和复制微博草稿。可切换朴素简洁（默认）、深度分析和标题党风，各自保存提示词。草稿基于当前图卡显示数据，样本覆盖率假设和图例说明只供解读。修复 Worker 使用不受支持的重定向模式导致的 502。

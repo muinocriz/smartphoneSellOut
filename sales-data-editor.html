@@ -25,7 +25,7 @@
 <header class="site-header"></header>
 <main>
 <section class="panel" aria-label="导入与导出">
-<div class="toolbar" role="group" aria-label="扩展销量表"><strong class="source-label">扩展销量表：</strong><button class="primary" id="projectSales">从项目导入</button><button id="githubSalesSync" hidden>从 GitHub 导入扩展销量表</button><button id="weiboSalesImport" hidden disabled>微博导入</button><button id="weiboLastReport" hidden>上次微博导入报告</button><button id="incrementDraft" disabled>从销量增量追踪导入</button><button id="newData">新建</button><button id="undoBtn" disabled>撤销</button><button id="redoBtn" disabled>重做</button><span class="spacer"></span><a id="openDatabaseEditor" class="file-btn" href="/admin/" hidden>数据库录入</a><button id="saveDatabaseSales" class="primary" hidden disabled>保存到数据库</button><button id="longExport" disabled>导出</button></div>
+<div class="toolbar" role="group" aria-label="扩展销量表"><strong class="source-label">扩展销量表：</strong><button class="primary" id="projectSales">从项目导入</button><button id="githubSalesSync" hidden>从 GitHub 导入扩展销量表</button><button id="weiboSalesImport" hidden disabled>微博导入</button><button id="weiboLastReport" hidden>上次微博导入报告</button><button id="newData">新建</button><button id="undoBtn" disabled>撤销</button><button id="redoBtn" disabled>重做</button><span class="spacer"></span><a id="openDatabaseEditor" class="file-btn" href="/admin/" hidden>数据库录入</a><button id="saveDatabaseSales" class="primary" hidden disabled>保存到数据库</button><button id="longExport" disabled>导出</button></div>
 <div class="toolbar source-row" role="group" aria-label="数据表"><strong class="source-label">数据表：</strong><button id="syncProject">从项目导入</button><button id="syncLocal">从本地导入</button><input id="syncFile" class="sr-only" type="file" accept=".csv,text/csv"></div>
 <div class="import-options"><label class="check muted">无年份周列使用年份 <input id="defaultYear" type="number" min="1900" max="9999" step="1" value="2026"></label></div>
 <p class="muted" id="editorImportHint" style="margin-top:7px">默认读取项目扩展销量表（已有本地草稿优先恢复）。从项目或本地导入数据表时，先预览新增及冲突记录，再确认增量同步；保留已有独立周增量和特殊记录。</p>
@@ -988,44 +988,6 @@ $('syncApply').onclick=()=>{
  }catch(err){status('应用同步失败：'+err.message,true);$('syncDialog').close();}
 };
 $('syncDialog').addEventListener('close',()=>{pendingSync=null;});
-window.addEventListener('pagehide',()=>{
- const key='phoneSales.editorImport';
- let transfer=null;
- try{
-  const content=state.ready&&state.isLong?salesContent():null;
-  if(content!==null&&content!==sourceSales){
-   validMeta();
-   const rows=longRows();
-   if(rows.length){
-    const csv=csvText([LONG,...rows]);
-    const periods=state.weeks.slice();
-    const previous=SalesSite.sessionRead(key);
-    if(previous?.csv===csv&&JSON.stringify(previous.periods)===JSON.stringify(periods))return;
-    transfer={csv,periods,imported:false};
-   }
-  }
- }catch{}
- SalesSite.sessionWrite(key,transfer);
-});
-function incrementDraft(){return SalesSite.sessionRead("phoneSales.incrementImport");}
-function refreshIncrementImport(){
- $('incrementDraft').disabled=!incrementDraft();
-}
-$('incrementDraft').onclick=()=>{
- try{
-  const draft=incrementDraft();
-  if(!draft)return refreshIncrementImport();
-  const next=parseFile(draft.csv);
-  if(!next.isLong)throw Error('缺少长表字段');
-  next.weeks=[...new Set([...next.weeks,...draft.periods])].sort();
-  flush();
-  if(state.ready&&!confirm('从销量增量追踪导入并替换当前销量数据？'))return;
-  replaceState(next);persistDraft();runChecks();status('已导入销量增量追踪的临时长表。');
- }catch(e){status('导入失败：'+e.message,true);}
-};
-window.addEventListener('pageshow',refreshIncrementImport);
-window.addEventListener('focus',refreshIncrementImport);
-refreshIncrementImport();
 $('projectSales').onclick=()=>loadProjectSales();
 $('projectMaster').onclick=()=>loadProjectMaster();
 $('openDatabaseEditor').hidden=!SalesSite.projectSupportsAdmin||adminEditor;

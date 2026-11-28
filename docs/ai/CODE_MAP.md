@@ -7,7 +7,7 @@
 | 共用 CSV 语法 | csv-utils.js、studio-assets.mjs | `decodeCSV`、`parseCSV`、`stringifyCSV`；各入口选择原有的引号、空白记录和输出格式；构建发布到根目录和 `/studio/` |
 | 共用 ISO 自然周 | iso-sales-week.js | `isoWeek1Monday`、`isoWeekMonday`；销量数据处理、微博销量解析、Worker 和榜单研究复用，各入口继续校验各自的日期格式和年份范围 |
 | 共用销量长表结构与校验 | sales-long-data.js | `COLUMNS`、`isRecordType`、`isDecimal`、`numberText`、`recordKey`、`sameModelMetadata`、`addUniqueRecord`；表头策略与品牌名归一化由读取入口决定 |
-| 全站导航、主题、首页跳转、跨页临时数据 | index.html、site-shell.js | `routes`（默认销量增量追踪模块）、`pages`、`applyTheme` / `toggleTheme` / `createDeploymentLink`、`sessionRead` / `sessionWrite`；生产路径另看 scripts/build-cloudflare.mjs |
+| 全站导航、主题、首页跳转、页面会话状态 | index.html、site-shell.js | `routes`（默认销量增量追踪模块）、`pages`、`applyTheme` / `toggleTheme` / `createDeploymentLink`、`sessionRead` / `sessionWrite`；生产路径另看 scripts/build-cloudflare.mjs |
 | 全站导航 · 当前部署提交 | scripts/build-cloudflare.mjs、site-shell.js、site-shell.css | `prepareModulePage` 将构建工作区的 Git HEAD 写入页面及导航资源 URL；导航显示 7 位短 SHA 并链接完整提交。 |
 | D1 运行时读取（含 GitHub Pages） | site-shell.js、scripts/build-cloudflare.mjs、cloudflare-worker.mjs、.github/workflows/pages.yml | `readProject` / `projectSupportsAdmin` → `readData`；构建注入 `SALES_PAGES_API_ORIGIN`，公开四表允许跨域 |
 | D1 数据快照、静态站发布与派生销量面板 | cloudflare-worker.mjs、scripts/export-db-snapshot.mjs、scripts/build-cloudflare.mjs、.github/workflows/pages.yml | `readPublicSnapshot` → `snapshotCSV` / `verifySnapshot` → `generateSalesPanel`；部署元数据 `sales-snapshot.json` |
@@ -25,12 +25,12 @@
 | 热销机型与榜单研究模块 · 微博文案 | sales-studio.js、cloudflare-worker.mjs、weibo-draft.mjs | `weiboCardData` → `initWeiboDraft` → `adminRoute` / `verifyAdmin` → `generateWeiboDraft`；取当前图卡显示数据，风格切换查 `weiboStyleOptions`，提示词和生成逻辑查 `initWeiboDraft`。 |
 | 热销机型与榜单研究模块 · 图卡字体与排版 | poster-typography.js、sales-studio.js、sales-poster.js、research-charts.js | `PosterTypography.mount` → `getVisualPreferences` / `capturePublication` → `drawPoster`；`posterRoleFit`、`posterFont` 与轴/图例/堆叠测量同步；`posterXAxisLayout` / `posterYAxisTick` / `posterAxisGutter` 统一轴距，专题 `spacing` 配置随排版 JSON 导出。 |
 | 销量数据处理模块 · 网格编辑、特殊值、核查、撤销 | sales-data-editor.html | `commitInput` / `openSpecial`、`runChecks`、`travelHistory`、`persistDraft` |
-| 销量数据处理模块 · 项目/本地宽表、GitHub 扩展销量表及会话草稿导入 | sales-data-editor.html | `previewSync` / `readGitHubSales` → `buildSyncPlan`；销量增量追踪模块入口 `incrementDraft`；导出查 `salesContent` / `masterContent` |
+| 销量数据处理模块 · 项目/本地宽表、GitHub 扩展销量表导入 | sales-data-editor.html | `previewSync` / `readGitHubSales` → `buildSyncPlan`；导出查 `salesContent` / `masterContent` |
 | 销量数据处理模块 · 微博文本导入 | weibo-sales-parser.js、sales-data-editor.html、studio-assets.mjs | `WeiboSalesParser.parse` → `openWeiboSalesImport` / `buildSyncPlan` → `renderSyncPlan` / `saveWeiboReport`；后台专用入口，复用草稿合并及数据库保存 |
 | 销量数据处理模块 · 市场份额微博导入 | weibo-market-parser.js、sales-data-editor.html、market-share-data.js、studio-assets.mjs | `WeiboMarketParser.parse` → `marketImportIndex` / `weiboMarketParse` / `weiboMarketApply`；仅周报，复用市场份额校验和草稿保存 |
 | 销量数据处理模块 · 数据库整表录入 | sales-data-editor.html、cloudflare-worker.mjs、sales-editor-database.mjs | `reviewDatabase` → `adminRoute` / `verifyAdmin` → `readEditorSheet` / `editEditorSheet`；市场份额网格见 `renderMarketGrid`，写入校验复用 `parseMarketShareCSV`；发布记录见 `migrations/0002_sales_editor_releases.sql` 和 `migrations/0003_market_share_editor_releases.sql` |
 | 销量增量追踪模块 · 图表、横纵轴和 PNG | sales-increment.html、sales-increment.js | `loadSource` → `seriesRows` → `plot`；桌面 `exportChart`、手机 `exportMobileChart`，共享排版见上 |
 | 销量增量追踪模块 · 品牌与机型列表 | sales-increment.js | `syncBrand` → `choiceKeys` / `applyKeys`；近12周新机按 `recentModelKeys` 生成 |
-| 销量增量追踪模块 · 选中机型批量编辑、草稿与长表 | sales-increment.js | `drawEditor` → `drawEditCell`；`saveEdit` / `openSpecialEdit`、`persistDraft`、`longCSV`；顶部导入查 `start` → `applySource` → `loadSource`，销量数据处理模块通过 `pagehide` 发布会话更新 |
+| 销量增量追踪模块 · 选中机型批量编辑、草稿与长表 | sales-increment.js | `drawEditor` → `drawEditCell`；`saveEdit` / `openSpecialEdit`、`persistDraft`、`longCSV`；顶部导入查 `start` → `applySource` → `loadSource`；`pagehide` 仅保存自身视图状态 |
 
 专题算法细节按标题查 [热销机型与榜单研究模块架构](../MODULE3_ARCHITECTURE.md)，出图文案按专题查 [公众图卡规范](../PUBLIC_POSTER_COPY_GUIDE.md)。旧文档与现状的已知差异见 [状态](STATE.md)。

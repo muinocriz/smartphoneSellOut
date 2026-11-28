@@ -1015,11 +1015,6 @@ function longCSV({bom=false}={}){
  return CsvUtils.stringifyCSV([FIELDS,...rows],{bom});
 }
 function hasDraft(){return periods.length!==initialPeriods.length||JSON.stringify(records)!==JSON.stringify(initial)}
-const incrementImportKey='phoneSales.incrementImport';
-function updateIncrementImport(){
-  const draft=hasDraft()?{csv:longCSV(),periods:periods.slice()}:null;
-  if(!SalesSite.sessionWrite(incrementImportKey,draft))alert('浏览器无法保存销量增量草稿。切换模块前请先导出 CSV。');
-}
 document.querySelector('#download').onclick=()=>{
  if(activeEdit)return alert('请先保存或取消当前编辑');
  const url=URL.createObjectURL(new Blob([longCSV({bom:true})],{type:'text/csv;charset=utf-8'}));
@@ -1030,7 +1025,6 @@ document.querySelector('#download').onclick=()=>{
 
 let sourceText='',sourceKey='',loadSequence=0,currentSourcePeriods=[];
 function persistDraft(){
-  updateIncrementImport();
   try{
     const changed=periods.length!==initialPeriods.length||JSON.stringify(records)!==JSON.stringify(initial);
     if(changed)sessionStorage.setItem(sourceKey,JSON.stringify({sourceText,records,periods,sourcePeriods:currentSourcePeriods}));
@@ -1114,42 +1108,30 @@ function loadSource(text,key,sourcePeriods=[]){
   choices();refresh({resetRange:activeList===recentListIndex});
   byId('chartControls').hidden=false;
   byId('content').hidden=false;byId('loadState').hidden=true;
-  updateIncrementImport();
-}
-const editorImportKey='phoneSales.editorImport';
-function pendingEditorDraft(){
-  const draft=SalesSite.sessionRead(editorImportKey);
-  return typeof draft?.csv==='string'&&Array.isArray(draft.periods)&&!draft.imported?draft:null;
-}
-function refreshEditorImport(){
-  const button=byId('importEditorDraft');
-  button.disabled=!pendingEditorDraft();
-  byId('editorImportStatus').textContent=button.disabled?'销量数据处理暂无可导入的更新。':'销量数据处理有可导入的更新。';
 }
 function applySource(source){
   const {text,name,kind,periods:sourcePeriods}=source;
-  const key=kind==='editor'?'editor':kind==='local'?'local.'+name:'project';
+  const key=kind==='local'?(source.draftKey||'local.'+name):'project';
   loadSource(text,key,sourcePeriods);
-  const label=kind==='editor'?'销量数据处理':kind==='local'?'本地 · '+name:SalesSite.projectUsesDatabase?'数据库 · 销量长表':'项目 · sales-long.csv';
+  const label=kind==='local'?'本地 · '+name:SalesSite.projectUsesDatabase?'数据库 · 销量长表':'项目 · sales-long.csv';
   byId('currentSource').textContent='当前来源：'+label;
   byId('currentSource').hidden=false;
 }
 async function start(kind,file){
   const sequence=++loadSequence;
   try{
-    let source,draft;
+    let source;
     if(kind==='restore'){
       const saved=SalesSite.sessionRead(localSourceKey);
       if(typeof saved?.text==='string'&&typeof saved?.name==='string'){
-        source={...saved,kind:saved.kind==='editor'?'editor':'local'};
+        // Keep already imported historical data as a local snapshot, including its own draft.
+        source=saved.kind==='editor'
+          ? {...saved,kind:'local',draftKey:'editor'}
+          : {...saved,kind:'local'};
       }
     }else if(kind==='local'){
       const text=CsvUtils.decodeCSV(await file.arrayBuffer());
       source={kind,name:file.name,text};
-    }else if(kind==='editor'){
-      draft=pendingEditorDraft();
-      if(!draft)return refreshEditorImport();
-      source={kind,name:'sales-long.csv',text:draft.csv,periods:draft.periods};
     }
     if(!source){
       source={kind:'project',text:await SalesSite.readProject('sales-long.csv')};
@@ -1160,21 +1142,15 @@ async function start(kind,file){
     applySource(source);
     if(kind!=='restore'){
       const saved=SalesSite.sessionWrite(localSourceKey,source.kind==='project'?null:source);
-      if(draft&&saved)SalesSite.sessionWrite(editorImportKey,{...draft,imported:true});
       if(!saved)alert('浏览器无法记住本次导入。切换模块前请先导出 CSV。');
     }
   }catch(error){
     if(sequence===loadSequence){byId('loadState').hidden=false;byId('loadState').textContent=error.message}
-  }finally{
-    if(sequence===loadSequence)refreshEditorImport();
   }
 }
 byId('reloadProject').onclick=()=>start('project');
 byId('openLocalFile').onclick=()=>byId('localFile').click();
-byId('importEditorDraft').onclick=()=>start('editor');
 byId('localFile').onchange=event=>{const file=event.target.files[0];if(file)start('local',file);event.target.value=''};
-window.addEventListener('pageshow',refreshEditorImport);
-refreshEditorImport();
 start('restore');
 document.fonts?.addEventListener('loadingdone',()=>{if(current&&!activeEdit)draw()});
 

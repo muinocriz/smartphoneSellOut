@@ -467,8 +467,7 @@ async function saveResearchBundle(){
  }catch(err){publicationResult('打包失败：'+err.message,'error')}finally{endPublication()}
 }
 
-function csvQuote(v){return '"'+String(v??'').replace(/"/g,'""')+'"'}
-function toCSV(rows){return '\ufeff'+rows.map(a=>a.map(csvQuote).join(',')).join('\r\n')}
+function toCSV(rows){return CsvUtils.stringifyCSV(rows,{bom:true})}
 function insightRows(o=socialData()){const a=[['榜单','名次','品牌系列','机型','柱长像素','相对榜首柱长(%)','估算销量(台)','估算销量(万台)','入榜样本估算销量占比(%)','本机销量/榜首(%)','榜首/本机(倍)','领先下一名(台)','落后上一名(台)','标定状态']];o.models.forEach((m,i)=>{const next=o.models[i+1],prev=o.models[i-1];a.push([o.d.label,m.rank,window.BrandUtils.groupLabel(m.brand),m.name,m.pixels,(m.rel*100).toFixed(3),m.sale===null?'':m.sale.toFixed(0),m.sale===null?'':(m.sale/10000).toFixed(4),(m.share*100).toFixed(3),(m.rel*100).toFixed(3),(1/m.rel).toFixed(3),m.sale===null||!next?'':(m.sale-next.sale).toFixed(0),m.sale===null||!prev?'':(prev.sale-m.sale).toFixed(0),o.fit.fitMode])});a.push([]);a.push(['注意','样本仅覆盖原榜上榜条目，不代表全市场销量或市场份额。未标定时绝对销量列留空。']);return a}
 function brandRows(o=socialData()){const r=[['榜单','品牌系列','上榜条目数','入榜柱长像素合计','入榜样本估算销量(台)','入榜样本估算销量(万台)','入榜样本占比(%)','系列主力机型','统计范围']];o.brands.forEach(b=>r.push([o.d.label,window.BrandUtils.groupLabel(b.brand),b.count,b.pixels,b.sale===null?'':b.sale.toFixed(0),b.sale===null?'':(b.sale/10000).toFixed(4),(b.share*100).toFixed(3),b.hero,'仅当前截图上榜样本，品牌系列合并统计']));r.push([]);r.push(['注意','形如“华为 畅享 100/100m”的合并条目视为一条记录，无法拆分机型销量。']);return r}
 function slugName(s){return String(s).replace(/[\\/:*?"<>|\s]+/g,'_').slice(0,75)}

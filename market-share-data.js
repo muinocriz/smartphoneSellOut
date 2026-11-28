@@ -2,10 +2,11 @@
  * Huawei includes OSTA; OPPO includes OnePlus/realme; vivo includes iQOO. Values are percentage points.
  */
 (function(root,factory){
-  const api=factory();
+  const CsvUtils=typeof module==='object'&&module.exports?require('./csv-utils.js'):root.CsvUtils;
+  const api=factory(CsvUtils);
   if(typeof module==='object'&&module.exports)module.exports=api;
   root.MarketShareData=api;
-})(typeof globalThis!=='undefined'?globalThis:this,function(){
+})(typeof globalThis!=='undefined'?globalThis:this,function(CsvUtils){
   'use strict';
   const REQUIRED=['ISO 周','趋势','苹果','华为','小米','OPPO','一加','realme','vivo','iQOO','荣耀'];
   const KEY_ALIASES=new Map(REQUIRED.map(s=>[s.replace(/\s+/g,'').toLowerCase(),s]));
@@ -16,37 +17,8 @@
   const DAY=86400000;
   const round=n=>Math.round((n+Number.EPSILON)*100)/100;
 
-  function parseCSV(text){
-    const rows=[];let row=[],field='',quoted=false;
-    const source=String(text).replace(/^\uFEFF/,'');
-    for(let i=0;i<source.length;i++){
-      const ch=source[i];
-      if(quoted){
-        if(ch==='"'){
-          if(source[i+1]==='"'){field+='"';i++}else quoted=false;
-        }else field+=ch;
-      }else if(ch==='"'){
-        if(field.trim())throw new Error('CSV 引号格式错误');
-        quoted=true;
-      }else if(ch===','){
-        row.push(field.trim());field='';
-      }else if(ch==='\r'||ch==='\n'){
-        if(ch==='\r'&&source[i+1]==='\n')i++;
-        row.push(field.trim());field='';
-        if(row.some(v=>v!==''))rows.push(row);
-        row=[];
-      }else field+=ch;
-    }
-    if(quoted)throw new Error('CSV 引号未闭合');
-    row.push(field.trim());
-    if(row.some(v=>v!==''))rows.push(row);
-    return rows;
-  }
-
-  function decodeCSV(buffer){
-    try{return new TextDecoder('utf-8',{fatal:true}).decode(buffer)}
-    catch(_){return new TextDecoder('gbk').decode(buffer)}
-  }
+  const parseCSV=text=>CsvUtils.parseCSV(text,{mode:'market-share'});
+  const {decodeCSV}=CsvUtils;
 
   function parseMarketShareCSV(text,isoWeekMonday){
     if(typeof isoWeekMonday!=='function')throw new Error('缺少 ISO 周历函数');

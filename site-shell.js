@@ -121,12 +121,11 @@
     if (!Array.isArray(data)) throw Error('数据库返回的数据格式无效');
     const [, columns, headings] = table;
     const keys = columns.split(' ');
-    const quote = value => '"' + String(value ?? '').replaceAll('"', '""') + '"';
     const rows = data.map(row => keys.map(key => {
       const value = row[key];
-      return headings && key === 'period' ? quote(String(value ?? '').replace('-W', 'W')) : quote(value);
-    }).join(','));
-    return [(headings ? headings.split(',') : keys).map(quote).join(','), ...rows].join('\r\n');
+      return headings && key === 'period' ? String(value ?? '').replace('-W', 'W') : value;
+    }));
+    return CsvUtils.stringifyCSV([headings ? headings.split(',') : keys, ...rows]);
   }
 
   window.SalesSite = {sessionRead, sessionWrite, readProject, projectUsesDatabase, projectSupportsAdmin};

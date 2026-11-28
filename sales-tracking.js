@@ -1,6 +1,7 @@
 /* Shared cumulative / weekly sales calculation. No DOM, storage or network. */
 (function(root){
 'use strict';
+const CsvUtils=typeof module==='object'&&module.exports?require('./csv-utils.js'):root.CsvUtils;
 const VERSION='tracking-v1', DAY=86400000, WEEK=7*DAY;
 const HEADER=Object.freeze('brand,model,category,date,period,metric,value_wan,operator'.split(','));
 const norm=v=>String(v??'').normalize('NFKC').toUpperCase().replace(/[\s\u200B-\u200D\u2060\uFEFF]+/g,'');
@@ -8,13 +9,7 @@ const brandKey=v=>({APPLE:'苹果',IPHONE:'苹果',XIAOMI:'小米',HUAWEI:'华�
 const key=(brand,model)=>JSON.stringify([brandKey(brand),norm(model)]);
 const equal=(a,b)=>a===b||(Number.isFinite(a)&&Number.isFinite(b)&&Math.abs(a-b)<=1e-10*Math.max(1,Math.abs(a),Math.abs(b)));
 const clean=n=>Number(n.toPrecision(15));
-function readCSV(raw){ // Use the existing shared parser when integrated; standalone fallback for preview.
- if(root.SalesSeries?.readCSV)return root.SalesSeries.readCSV(raw);
- const rows=[];let row=[],cell='',q=false,closed=false;const s=String(raw).replace(/^\uFEFF/,'');
- function field(){row.push(cell);cell='';closed=false;}function line(){field();if(row.some(v=>v!==''))rows.push(row);row=[];}
- for(let i=0;i<s.length;i++){const c=s[i];if(q){if(c==='"'){if(s[i+1]==='"'){cell+='"';i++;}else{q=false;closed=true;}}else cell+=c;}else if(c===',')field();else if(c==='\r'||c==='\n'){line();if(c==='\r'&&s[i+1]==='\n')i++;}else if(c==='"'&&!cell&&!closed)q=true;else if(c==='"'||closed)throw Error('CSV 引号格式错误');else cell+=c;}
- if(q)throw Error('CSV 引号未闭合');if(row.length||cell||closed)line();return rows;
-}
+const {parseCSV:readCSV}=CsvUtils;
 function objects(raw,required){const rows=readCSV(raw),h=rows.shift()?.map(v=>v.trim());if(!h||new Set(h).size!==h.length||required.some(k=>!h.includes(k)))throw Error('CSV 缺少必要字段或表头重复：'+required.join(', '));return rows.map((r,i)=>{if(r.length!==h.length)throw Error('CSV 第 '+(i+2)+' 行列数不正确');return Object.fromEntries(h.map((k,j)=>[k,r[j].trim()]));});}
 function start(y){if(root.IsoSalesWeek)return root.IsoSalesWeek.isoWeek1Monday(y);const d=new Date(0);d.setUTCFullYear(y,0,4);d.setUTCHours(0,0,0,0);return +d-((d.getUTCDay()+6)%7)*DAY;}
 function weekTime(p){const m=String(p).match(/^([1-9]\d{3})-W(\d{2})$/);if(!m)throw Error('非法 ISO 周：'+p);const y=+m[1],w=+m[2],t=root.IsoSalesWeek?root.IsoSalesWeek.isoWeekMonday(y,w):start(y)+(w-1)*WEEK;if(w<1||w>53||t==null||t>=start(y+1))throw Error('非法 ISO 周：'+p);return t;}

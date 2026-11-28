@@ -3,7 +3,6 @@ const FIELDS=["brand","model","category","date","period","metric","value_wan","o
 const records=[];
 const metadata=Object.create(null);
 function numberText(raw){let s=String(raw).trim().replace(/，/g,',');if(!s)return null;if(/^\d{1,3}(,\d{3})+(\.\d+)?$/.test(s))s=s.replace(/,/g,'');if(!/^(?:\d+(?:\.\d*)?|\.\d+)$/.test(s)||!Number.isFinite(Number(s))||Number(s)<0)throw Error('请输入非负数字（单位：万台）。');if(s.startsWith('.'))s='0'+s;if(s.endsWith('.'))s=s.slice(0,-1);return s;}
-function parseCSV(text){const rows=[];let row=[],f='',q=false;const s=text.replace(/^\uFEFF/,'');for(let i=0;i<s.length;i++){const c=s[i];if(q){if(c==='"'){if(s[i+1]==='"'){f+='"';i++;}else q=false;}else f+=c;}else if(c==='"'&&f===''){q=true;}else if(c===','){row.push(f);f='';}else if(c==='\r'||c==='\n'){if(c==='\r'&&s[i+1]==='\n')i++;row.push(f);if(row.some(x=>x.trim()!==''))rows.push(row);row=[];f='';}else f+=c;}if(q)throw Error('CSV 引号未闭合。');row.push(f);if(row.some(x=>x.trim()!==''))rows.push(row);return rows;}
 
 const fmt=n=>Number(n.toFixed(4)).toLocaleString('zh-CN',{maximumFractionDigits:4});
 function monday(period){
@@ -1012,11 +1011,9 @@ byId('reset').onclick=()=>{
   persistDraft();refresh();
 };
 
-function longCSV(){
- const header=FIELDS;
- const lines=[header,...records.map(([name,week,kind,v,op])=>[...metadata[name],week,kind,v,op])];
- const quote=v=>'"'+String(v).replaceAll('"','""')+'"';
- return lines.map(row=>row.map(quote).join(',')).join('\r\n');
+function longCSV({bom=false}={}){
+ const rows=records.map(([name,week,kind,v,op])=>[...metadata[name],week,kind,v,op].map(String));
+ return CsvUtils.stringifyCSV([FIELDS,...rows],{bom});
 }
 function hasDraft(){return periods.length!==initialPeriods.length||JSON.stringify(records)!==JSON.stringify(initial)}
 const incrementImportKey='phoneSales.incrementImport';
@@ -1026,7 +1023,7 @@ function updateIncrementImport(){
 }
 document.querySelector('#download').onclick=()=>{
  if(activeEdit)return alert('请先保存或取消当前编辑');
- const url=URL.createObjectURL(new Blob(['\uFEFF'+longCSV()],{type:'text/csv;charset=utf-8'}));
+ const url=URL.createObjectURL(new Blob([longCSV({bom:true})],{type:'text/csv;charset=utf-8'}));
  const link=document.createElement('a');link.href=url;link.download='sales-long.csv';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
 };
 
@@ -1051,7 +1048,7 @@ window.addEventListener('pagehide',()=>{
   )});
 });
 function loadSource(text,key,sourcePeriods=[]){
-  const [header,...rows]=parseCSV(text);
+  const [header,...rows]=CsvUtils.parseCSV(text,{mode:'editor'});
   const columns=FIELDS.map(f=>header?.indexOf(f)??-1);
   if(header?.length!==FIELDS.length||columns.includes(-1))throw Error('长表字段不匹配');
   const seen=new Set(),nextMetadata=new Map(),nextRecords=[];
@@ -1146,9 +1143,7 @@ async function start(kind,file){
         source={...saved,kind:saved.kind==='editor'?'editor':'local'};
       }
     }else if(kind==='local'){
-      const bytes=await file.arrayBuffer();
-      let text;
-      try{text=new TextDecoder('utf-8',{fatal:true}).decode(bytes)}catch{text=new TextDecoder('gbk').decode(bytes)}
+      const text=CsvUtils.decodeCSV(await file.arrayBuffer());
       source={kind,name:file.name,text};
     }else if(kind==='editor'){
       draft=pendingEditorDraft();

@@ -1,7 +1,8 @@
 import marketShareData from './market-share-data.js';
+import CsvUtils from './csv-utils.js';
 
 const MARKET_COLUMNS = 'period trend apple huawei osta xiaomi oppo oneplus realme vivo iqoo honor'.split(' ');
-const MARKET_HEADER = 'ISO 周,趋势,苹果,华为,OSTA,小米,OPPO,一加,realme,vivo,iQOO,荣耀';
+const MARKET_HEADER = 'ISO 周,趋势,苹果,华为,OSTA,小米,OPPO,一加,realme,vivo,iQOO,荣耀'.split(',');
 const TRACKING_COLUMNS = 'brand model category date period metric value_wan operator'.split(' ');
 const MODEL_COLUMNS = (
   'model_id model_name brand brand_group aliases series generation variant form_factor ' +
@@ -85,11 +86,8 @@ function validateRows(rows, sheet, columns, key) {
 }
 
 function validateMarketShares(rows) {
-  const quote = value => '"' + value.replaceAll('"', '""') + '"';
-  const csv = [
-    MARKET_HEADER,
-    ...rows.map(([period, ...fields]) => [period.replace('-W', 'W'), ...fields].map(quote).join(','))
-  ].join('\n');
+  const data = rows.map(([period, ...fields]) => [period.replace('-W', 'W'), ...fields]);
+  const csv = CsvUtils.stringifyCSV([MARKET_HEADER, ...data], { eol: '\n', headerQuote: 'minimal' });
   try {
     marketShareData.parseMarketShareCSV(csv, (year, week) =>
       validWeek(year + '-W' + String(week).padStart(2, '0'))

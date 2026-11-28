@@ -7,7 +7,6 @@
  const groups=['苹果','华为','小米','OPPO','vivo','荣耀'];
  const clean=s=>String(s??'').normalize('NFKC').replace(/\p{Cf}/gu,'').replace(/[‐-‒–—―−]/g,'-').replace(/\\+\s*$/,'').trim();
  const alias=s=>aliases[s.replace(/\s/g,'').toLowerCase()];
- const csv=rows=>rows.map(row=>row.map(v=>'"'+String(v).replaceAll('"','""')+'"').join(',')).join('\n');
  const canonical=(v,i,period)=>i===0?String(v).replace('-W','W'):i===1?clean(v).replace(/^本周大盘\s*/,'').replace(/[。.!！]+$/,'').trim()||'未提供':String(v??'').trim()===''?(i===4&&period<'2026W47'?'0':''):Number.isFinite(Number(v))?String(Number(v)):String(v);
  function equal(a,b){const p=canonical(a[0],0);return a.every((v,i)=>canonical(v,i,p)===canonical(b[i],i,p));}
  function parse(raw){
@@ -61,7 +60,10 @@
    if(!Object.hasOwn(b.values,'OSTA'))b.values.OSTA=p<'2026W47'?'0':'';
    const row=[b.period,b.trend,...header.slice(2).map(k=>b.values[k]??'')];
    if(!b.errors.length){
-    try{root.MarketShareData.parseMarketShareCSV(csv([header,[p,...row.slice(1)]]),root.IsoSalesWeek.isoWeekMonday);}
+    try{
+     const csv=root.CsvUtils.stringifyCSV([header,[p,...row.slice(1)]],{eol:'\n'});
+     root.MarketShareData.parseMarketShareCSV(csv,root.IsoSalesWeek.isoWeekMonday);
+    }
     catch(e){b.errors.push(e.message);}
    }
    if(!byPeriod.has(b.period))byPeriod.set(b.period,[]);

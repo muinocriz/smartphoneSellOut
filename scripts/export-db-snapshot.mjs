@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { mkdir, mkdtemp, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import CsvUtils from '../csv-utils.js';
 
 export const SNAPSHOT_SCHEMAS = [
   ['tracking', 'sales-long.csv', 'brand model category date period metric value_wan operator'],
@@ -13,8 +14,6 @@ export const SNAPSHOT_SCHEMAS = [
 export const SNAPSHOT_FILES = new Set(SNAPSHOT_SCHEMAS.map(([, name]) => name));
 export const MANIFEST_FILE = 'sales-snapshot.json';
 const sha256 = value => createHash('sha256').update(value).digest('hex');
-const quote = value => '"' + String(value ?? '').replaceAll('"', '""') + '"';
-const csv = rows => '\uFEFF' + rows.map(row => row.map(quote).join(',')).join('\r\n') + '\r\n';
 
 export async function verifySnapshot(directory) {
   const manifest = JSON.parse(await readFile(join(directory, MANIFEST_FILE), 'utf8'));
@@ -42,7 +41,9 @@ function snapshotCSV(sheet, table, columns, headings) {
     }
     return sheet === 'market-share' && key === 'period' ? String(value).replace('-W', 'W') : value;
   }));
-  return csv([headings ? headings.split(',') : keys, ...rows]);
+  return CsvUtils.stringifyCSV([headings ? headings.split(',') : keys, ...rows], {
+    bom: true, trailingNewline: true
+  });
 }
 
 async function exportSnapshot(origin, destination) {

@@ -1,6 +1,7 @@
 import './iso-sales-week.js';
 import './brand-utils.js';
 import SalesSeries from './sales-series.js';
+import CsvUtils from './csv-utils.js';
 import { EditorError, readEditorSheet, saveEditorRelease } from './sales-editor-database.mjs';
 
 const { HEADER, col, parseCSV } = SalesSeries;
@@ -15,8 +16,8 @@ function validateRanking(rows) {
     throw new EditorError(400, '需要完整的一期榜单。');
   }
   try {
-    const quote = value => '"' + value.replaceAll('"', '""') + '"';
-    const parsed = parseCSV([HEADER.join(','), ...rows.map(row => row.map(quote).join(','))].join('\n'));
+    const csv = CsvUtils.stringifyCSV([HEADER, ...rows], { eol: '\n', headerQuote: 'minimal' });
+    const parsed = parseCSV(csv);
     if (parsed.some(row => row[col.dataset_id] !== parsed[0][col.dataset_id])) {
       throw new Error('每次只能保存同一来源、系列和周期的一期榜单。');
     }

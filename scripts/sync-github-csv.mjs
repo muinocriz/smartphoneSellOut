@@ -6,6 +6,7 @@ import Iso from '../iso-sales-week.js';
 import Series from '../sales-series.js';
 import ModelMaster from '../model-master.js';
 import MarketShare from '../market-share-data.js';
+import CsvUtils from '../csv-utils.js';
 import { SNAPSHOT_SCHEMAS } from './export-db-snapshot.mjs';
 
 const env = process.env;
@@ -14,8 +15,6 @@ const endpoint = new URL('/api/github-csv-sync', worker);
 const repo = 'https://github.com/muinocriz/smartphoneSellOut';
 const shaPattern = /^[a-f0-9]{40}$/;
 const git = (...args) => execFileSync('git', args, {encoding:'utf8', maxBuffer:16 * 1024 * 1024});
-const quote = value => '"' + String(value ?? '').replaceAll('"', '""') + '"';
-const asCSV = (columns, rows) => [columns, ...rows].map(row => row.map(quote).join(',')).join('\n');
 const modelKey = row => JSON.stringify(row.slice(0, 2));
 const modelFields = ModelMaster.HEADER;
 const { normalize, isOsta } = globalThis.BrandUtils;
@@ -161,7 +160,9 @@ function planSheet(sheet, previous, incoming, current) {
     report[dbValue ? 'updated' : 'added']++;
   }
   for (const key of before.keys()) if (!after.has(key)) report.ignoredDeletions++;
-  if (sheet === 'models' && patches.length) ModelMaster.parse(asCSV(modelFields, [...stored.values()]));
+  if (sheet === 'models' && patches.length) {
+    ModelMaster.parse(CsvUtils.stringifyCSV([modelFields, ...stored.values()], { eol: '\n' }));
+  }
   return {patches, report};
 }
 

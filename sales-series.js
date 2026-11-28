@@ -1,6 +1,7 @@
 /* Shared historical CSV parser and weekly-series algorithm (browser + Node). */
 (function(root){
 'use strict';
+  const CsvUtils = typeof module === 'object' && module.exports ? require('./csv-utils.js') : root.CsvUtils;
   const HEADER = 'dataset_id,source,series,period_type,period,period_start,period_end,top_n,actual_count,rank,model,brand_group,pixels,estimated_units,estimated_wan,fit_k,fit_mode,calibration_count,accepted_count,outlier_threshold,algorithm_version,saved_at'.split(',');
   const col = Object.fromEntries(HEADER.map((name, index) => [name, index]));
   const allowedFit = new Set(['single', 'fit', 'robust']);
@@ -128,29 +129,7 @@
     return [...rows].sort((a,b) => a[col.period_end].localeCompare(b[col.period_end]) ||
       a[col.dataset_id].localeCompare(b[col.dataset_id]) || Number(a[col.rank]) - Number(b[col.rank]));
   }
-  function readCSV(raw) {
-    const s = String(raw).replace(/^\uFEFF/, '');
-    const rows = []; let row = [], cell = '', quoted = false, closed = false;
-    function field() { row.push(cell); cell = ''; closed = false; }
-    function line() { field(); if (row.some(v => v !== '')) rows.push(row); row = []; }
-    for (let i = 0; i < s.length; i++) {
-      const c = s[i];
-      if (quoted) {
-        if (c === '"') {
-          if (s[i+1] === '"') { cell += '"'; i++; }
-          else { quoted = false; closed = true; }
-        } else cell += c;
-      } else if (c === ',') field();
-      else if (c === '\r' || c === '\n') {
-        line(); if (c === '\r' && s[i+1] === '\n') i++;
-      } else if (c === '"' && cell === '' && !closed) quoted = true;
-      else if (c === '"' || closed) fail('CSV 引号格式不正确。');
-      else cell += c;
-    }
-    if (quoted) fail('CSV 引号未闭合。');
-    if (row.length || cell !== '' || closed) line();
-    return rows;
-  }
+  const { parseCSV: readCSV } = CsvUtils;
   function parseCSV(raw) {
     const rows=readCSV(raw);
     const head = rows.shift();
